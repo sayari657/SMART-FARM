@@ -1,0 +1,16 @@
+ai_anomaly:
+  contamination: 0.1
+  n_estimators: 100
+  random_state: 42
+
+cv_inference:
+  confidence_threshold: 0.6
+  iou_threshold: 0.45
+  model_path: "models/best.pt"
+
+iot_thresholds:
+  heat_stress_temp: 38.0
+  heat_stress_activity_max: 30
+  fire_risk_temp: 37.0
+  swarming_weight_drop: 3.0
+  stress_sound_db_min: 80.0

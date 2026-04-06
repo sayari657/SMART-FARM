@@ -1,0 +1,37 @@
+stages:
+  data_ingestion:
+    cmd: python scripts/ingest_data.py
+    deps:
+      - ../dataset/raw/
+    outs:
+      - ../dataset/processed/
+  
+  train_cv_model:
+    cmd: python scripts/train_yolo.py --epochs 50
+    deps:
+      - ../dataset/processed/
+    params:
+      - cv_inference.confidence_threshold
+      - cv_inference.iou_threshold
+    outs:
+      - models/best.pt
+
+  train_anomaly_model:
+    cmd: python scripts/train_isolation_forest.py
+    deps:
+      - ../dataset/processed/telemetry.csv
+    params:
+      - ai_anomaly.contamination
+      - ai_anomaly.n_estimators
+      - ai_anomaly.random_state
+    outs:
+      - models/isolation_forest.pkl
+
+  evaluate:
+    cmd: python scripts/evaluate_models.py
+    deps:
+      - models/best.pt
+      - models/isolation_forest.pkl
+    metrics:
+      - eval/metrics.json:
+          cache: false

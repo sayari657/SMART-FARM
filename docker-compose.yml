@@ -1,0 +1,122 @@
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: smart_farm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smart_farm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d smart_farm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Eclipse Mosquitto MQTT ────────────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: smart_farm_mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+  # ── Redis (optional — caching & pub-sub) ─────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: smart_farm_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # ── FastAPI Backend ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart_farm_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    environment:
+      # ---- Database ----
+      # Format: postgresql+pg8000://user:password@host:port/dbname
+      DATABASE_URL: postgresql+pg8000://admin:password@postgres:5432/smart_farm
+      MQTT_BROKER: mosquitto
+      MQTT_PORT: 1883
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-change_me_in_production}
+      CORS_ORIGINS: http://localhost:5173,http://frontend:80
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # ── React Frontend ────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: smart_farm_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+
+  # ── IoT Telemetry Simulator (worker) ─────────────────────────────────────
+  simulator:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    container_name: smart_farm_simulator
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+      - backend
+    command: python ingestion/simulator.py --interval 30
+    environment:
+      MQTT_BROKER: mosquitto
+      API_BASE: http://backend:8000/api/v1
+
+  # ── CV Event Simulator (worker) ───────────────────────────────────────────
+  cv_simulator:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    container_name: smart_farm_cv
+    restart: unless-stopped
+    depends_on:
+      - backend
+    command: python cv/cv_simulator.py
+    environment:
+      API_BASE: http://backend:8000/api/v1
+
+volumes:
+  postgres_data:
+  mosquitto_data:
+  mosquitto_log:
+  redis_data:
