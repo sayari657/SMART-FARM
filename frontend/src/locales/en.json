@@ -1,0 +1,130 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "farms": "My Farms",
+    "animals": "Livestock & Animals",
+    "trees": "Trees & Plantations",
+    "telemetry": "Telemetry",
+    "cv_monitoring": "AI Monitoring",
+    "alerts": "Alerts Center",
+    "assistant": "Agri-Assistant (Derja)",
+    "recommendations": "AI Wisdom",
+    "reports": "Reports",
+    "settings": "Settings",
+    "project_about": "About Project",
+    "overview": "Overview",
+    "monitoring": "Monitoring",
+    "intelligence": "Intelligence",
+    "system": "System",
+    "bee": "Bees",
+    "cow": "Cattle",
+    "poultry": "Poultry",
+    "sheep": "Sheep",
+    "goat": "Goats",
+    "rabbit": "Rabbits"
+  },
+  "navbar": {
+    "title": "Smart Farm AI",
+    "subtitle": "Sovereign Intelligence Platform"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Farm intelligence overview",
+    "weather_title": "Local Farm Weather",
+    "risk_score": "Risk Score",
+    "species_monitor": "Species Monitoring",
+    "cv_detections": "Recent Video Detections",
+    "telemetry_trend": "Telemetry Trend (48h)",
+    "active_alerts": "Active Alerts",
+    "kpi": {
+      "total_farms": "Total Farms",
+      "animal_units": "Animal Units",
+      "active_alerts": "Active Alerts",
+      "health_score": "Avg Health Score",
+      "anomalies": "Anomalies (24h)",
+      "critical_alerts": "Critical Alerts"
+    }
+  },
+  "assistant": {
+    "welcome": "Hello! I am the Smart Farm intelligent assistant. Ask me anything about olives, bees, or livestock (in Derja).",
+    "think": "Thinking...",
+    "error": "Sorry, an error occurred.",
+    "lite_active": "Synthetic Intelligence (Lite Active)",
+    "enterprise_active": "Sovereign Intelligence (Labess-7B)"
+  },
+  "common": {
+    "view_all": "View all",
+    "loading": "Analysis in progress...",
+    "no_data": "No data available",
+    "save": "Save",
+    "cancel": "Cancel",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "farms": {
+    "title": "Farm Management",
+    "subtitle": "Monitoring your agricultural facilities",
+    "add_farm": "Add New Farm",
+    "farm_name": "Farm Name",
+    "location": "Location",
+    "units": "Units",
+    "active": "Active",
+    "maintenance": "Maintenance"
+  },
+  "animals": {
+    "title": "Livestock Inventory",
+    "subtitle": "Health and population tracking",
+    "species": "Species",
+    "health": "Health",
+    "last_check": "Last Check",
+    "population": "Total Population",
+    "alerts": "Health Alerts"
+  },
+  "telemetry": {
+    "title": "Sensor Analytics",
+    "subtitle": "Live IoT historical data",
+    "real_time": "Real-time",
+    "history": "History",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "activity": "Activity"
+  },
+  "cv": {
+    "title": "AI CV Monitoring",
+    "subtitle": "Computer Vision anomaly detection",
+    "live": "Live Feed",
+    "events": "Detected Events",
+    "confidence": "AI Confidence",
+    "object": "Object"
+  },
+  "settings": {
+    "title": "System Settings",
+    "profile": "User Profile",
+    "language": "Interface Language",
+    "notifications": "Alert Notifications",
+    "theme": "Visual Theme"
+  },
+  "project": {
+    "title": "About the Project",
+    "subtitle": "Architecture & Mission of Smart Farm AI",
+    "mission_title": "Empowering Agriculture with Intelligence",
+    "mission_desc": "Next-generation enterprise platform designed to revolutionize livestock management.",
+    "pillar_iot": "IoT Telemetry",
+    "pillar_cv": "Vision AI",
+    "system_arch": "System Architecture",
+    "livestock_title": "Livestock Ecosystem"
+  },
+  "trees": {
+    "title": "Trees & Plantations",
+    "subtitle": "Intelligent orchard monitoring via Computer Vision",
+    "model_btn": "Load Model",
+    "diagnostic_title": "AI Image Diagnostic",
+    "diagnostic_subtitle": "Instantly analyze the health of your trees",
+    "diagnostic_upload": "Upload Image",
+    "diagnostic_analyze": "Start Analysis",
+    "diagnostic_results": "Analysis Results",
+    "diagnostic_drop": "Drop a photo here or click to browse",
+    "health_stats": "Plantation Health",
+    "detection_log": "CV Detection Log"
+  }
+}

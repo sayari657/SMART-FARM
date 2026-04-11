@@ -22,7 +22,10 @@ import AboutCows       from './pages/AboutCows';
 import AboutPoultry    from './pages/AboutPoultry';
 import AboutSheep      from './pages/AboutSheep';
 import AboutGoats      from './pages/AboutGoats';
+import AboutRabbit     from './pages/AboutRabbit';
+import SovereignAssistant from './pages/SovereignAssistant';
 import AboutProject    from './pages/AboutProject';
+import ArbresPlantations from './pages/ArbresPlantations';
 import NotFound        from './pages/NotFound';
 
 function ProtectedRoute({ children }) {
@@ -60,7 +63,10 @@ function AppRoutes() {
         <Route path="aboutpoultry"    element={<AboutPoultry />} />
         <Route path="aboutsheep"      element={<AboutSheep />} />
         <Route path="aboutgoat"       element={<AboutGoats />} />
+        <Route path="aboutrabbit"     element={<AboutRabbit />} />
+        <Route path="assistant"       element={<SovereignAssistant />} />
         <Route path="about-project"   element={<AboutProject />} />
+        <Route path="trees"           element={<ArbresPlantations />} />
       </Route>
 
       {/* 404 */}
@@ -72,7 +78,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppRoutes />
       </Router>
     </AuthProvider>

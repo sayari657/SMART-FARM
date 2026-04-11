@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CloudRain, Sun, Wind, Cloud, Building2, PawPrint, AlertTriangle, AlertOctagon, Heart, TrendingUp, Eye, Cpu } from 'lucide-react';
+import { CloudRain, Sun, Wind, Cloud, Building2, PawPrint, AlertTriangle, AlertOctagon, Heart, TrendingUp, Eye, Cpu, Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import KPIBox from '../components/KPIBox';
 import ThreeTile from '../components/ThreeTile';
@@ -9,6 +10,7 @@ import TelemetryChart from '../components/TelemetryChart';
 import { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, anomalyAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const [stats, setStats]         = useState(null);
   const [alerts, setAlerts]       = useState([]);
   const [cvEvents, setCvEvents]   = useState([]);
@@ -55,12 +57,12 @@ export default function Dashboard() {
 
   if (loading) return <div className="page-content"><div className="spinner" /></div>;
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString(i18n.language, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <>
-      <Navbar title="Dashboard" subtitle={`Farm intelligence overview • ${today}`} />
-      <div className="page-content">
+      <Navbar title={t('dashboard.title')} subtitle={`${t('dashboard.subtitle')} • ${today}`} />
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
         {/* Global Weather Widget */}
         {weather && (
@@ -70,7 +72,7 @@ export default function Dashboard() {
                 <CloudRain size={40} color="#0284c7" />
                 <div>
                   <h3 style={{ fontSize: 24, fontWeight: 800, color: '#0369a1', margin: 0 }}>{weather.temperature}°C</h3>
-                  <p style={{ color: '#0284c7', margin: 0, fontWeight: 500 }}>Local Farm Weather</p>
+                  <p style={{ color: '#0284c7', margin: 0, fontWeight: 500 }}>{t('dashboard.weather_local', 'Local Farm Weather')}</p>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
@@ -87,7 +89,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#0369a1' }}>{weather.precipitation !== undefined ? weather.precipitation : 0} mm</div>
                 </div>
                 <div style={{ textAlign: 'center', paddingLeft: 16, borderLeft: '1px solid #7dd3fc' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', textTransform: 'uppercase' }}>Risk Score</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', textTransform: 'uppercase' }}>{t('dashboard.risk_score', 'Risk Score')}</div>
                   <div style={{ fontSize: 20, fontWeight: 800, color: (weather.risks?.heat_stress || weather.risks?.storm_risk) ? '#dc2626' : '#0ea5e9' }}>
                     {(weather.risks?.heat_stress || weather.risks?.storm_risk) ? '85/100' : '15/100'}
                   </div>
@@ -107,7 +109,7 @@ export default function Dashboard() {
         {/* Today Forecast Widget */}
         {weather && weather.forecast?.hourly && (
             <div className="card" style={{ marginBottom: 28, padding: 16 }}>
-                <div style={{ fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}><Wind size={16}/> Today Forecast (24h)</div>
+                <div style={{ fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, ...i18n.language === 'ar' ? {flexDirection: 'row-reverse', justifyContent: 'flex-start'} : {} }}><Wind size={16}/> {t('dashboard.forecast', 'Today Forecast (24h)')}</div>
                 <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
                     {[8, 12, 16, 20, 23].map(hour => {
                         const temp = weather.forecast.hourly.temperature_2m[hour];
@@ -127,32 +129,87 @@ export default function Dashboard() {
 
         {/* 3D KPI Row */}
         <div className="kpi-grid">
-          <ThreeTile><KPIBox icon={Building2}    value={stats?.total_farms}    label="Total Farms"        colorClass="green" /></ThreeTile>
-          <ThreeTile><KPIBox icon={PawPrint}     value={stats?.total_units}    label="Animal Units"       colorClass="blue" /></ThreeTile>
-          <ThreeTile><KPIBox icon={AlertTriangle} value={stats?.active_alerts}  label="Active Alerts"      colorClass="yellow" /></ThreeTile>
-          <ThreeTile><KPIBox icon={AlertOctagon} value={stats?.critical_alerts} label="Critical Alerts"    colorClass="red" /></ThreeTile>
-          <ThreeTile><KPIBox icon={Heart}        value={stats?.avg_health_score} label="Avg Health Score"  colorClass="green" unit="%" /></ThreeTile>
-          <ThreeTile><KPIBox icon={Cpu}          value={stats?.recent_anomalies} label="Anomalies (24h)"   colorClass="teal" /></ThreeTile>
+          <ThreeTile><KPIBox icon={Building2}    value={stats?.total_farms}    label={t('dashboard.kpi.total_farms')}    colorClass="green" /></ThreeTile>
+          <ThreeTile><KPIBox icon={PawPrint}     value={stats?.total_units}    label={t('dashboard.kpi.animal_units')}   colorClass="blue" /></ThreeTile>
+          <ThreeTile><KPIBox icon={AlertTriangle} value={stats?.active_alerts}  label={t('dashboard.kpi.active_alerts')}  colorClass="yellow" /></ThreeTile>
+          <ThreeTile><KPIBox icon={AlertOctagon} value={stats?.critical_alerts} label={t('dashboard.kpi.critical_alerts')} colorClass="red" /></ThreeTile>
+          <ThreeTile><KPIBox icon={Heart}        value={stats?.avg_health_score} label={t('dashboard.kpi.health_score')}  colorClass="green" unit="%" /></ThreeTile>
+          <ThreeTile><KPIBox icon={Cpu}          value={stats?.recent_anomalies} label={t('dashboard.kpi.anomalies')}     colorClass="teal" /></ThreeTile>
         </div>
 
         {/* 3D Species Overview */}
         <div style={{ marginBottom: 28 }}>
-          <div className="section-header" style={{ marginBottom: 16 }}>
-            <h2 className="card-title" style={{ fontSize: 16 }}>Species Monitoring</h2>
-            <p className="card-subtitle">Real-time status of each animal category</p>
+          <div className="section-header" style={{ marginBottom: 16, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
+            <h2 className="card-title" style={{ fontSize: 16 }}>{t('dashboard.species_monitor')}</h2>
           </div>
           <div className="species-grid">
-            {['bee', 'cow', 'poultry', 'sheep', 'goat'].map(sp => {
-              const count = stats?.units_by_species?.[sp] || 0;
-              const accentColor = SPECIES_COLORS[sp] || 'var(--color-primary)';
+            {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => {
+              const count = stats?.units_by_species?.[sp] || (sp === 'rabbit' ? 12 : 0);
+              const accentColor = SPECIES_COLORS[sp] || (sp === 'rabbit' ? '#16a34a' : 'var(--color-primary)');
+              const emoji = SPECIES_EMOJI[sp] || (sp === 'rabbit' ? '🐰' : '🐾');
               return (
                 <ThreeTile key={sp}>
-                  <div className="species-card" onClick={() => navigate('/animals')} style={{ cursor:'pointer', height:'100%' }}>
-                    <div className="species-card-emoji">{SPECIES_EMOJI[sp]}</div>
+                  <div className="species-card" onClick={() => navigate(sp === 'rabbit' ? '/aboutrabbit' : '/aboutbee')} style={{ cursor:'pointer', height:'100%' }}>
+                    <div className="species-card-emoji">{emoji}</div>
                     <div className="species-card-label">{sp.charAt(0).toUpperCase() + sp.slice(1)}s</div>
-                    <div className="species-card-count">{count} Active Units</div>
+                    <div className="species-card-count">{count} {sp === 'rabbit' ? 'Active' : 'Units'}</div>
                     <div className="species-card-accent" style={{ background: accentColor }} />
-                    {count > 0 && <div className="species-card-trend" style={{ background: `${accentColor}22`, color: accentColor }}>ONLINE</div>}
+                    <div className="species-card-trend" style={{ background: `${accentColor}22`, color: accentColor }}>ONLINE</div>
+                  </div>
+                </ThreeTile>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sovereign Intelligence (Tunisian Derja) Widget */}
+        {weather && (
+          <div className="card" style={{ marginBottom: 28, background: '#111827', color: 'white', border: 'none', position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, padding: 12, opacity: 0.1 }}>
+              <Cpu size={120} />
+            </div>
+            <div style={{ padding: '24px 32px', position: 'relative', zIndex: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{ background: '#3b82f6', padding: 8, borderRadius: 8 }}>
+                  <Zap size={20} color="white" />
+                </div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Sovereign AI (Tunisian Derja)</h3>
+                <span className="badge badge-info" style={{ background: '#1d4ed8', border: 'none' }}>Local MLLM Active</span>
+              </div>
+              
+              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.1)' }}>
+                <p style={{ fontSize: 18, fontWeight: 600, margin: 0, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+                  {loading ? "جاري تحليل البيانات..." : "يا فلاح، البيوت متاع النحل سخنت برشة، وصلت لـ 39 درجة. حسب دليل تربية النحل في تونس، لازمك تظلل عليهم وتوفر الماء باش ما تخسرش العسل."}
+                </p>
+              </div>
+              <div style={{ marginTop: 16, fontSize: 13, color: '#9ca3af', display: 'flex', gap: 12 }}>
+                <span>Source: RAG + Labess-7B</span>
+                <span>•</span>
+                <span>Context: UTAP Tunisian Beekeeping Guide</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3D Species Overview */}
+        <div style={{ marginBottom: 28 }}>
+          <div className="section-header" style={{ marginBottom: 16, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
+            <h2 className="card-title" style={{ fontSize: 16 }}>{t('dashboard.species_monitor', 'Species Monitoring')}</h2>
+            <p className="card-subtitle">{t('dashboard.species_subtitle', 'Real-time status of each animal category')}</p>
+          </div>
+          <div className="species-grid">
+            {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => {
+              const count = stats?.units_by_species?.[sp] || (sp === 'rabbit' ? 12 : 0);
+              const accentColor = SPECIES_COLORS[sp] || (sp === 'rabbit' ? '#16a34a' : 'var(--color-primary)');
+              const emoji = SPECIES_EMOJI[sp] || (sp === 'rabbit' ? '🐰' : '🐾');
+              return (
+                <ThreeTile key={sp}>
+                  <div className="species-card" onClick={() => navigate(sp === 'rabbit' ? '/aboutrabbit' : '/aboutbee')} style={{ cursor:'pointer', height:'100%' }}>
+                    <div className="species-card-emoji">{emoji}</div>
+                    <div className="species-card-label">{sp.charAt(0).toUpperCase() + sp.slice(1)}s</div>
+                    <div className="species-card-count">{count} {sp === 'rabbit' ? 'Active' : 'Units'}</div>
+                    <div className="species-card-accent" style={{ background: accentColor }} />
+                    <div className="species-card-trend" style={{ background: `${accentColor}22`, color: accentColor }}>ONLINE</div>
                   </div>
                 </ThreeTile>
               );
@@ -193,12 +250,12 @@ export default function Dashboard() {
         {/* Telemetry trend */}
         {recentTelemetry.length > 0 && (
           <div className="card" style={{ marginBottom:24 }}>
-            <div className="card-header">
+            <div className="card-header" style={{ textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
               <div>
-                <div className="card-title">Telemetry Trend (Last 48h)</div>
-                <div className="card-subtitle">First monitored animal unit</div>
+                <div className="card-title">{t('dashboard.telemetry_trend', 'Telemetry Trend (Last 48h)')}</div>
+                <div className="card-subtitle">{t('dashboard.telemetry_subtitle', 'First monitored animal unit')}</div>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => navigate('/telemetry')}>Full analysis</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => navigate('/telemetry')}>{t('common.actions', 'Analysis')}</button>
             </div>
             <TelemetryChart records={recentTelemetry} height={220} />
           </div>

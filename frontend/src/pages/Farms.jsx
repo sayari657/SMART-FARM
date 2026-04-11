@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import FarmCard from '../components/FarmCard';
 import { farmsAPI, externalAPI } from '../services/api';
 
 export default function Farms() {
+  const { t, i18n } = useTranslation();
   const [farms, setFarms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -69,7 +71,6 @@ export default function Farms() {
             longitude: position.coords.longitude
           }));
           setGeocoding(false);
-          // Optional: we can automatically trigger reverseGeocode here if we want!
         },
         (error) => {
           alert("Error getting location: " + error.message);
@@ -102,31 +103,31 @@ export default function Farms() {
   return (
     <>
       <Navbar
-        title="Farms"
-        subtitle={`${farms.length} farm${farms.length !== 1 ? 's' : ''} registered`}
+        title={t('farms.title')}
+        subtitle={`${farms.length} ${t('farms.units')}`}
         actions={
           <button className="btn btn-primary" id="btn-add-farm" onClick={() => setShowForm(v => !v)}>
-            <Plus size={14} /> Add Farm
+            <Plus size={14} /> {t('farms.add_farm')}
           </button>
         }
       />
-      <div className="page-content">
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
         {showForm && (
           <div className="card" style={{ marginBottom:24 }}>
-            <div className="card-header">
-              <div className="card-title">New Farm</div>
+            <div className="card-header" style={{ textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
+              <div className="card-title">{t('farms.add_farm')}</div>
               <button onClick={() => setShowForm(false)} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'var(--color-text-3)' }}>✕</button>
             </div>
             <form onSubmit={handleCreate} style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Farm Name *</label>
+                  <label className="form-label">{t('farms.farm_name')} *</label>
                   <input className="form-input" placeholder="Oasis Apiary" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    Location (Searchable)
+                    {t('farms.location')}
                     <button type="button" onClick={geocodeAddress} disabled={geocoding} style={{ background:'none', border:'none', color:'var(--color-primary)', cursor:'pointer', fontSize: 12 }}>
                       {geocoding ? 'Locating...' : 'Get GPS (Nominatim)'}
                     </button>
@@ -160,11 +161,11 @@ export default function Farms() {
                   <input className="form-input" type="number" min="0" step="0.1" placeholder="12.5" value={form.total_area_ha} onChange={e=>setForm(p=>({...p,total_area_ha:e.target.value}))} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Status</label>
+                  <label className="form-label">{t('common.status')}</label>
                   <select className="form-select" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
-                    <option value="active">Active</option>
+                    <option value="active">{t('farms.active')}</option>
                     <option value="inactive">Inactive</option>
-                    <option value="maintenance">Maintenance</option>
+                    <option value="maintenance">{t('farms.maintenance')}</option>
                   </select>
                 </div>
               </div>
@@ -173,8 +174,8 @@ export default function Farms() {
                 <input className="form-input" placeholder="Brief description..." value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} />
               </div>
               <div style={{ display:'flex', gap:10 }}>
-                <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Create Farm'}</button>
-                <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+                <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : t('common.save')}</button>
+                <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>{t('common.cancel')}</button>
               </div>
             </form>
           </div>
@@ -183,17 +184,17 @@ export default function Farms() {
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
           <div style={{ position:'relative', flex:1, maxWidth:340 }}>
             <Search size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--color-text-3)' }} />
-            <input className="form-input" placeholder="Search farms…" value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:32 }} />
+            <input className="form-input" placeholder={t('farms.title').slice(0, 15) + "..."} value={search} onChange={e=>setSearch(e.target.value)} style={{ paddingLeft:32 }} />
           </div>
-          <div style={{ fontSize:13, color:'var(--color-text-3)' }}>{filtered.length} result{filtered.length!==1?'s':''}</div>
+          <div style={{ fontSize:13, color:'var(--color-text-3)' }}>{filtered.length} {t('common.actions')}</div>
         </div>
 
         {loading && <div className="spinner" />}
         {!loading && filtered.length === 0 && (
           <div className="empty-state">
             <span style={{ fontSize:48 }}>🌿</span>
-            <h3>No farms found</h3>
-            <p>Add your first farm using the button above.</p>
+            <h3>{t('common.no_data')}</h3>
+            <p>{t('farms.subtitle')}</p>
           </div>
         )}
         <div className="grid-auto">

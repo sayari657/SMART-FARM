@@ -1,0 +1,130 @@
+{
+  "sidebar": {
+    "dashboard": "لوحة القيادة",
+    "farms": "المزارع و النحل",
+    "animals": "الحيوانات و البقر",
+    "trees": "الأشجار والمزارع",
+    "telemetry": "المستشعرات",
+    "cv_monitoring": "المراقبة بالكاميرا",
+    "alerts": "مركز التنبيهات",
+    "assistant": "المساعد الذكي (دارجة)",
+    "recommendations": "نصائح ذكية",
+    "reports": "التقارير الحينية",
+    "settings": "الإعدادات",
+    "project_about": "حول المشروع",
+    "overview": "نظرة عامة",
+    "monitoring": "المراقبة",
+    "intelligence": "الذكاء",
+    "system": "النظام",
+    "bee": "النحل",
+    "cow": "البقر",
+    "poultry": "الدواجن",
+    "sheep": "الخرفان",
+    "goat": "الماعز",
+    "rabbit": "الأرانب"
+  },
+  "navbar": {
+    "title": "سمارت فارم AI",
+    "subtitle": "منصة الذكاء الفلاحي السيادي"
+  },
+  "dashboard": {
+    "title": "لوحة القيادة",
+    "subtitle": "نظرة عامة على ذكاء المزرعة",
+    "weather_title": "الطقس المحلي للمزرعة",
+    "risk_score": "مؤشر الخطر",
+    "species_monitor": "مراقبة الأنواع",
+    "cv_detections": "آخر عمليات الكشف بالكاميرا",
+    "telemetry_trend": "مؤشر المستشعرات (48س)",
+    "active_alerts": "التنبيهات الحالية",
+    "kpi": {
+      "total_farms": "إجمالي المزارع",
+      "animal_units": "الوحدات الحيوانية",
+      "active_alerts": "التنبيهات النشطة",
+      "health_score": "معدل الصحة العام",
+      "anomalies": "التجاوزات (24س)",
+      "critical_alerts": "تنبيهات خطيرة"
+    }
+  },
+  "assistant": {
+    "welcome": "عسلامة! أنا المساعد الذكي نتاع سمارت فارم. تنجم تسألني على النحل، العلوش، ولا أي حاجة أخرى بالدارجة.",
+    "think": "جاري التفكير...",
+    "error": "سامحنا، صارت مشكلة صغيرة.",
+    "lite_active": "ذكاء اصطناعي محلي (نمط سريع)",
+    "enterprise_active": "ذكاء اصطناعي سيادي (Labess-7B)"
+  },
+  "common": {
+    "view_all": "عرض الكل",
+    "loading": "جاري التحليل...",
+    "no_data": "لا توجد بيانات متاحة",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "status": "الحالة",
+    "actions": "الإجراءات"
+  },
+  "farms": {
+    "title": "إدارة المزارع",
+    "subtitle": "مراقبة منشآتك الفلاحية",
+    "add_farm": "إضافة مزرعة",
+    "farm_name": "اسم المزرعة",
+    "location": "الموقع",
+    "units": "الوحدات",
+    "active": "نشطة",
+    "maintenance": "صيانة"
+  },
+  "animals": {
+    "title": "جرد الثروة الحيوانية",
+    "subtitle": "متابعة الصحة وعدد الحيوانات",
+    "species": "الأنواع",
+    "health": "الصحة",
+    "last_check": "آخر فحص",
+    "population": "إجمالي القطيع",
+    "alerts": "تنبيهات صحية"
+  },
+  "telemetry": {
+    "title": "تحليل المستشعرات",
+    "subtitle": "بيانات إنترنت الأشياء في الوقت الفعلي",
+    "real_time": "مباشر",
+    "history": "السجل",
+    "temperature": "الحرارة",
+    "humidity": "الرطوبة",
+    "activity": "النشاط"
+  },
+  "cv": {
+    "title": "المراقبة الذكية بالكاميرا",
+    "subtitle": "كشف الأعطال والذكاء الاصطناعي",
+    "live": "بث مباشر",
+    "events": "الأحداث المكتشفة",
+    "confidence": "دقة الذكاء",
+    "object": "الشيء"
+  },
+  "settings": {
+    "title": "إعدادات النظام",
+    "profile": "الحساب الشخصي",
+    "language": "لغة الواجهة",
+    "notifications": "تنبيهات النظام",
+    "theme": "المظهر"
+  },
+  "project": {
+    "title": "حول المشروع",
+    "subtitle": "البنية التحتية ومهمة Smart Farm AI",
+    "mission_title": "تمكين الفلاحة بالذكاء الاصطناعي",
+    "mission_desc": "منصة الجيل القادم المصممة لإحداث ثورة في إدارة الثروة الحيوانية.",
+    "pillar_iot": "إنترنت الأشياء",
+    "pillar_cv": "الرؤية الحاسوبية",
+    "system_arch": "هيكلة النظام",
+    "livestock_title": "النظام البيئي للماشية"
+  },
+  "trees": {
+    "title": "الأشجار والمزارع",
+    "subtitle": "مراقبة البساتين بالذكاء الاصطناعي والكاميرا",
+    "model_btn": "تحميل النموذج",
+    "diagnostic_title": "تشخيص الذكاء الاصطناعي بالصور",
+    "diagnostic_subtitle": "تحليل فوري لصحة أشجارك",
+    "diagnostic_upload": "تحميل صورة",
+    "diagnostic_analyze": "بدء التحليل",
+    "diagnostic_results": "نتائج التحليل",
+    "diagnostic_drop": "اسحب الصورة هنا أو اضغط للتصفح",
+    "health_stats": "صحة المزارع",
+    "detection_log": "سجل الكشف الذكي"
+  }
+}

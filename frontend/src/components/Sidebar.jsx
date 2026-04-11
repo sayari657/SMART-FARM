@@ -1,43 +1,46 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Building2, PawPrint, Activity, Eye,
-  AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf, Layers
+  AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf, Layers, Bot, TreePine
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV = [
   {
     section: 'Overview', items: [
-      { to: '/about-project', icon: Layers, label: 'About Project' },
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/farms', icon: Building2, label: 'Farms' },
-      { to: '/animals', icon: PawPrint, label: 'Animals' },
-
+      { to: '/about-project', icon: Layers, labelKey: 'sidebar.project_about' },
+      { to: '/dashboard', icon: LayoutDashboard, labelKey: 'sidebar.dashboard' },
+      { to: '/farms', icon: Building2, labelKey: 'sidebar.farms' },
+      { to: '/animals', icon: PawPrint, labelKey: 'sidebar.animals' },
+      { to: '/trees', icon: TreePine, labelKey: 'sidebar.trees' },
     ]
   },
   {
     section: 'Monitoring', items: [
-      { to: '/telemetry', icon: Activity, label: 'Telemetry' },
-      { to: '/cv', icon: Eye, label: 'CV Monitoring' },
-      { to: '/alerts', icon: AlertTriangle, label: 'Alerts Center' },
+      { to: '/telemetry', icon: Activity, labelKey: 'sidebar.telemetry' },
+      { to: '/cv', icon: Eye, labelKey: 'sidebar.cv_monitoring' },
+      { to: '/alerts', icon: AlertTriangle, labelKey: 'sidebar.alerts' },
     ]
   },
   {
     section: 'Intelligence', items: [
-      { to: '/recommendations', icon: Lightbulb, label: 'Recommendations' },
-      { to: '/reports', icon: FileText, label: 'Reports' },
+      { to: '/assistant', icon: Bot, labelKey: 'sidebar.assistant' },
+      { to: '/recommendations', icon: Lightbulb, labelKey: 'sidebar.recommendations' },
+      { to: '/reports', icon: FileText, labelKey: 'sidebar.reports' },
     ]
   },
   {
     section: 'System', items: [
-      { to: '/settings', icon: Settings, label: 'Settings' },
+      { to: '/settings', icon: Settings, labelKey: 'sidebar.settings' },
     ]
   },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); navigate('/login'); };
@@ -60,15 +63,15 @@ export default function Sidebar() {
 
       {NAV.map(({ section, items }) => (
         <div className="sidebar-section" key={section}>
-          <div className="sidebar-section-label">{section}</div>
-          {items.map(({ to, icon: Icon, label }) => (
+          <div className="sidebar-section-label">{t(`sidebar.${section.toLowerCase()}`, section)}</div>
+          {items.map(({ to, icon: Icon, labelKey }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
             >
               <Icon size={16} />
-              {label}
+              {t(labelKey)}
             </NavLink>
           ))}
         </div>

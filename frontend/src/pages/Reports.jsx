@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Plus, CloudRain, Sprout } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { reportsAPI, farmsAPI, externalAPI } from '../services/api';
 
 const REPORT_TYPES = ['daily','weekly','monthly'];
 
 export default function Reports() {
+  const { t, i18n } = useTranslation();
   const [reports, setReports] = useState([]);
   const [farms, setFarms]     = useState([]);
   const [forecast, setForecast] = useState(null);
@@ -58,29 +60,29 @@ export default function Reports() {
   return (
     <>
       <Navbar
-        title="Reports"
-        subtitle="Farm performance reports"
+        title={t('sidebar.reports')}
+        subtitle={t('dashboard.kpi.health_score')}
         actions={
           <button className="btn btn-primary" onClick={() => setShowForm(v=>!v)}>
-            <Plus size={14} /> Generate Report
+            <Plus size={14} /> {t('common.actions')}
           </button>
         }
       />
-      <div className="page-content">
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
         {/* Agronomic Insight Header */}
         {(forecast || agroInfo) && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
                 {forecast && forecast.hourly && (
                   <div className="card" style={{ padding: 20, background: 'linear-gradient(to right, #f8fafc, #e2e8f0)', border: '1px solid #cbd5e1' }}>
-                      <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}><CloudRain size={16}/> External Weather Context</div>
-                      <p style={{ fontSize: 13, color: '#334155' }}>7-day meteorological forecast has been explicitly correlated against generated reports to calculate expected impacts on livestock health & humidity anomalies.</p>
+                      <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}><CloudRain size={16}/> {t('dashboard.weather_local', 'External Weather Context')}</div>
+                      <p style={{ fontSize: 13, color: '#334155' }}>7-day meteorological forecast has been explicitly correlated against generated reports.</p>
                   </div>
                 )}
                 {agroInfo && agroInfo.data && agroInfo.data.length > 0 && (
                   <div className="card" style={{ padding: 20, background: 'linear-gradient(to right, #f0fdf4, #dcfce7)', border: '1px solid #bbf7d0' }}>
-                      <div style={{ fontWeight: 800, color: '#166534', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}><Sprout size={16}/> Trefle Botanical Data</div>
-                      <p style={{ fontSize: 13, color: '#15803d' }}>Successfully integrated plant species intelligence for <b>{agroInfo.data[0].scientific_name}</b> providing agronomic feed context to each AI generated report.</p>
+                      <div style={{ fontWeight: 800, color: '#166534', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}><Sprout size={16}/> {t('project.pillar_iot')}</div>
+                      <p style={{ fontSize: 13, color: '#15803d' }}>Successfully integrated plant species intelligence for <b>{agroInfo.data[0].scientific_name}</b>.</p>
                   </div>
                 )}
             </div>
@@ -88,20 +90,20 @@ export default function Reports() {
 
         {showForm && (
           <div className="card" style={{ marginBottom:24 }}>
-            <div className="card-header">
-              <div className="card-title">Generate New Report</div>
+            <div className="card-header" style={{ textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
+              <div className="card-title">{t('sidebar.reports')}</div>
               <button onClick={() => setShowForm(false)} style={{ background:'none', border:'none', fontSize:18, cursor:'pointer', color:'var(--color-text-3)' }}>✕</button>
             </div>
             <form onSubmit={handleGenerate} style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Farm</label>
+                  <label className="form-label">{t('farms.farm_name')}</label>
                   <select className="form-select" value={form.farm_id} onChange={e=>setForm(p=>({...p,farm_id:e.target.value}))} required>
                     {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Report Type</label>
+                  <label className="form-label">{t('common.status')}</label>
                   <select className="form-select" value={form.report_type} onChange={e=>setForm(p=>({...p,report_type:e.target.value}))}>
                     {REPORT_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>)}
                   </select>
@@ -118,8 +120,8 @@ export default function Reports() {
                 </div>
               </div>
               <div style={{ display:'flex', gap:10 }}>
-                <button className="btn btn-primary" type="submit" disabled={generating}>{generating?'Generating…':'Generate'}</button>
-                <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>Cancel</button>
+                <button className="btn btn-primary" type="submit" disabled={generating}>{generating?'...':t('common.save')}</button>
+                <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>{t('common.cancel')}</button>
               </div>
             </form>
           </div>
@@ -127,11 +129,20 @@ export default function Reports() {
 
         <div className="card">
           {loading ? <div className="spinner" /> : reports.length === 0 ? (
-            <div className="empty-state"><FileText size={40} /><h3>No reports yet</h3><p>Generate your first report above.</p></div>
+            <div className="empty-state"><FileText size={40} /><h3>{t('common.no_data')}</h3></div>
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Title</th><th>Type</th><th>Period</th><th>Units</th><th>Alerts</th><th>Avg Health</th><th>Generated</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>{t('farms.farm_name')}</th>
+                    <th>{t('common.status')}</th>
+                    <th>Period</th>
+                    <th>{t('farms.units')}</th>
+                    <th>{t('sidebar.alerts')}</th>
+                    <th>{t('dashboard.kpi.health_score')}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {reports.map(r => (
                     <tr key={r.id}>
@@ -143,7 +154,6 @@ export default function Reports() {
                       <td>{r.summary?.unit_count ?? '—'}</td>
                       <td>{r.summary?.total_alerts ?? '—'}</td>
                       <td>{r.summary?.avg_health_score ? `${r.summary.avg_health_score}%` : '—'}</td>
-                      <td style={{ fontSize:12, color:'var(--color-text-3)' }}>{new Date(r.created_at).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

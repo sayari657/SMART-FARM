@@ -42,6 +42,10 @@ VALUES
   ('goat',    'Goat Group',     'Caprine herd monitoring',
    '{"body_temperature":"°C","activity":"steps/h","milk_yield":"L/day"}',
    '["goat","feeding","fighting","limping","predator"]',
+   NOW()),
+  ('rabbit',  'Rabbitry',       'Cuniculture monitor for feed & nest',
+   '{"nest_temperature":"°C","humidity":"%","feed_consumption":"g/day","activity":"index"}',
+   '["rabbit","feeding","nesting","predator","isolated"]',
    NOW())
 ON CONFLICT (species) DO NOTHING;
 

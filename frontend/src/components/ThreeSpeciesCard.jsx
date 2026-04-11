@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Float, Html, ContactShadows, PresentationControls, Billboard } from '@react-three/drei';
+import { useTranslation } from 'react-i18next';
 
 function AnimalScene({ emoji, color, isActive }) {
   return (
@@ -56,6 +57,7 @@ function AnimalScene({ emoji, color, isActive }) {
 }
 
 const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
+  const { t } = useTranslation();
   return (
     <div 
       className={`summary-card ${isActive ? 'active' : ''}`}
@@ -78,8 +80,8 @@ const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
 
       {/* Info Layer */}
       <div style={{ padding: '0 20px 20px', textAlign: 'center', zIndex: 1, pointerEvents: 'none' }}>
-        <div className="summary-card-title">{sp.charAt(0).toUpperCase() + sp.slice(1)}s</div>
-        <div className="summary-card-count">{count} Active Units</div>
+        <div className="summary-card-title">{t(`sidebar.${sp}`)}</div>
+        <div className="summary-card-count">{count} {t('animals.population')}</div>
       </div>
 
       <div className="summary-card-accent" style={{ background: color }} />

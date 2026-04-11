@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { settingsAPI, farmsAPI } from '../services/api';
 
@@ -21,6 +22,7 @@ const SECTION_MAP = {
 };
 
 export default function Settings() {
+  const { t, i18n } = useTranslation();
   const [settings, setSettings] = useState({});
   const [farms, setFarms]       = useState([]);
   const [saving, setSaving]     = useState(false);
@@ -55,30 +57,30 @@ export default function Settings() {
     setSettings(p => ({ ...p, [key]: val }));
   };
 
-  if (loading) return <div className="page-content"><div className="spinner" /></div>;
+  if (loading) return <div className="page-content" style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><div className="spinner" /></div>;
 
   return (
     <>
       <Navbar
-        title="Settings"
-        subtitle="Configure alert thresholds and system parameters"
+        title={t('settings.title')}
+        subtitle={t('settings.notifications')}
         actions={
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            <Save size={14} /> {saving ? 'Saving…' : 'Save Settings'}
+            <Save size={14} /> {saving ? '...' : t('common.save')}
           </button>
         }
       />
-      <div className="page-content">
-        {saved && <div className="alert-banner success" style={{ marginBottom:20 }}><div className="alert-banner-msg">✓ Settings saved successfully</div></div>}
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
+        {saved && <div className="alert-banner success" style={{ marginBottom:20 }}><div className="alert-banner-msg">✓ {t('common.save')}</div></div>}
 
         {Object.entries(SECTION_MAP).map(([section, keys]) => (
           <div key={section} className="card" style={{ marginBottom:20 }}>
-            <div className="card-title" style={{ marginBottom:18 }}>{section}</div>
+            <div className="card-title" style={{ marginBottom:18, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>{section}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
               {keys.map(key => {
                 const def = DEFAULT_SETTINGS.find(d => d.key === key);
                 return (
-                  <div key={key} style={{ display:'grid', gridTemplateColumns:'1fr 200px', gap:16, alignItems:'center' }}>
+                  <div key={key} style={{ display:'grid', gridTemplateColumns: i18n.language === 'ar' ? '200px 1fr' : '1fr 200px', gap:16, alignItems:'center' }}>
                     <div>
                       <div style={{ fontSize:13, fontWeight:600 }}>{key.replace(/_/g,' ')}</div>
                       <div style={{ fontSize:12, color:'var(--color-text-3)' }}>{def?.description}</div>
@@ -98,13 +100,20 @@ export default function Settings() {
         ))}
 
         <div className="card">
-          <div className="card-title" style={{ marginBottom:12 }}>Farm Information</div>
+          <div className="card-title" style={{ marginBottom:12, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>{t('farms.title')}</div>
           {farms.length === 0 ? (
-            <div className="empty-state" style={{ padding:'20px 0' }}><p>No farms registered yet</p></div>
+            <div className="empty-state" style={{ padding:'20px 0' }}><p>{t('common.no_data')}</p></div>
           ) : (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Location</th><th>Status</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>{t('farms.farm_name')}</th>
+                    <th>{t('farms.location')}</th>
+                    <th>{t('common.status')}</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {farms.map(f => (
                     <tr key={f.id}>

@@ -45,6 +45,37 @@ services:
     volumes:
       - redis_data:/data
 
+  # ── ChromaDB (Vector Database for RAG) ────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: smart_farm_chroma
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/data
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+
+  # ── Ollama (Local MLLMs: Llava, Labess) ───────────────────────────────────
+  # Note: Requires NVIDIA Container Toolkit for GPU acceleration
+  ollama:
+    image: ollama/ollama:latest
+    container_name: smart_farm_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
   # ── FastAPI Backend ───────────────────────────────────────────────────────
   backend:
     build:
@@ -57,13 +88,17 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
+      chromadb:
+        condition: service_started
     environment:
       # ---- Database ----
-      # Format: postgresql+pg8000://user:password@host:port/dbname
       DATABASE_URL: postgresql+pg8000://admin:password@postgres:5432/smart_farm
       MQTT_BROKER: mosquitto
       MQTT_PORT: 1883
       REDIS_URL: redis://redis:6379/0
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      OLLAMA_BASE_URL: http://ollama:11434
       SECRET_KEY: ${SECRET_KEY:-change_me_in_production}
       CORS_ORIGINS: http://localhost:5173,http://frontend:80
     ports:
@@ -72,6 +107,7 @@ services:
       - ./backend:/app
     command: >
       sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
 
   # ── React Frontend ────────────────────────────────────────────────────────
   frontend:
@@ -120,3 +156,5 @@ volumes:
   mosquitto_data:
   mosquitto_log:
   redis_data:
+  chromadb_data:
+  ollama_data:

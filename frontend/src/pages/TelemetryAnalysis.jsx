@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Thermometer, CloudRain, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import TelemetryChart from '../components/TelemetryChart';
 import { animalsAPI, telemetryAPI, externalAPI } from '../services/api';
 
 export default function TelemetryAnalysis() {
+  const { t, i18n } = useTranslation();
   const [units, setUnits]     = useState([]);
   const [selectedId, setSelId] = useState('');
   const [records, setRecords] = useState([]);
@@ -51,10 +53,10 @@ export default function TelemetryAnalysis() {
 
     return (
       <div className="card" style={{ marginBottom: 24, background: isAnomalous ? '#fef2f2' : 'var(--color-surface)', border: isAnomalous ? '1px solid #fecaca' : '' }}>
-        <div className="card-header"><div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Internal vs External Climate {isAnomalous && <AlertTriangle color="#dc2626" size={16}/>}</div></div>
+        <div className="card-header"><div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>Climate Intelligence {isAnomalous && <AlertTriangle color="#dc2626" size={16}/>}</div></div>
         <div style={{ display: 'flex', gap: 40, padding: 20 }}>
             <div>
-               <div style={{ fontSize: 11, color: 'var(--color-text-3)', fontWeight: 600, marginBottom: 4 }}><Thermometer size={12}/> IoT Internal Sensor</div>
+               <div style={{ fontSize: 11, color: 'var(--color-text-3)', fontWeight: 600, marginBottom: 4 }}><Thermometer size={12}/> {t('telemetry.real_time')} (IoT)</div>
                <div style={{ fontSize: 28, fontWeight: 800 }}>{iotTemp ? `${iotTemp.toFixed(1)}°C` : 'N/A'}</div>
             </div>
             <div>
@@ -62,18 +64,18 @@ export default function TelemetryAnalysis() {
                <div style={{ fontSize: 28, fontWeight: 800, color: '#0369a1' }}>{extTemp}°C</div>
             </div>
         </div>
-        {isAnomalous && <p style={{ margin: '0 20px 20px', color: '#dc2626', fontSize: 13, fontWeight: 500 }}>High disparity detected. Check insulation or HVAC systems.</p>}
+        {isAnomalous && <p style={{ margin: '0 20px 20px', color: '#dc2626', fontSize: 13, fontWeight: 500 }}>High disparity detected.</p>}
       </div>
     );
   };
 
   return (
     <>
-      <Navbar title="Telemetry Analysis" subtitle="IoT sensor data and historical trends" />
-      <div className="page-content">
+      <Navbar title={t('telemetry.title')} subtitle={t('telemetry.subtitle')} />
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
         <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:24 }}>
-          <label className="form-label" style={{ margin:0, whiteSpace:'nowrap' }}>Select Unit:</label>
+          <label className="form-label" style={{ margin:0, whiteSpace:'nowrap' }}>{t('common.actions')}:</label>
           <select className="form-select" style={{ maxWidth:300 }} value={selectedId} onChange={e => setSelId(e.target.value)}>
             {units.map(u => (
               <option key={u.id} value={u.id}>{u.name} ({u.species} · {u.farm_name})</option>
@@ -91,7 +93,7 @@ export default function TelemetryAnalysis() {
                   {k.replace(/_/g,' ')}
                 </div>
                 <div style={{ fontWeight:800, fontSize:24 }}>{typeof v === 'number' ? v.toFixed(1) : v}</div>
-                <div style={{ fontSize:11, color:'var(--color-text-3)', marginTop:2 }}>Latest reading</div>
+                <div style={{ fontSize:11, color:'var(--color-text-3)', marginTop:2 }}>{t('telemetry.real_time')}</div>
               </div>
             ))}
           </div>
@@ -100,8 +102,8 @@ export default function TelemetryAnalysis() {
         <div className="card" style={{ marginBottom:20 }}>
           <div className="card-header">
             <div>
-              <div className="card-title">Sensor Trend</div>
-              <div className="card-subtitle">{records.length} records loaded</div>
+              <div className="card-title">{t('telemetry.history')}</div>
+              <div className="card-subtitle">{records.length} records</div>
             </div>
           </div>
           {loading ? <div className="spinner" /> : <TelemetryChart records={records} metrics={metrics} height={320} />}
@@ -110,7 +112,7 @@ export default function TelemetryAnalysis() {
         {records.length > 0 && (
           <div className="card">
             <div className="card-header">
-              <div className="card-title">Recent Readings</div>
+              <div className="card-title">{t('telemetry.history')}</div>
             </div>
             <div className="table-wrap">
               <table>

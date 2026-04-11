@@ -36,6 +36,13 @@ ultralytics>=8.1.0
 torch>=2.2.0
 torchvision>=0.17.0
 
+# Sovereign AI (v3.0)
+chromadb>=0.4.24
+ollama>=0.1.7
+langchain-community>=0.0.24
+sentence-transformers>=2.5.0
+pypdf>=4.1.0
+
 # Utilities
 python-dotenv>=1.0.0
 python-multipart>=0.0.7

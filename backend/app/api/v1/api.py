@@ -13,6 +13,7 @@ from app.api.v1.endpoints.weather import router as weather_ext_router
 from app.api.v1.endpoints.geocode import router as geocode_router
 from app.api.v1.endpoints.plants import router as plants_router
 from app.api.v1.endpoints.recommendations import router as recommendations_ext_router
+from app.api.v1.endpoints.agent import router as agent_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -26,6 +27,7 @@ api_router.include_router(rec_router)
 api_router.include_router(report_router)
 api_router.include_router(settings_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(agent_router, prefix="/agent", tags=["Sovereign Agent"])
 
 # External integrations
 api_router.include_router(weather_ext_router, prefix="/weather", tags=["Weather"])

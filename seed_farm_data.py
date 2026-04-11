@@ -23,7 +23,7 @@ def seed():
     cursor.execute('''
         INSERT OR IGNORE INTO animal_types (species, display_name, telemetry_schema, created_at)
         VALUES (?, ?, ?, ?)
-    ''', ('bee', 'Honey Bee (Apis mellifera)', json.dumps(telemetry_schema), datetime.utcnow()))
+    ''', ('bee', 'Honey Bee (Apis mellifera)', json.dumps(telemetry_schema), datetime.now().isoformat()))
     
     type_id = cursor.execute('SELECT id FROM animal_types WHERE species="bee"').fetchone()[0]
 
@@ -31,14 +31,16 @@ def seed():
     cursor.execute('''
         INSERT OR IGNORE INTO farms (name, status, created_at)
         VALUES (?, ?, ?)
-    ''', ('Smart Bee Farm Alpha', 'active', datetime.utcnow()))
-    farm_id = cursor.execute('SELECT id FROM farms LIMIT 1').fetchone()[0] if farm_id is None else 1
+    ''', ('Smart Bee Farm Alpha', 'active', datetime.now().isoformat()))
+    
+    res = cursor.execute('SELECT id FROM farms LIMIT 1').fetchone()
+    farm_id = res[0] if res else 1
 
     # 3. Create a Bee Unit (Hive)
     cursor.execute('''
         INSERT OR IGNORE INTO animal_units (farm_id, type_id, name, identifier, health_score, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
-    ''', (farm_id, type_id, 'HIVE_01', 'IOT-BEE-001', 94.5, datetime.utcnow()))
+    ''', (farm_id, type_id, 'HIVE_01', 'IOT-BEE-001', 94.5, datetime.now().isoformat()))
     
     unit_id = cursor.execute('SELECT id FROM animal_units WHERE name="HIVE_01"').fetchone()[0]
 
@@ -58,7 +60,7 @@ def seed():
     cursor.execute('''
         INSERT INTO telemetry_records (unit_id, metrics, timestamp, source)
         VALUES (?, ?, ?, ?)
-    ''', (unit_id, json.dumps(metrics), datetime.utcnow(), 'sensor_hub'))
+    ''', (unit_id, json.dumps(metrics), datetime.now().isoformat(), 'sensor_hub'))
 
     conn.commit()
     print(f"Successfully seeded database with Bee Unit (ID: {unit_id}) and real telemetry.")

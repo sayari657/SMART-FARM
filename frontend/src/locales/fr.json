@@ -1,0 +1,130 @@
+{
+  "sidebar": {
+    "dashboard": "Tableau de Bord",
+    "farms": "Mes Fermes",
+    "animals": "Bétail & Animaux",
+    "trees": "Arbres & Plantations",
+    "telemetry": "Télémesure",
+    "cv_monitoring": "Vidéosurveillance AI",
+    "alerts": "Centre d'Alertes",
+    "assistant": "Agri-Assistant (Derja)",
+    "recommendations": "Conseils AI",
+    "reports": "Rapports",
+    "settings": "Paramètres",
+    "project_about": "À propos du Projet",
+    "overview": "Aperçu",
+    "monitoring": "Surveillance",
+    "intelligence": "Intelligence",
+    "system": "Système",
+    "bee": "Abeilles",
+    "cow": "Vaches",
+    "poultry": "Volailles",
+    "sheep": "Moutons",
+    "goat": "Chèvres",
+    "rabbit": "Lapins"
+  },
+  "navbar": {
+    "title": "Smart Farm AI",
+    "subtitle": "Plateforme d'Intelligence Souveraine"
+  },
+  "dashboard": {
+    "title": "Tableau de Bord",
+    "subtitle": "Aperçu de l'intelligence de la ferme",
+    "weather_title": "Météo locale de la ferme",
+    "risk_score": "Score de risque",
+    "species_monitor": "Suivi des espèces",
+    "cv_detections": "Detections Vidéo Récentes",
+    "telemetry_trend": "Tendance Télémesure (48h)",
+    "active_alerts": "Alertes Actives",
+    "kpi": {
+      "total_farms": "Total Fermes",
+      "animal_units": "Unités Animales",
+      "active_alerts": "Alertes Actives",
+      "health_score": "Score de Santé Moy.",
+      "anomalies": "Anomalies (24h)",
+      "critical_alerts": "Alertes Critiques"
+    }
+  },
+  "assistant": {
+    "welcome": "Bonjour ! Je suis l'assistant intelligent Smart Farm. Demandez-moi n'importe quoi sur les olives, les abeilles ou le bétail (en Derja).",
+    "think": "Réflexion en cours...",
+    "error": "Désolé, une erreur est survenue.",
+    "lite_active": "Intelligence Synthétique (Lite Active)",
+    "enterprise_active": "Intelligence Souveraine (Labess-7B)"
+  },
+  "common": {
+    "view_all": "Voir tout",
+    "loading": "Analyse en cours...",
+    "no_data": "Aucune donnée disponible",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "status": "Statut",
+    "actions": "Actions"
+  },
+  "farms": {
+    "title": "Gestion des Fermes",
+    "subtitle": "Surveillance de vos installations agricoles",
+    "add_farm": "Ajouter une Ferme",
+    "farm_name": "Nom de la Ferme",
+    "location": "Emplacement",
+    "units": "Unités",
+    "active": "Active",
+    "maintenance": "Maintenance"
+  },
+  "animals": {
+    "title": "Inventaire du Bétail",
+    "subtitle": "Santé et suivi de la population animale",
+    "species": "Espèces",
+    "health": "Santé",
+    "last_check": "Dernier contrôle",
+    "population": "Population totale",
+    "alerts": "Alertes Santé"
+  },
+  "telemetry": {
+    "title": "Analyse des Capteurs",
+    "subtitle": "Données en temps réel de vos capteurs IoT",
+    "real_time": "Temps réel",
+    "history": "Historique",
+    "temperature": "Température",
+    "humidity": "Humidité",
+    "activity": "Activité"
+  },
+  "cv": {
+    "title": "Surveillance Vidéo AI",
+    "subtitle": "Détection d'anomalies par vision par ordinateur",
+    "live": "En direct",
+    "events": "Événements détectés",
+    "confidence": "Confiance AI",
+    "object": "Objet"
+  },
+  "settings": {
+    "title": "Paramètres Système",
+    "profile": "Profil Utilisateur",
+    "language": "Langue de l'interface",
+    "notifications": "Notifications par Alerte",
+    "theme": "Thème visuel"
+  },
+  "project": {
+    "title": "À Propos du Projet",
+    "subtitle": "Architecture & Mission du Smart Farm AI",
+    "mission_title": "L'Intelligence au Service de l'Agriculture",
+    "mission_desc": "La plateforme SaaS de nouvelle génération conçue pour révolutionner la gestion du bétail.",
+    "pillar_iot": "Télémesure IoT",
+    "pillar_cv": "Intelligence Vision",
+    "system_arch": "Architecture du Système",
+    "livestock_title": "Écosystème du Bétail"
+  },
+  "trees": {
+    "title": "Arbres & Plantations",
+    "subtitle": "Surveillance intelligente par vision par ordinateur",
+    "model_btn": "Charger le Modèle",
+    "diagnostic_title": "Diagnostic AI par Image",
+    "diagnostic_subtitle": "Analysez instantanément la santé de vos arbres",
+    "diagnostic_upload": "Télécharger une Image",
+    "diagnostic_analyze": "Lancer l'Analyse",
+    "diagnostic_results": "Résultats de l'Analyse",
+    "diagnostic_drop": "Déposez une photo ici ou cliquez pour parcourir",
+    "health_stats": "Santé des Plantations",
+    "detection_log": "Journal de Détection CV"
+  }
+}
