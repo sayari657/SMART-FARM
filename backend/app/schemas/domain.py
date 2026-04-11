@@ -32,6 +32,7 @@ class LoginRequest(BaseModel):
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: Optional[str] = None
+    phone_number: Optional[str] = None
     full_name: Optional[str] = None
     role: str = "operator"
 

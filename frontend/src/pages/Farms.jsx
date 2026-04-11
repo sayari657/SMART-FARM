@@ -14,6 +14,7 @@ export default function Farms() {
   const [form, setForm] = useState({ name:'', location:'', description:'', status:'active', total_area_ha:'', latitude: '', longitude: '' });
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  const [farmToDelete, setFarmToDelete] = useState(null);
 
   const load = () => {
     setLoading(true);
@@ -198,9 +199,30 @@ export default function Farms() {
           </div>
         )}
         <div className="grid-auto">
-          {filtered.map(f => <FarmCard key={f.id} farm={f} />)}
+          {filtered.map(f => <FarmCard key={f.id} farm={f} onDelete={setFarmToDelete} />)}
         </div>
       </div>
+
+      {farmToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="card" style={{ width: 400, maxWidth: '90%', background: 'var(--color-bg)', padding: 24 }}>
+            <h3 style={{ marginTop: 0, color: 'var(--color-critical)', fontSize: 18, marginBottom: 12 }}>Are you sure?</h3>
+            <p style={{ color: 'var(--color-text)', fontSize: 14 }}>Êtes-vous sûr de vouloir supprimer la ferme <strong>{farmToDelete.name}</strong> ? Cette action est irréversible.</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 24 }}>
+              <button className="btn btn-secondary" onClick={() => setFarmToDelete(null)}>Non</button>
+              <button className="btn btn-danger" style={{ background: 'var(--color-critical)', color: 'white', border: 'none' }} onClick={() => {
+                farmsAPI.delete(farmToDelete.id).then(() => {
+                  setFarmToDelete(null);
+                  load();
+                }).catch(e => {
+                  alert("Erreur lors de la suppression.");
+                  setFarmToDelete(null);
+                });
+              }}>Oui, supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

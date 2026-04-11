@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, AlertTriangle, Heart } from 'lucide-react';
+import { MapPin, AlertTriangle, Heart, X } from 'lucide-react';
 import ThreeTile from './ThreeTile';
 
 const STATUS_CLASS = {
   active: 'badge-success', inactive: 'badge-neutral', maintenance: 'badge-warning',
 };
 
-export default function FarmCard({ farm }) {
+export default function FarmCard({ farm, onDelete }) {
   const navigate = useNavigate();
   const healthColor = farm.avg_health_score >= 80 ? 'var(--color-success)'
     : farm.avg_health_score >= 60 ? 'var(--color-warning)'
@@ -28,9 +28,20 @@ export default function FarmCard({ farm }) {
               {farm.location || 'No location'}
             </div>
           </div>
-          <span className={`badge ${STATUS_CLASS[farm.status] || 'badge-neutral'}`}>
-            {farm.status}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className={`badge ${STATUS_CLASS[farm.status] || 'badge-neutral'}`}>
+              {farm.status}
+            </span>
+            {onDelete && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(farm); }}
+                style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '50%', color: 'var(--color-critical)', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Delete Farm"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 'auto', paddingTop: 16 }}>

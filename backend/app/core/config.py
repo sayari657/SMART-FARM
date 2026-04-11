@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     # External APIs
     TREFLE_API_TOKEN: str = "your_placeholder_token_here_from_trefle_io"
 
+    # ── OTP Channels ──────────────────────────────────────────────
+    # Gmail SMTP (Email OTP)
+    SMTP_EMAIL: str = os.getenv("SMTP_EMAIL", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")  # Gmail App Password
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "465"))  # 465=SSL, 587=TLS
+
+    # WhatsApp Business Cloud API (Meta)
+    WHATSAPP_TOKEN: str = os.getenv("WHATSAPP_TOKEN", "")
+    WHATSAPP_PHONE_ID: str = os.getenv("WHATSAPP_PHONE_ID", "")
+
     class Config:
         env_file = ".env"
         case_sensitive = True

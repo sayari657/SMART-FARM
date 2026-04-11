@@ -8,7 +8,7 @@ import ThreeFarmBackground from '../components/ThreeFarmBackground';
 const ROLES = ['admin','farm_manager','vet','operator'];
 
 export default function Register() {
-  const [form, setForm] = useState({ username:'', email:'', full_name:'', password:'', role:'operator' });
+  const [form, setForm] = useState({ username:'', email:'', phone_number:'+216', full_name:'', password:'', role:'operator' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const { register, loading } = useAuth();
@@ -72,9 +72,15 @@ export default function Register() {
                 <input className="form-input" id="reg-fullname" placeholder="John Doe" value={form.full_name} onChange={set('full_name')} />
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input className="form-input" id="reg-email" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} />
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Numéro de Téléphone *</label>
+                <input className="form-input" id="reg-phone" type="tel" placeholder="+216 55 123 456" value={form.phone_number} onChange={set('phone_number')} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input className="form-input" id="reg-email" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} />
+              </div>
             </div>
             <div className="form-row">
               <div className="form-group">

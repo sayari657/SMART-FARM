@@ -26,9 +26,12 @@ api.interceptors.response.use(
 
 // ---- Auth
 export const authAPI = {
-  login:    (creds) => api.post('/auth/login', creds),
-  register: (data)  => api.post('/auth/register', data),
-  profile:  ()      => api.get('/auth/profile'),
+  login:               (creds) => api.post('/auth/login', creds),
+  register:            (data)  => api.post('/auth/register', data),
+  profile:             ()      => api.get('/auth/profile'),
+  forgotByEmail:       (data)  => api.post('/auth/forgot-password/email', data),
+  forgotByWhatsApp:    (data)  => api.post('/auth/forgot-password/whatsapp', data),
+  resetPassword:       (data)  => api.post('/auth/reset-password', data),
 };
 
 // ---- Dashboard
