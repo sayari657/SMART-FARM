@@ -24,11 +24,7 @@ export default function Login() {
   const { login, loading } = useAuth();
   const navigate = useNavigate();
 
-  const fillDemo = (role) => {
-    const demos = { admin: ['med9', 'password123'], manager: ['manager1', 'password123'], vet: ['vet1', 'password123'] };
-    const [u, p] = demos[role] || ['', ''];
-    setForm({ username: u, password: p });
-  };
+
 
   const resetFlow = () => {
     setView('login'); setChannel(null); setIdentifier('');
@@ -114,11 +110,7 @@ export default function Login() {
               <h1>Welcome back</h1>
               <p>Sign in to your Smart Farm AI account</p>
 
-              <div style={{ display:'flex', gap:8, marginBottom:20 }}>
-                {['admin','manager','vet'].map(r => (
-                  <button key={r} className="btn btn-secondary btn-sm" onClick={() => fillDemo(r)}>Demo {r}</button>
-                ))}
-              </div>
+
 
               {msg && <div className="alert-banner success" style={{ marginBottom:16 }}><div className="alert-banner-msg">{msg}</div></div>}
               {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
