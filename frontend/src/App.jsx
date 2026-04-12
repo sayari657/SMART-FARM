@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './layouts/MainLayout';
 
 // Pages
+import Landing         from './pages/Landing';
 import Login           from './pages/Login';
 import Register        from './pages/Register';
 import Dashboard       from './pages/Dashboard';
@@ -37,17 +38,17 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/"         element={<Landing />} />
       <Route path="/login"    element={<Login />} />
       <Route path="/register" element={<Register />} />
 
       {/* Protected layout */}
-      <Route path="/" element={
+      <Route element={
         <ProtectedRoute>
           <MainLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<Navigate to="/about-project" replace />} />
-        <Route path="dashboard"       element={<Dashboard />} />
+        <Route path="/dashboard"       element={<Dashboard />} />
         <Route path="farms"           element={<Farms />} />
         <Route path="farms/:id"       element={<FarmDetails />} />
         <Route path="animals"         element={<Animals />} />
