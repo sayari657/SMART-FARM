@@ -1,0 +1,30 @@
+schema: '2.0'
+stages:
+  build_dataset:
+    cmd: python mlops/dataset_builder.py
+    deps:
+    - path: mlops/dataset_builder.py
+      hash: md5
+      md5: d71518a0a4ddb94602e8196bb4792f31
+      size: 1783
+    outs:
+    - path: mlops/data/telemetry_dataset.csv
+      hash: md5
+      md5: 2ef8e803501371279f43daa5e6e404ad
+      size: 141
+  train_model:
+    cmd: python mlops/train.py --n_estimators 150 --contamination 0.05
+    deps:
+    - path: mlops/data/telemetry_dataset.csv
+      hash: md5
+      md5: 2ef8e803501371279f43daa5e6e404ad
+      size: 141
+    - path: mlops/train.py
+      hash: md5
+      md5: eb7b05e1c052bf00f3732aaa1c05741f
+      size: 2533
+    outs:
+    - path: mlops/models/anomaly_detector.pkl
+      hash: md5
+      md5: 1db7bd234e3ed7e2633a2402e371343c
+      size: 88840

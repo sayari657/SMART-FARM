@@ -28,21 +28,27 @@ def seed():
     type_id = cursor.execute('SELECT id FROM animal_types WHERE species="bee"').fetchone()[0]
 
     # 2. Create a Farm if missing
-    cursor.execute('''
-        INSERT OR IGNORE INTO farms (name, status, created_at)
-        VALUES (?, ?, ?)
-    ''', ('Smart Bee Farm Alpha', 'active', datetime.now().isoformat()))
-    
-    res = cursor.execute('SELECT id FROM farms LIMIT 1').fetchone()
-    farm_id = res[0] if res else 1
+    res = cursor.execute('SELECT id FROM farms WHERE name="Smart Bee Farm Alpha"').fetchone()
+    if res:
+        farm_id = res[0]
+    else:
+        cursor.execute('''
+            INSERT INTO farms (name, status, created_at)
+            VALUES (?, ?, ?)
+        ''', ('Smart Bee Farm Alpha', 'active', datetime.now().isoformat()))
+        farm_id = cursor.lastrowid
 
     # 3. Create a Bee Unit (Hive)
-    cursor.execute('''
-        INSERT OR IGNORE INTO animal_units (farm_id, type_id, name, identifier, health_score, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (farm_id, type_id, 'HIVE_01', 'IOT-BEE-001', 94.5, datetime.now().isoformat()))
-    
-    unit_id = cursor.execute('SELECT id FROM animal_units WHERE name="HIVE_01"').fetchone()[0]
+    res_unit = cursor.execute('SELECT id FROM animal_units WHERE identifier="IOT-BEE-001"').fetchone()
+    if res_unit:
+        unit_id = res_unit[0]
+    else:
+        cursor.execute('''
+            INSERT INTO animal_units (farm_id, type_id, name, identifier, health_score, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (farm_id, type_id, 'HIVE_01', 'IOT-BEE-001', 94.5, datetime.now().isoformat()))
+        unit_id = cursor.lastrowid
+
 
     # 4. Create Real Telemetry for the Hive
     metrics = {

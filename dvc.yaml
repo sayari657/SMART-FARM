@@ -1,0 +1,15 @@
+stages:
+  build_dataset:
+    cmd: python mlops/dataset_builder.py
+    deps:
+      - mlops/dataset_builder.py
+    outs:
+      - mlops/data/telemetry_dataset.csv
+  
+  train_model:
+    cmd: python mlops/train.py --n_estimators 150 --contamination 0.05
+    deps:
+      - mlops/data/telemetry_dataset.csv
+      - mlops/train.py
+    outs:
+      - mlops/models/anomaly_detector.pkl

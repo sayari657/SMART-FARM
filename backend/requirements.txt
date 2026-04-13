@@ -46,3 +46,8 @@ pypdf>=4.1.0
 # Utilities
 python-dotenv>=1.0.0
 python-multipart>=0.0.7
+
+# MLOps
+mlflow>=2.10.0
+dvc>=3.45.0
+

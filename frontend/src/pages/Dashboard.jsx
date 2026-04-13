@@ -137,30 +137,6 @@ export default function Dashboard() {
           <ThreeTile><KPIBox icon={Cpu}          value={stats?.recent_anomalies} label={t('dashboard.kpi.anomalies')}     colorClass="teal" /></ThreeTile>
         </div>
 
-        {/* 3D Species Overview */}
-        <div style={{ marginBottom: 28 }}>
-          <div className="section-header" style={{ marginBottom: 16, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
-            <h2 className="card-title" style={{ fontSize: 16 }}>{t('dashboard.species_monitor')}</h2>
-          </div>
-          <div className="species-grid">
-            {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => {
-              const count = stats?.units_by_species?.[sp] || (sp === 'rabbit' ? 12 : 0);
-              const accentColor = SPECIES_COLORS[sp] || (sp === 'rabbit' ? '#16a34a' : 'var(--color-primary)');
-              const emoji = SPECIES_EMOJI[sp] || (sp === 'rabbit' ? '🐰' : '🐾');
-              return (
-                <ThreeTile key={sp}>
-                  <div className="species-card" onClick={() => navigate(sp === 'rabbit' ? '/aboutrabbit' : '/aboutbee')} style={{ cursor:'pointer', height:'100%' }}>
-                    <div className="species-card-emoji">{emoji}</div>
-                    <div className="species-card-label">{sp.charAt(0).toUpperCase() + sp.slice(1)}s</div>
-                    <div className="species-card-count">{count} {sp === 'rabbit' ? 'Active' : 'Units'}</div>
-                    <div className="species-card-accent" style={{ background: accentColor }} />
-                    <div className="species-card-trend" style={{ background: `${accentColor}22`, color: accentColor }}>ONLINE</div>
-                  </div>
-                </ThreeTile>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Sovereign Intelligence (Tunisian Derja) Widget */}
         {weather && (

@@ -1,0 +1,6 @@
+outs:
+- md5: e1ef53381729a860e29293a46b6d4a84.dir
+  size: 15353692
+  nfiles: 17
+  hash: md5
+  path: animal_weights

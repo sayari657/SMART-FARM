@@ -1,9 +1,0 @@
-path: /kaggle/input/datasets/mohamedsayari77/beedata
-train: train/images
-val: valid/images
-test: test/images
-names:
-  0: bee
-  1: drone
-  2: pollenbee
-  3: queen
