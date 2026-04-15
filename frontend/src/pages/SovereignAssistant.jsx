@@ -72,7 +72,7 @@ export default function SovereignAssistant() {
     const timeoutId = setTimeout(() => controller.abort("REASON_TIMEOUT"), 60000);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/agent/chat?query=${encodeURIComponent(input)}`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/v1/agent/chat?query=${encodeURIComponent(input)}`, {
         method: 'POST',
         signal: controller.signal
       });

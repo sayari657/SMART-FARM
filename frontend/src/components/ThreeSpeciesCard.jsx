@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import StableCanvas from './StableCanvas';
 import { Float, Html, ContactShadows, PresentationControls, Billboard } from '@react-three/drei';
 import { useTranslation } from 'react-i18next';
 
@@ -71,11 +71,11 @@ const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
     >
       {/* 3D Canvas Layer */}
       <div style={{ width: '100%', height: '160px' }}>
-        <Canvas camera={{ position: [0, 0, 8], fov: 40 }} dpr={[1, 2]}>
+        <StableCanvas camera={{ position: [0, 0, 8], fov: 40 }} dpr={[1, 2]}>
           <Suspense fallback={null}>
             <AnimalScene emoji={emoji} color={color} isActive={isActive} />
           </Suspense>
-        </Canvas>
+        </StableCanvas>
       </div>
 
       {/* Info Layer */}

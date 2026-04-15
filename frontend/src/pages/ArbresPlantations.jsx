@@ -76,7 +76,7 @@ export default function ArbresPlantations() {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/agent/chat?query=${encodeURIComponent(input)}`, { method: 'POST' });
+      const response = await fetch(`http://127.0.0.1:8000/api/v1/agent/chat?query=${encodeURIComponent(input)}`, { method: 'POST' });
       const data = await response.json();
       setIsLite(data.is_lite);
 

@@ -14,6 +14,8 @@ from app.api.v1.endpoints.geocode import router as geocode_router
 from app.api.v1.endpoints.plants import router as plants_router
 from app.api.v1.endpoints.recommendations import router as recommendations_ext_router
 from app.api.v1.endpoints.agent import router as agent_router
+from app.api.v1.endpoints.bee import router as bee_router
+from app.api.v1.endpoints.geo_routes import router as geo_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -28,6 +30,8 @@ api_router.include_router(report_router)
 api_router.include_router(settings_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(agent_router, prefix="/agent", tags=["Sovereign Agent"])
+api_router.include_router(bee_router, prefix="/bee", tags=["Bee Management"])
+api_router.include_router(geo_router)
 
 # External integrations
 api_router.include_router(weather_ext_router, prefix="/weather", tags=["Weather"])

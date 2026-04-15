@@ -2,8 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function() {
+        const originalWarn = console.warn;
+        const originalLog = console.log;
+        const originalError = console.error;
+        const suppress = [
+          'X4122', 
+          'THREE.WebGLProgram: Program Info Log',
+          'THREE.Clock: This module has been deprecated',
+          'PCFSoftShadowMap has been deprecated',
+          'KHR_materials_pbrSpecularGlossiness'
+        ];
+        const check = (args) => args.some(arg => typeof arg === 'string' && suppress.some(s => arg.includes(s)));
+        
+        console.warn = (...args) => { if (check(args)) return; originalWarn(...args); };
+        console.log = (...args) => { if (check(args)) return; originalLog(...args); };
+        console.error = (...args) => { if (check(args)) return; originalError(...args); };
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Bee Farm</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>

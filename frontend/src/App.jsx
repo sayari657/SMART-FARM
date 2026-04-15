@@ -27,6 +27,7 @@ import AboutRabbit     from './pages/AboutRabbit';
 import SovereignAssistant from './pages/SovereignAssistant';
 import AboutProject    from './pages/AboutProject';
 import ArbresPlantations from './pages/ArbresPlantations';
+import MapCenter        from './pages/MapCenter';
 import NotFound        from './pages/NotFound';
 
 function ProtectedRoute({ children }) {
@@ -68,6 +69,7 @@ function AppRoutes() {
         <Route path="assistant"       element={<SovereignAssistant />} />
         <Route path="about-project"   element={<AboutProject />} />
         <Route path="trees"           element={<ArbresPlantations />} />
+        <Route path="map"             element={<MapCenter />} />
       </Route>
 
       {/* 404 */}

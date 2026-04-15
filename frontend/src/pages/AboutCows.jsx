@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Thermometer, 
-  Activity, 
-  PieChart, 
+import {
+  ArrowLeft,
+  Thermometer,
+  Activity,
+  PieChart,
   Calendar,
   AlertCircle,
   Eye,
@@ -18,20 +18,21 @@ import ThreeSpeciesCard from '../components/ThreeSpeciesCard';
 import KPIBox from '../components/KPIBox';
 import ThreeTile from '../components/ThreeTile';
 import { animalsAPI, telemetryAPI, cvAPI } from '../services/api';
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 
 export default function AboutCows() {
   const navigate = useNavigate();
   const [cowUnits, setCowUnits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sourceMode, setSourceMode] = useState('live'); 
+  const [sourceMode, setSourceMode] = useState('live');
   const [capturedImage, setCapturedImage] = useState(null);
   const [realDetections, setRealDetections] = useState([]);
-  const [activeDetections, setActiveDetections] = useState([]); 
+  const [activeDetections, setActiveDetections] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [latestTelemetry, setLatestTelemetry] = useState(null);
   const videoRef = React.useRef(null);
   const canvasRef = React.useRef(document.createElement('canvas'));
-  
+
   const [stats, setStats] = useState({
     avgTemp: 38.5,
     ruminationTime: 480,
@@ -68,7 +69,7 @@ export default function AboutCows() {
   useEffect(() => {
     const fetchDetections = () => {
       cvAPI.recent(10).then(res => {
-        const cowRelevant = res.data.filter(d => 
+        const cowRelevant = res.data.filter(d =>
           ['cow', 'calf', 'bull'].includes(d.object_class?.toLowerCase())
         );
         setRealDetections(cowRelevant);
@@ -132,11 +133,11 @@ export default function AboutCows() {
 
   return (
     <>
-      <Navbar 
-        title="Bovine Intelligence Dashboard" 
-        subtitle="Precision dairy and beef monitoring system" 
+      <Navbar
+        title="Bovine Intelligence Dashboard"
+        subtitle="Precision dairy and beef monitoring system"
       />
-      
+
       <div className="page-content">
         <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button className="btn btn-secondary" onClick={() => navigate('/animals')} style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -149,7 +150,7 @@ export default function AboutCows() {
               { id: 'camera', label: 'PC Camera', icon: Eye },
               { id: 'upload', label: 'Image Upload', icon: Plus }
             ].map(m => (
-              <button 
+              <button
                 key={m.id}
                 onClick={() => setSourceMode(m.id)}
                 className={`btn btn-sm ${sourceMode === m.id ? 'btn-primary' : 'btn-secondary'}`}
@@ -166,7 +167,7 @@ export default function AboutCows() {
           <div className="card" style={{ padding: 0, overflow: 'hidden', height: '400px', display: 'flex', flexDirection: 'column' }}>
             {sourceMode === 'live' ? (
               <div style={{ flex: 1, position: 'relative', background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}>
-                <ThreeSpeciesCard sp="cow" count={cowUnits.length} emoji="🐄" color="#7c3aed" isActive={true} onClick={() => {}} />
+                <ThreeSpeciesCard sp="cow" count={cowUnits.length} emoji="🐄" color="#7c3aed" isActive={true} onClick={() => { }} />
                 <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 10 }}>
                   <h2 style={{ fontSize: 24, color: '#4c1d95', marginBottom: 4 }}>Bos Taurus</h2>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -182,13 +183,13 @@ export default function AboutCows() {
                     <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     <div className="scan-line" />
                     {activeDetections.map((det, i) => (
-                      <div key={i} style={{ 
-                        position: 'absolute', 
-                        left: `${det.bbox[0]}%`, top: `${det.bbox[1]}%`, 
-                        width: `${det.bbox[2]}%`, height: `${det.bbox[3]}%`, 
-                        border: `2px solid #7c3aed`, borderRadius: 4, 
-                        transform: `translate(-50%, -50%) rotate(${det.bbox[4] || 0}rad)`, 
-                        boxShadow: `0 0 10px #7c3aed` 
+                      <div key={i} style={{
+                        position: 'absolute',
+                        left: `${det.bbox[0]}%`, top: `${det.bbox[1]}%`,
+                        width: `${det.bbox[2]}%`, height: `${det.bbox[3]}%`,
+                        border: `2px solid #7c3aed`, borderRadius: 4,
+                        transform: `translate(-50%, -50%) rotate(${det.bbox[4] || 0}rad)`,
+                        boxShadow: `0 0 10px #7c3aed`
                       }}>
                         <span style={{ position: 'absolute', top: -18, left: -2, background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '2px 4px', borderRadius: 2 }}>
                           {det.label.toUpperCase()} {Math.floor(det.confidence * 100)}%
@@ -205,11 +206,11 @@ export default function AboutCows() {
                     <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src={capturedImage} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Upload Preview" />
                       {activeDetections.map((det, i) => (
-                        <div key={i} style={{ 
-                          position: 'absolute', left: `${det.bbox[0]}%`, top: `${det.bbox[1]}%`, 
-                          width: `${det.bbox[2]}%`, height: `${det.bbox[3]}%`, 
-                          border: `2px solid #7c3aed`, borderRadius: 4, 
-                          transform: `translate(-50%, -50%)`, boxShadow: `0 0 10px #7c3aed` 
+                        <div key={i} style={{
+                          position: 'absolute', left: `${det.bbox[0]}%`, top: `${det.bbox[1]}%`,
+                          width: `${det.bbox[2]}%`, height: `${det.bbox[3]}%`,
+                          border: `2px solid #7c3aed`, borderRadius: 4,
+                          transform: `translate(-50%, -50%)`, boxShadow: `0 0 10px #7c3aed`
                         }}>
                           <span style={{ position: 'absolute', top: -16, left: -2, background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '2px 4px', borderRadius: 2 }}>
                             {det.label.toUpperCase()}
@@ -229,7 +230,7 @@ export default function AboutCows() {
                 )}
               </div>
             )}
-            
+
             <div style={{ background: 'var(--color-surface)', padding: '12px 20px', display: 'flex', gap: 20, borderTop: '1px solid var(--color-border)' }}>
               {['Holstein', 'Jersey', 'Angus', 'Calf'].map(c => (
                 <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', fontWeight: 600 }}>
@@ -284,6 +285,7 @@ export default function AboutCows() {
           </div>
         </div>
       </div>
+      <ExpertAssistant species="cow" color="#7c3aed" />
     </>
   );
 }

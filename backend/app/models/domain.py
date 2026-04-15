@@ -7,10 +7,24 @@ from sqlalchemy import (
     Column, Integer, String, Float, Boolean,
     ForeignKey, DateTime, Text, JSON, Enum, Index
 )
+try:
+    from geoalchemy2 import Geometry
+    HAS_GEOALCHEMY = True
+except ImportError:
+    HAS_GEOALCHEMY = False
+    
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 from app.core.database import Base
+from app.core.config import settings
+
+
+def get_geom_column(geometry_type='POINT', srid=4326):
+    """Fallback to standard types if in Lite mode/SQLite to avoid SpatiaLite requirement"""
+    if settings.DATABASE_URL.startswith("sqlite") or not HAS_GEOALCHEMY:
+        return Column(String(100), nullable=True)
+    return Column(Geometry(geometry_type=geometry_type, srid=srid))
 
 
 # ---------------------------------------------------------------------------
@@ -92,6 +106,7 @@ class Farm(Base):
     description = Column(Text)
     latitude = Column(Float)
     longitude = Column(Float)
+    geom = get_geom_column('POINT', 4326)
     status = Column(String(50), default="active")
     total_area_ha = Column(Float)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -101,6 +116,26 @@ class Farm(Base):
     units = relationship("AnimalUnit", back_populates="farm", cascade="all, delete-orphan")
     settings = relationship("Settings", back_populates="farm", cascade="all, delete-orphan")
     reports = relationship("Report", back_populates="farm", cascade="all, delete-orphan")
+
+
+# ---------------------------------------------------------------------------
+# Veterinarians (GIS Entities)
+# ---------------------------------------------------------------------------
+
+class Veterinary(Base):
+    __tablename__ = "veterinarians"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    specialty = Column(String(100))
+    phone = Column(String(20))
+    email = Column(String(255))
+    address = Column(String(255))
+    latitude = Column(Float)
+    longitude = Column(Float)
+    geom = get_geom_column('POINT', 4326)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 # ---------------------------------------------------------------------------

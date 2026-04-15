@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Building2, PawPrint, Activity, Eye,
-  AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf, Layers, Bot, TreePine
+  AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf, Layers, Bot, TreePine, Map
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,6 +15,7 @@ const NAV = [
       { to: '/farms', icon: Building2, labelKey: 'sidebar.farms' },
       { to: '/animals', icon: PawPrint, labelKey: 'sidebar.animals' },
       { to: '/trees', icon: TreePine, labelKey: 'sidebar.trees' },
+      { to: '/map', icon: Map, labelKey: 'sidebar.map_center' },
     ]
   },
   {

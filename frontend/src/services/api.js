@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 const api = axios.create({ baseURL: BASE_URL });
 
@@ -26,12 +26,12 @@ api.interceptors.response.use(
 
 // ---- Auth
 export const authAPI = {
-  login:               (creds) => api.post('/auth/login', creds),
-  register:            (data)  => api.post('/auth/register', data),
-  profile:             ()      => api.get('/auth/profile'),
-  forgotByEmail:       (data)  => api.post('/auth/forgot-password/email', data),
-  forgotByWhatsApp:    (data)  => api.post('/auth/forgot-password/whatsapp', data),
-  resetPassword:       (data)  => api.post('/auth/reset-password', data),
+  login: (creds) => api.post('/auth/login', creds),
+  register: (data) => api.post('/auth/register', data),
+  profile: () => api.get('/auth/profile'),
+  forgotByEmail: (data) => api.post('/auth/forgot-password/email', data),
+  forgotByWhatsApp: (data) => api.post('/auth/forgot-password/whatsapp', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
 // ---- Dashboard
@@ -41,27 +41,27 @@ export const dashboardAPI = {
 
 // ---- Farms
 export const farmsAPI = {
-  list:   ()         => api.get('/farms'),
-  get:    (id)       => api.get(`/farms/${id}`),
-  create: (data)     => api.post('/farms', data),
+  list: () => api.get('/farms'),
+  get: (id) => api.get(`/farms/${id}`),
+  create: (data) => api.post('/farms', data),
   update: (id, data) => api.put(`/farms/${id}`, data),
-  delete: (id)       => api.delete(`/farms/${id}`),
+  delete: (id) => api.delete(`/farms/${id}`),
 };
 
 // ---- Animals
 export const animalsAPI = {
-  list:       (params)   => api.get('/animals', { params }),
-  get:        (id)       => api.get(`/animals/${id}`),
-  types:      ()         => api.get('/animals/types'),
-  create:     (data)     => api.post('/animals', data),
-  update:     (id, data) => api.put(`/animals/${id}`, data),
-  delete:     (id)       => api.delete(`/animals/${id}`),
+  list: (params) => api.get('/animals', { params }),
+  get: (id) => api.get(`/animals/${id}`),
+  types: () => api.get('/animals/types'),
+  create: (data) => api.post('/animals', data),
+  update: (id, data) => api.put(`/animals/${id}`, data),
+  delete: (id) => api.delete(`/animals/${id}`),
 };
 
 // ---- Telemetry
 export const telemetryAPI = {
   history: (unitId, limit = 200) => api.get(`/telemetry/${unitId}`, { params: { limit } }),
-  latest:  (unitId)              => api.get(`/telemetry/${unitId}/latest`),
+  latest: (unitId) => api.get(`/telemetry/${unitId}/latest`),
 };
 
 // ---- CV Events
@@ -80,52 +80,57 @@ export const cvAPI = {
 
 // ---- Anomalies
 export const anomalyAPI = {
-  recent:  (limit = 50)   => api.get('/anomalies/recent', { params: { limit } }),
-  byUnit:  (unitId)       => api.get(`/anomalies/${unitId}`),
+  recent: (limit = 50) => api.get('/anomalies/recent', { params: { limit } }),
+  byUnit: (unitId) => api.get(`/anomalies/${unitId}`),
 };
 
 // ---- Alerts
 export const alertsAPI = {
-  list:     ()        => api.get('/alerts'),
-  critical: ()        => api.get('/alerts/critical'),
-  resolve:  (id, by)  => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
+  list: () => api.get('/alerts'),
+  critical: () => api.get('/alerts/critical'),
+  resolve: (id, by) => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
 };
 
 // ---- Recommendations
 export const recsAPI = {
-  list:   ()       => api.get('/recommendations'),
+  list: () => api.get('/recommendations'),
   byUnit: (unitId) => api.get(`/recommendations/${unitId}`),
 };
 
 // ---- Reports
 export const reportsAPI = {
-  list:     (farmId) => api.get('/reports', { params: farmId ? { farm_id: farmId } : {} }),
-  generate: (data)   => api.post('/reports/generate', data),
+  list: (farmId) => api.get('/reports', { params: farmId ? { farm_id: farmId } : {} }),
+  generate: (data) => api.post('/reports/generate', data),
 };
 
 // ---- Settings
 export const settingsAPI = {
-  list:   (farmId) => api.get('/settings', { params: farmId ? { farm_id: farmId } : {} }),
-  upsert: (data)   => api.put('/settings', data),
+  list: (farmId) => api.get('/settings', { params: farmId ? { farm_id: farmId } : {} }),
+  upsert: (data) => api.put('/settings', data),
 };
 
 // ---- External Integrations
 export const externalAPI = {
   weather: {
-    current:  (farmId) => api.get(`/weather/current/${farmId}`),
+    current: (farmId) => api.get(`/weather/current/${farmId}`),
     forecast: (farmId) => api.get(`/weather/forecast/${farmId}`),
   },
   geocode: {
-    search:  (query)    => api.get('/geocode/search', { params: { q: query } }),
+    search: (query) => api.get('/geocode/search', { params: { q: query } }),
     reverse: (lat, lon) => api.get('/geocode/reverse', { params: { lat, lon } }),
   },
   plants: {
-    search:  (query)   => api.get('/plants/search', { params: { q: query } }),
+    search: (query) => api.get('/plants/search', { params: { q: query } }),
     details: (plantId) => api.get(`/plants/details/${plantId}`),
   },
   recommendations: {
     getFarmAdvice: (farmId, plant) => api.get(`/recommendations-advanced/${farmId}`, { params: { plant } })
   }
+};
+
+// ---- Agent
+export const agentAPI = {
+  chat: (query, species) => api.post('/agent/chat', null, { params: { query, species } }),
 };
 
 export default api;

@@ -1,6 +1,7 @@
-import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, Suspense } from 'react';
+import { useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
+import StableCanvas from './StableCanvas';
 
 function Stars(props) {
   const ref = useRef();
@@ -46,9 +47,9 @@ const ThreeBackground = () => {
       background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)',
       pointerEvents: 'none'
     }}>
-      <Canvas camera={{ position: [0, 0, 1] }}>
+      <StableCanvas camera={{ position: [0, 0, 1] }}>
         <Stars />
-      </Canvas>
+      </StableCanvas>
     </div>
   );
 };

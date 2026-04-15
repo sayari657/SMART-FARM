@@ -5,6 +5,7 @@
 
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "postgis";
 
 -- ============================================================
 -- TABLES (created by SQLAlchemy on startup, but listed here
