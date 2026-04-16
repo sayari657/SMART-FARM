@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Database, AlertTriangle } from 'lucide-react';
+import { alertsAPI } from '../services/api';
 
 export default function HiveIntel() {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/hives/1/alerts')
-      .then(res => res.json())
-      .then(data => setAlerts(data))
-      .catch(() => {});
+    alertsAPI.critical()
+      .then(res => setAlerts(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setAlerts([]));
   }, []);
 
   return (

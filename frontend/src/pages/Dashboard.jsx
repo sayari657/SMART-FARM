@@ -8,6 +8,7 @@ import ThreeTile from '../components/ThreeTile';
 import AlertCard from '../components/AlertCard';
 import TelemetryChart from '../components/TelemetryChart';
 import { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, anomalyAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
+import AIScanner from '../components/AIScanner';
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -190,6 +191,25 @@ export default function Dashboard() {
                 </ThreeTile>
               );
             })}
+          </div>
+        </div>
+
+        <div className="grid-2-1" style={{ marginBottom: 28, gap: 24 }}>
+          {/* Sovereign Emergency Monitor */}
+          <AIScanner 
+            category="fire" 
+            title="Sovereign Emergency Monitor" 
+            color="#ef4444" 
+          />
+          
+          <div className="card" style={{ background: 'var(--glass-bg)', padding: 0, overflow: 'hidden' }}>
+            <div className="card-header"><div className="card-title">Safety Protocol</div></div>
+            <div style={{ padding: 20 }}>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: '#ef4444' }}><AlertTriangle size={16} /> Fire Risk: LOW</div>
+                 <div style={{ padding: 12, borderRadius: 8, background: '#f8fafc', fontSize: 11, border: '1px solid #e2e8f0' }}>Use this scanner to verify smoke plumes or heat signatures across fields.</div>
+               </div>
+            </div>
           </div>
         </div>
 

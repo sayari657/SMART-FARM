@@ -31,3 +31,7 @@ mlruns.db
 # OS files
 .DS_Store
 Thumbs.db
+
+# Large Data Blocks
+*.mbtiles
+map_data/

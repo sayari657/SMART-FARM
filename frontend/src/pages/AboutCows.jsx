@@ -19,6 +19,7 @@ import KPIBox from '../components/KPIBox';
 import ThreeTile from '../components/ThreeTile';
 import { animalsAPI, telemetryAPI, cvAPI } from '../services/api';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
+import AIScanner from '../components/AIScanner';
 
 export default function AboutCows() {
   const navigate = useNavigate();
@@ -92,44 +93,7 @@ export default function AboutCows() {
     }
   }, [sourceMode]);
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (f) => setCapturedImage(f.target.result);
-      reader.readAsDataURL(file);
-      setIsProcessing(true);
-      try {
-        const res = await cvAPI.detect(file);
-        setActiveDetections(res.data.detections);
-      } catch (err) {
-        console.error("Inference Error:", err);
-      } finally {
-        setIsProcessing(false);
-      }
-    }
-  };
-
-  const scanCameraFrame = async () => {
-    if (!videoRef.current) return;
-    const canvas = canvasRef.current;
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      setIsProcessing(true);
-      try {
-        const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-        const res = await cvAPI.detect(file);
-        setActiveDetections(res.data.detections);
-      } catch (err) {
-        console.error("Camera Inference Error:", err);
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 'image/jpeg');
-  };
+  // AIScanner handles all inference now
 
   return (
     <>
@@ -165,71 +129,11 @@ export default function AboutCows() {
 
         <div className="grid-2-1" style={{ marginBottom: 32, gap: 24 }}>
           <div className="card" style={{ padding: 0, overflow: 'hidden', height: '400px', display: 'flex', flexDirection: 'column' }}>
-            {sourceMode === 'live' ? (
-              <div style={{ flex: 1, position: 'relative', background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}>
-                <ThreeSpeciesCard sp="cow" count={cowUnits.length} emoji="🐄" color="#7c3aed" isActive={true} onClick={() => { }} />
-                <div style={{ position: 'absolute', top: 24, left: 24, zIndex: 10 }}>
-                  <h2 style={{ fontSize: 24, color: '#4c1d95', marginBottom: 4 }}>Bos Taurus</h2>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <span className="badge badge-success">Dairy Monitoring</span>
-                    <span className="badge badge-info">Optimal Health</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ flex: 1, position: 'relative', background: '#000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {sourceMode === 'camera' && (
-                  <>
-                    <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <div className="scan-line" />
-                    {activeDetections.map((det, i) => (
-                      <div key={i} style={{
-                        position: 'absolute',
-                        left: `${det.bbox[0]}%`, top: `${det.bbox[1]}%`,
-                        width: `${det.bbox[2]}%`, height: `${det.bbox[3]}%`,
-                        border: `2px solid #7c3aed`, borderRadius: 4,
-                        transform: `translate(-50%, -50%) rotate(${det.bbox[4] || 0}rad)`,
-                        boxShadow: `0 0 10px #7c3aed`
-                      }}>
-                        <span style={{ position: 'absolute', top: -18, left: -2, background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '2px 4px', borderRadius: 2 }}>
-                          {det.label.toUpperCase()} {Math.floor(det.confidence * 100)}%
-                        </span>
-                      </div>
-                    ))}
-                    <button className="btn btn-primary" onClick={scanCameraFrame} disabled={isProcessing} style={{ position: 'absolute', bottom: 20, zIndex: 100, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {isProcessing ? 'Analyzing...' : 'Scan Cattle (YOLO)'}
-                    </button>
-                  </>
-                )}
-                {sourceMode === 'upload' && (
-                  capturedImage ? (
-                    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <img src={capturedImage} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="Upload Preview" />
-                      {activeDetections.map((det, i) => (
-                        <div key={i} style={{
-                          position: 'absolute', left: `${det.bbox[0]}%`, top: `${det.bbox[1]}%`,
-                          width: `${det.bbox[2]}%`, height: `${det.bbox[3]}%`,
-                          border: `2px solid #7c3aed`, borderRadius: 4,
-                          transform: `translate(-50%, -50%)`, boxShadow: `0 0 10px #7c3aed`
-                        }}>
-                          <span style={{ position: 'absolute', top: -16, left: -2, background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 800, padding: '2px 4px', borderRadius: 2 }}>
-                            {det.label.toUpperCase()}
-                          </span>
-                        </div>
-                      ))}
-                      <button className="btn btn-secondary btn-sm" style={{ position: 'absolute', bottom: 16, right: 16 }} onClick={() => { setCapturedImage(null); setActiveDetections([]); }}>Clear</button>
-                    </div>
-                  ) : (
-                    <div style={{ color: '#666' }}>
-                      <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
-                        Upload Image to Scan
-                        <input type="file" hidden accept="image/*" onChange={handleFileUpload} />
-                      </label>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
+            <AIScanner 
+              category="livestock" 
+              title="Cattle Health & Counting AI" 
+              color="#7c3aed"
+            />
 
             <div style={{ background: 'var(--color-surface)', padding: '12px 20px', display: 'flex', gap: 20, borderTop: '1px solid var(--color-border)' }}>
               {['Holstein', 'Jersey', 'Angus', 'Calf'].map(c => (

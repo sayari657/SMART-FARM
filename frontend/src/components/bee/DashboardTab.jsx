@@ -3,6 +3,7 @@ import {
   Hexagon, Droplets, Heart, AlertCircle, Eye, Upload, Activity, ArrowUpRight, ClipboardCheck as VisitIcon, Plus, MapPin
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
+import AIScanner from '../AIScanner';
 
 const AIPulse = () => (
   <svg viewBox="0 0 100 20" style={{ width: '100%', height: 40 }}>
@@ -67,25 +68,11 @@ export default function DashboardTab({ ruches, isProcessing, previewImage, onImp
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
-        <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Eye size={16} color={COLORS.accent} />
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'white' }}>Smart Vision Feed (YOLO)</span>
-            </div>
-            <button onClick={onImport} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '6px 12px', borderRadius: 8, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Upload size={12} /> Importer
-            </button>
-          </div>
-          <div style={{ height: 350, background: '#000', position: 'relative' }}>
-            {isProcessing && <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.accent, fontSize: 13 }}>Analyse Vision...</div>}
-            {previewImage ? <img src={previewImage} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.textMuted }}>Pas de flux vidéo actif</div>}
-            <div style={{ position: 'absolute', top: 20, left: 20, background: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 12, backdropFilter: 'blur(5px)' }}>
-              <div style={{ fontSize: 9, color: COLORS.accent, fontWeight: 800, marginBottom: 4 }}>POULS IA</div>
-              <AIPulse />
-            </div>
-          </div>
-        </div>
+        <AIScanner 
+          category="bee" 
+          title="Hive Entrance Monitor (YOLO)" 
+          color={COLORS.accent} 
+        />
 
         <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>

@@ -22,8 +22,7 @@ async def search_address(
 @router.get("/reverse")
 async def reverse_geocode(
     lat: float,
-    lon: float,
-    current_user = Depends(get_current_user)
+    lon: float
 ):
     data = await geocode_service.reverse_geocode(lat, lon)
     if data is None:

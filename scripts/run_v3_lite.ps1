@@ -3,9 +3,13 @@
 
 Write-Host "🌿 Initiating Smart Farm Ecosystem (Lite Mode - No Docker)..." -ForegroundColor Yellow
 
-$env:PYTHONPATH = (Resolve-Path "backend").Path
-$env:LITE_MODE = "true" # Force Lite mode for AI services
-$env:DATABASE_URL = "sqlite:///./smart_farm.db"
+$projectRoot = (Resolve-Path ".").Path
+$dbPath      = Join-Path $projectRoot "smart_farm.db"
+$dbUrl       = "sqlite:///$($dbPath -replace '\\', '/')"  # Absolute path — same DB for seeding & backend
+
+$env:PYTHONPATH   = (Resolve-Path "backend").Path
+$env:LITE_MODE    = "true"       # Force Lite mode for AI services
+$env:DATABASE_URL = $dbUrl
 
 $pythonCmd = "python"
 if (Test-Path ".venv\Scripts\python.exe") {
@@ -20,8 +24,8 @@ Write-Host "🌱 Initializing Local SQLite Database..." -ForegroundColor Cyan
 # 2. Launch Services (Local Processes)
 Write-Host "🚀 Launching Application Layer..." -ForegroundColor Green
 
-# Backend (Uvicorn)
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$env:PYTHONPATH = '$(Resolve-Path "backend").Path'; `$env:LITE_MODE = 'true'; `$env:DATABASE_URL = 'sqlite:///./smart_farm.db'; cd backend; & '$pythonCmd' -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload" -WindowStyle Normal
+# Backend (Uvicorn) — use absolute $dbUrl so cd backend doesn't shift the DB path
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$env:PYTHONPATH = '$(Resolve-Path "backend").Path'; `$env:LITE_MODE = 'true'; `$env:DATABASE_URL = '$dbUrl'; cd backend; & '$pythonCmd' -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload" -WindowStyle Normal
 
 # Frontend (Vite)
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev" -WindowStyle Normal

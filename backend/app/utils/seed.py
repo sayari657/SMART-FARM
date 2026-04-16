@@ -37,7 +37,7 @@ def seed():
             ]
             db.add_all(users)
             db.commit()
-            print("✓ Users seeded")
+            print("[OK] Users seeded")
 
         admin = db.query(User).filter(User.username == "admin").first()
 

@@ -21,27 +21,44 @@ class RecommendationService:
         if farm.latitude and farm.longitude:
             weather = await weather_service.get_current_weather(farm.latitude, farm.longitude)
             if weather and "risks" in weather:
-                weather_summary = f"Weather: {weather['temperature']}°C, {weather['condition']}."
+                temp = weather.get('temperature', 'N/A')
+                hum  = weather.get('humidity', 'N/A')
+                wind = weather.get('wind_speed', 'N/A')
+                weather_summary = f"Weather: {temp}°C, Humidity: {hum}%, Wind: {wind} km/h."
                 risks = weather["risks"]
                 if risks.get("heat_stress"):
                     recs.append({
                         "type": "weather",
                         "title": "Heat Stress Warning",
                         "action": "Increase ventilation and water supply.",
-                        "reason": f"Expected: {weather['temperature']}°C"
+                        "reason": f"Temperature: {temp}°C — above 35°C threshold."
+                    })
+                if risks.get("cold_stress"):
+                    recs.append({
+                        "type": "weather",
+                        "title": "Cold Stress Warning",
+                        "action": "Ensure animal shelter heating and water doesn't freeze.",
+                        "reason": f"Temperature: {temp}°C — below 5°C threshold."
+                    })
+                if risks.get("storm_risk"):
+                    recs.append({
+                        "type": "weather",
+                        "title": "Storm Risk Alert",
+                        "action": "Secure outdoor equipment and check hive anchoring.",
+                        "reason": f"Wind speed: {wind} km/h — above 40 km/h threshold."
                     })
         
         # 2. RAG based Wisdom (Species specific)
-        # Assuming we check for all species in the farm
-        for animal in farm.animals:
+        for unit in farm.units:
+            species = unit.animal_type.species if unit.animal_type else "general"
             wisdom = await rag_service.query_wisdom(
-                query=f"Recommendations for {animal.species} during {weather_summary}",
-                species=animal.species
+                query=f"Recommendations for {species} during {weather_summary}",
+                species=species
             )
             if wisdom:
                 recs.append({
                     "type": "sovereign_rag",
-                    "title": f"Local Expertise: {animal.species.capitalize()}",
+                    "title": f"Local Expertise: {species.capitalize()}",
                     "action": wisdom[0][:200], # Top result summary
                     "reason": "Retrieved from local UTAP/AVFA database."
                 })
@@ -66,7 +83,5 @@ class RecommendationService:
             "recommendations": recs,
             "output_derja": derja_summary
         }
-
-recommendation_service = RecommendationService()
 
 recommendation_service = RecommendationService()

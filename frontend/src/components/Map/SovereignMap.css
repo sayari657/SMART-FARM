@@ -1,0 +1,173 @@
+/* SovereignMap Premium Styling */
+
+.custom-marker {
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.custom-marker:hover {
+    transform: scale(1.25) translateY(-5px);
+    z-index: 1000 !important;
+}
+
+.marker-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2.5px solid white;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+    background: white;
+}
+
+/* Specific Marker Personalities */
+.hive-icon {
+    background: #fef9c3;
+    border-color: #facc15;
+}
+
+.farm-icon {
+    background: #dcfce7;
+    border-color: #22c55e;
+}
+
+.vet-icon {
+    background: #fee2e2;
+    border-color: #ef4444;
+}
+
+/* User Position Navigation Pulse */
+.marker-user {
+    width: 24px;
+    height: 24px;
+    position: relative;
+}
+
+.user-marker-core {
+    width: 26px;
+    height: 26px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    z-index: 2;
+    position: relative;
+}
+
+.user-marker-pulse {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: rgba(59, 130, 246, 0.3);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: marker-pulse 2s infinite;
+    z-index: 1;
+}
+
+@keyframes marker-pulse {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* Premium Popups */
+.map-popup.premium {
+    padding: 12px;
+    font-family: inherit;
+}
+
+.map-popup.premium h3 {
+    margin: 0 0 4px 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.map-popup.premium p {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.maplibregl-popup-content {
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    padding: 0 !important;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+}
+
+.maplibregl-popup-close-button {
+    padding: 8px !important;
+    color: #64748b !important;
+    font-size: 16px !important;
+}
+
+/* Hive Live Telemetry Popups */
+.hive-live {
+    min-width: 180px;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.m-item {
+    background: #f8fafc;
+    padding: 8px 4px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+}
+
+.m-item strong {
+    display: block;
+    font-size: 14px;
+    color: #1e293b;
+}
+
+.m-item span {
+    font-size: 9px;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.popup-status-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.popup-status-badge.healthy {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.popup-status-badge.warning {
+    background: #fef9c3;
+    color: #854d00;
+}
+
+.popup-status-badge.critical {
+    background: #fee2e2;
+    color: #991b1b;
+}

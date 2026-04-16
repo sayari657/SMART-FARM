@@ -1,17 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Database, MapPin, Calendar, GitBranch } from 'lucide-react';
 
 export default function HiveDetail() {
-  const [hive, setHive] = useState(null);
-
-  useEffect(() => {
-    fetch('http://127.0.0.1:8000/hives')
-      .then(res => res.json())
-      .then(data => {
-        if(data && data.length > 0) setHive(data[0]);
-      })
-      .catch(() => {});
-  }, []);
+  const hive = null; // Static display — no backend hive route needed
 
   return (
     <>

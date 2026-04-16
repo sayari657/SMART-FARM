@@ -12,6 +12,17 @@ const ExpertAssistant = ({ species = 'cow', color = '#7c3aed' }) => {
   const [input, setInput] = useState('');
   const { messages, isTyping, sendMessage, scrollRef } = useExpertAgent(species);
 
+  // Allow external triggers from AIScanners
+  React.useEffect(() => {
+    const handleTrigger = (e) => {
+      if (e.detail?.species === species || !e.detail?.species) {
+        setIsOpen(true);
+      }
+    };
+    window.addEventListener('open-assistant', handleTrigger);
+    return () => window.removeEventListener('open-assistant', handleTrigger);
+  }, [species]);
+
   const handleSend = () => {
     if (!input.trim()) return;
     sendMessage(input);
@@ -28,17 +39,31 @@ const ExpertAssistant = ({ species = 'cow', color = '#7c3aed' }) => {
       {!isOpen && (
         <button 
           onClick={() => setIsOpen(true)}
-          className="fab-hover"
+          className="fab-hover assistant-sparkle-trigger"
           style={{
             position: 'fixed', bottom: 32, right: 32,
-            width: 60, height: 60, borderRadius: '50%',
+            width: 64, height: 64, borderRadius: '50%',
             background: `linear-gradient(135deg, ${color}, #4c1d95)`,
-            color: 'white', border: 'none', boxShadow: '0 8px 32px rgba(124, 58, 237, 0.4)',
+            color: 'white', border: 'none', boxShadow: `0 8px 32px ${color}66`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', zIndex: 999, transition: 'all 0.3s ease'
+            cursor: 'pointer', zIndex: 999, transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
           }}
         >
-          <Sparkles size={24} />
+          <div className="sparkle-pulse" />
+          <Sparkles size={28} />
+          <style dangerouslySetInnerHTML={{ __html: `
+            .assistant-sparkle-trigger:hover { transform: scale(1.1) rotate(5deg); }
+            .sparkle-pulse {
+              position: absolute; width: 100%; height: 100%;
+              border-radius: 50%; background: ${color};
+              opacity: 0.6; animation: assistantPulse 2s infinite;
+              z-index: -1;
+            }
+            @keyframes assistantPulse {
+              0% { transform: scale(1); opacity: 0.6; }
+              100% { transform: scale(1.6); opacity: 0; }
+            }
+          `}} />
         </button>
       )}
 
@@ -54,10 +79,10 @@ const ExpertAssistant = ({ species = 'cow', color = '#7c3aed' }) => {
           {/* Header */}
           <div style={{ background: `linear-gradient(135deg, ${color}, #4c1d95)`, padding: '20px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ background: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 }}><Bot size={20} /></div>
+              <div style={{ background: 'rgba(255,255,255,0.2)', padding: 8, borderRadius: 12 }}><Sparkles size={20} /></div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Smart Farm Expert</div>
-                <div style={{ fontSize: 11, opacity: 0.8 }}>Agentic RAG • {species.charAt(0).toUpperCase() + species.slice(1)} Mode</div>
+                <div style={{ fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Smart Farm Expert Agentic RAG</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{species.charAt(0).toUpperCase() + species.slice(1)} Mode</div>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={20} /></button>

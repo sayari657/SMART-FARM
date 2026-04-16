@@ -7,6 +7,7 @@ import logging
 import json
 from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
@@ -26,6 +27,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"Global error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)},
+    )
 
 # CORS
 origins = [o.strip() for o in settings.CORS_ORIGINS.split(",")]

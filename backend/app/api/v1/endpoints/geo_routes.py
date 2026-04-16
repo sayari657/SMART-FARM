@@ -24,60 +24,169 @@ class GeoJSONFeatureCollection(BaseModel):
     type: str = "FeatureCollection"
     features: List[GeoJSONFeature]
 
+from app.core.config import settings
+
+# --- Helper for SQLite Geo ---
+def point_to_geojson(lat, lon):
+    return {
+        "type": "Point",
+        "coordinates": [lon, lat]
+    }
+
+def haversine(lat1, lon1, lat2, lon2):
+    import math
+    R = 6371  # Earth radius in km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
 # --- Endpoints ---
 
 @router.get("/vets", response_model=GeoJSONFeatureCollection)
 def get_veterinarians(db: Session = Depends(get_db)):
-    """Return all veterinarians in GeoJSON format."""
-    vets = db.query(Veterinary, ST_AsGeoJSON(Veterinary.geom).label("geojson")).filter(Veterinary.is_active == True).all()
-    
-    features = []
-    for vet, geojson_str in vets:
-        if geojson_str:
-            geom = json.loads(geojson_str)
+    """Return all veterinarians in GeoJSON format using PostGIS optimized queries."""
+    if settings.DATABASE_URL.startswith("sqlite"):
+        vets = db.query(Veterinary).filter(Veterinary.is_active == True).all()
+        features = []
+        for v in vets:
             features.append(GeoJSONFeature(
-                geometry=GeoJSONGeometry(type=geom["type"], coordinates=geom["coordinates"]),
+                geometry=GeoJSONGeometry(type="Point", coordinates=[v.longitude, v.latitude]),
                 properties={
-                    "id": vet.id,
-                    "name": vet.name,
-                    "specialty": vet.specialty,
-                    "phone": vet.phone,
-                    "address": vet.address
+                    "id": v.id, "name": v.name, "specialty": v.specialty,
+                    "phone": v.phone, "address": v.address
                 }
             ))
-    
+        return GeoJSONFeatureCollection(features=features)
+        
+    # Sovereign PostGIS Raw Path (High Performance)
+    from sqlalchemy import text
+    query = text("""
+        SELECT id, name, specialty, phone, address,
+               ST_X(geom) as lon, ST_Y(geom) as lat
+        FROM veterinarians
+        WHERE is_active = true
+    """)
+    result = db.execute(query)
+    features = []
+    for row in result:
+        features.append(GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[row.lon, row.lat]),
+            properties={
+                "id": row.id, "name": row.name, "specialty": row.specialty,
+                "phone": row.phone, "address": row.address
+            }
+        ))
     return GeoJSONFeatureCollection(features=features)
 
 @router.get("/farms", response_model=GeoJSONFeatureCollection)
 def get_farms_geojson(db: Session = Depends(get_db)):
-    """Return all farms in GeoJSON format."""
-    # Note: Optimization would filter by user_id if needed
-    farms = db.query(Farm, ST_AsGeoJSON(Farm.geom).label("geojson")).all()
+    """Return all farms in GeoJSON format using local PostGIS."""
+    if settings.DATABASE_URL.startswith("sqlite"):
+        farms = db.query(Farm).all()
+        features = []
+        for f in farms:
+            # Skip farms without GPS coordinates — avoids Pydantic crash → CORS bypass
+            if f.latitude is None or f.longitude is None:
+                continue
+            features.append(GeoJSONFeature(
+                geometry=GeoJSONGeometry(type="Point", coordinates=[f.longitude, f.latitude]),
+                properties={"id": f.id, "name": f.name, "status": f.status}
+            ))
+        return GeoJSONFeatureCollection(features=features)
+
+    from sqlalchemy import text
+    query = text("""
+        SELECT id, name, status, 
+               ST_X(geom) as lon, ST_Y(geom) as lat
+        FROM farms
+    """)
+    result = db.execute(query)
+    features = []
+    for row in result:
+        features.append(GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[row.lon, row.lat]),
+            properties={"id": row.id, "name": row.name, "status": row.status}
+        ))
+    return GeoJSONFeatureCollection(features=features)
+
+@router.get("/hives", response_model=GeoJSONFeatureCollection)
+def get_hives_geojson(db: Session = Depends(get_db)):
+    """Return all hives (bee units) joined with their latest telemetry records."""
+    from app.models.domain import AnimalUnit, AnimalType, TelemetryRecord
+    from sqlalchemy import desc
+    
+    # 1. Get the 'bee' type ID
+    bee_type = db.query(AnimalType).filter(AnimalType.species == "bee").first()
+    if not bee_type:
+        return GeoJSONFeatureCollection(features=[])
+        
+    # 2. Query hives
+    hives = db.query(AnimalUnit).filter(AnimalUnit.type_id == bee_type.id).all()
     
     features = []
-    for farm, geojson_str in farms:
-        if geojson_str:
-            geom = json.loads(geojson_str)
-            features.append(GeoJSONFeature(
-                geometry=GeoJSONGeometry(type=geom["type"], coordinates=geom["coordinates"]),
-                properties={
-                    "id": farm.id,
-                    "name": farm.name,
-                    "status": farm.status
-                }
-            ))
-            
+    for h in hives:
+        # Skip hives whose farm has no GPS coordinates
+        if not h.farm or h.farm.latitude is None or h.farm.longitude is None:
+            continue
+
+        # Get latest telemetry for this unit
+        latest = db.query(TelemetryRecord).filter(TelemetryRecord.unit_id == h.id).order_by(desc(TelemetryRecord.timestamp)).first()
+        
+        # Default metrics if none found
+        metrics = latest.metrics if latest else {"weight": 0, "temperature": 0, "humidity": 0}
+        
+        lat = h.farm.latitude + (hash(h.name) % 100 / 10000)
+        lon = h.farm.longitude + (hash(h.name) % 80 / 10000)
+        
+        features.append(GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
+            properties={
+                "id": h.id,
+                "name": h.name,
+                "status": h.status,
+                "metrics": metrics,
+                "timestamp": latest.timestamp.isoformat() if latest else None
+            }
+        ))
+        
     return GeoJSONFeatureCollection(features=features)
 
 @router.get("/nearby-vets", response_model=List[dict])
-def find_nearby_vets(lat: float, lon: float, radius_km: float = 20, db: Session = Depends(get_db)):
-    """Find veterinarians within a radius from a point."""
-    point = f'POINT({lon} {lat})'
-    # ST_DWithin uses meters for Geography type
+def find_nearby_vets(lat: float, lon: float, radius_km: float = 100, db: Session = Depends(get_db)):
+    """Find veterinarians within a radius from a point using native PostGIS radial search."""
+    if settings.DATABASE_URL.startswith("sqlite"):
+        vets = db.query(Veterinary).filter(Veterinary.is_active == True).all()
+        nearby = []
+        for v in vets:
+            d = haversine(lat, lon, v.latitude, v.longitude)
+            if d <= radius_km:
+                nearby.append({"id": v.id, "name": v.name, "distance_km": round(d, 2)})
+        return nearby
+
+    # Golden Architecture: Native ST_DWithin Query
+    from sqlalchemy import text
     radius_meters = radius_km * 1000
+    query = text("""
+        SELECT id, name, specialty, phone, address,
+               ST_X(geom) as lon, ST_Y(geom) as lat,
+               ST_Distance(geom::geography, ST_MakePoint(:lon, :lat)::geography) / 1000 as distance_km
+        FROM veterinarians
+        WHERE ST_DWithin(
+            geom::geography,
+            ST_MakePoint(:lon, :lat)::geography,
+            :radius
+        ) AND is_active = true
+        ORDER BY distance_km ASC
+    """)
+    result = db.execute(query, {"lon": lon, "lat": lat, "radius": radius_meters})
     
-    nearby = db.query(Veterinary).filter(
-        ST_DWithin(Veterinary.geom, func.ST_GeogFromText(f"SRID=4326;{point}"), radius_meters)
-    ).all()
-    
-    return [{"id": v.id, "name": v.name, "distance_km": "Calculated by client or server"} for v in nearby]
+    return [
+        {
+            "id": row.id, "name": row.name, "specialty": row.specialty, 
+            "phone": row.phone, "address": row.address,
+            "coords": [row.lat, row.lon],
+            "distance_km": round(row.distance_km, 2)
+        } for row in result
+    ]

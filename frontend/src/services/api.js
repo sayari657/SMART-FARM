@@ -113,6 +113,7 @@ export const settingsAPI = {
 export const externalAPI = {
   weather: {
     current: (farmId) => api.get(`/weather/current/${farmId}`),
+    byCoords: (lat, lon) => api.get('/weather/coords', { params: { lat, lon } }),
     forecast: (farmId) => api.get(`/weather/forecast/${farmId}`),
   },
   geocode: {

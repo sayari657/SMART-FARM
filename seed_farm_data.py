@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 
 # Database path
-DB_PATH = 'backend/smart_farm.db'
+DB_PATH = 'smart_farm.db'
 
 def seed():
     conn = sqlite3.connect(DB_PATH)
@@ -33,9 +33,9 @@ def seed():
         farm_id = res[0]
     else:
         cursor.execute('''
-            INSERT INTO farms (name, status, created_at)
-            VALUES (?, ?, ?)
-        ''', ('Smart Bee Farm Alpha', 'active', datetime.now().isoformat()))
+            INSERT INTO farms (name, status, latitude, longitude, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('Smart Bee Farm Alpha', 'active', 36.8065, 10.1815, datetime.now().isoformat()))
         farm_id = cursor.lastrowid
 
     # 3. Create a Bee Unit (Hive)

@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  tileserver:
+    image: maptiler/tileserver-gl
+    container_name: smartfarm-tileserver
+    ports:
+      - "9090:80"
+    volumes:
+      - ./map_data:/data
+    # command: ["--mbtiles", "tunisia.mbtiles"]
+    restart: "no"
+
+# INSTRUCTIONS:
+# 1. Create a folder named 'map_data' in your project root.
+# 2. Download the Tunisia MBTiles (e.g. from OpenMapTiles or Maptiler).
+# 3. Rename it to 'tunisia.mbtiles' and place it in the 'map_data' folder.
+# 4. Run: docker-compose -f docker-compose.gis.yml up -d

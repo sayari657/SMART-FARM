@@ -1,14 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { 
-  TreePine, Eye, ShieldCheck, AlertCircle, 
-  Search, Bot, Activity, Upload, CheckCircle2,
-  Sparkles, Camera, ArrowRight, RefreshCcw, FileImage,
-  Send, User, Mic, MicOff, Volume2, BookOpen
+  TreePine, ShieldCheck, AlertCircle, 
+  Search, Bot,
+  Sparkles, ArrowRight,
+  Send, User, Mic, MicOff, Volume2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom';
+import { agentAPI } from '../services/api';
 import analysisResult from '../assets/trees/analysis_result.png';
+import AIScanner from '../components/AIScanner';
 
 export default function ArbresPlantations() {
   const { t, i18n } = useTranslation();
@@ -76,8 +78,8 @@ export default function ArbresPlantations() {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/v1/agent/chat?query=${encodeURIComponent(input)}`, { method: 'POST' });
-      const data = await response.json();
+      const res = await agentAPI.chat(input || 'Analyse d\'arbre');
+      const data = res.data;
       setIsLite(data.is_lite);
 
       const botMsg = {
@@ -184,112 +186,11 @@ export default function ArbresPlantations() {
               <Sparkles size={20} className="text-primary" />
             </div>
 
-            {!hasResult ? (
-              <div 
-                className="diagnostic-upload-zone"
-                onClick={!isAnalyzing ? triggerFileUpload : undefined}
-                style={{
-                  border: '2px dashed var(--color-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  background: 'var(--color-bg)',
-                  transition: 'var(--transition)',
-                  cursor: isAnalyzing ? 'default' : 'pointer',
-                  minHeight: 280,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                {isAnalyzing ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                    {uploadedImage && (
-                      <div style={{ position: 'relative', width: 120, height: 120, marginBottom: 10 }}>
-                        <img src={uploadedImage} alt="Uploading..." style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius)', opacity: 0.5 }} />
-                        <div className="spinner-center" />
-                      </div>
-                    )}
-                    {!uploadedImage && <div className="spinner-large" />}
-                    <div className="text-bold">{t('common.loading')}</div>
-                    <div className="text-xs text-muted">Extraction des caractéristiques phénotypiques...</div>
-                  </div>
-                ) : (
-                  <div>
-                    <Camera size={48} className="text-muted" style={{ marginBottom: 16 }} />
-                    <h4 style={{ marginBottom: 8 }}>{t('trees.diagnostic_drop')}</h4>
-                    <p className="text-xs text-muted">{t('trees.diagnostic_upload')}</p>
-                    <button className="btn btn-primary mt-4" onClick={(e) => { e.stopPropagation(); triggerFileUpload(); }}>
-                      <Upload size={16} /> {t('trees.diagnostic_upload')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="diagnostic-result-area">
-                <div style={{ 
-                  position: 'relative', 
-                  borderRadius: 'var(--radius-lg)', 
-                  overflow: 'hidden',
-                  border: '2px solid var(--color-primary)',
-                  boxShadow: '0 12px 24px rgba(22, 163, 74, 0.2)',
-                  background: '#000'
-                }}>
-                  {/* The User's Actual Image */}
-                  <img 
-                    src={uploadedImage || analysisResult} 
-                    alt="AI Analysis Result" 
-                    style={{ width: '100%', height: 'auto', display: 'block', opacity: isAnalyzing ? 0.5 : 1 }} 
-                  />
-
-                  {/* Simulated SVG Overlay (Bounding Boxes) */}
-                  {!isAnalyzing && (
-                    <svg 
-                      viewBox="0 0 100 100" 
-                      preserveAspectRatio="none" 
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-                    >
-                      <rect x="10" y="20" width="20" height="25" fill="none" stroke="#22c55e" strokeWidth="0.5" strokeDasharray="2,1" />
-                      <rect x="40" y="10" width="15" height="15" fill="none" stroke="#22c55e" strokeWidth="0.5" strokeDasharray="2,1" />
-                      <rect x="70" y="30" width="22" height="30" fill="none" stroke="#22c55e" strokeWidth="0.5" strokeDasharray="2,1" />
-                      <rect x="30" y="60" width="18" height="20" fill="none" stroke="#ef4444" strokeWidth="0.5" strokeDasharray="2,1" />
-                    </svg>
-                  )}
-
-                  <div style={{ 
-                    position: 'absolute', 
-                    top: 12, left: 12, 
-                    background: 'rgba(0,0,0,0.7)', 
-                    color: 'white', 
-                    padding: '4px 10px', 
-                    borderRadius: 99,
-                    fontSize: 10,
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    backdropFilter: 'blur(4px)'
-                  }}>
-                    <CheckCircle2 size={12} color="#22c55e" /> ANALYSE TERMINÉE
-                  </div>
-                </div>
-                
-                <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div>
-                     <div className="text-bold" style={{ fontSize: 14 }}>Santé Globale: 94%</div>
-                     <div className="text-xs text-muted">Diagnostic: {uploadedImage ? 'Analyse personnalisée réussie' : 'Variété: Chemlali (Sfax)'}</div>
-                   </div>
-                   <div style={{ display: 'flex', gap: 8 }}>
-                     <button className="btn btn-secondary btn-sm" onClick={resetAnalysis}>
-                       <RefreshCcw size={14} /> 
-                     </button>
-                     <button className="btn btn-primary btn-sm" onClick={pushImageToPlantBot} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                       Demander au PlantBot <ArrowRight size={14} />
-                     </button>
-                   </div>
-                </div>
-              </div>
-            )}
+            <AIScanner 
+              category="leaves" 
+              title="Phyto-Diagnostic AI" 
+              color="#22c55e"
+            />
 
             <div style={{ padding: 16, background: 'var(--color-primary-light)', borderRadius: 'var(--radius)', color: 'var(--color-primary-dark)', fontSize: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, marginBottom: 4 }}>

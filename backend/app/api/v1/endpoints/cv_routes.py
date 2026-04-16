@@ -20,20 +20,42 @@ from app.schemas.domain import CVEventCreate
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/cv", tags=["Computer Vision"])
 
-# Load model for inference (hardcoded path as per user)
-MODEL_PATH = r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\bee\final_export\best.pt"
-_model = None
+# Model Registry (Provided by User)
+MODEL_REGISTRY = {
+    "bee": r"D:\cv data\cv bee detect from roboflow\final_export\best.pt",
+    "livestock": r"D:\cv data\goat sheet and cow\model goat cow\best.pt",
+    "leaves": r"D:\cv data\leaves\Detection diseases Leaves\best.pt",
+    "olive": r"D:\cv data\olive\model olive-tree-diseases\best.pt",
+    "insects": r"D:\cv data\insects\model insects_final\best.pt",
+    "fire": r"D:\cv data\Fire Detection.v1i.yolov11\model-fire-detection-and-smoke\best.pt"
+}
 
-def get_yolo_model():
-    global _model
+_models = {}
+
+def get_yolo_model(category: str = "bee"):
+    global _models
     if not HAS_YOLO:
         return None
-    if _model is None:
-        if os.path.exists(MODEL_PATH):
-            _model = YOLO(MODEL_PATH)
+    
+    # Map friendly names to registry keys
+    key = category.lower()
+    if "cow" in key or "goat" in key or "sheep" in key:
+        key = "livestock"
+    
+    path = MODEL_REGISTRY.get(key, MODEL_REGISTRY["bee"])
+    
+    if key not in _models:
+        if os.path.exists(path):
+            try:
+                _models[key] = YOLO(path)
+                logger.info(f"Loaded YOLO model for {key} from {path}")
+            except Exception as e:
+                logger.error(f"Failed to load model {key}: {e}")
+                return None
         else:
-            logger.error(f"Model not found at {MODEL_PATH}")
-    return _model
+            logger.error(f"Model not found for {key} at {path}")
+            return None
+    return _models[key]
 
 def _serialize(e):
     return {
@@ -59,9 +81,13 @@ def ingest(data: CVEventCreate, db: Session = Depends(get_db), _=Depends(get_cur
     return {"id": e.id, "unit_id": e.unit_id, "object_class": e.object_class}
 
 @router.post("/detect")
-async def detect_in_file(file: UploadFile = File(...), _=Depends(get_current_user)):
+async def detect_in_file(
+    file: UploadFile = File(...), 
+    category: Optional[str] = Query("bee"),
+    _=Depends(get_current_user)
+):
     """Run real YOLO OBB inference on an uploaded image file."""
-    model = get_yolo_model()
+    model = get_yolo_model(category)
     if not model:
         raise HTTPException(status_code=500, detail="YOLO model not initialized or ultralytics not installed.")
     

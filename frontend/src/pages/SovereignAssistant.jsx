@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Sparkles, BookOpen, Clock, ChevronRight, Mic, Volume2, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
+import { agentAPI } from '../services/api';
 
 export default function SovereignAssistant() {
   const { t, i18n } = useTranslation();
@@ -67,18 +68,9 @@ export default function SovereignAssistant() {
     setInput("");
     setLoading(true);
 
-    // Timeout Controller (increased to 60s for intensive AI RAG queries)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort("REASON_TIMEOUT"), 60000);
-
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/v1/agent/chat?query=${encodeURIComponent(input)}`, {
-        method: 'POST',
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      const data = await response.json();
+      const res = await agentAPI.chat(input);
+      const data = res.data;
       setIsLite(data.is_lite);
 
       const botMsg = {

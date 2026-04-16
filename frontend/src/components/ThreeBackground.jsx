@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, Suspense } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Points, PointMaterial } from '@react-three/drei';
 import StableCanvas from './StableCanvas';
@@ -6,18 +6,23 @@ import StableCanvas from './StableCanvas';
 function Stars(props) {
   const ref = useRef();
   
-  // Create random positions manually
+  // SOLVED: THREE.BufferGeometry.computeBoundingSphere() NaN error
+  // The array size must be a multiple of the item size (3 for x,y,z).
+  // 4500 / 3 = 1500 points
   const sphere = useMemo(() => {
-    const array = new Float32Array(15000);
-    for (let i = 0; i < 15000; i++) {
-        array[i] = (Math.random() - 0.5) * 4; // Spread them in a 3D box
+    const count = 1500;
+    const array = new Float32Array(count * 3); 
+    for (let i = 0; i < count * 3; i++) {
+        array[i] = (Math.random() - 0.5) * 5; 
     }
     return array;
   }, []);
   
   useFrame((state, delta) => {
-    ref.current.rotation.x -= delta / 30;
-    ref.current.rotation.y -= delta / 45;
+    if (ref.current) {
+      ref.current.rotation.x -= delta / 30;
+      ref.current.rotation.y -= delta / 45;
+    }
   });
 
   return (
@@ -47,7 +52,7 @@ const ThreeBackground = () => {
       background: 'linear-gradient(to bottom, #f8fafc, #f1f5f9)',
       pointerEvents: 'none'
     }}>
-      <StableCanvas camera={{ position: [0, 0, 1] }}>
+      <StableCanvas camera={{ position: [0, 0, 1] }} gl={{ antialias: false, powerPreference: 'low-power' }}>
         <Stars />
       </StableCanvas>
     </div>

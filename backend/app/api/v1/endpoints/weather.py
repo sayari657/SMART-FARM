@@ -26,6 +26,17 @@ async def get_current_weather(
         
     return data
 
+@router.get("/coords")
+async def get_weather_by_coords(
+    lat: float,
+    lon: float
+):
+    data = await weather_service.get_current_weather(lat, lon)
+    if not data:
+        raise HTTPException(status_code=503, detail="Weather service unavailable for these coordinates")
+        
+    return data
+
 @router.get("/forecast/{farm_id}")
 async def get_forecast(
     farm_id: int,
