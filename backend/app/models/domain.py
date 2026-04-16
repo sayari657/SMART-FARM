@@ -139,6 +139,26 @@ class Veterinary(Base):
 
 
 # ---------------------------------------------------------------------------
+# Markets & Suppliers (GIS Entities)
+# ---------------------------------------------------------------------------
+
+class Market(Base):
+    __tablename__ = "markets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    market_type = Column(String(50), default="bee_market") # bee_market, feed_market, equipment
+    description = Column(Text)
+    phone = Column(String(20))
+    address = Column(String(255))
+    latitude = Column(Float)
+    longitude = Column(Float)
+    geom = get_geom_column('POINT', 4326)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
 # Animal Types (species catalogue)
 # ---------------------------------------------------------------------------
 

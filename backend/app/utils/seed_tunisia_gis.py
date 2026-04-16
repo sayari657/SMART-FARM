@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.models.domain import Veterinary, Farm
+from app.models.domain import Veterinary, Farm, Market
 from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
@@ -31,10 +31,18 @@ def seed_tunisia_data():
             {"name": "Poultry Alpha Mateur", "location": "Bizerte", "lat": 37.040, "lon": 9.665, "desc": "Automated poultry monitoring."},
             {"name": "AgroSovereign Test Farm", "location": "Ben Arous", "lat": 36.755, "lon": 10.220, "desc": "GIS R&D Hub."}
         ]
+        
+        # 3. CURATED BEE MARKETS
+        markets = [
+            {"name": "Apiculture Haddad (Grombalia)", "type": "bee_market", "lat": 36.598, "lon": 10.501, "desc": "Tunisia's leading apiculture equipment supplier and market.", "phone": "+216 72 255 100", "address": "GP1, Grombalia, Nabeul"},
+            {"name": "Boutique Apicole Tunis (Centre)", "type": "bee_market", "lat": 36.795, "lon": 10.170, "desc": "Urban hub for honey products and beekeeping tools.", "phone": "+216 71 888 999", "address": "Rue d'Angleterre, Tunis"},
+            {"name": "Comptoir de l'Abeille (Sousse)", "type": "bee_market", "lat": 35.825, "lon": 10.608, "desc": "Regional supplier for hives and treatments.", "phone": "+216 73 111 222", "address": "Zone Industrielle, Sousse"}
+        ]
 
         # Clear existing to avoid duplicates in demo
         db.query(Veterinary).delete()
         db.query(Farm).delete()
+        db.query(Market).delete()
         db.commit()
 
         # Seed Vets
@@ -63,8 +71,22 @@ def seed_tunisia_data():
             )
             db.add(farm)
 
+        # Seed Markets
+        for m_data in markets:
+            market = Market(
+                name=m_data["name"],
+                market_type=m_data["type"],
+                description=m_data["desc"],
+                phone=m_data["phone"],
+                address=m_data["address"],
+                latitude=m_data["lat"],
+                longitude=m_data["lon"],
+                geom=f"SRID=4326;POINT({m_data['lon']} {m_data['lat']})"
+            )
+            db.add(market)
+
         db.commit()
-        logger.info(f"Successfully seeded {len(vets)} veterinarians and {len(farms)} farms into Tunisia GIS.")
+        logger.info(f"Successfully seeded {len(vets)} veterinarians, {len(farms)} farms, and {len(markets)} markets into Tunisia GIS.")
 
     except Exception as e:
         db.rollback()

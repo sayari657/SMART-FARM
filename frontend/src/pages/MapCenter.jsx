@@ -17,8 +17,9 @@ const MapCenter = () => {
     const [farms, setFarms] = useState([]);
     const [vets, setVets] = useState([]);
     const [hives, setHives] = useState([]);
+    const [markets, setMarkets] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState('all'); // all, bee, vet, farm
+    const [categoryFilter, setCategoryFilter] = useState('all'); // all, bee, vet, farm, market
     const [globalSearch, setGlobalSearch] = useState('');
     const [selectedEntity, setSelectedEntity] = useState(null);
     const [viewCenter, setViewCenter] = useState([36.8065, 10.1815]); // Tunisia Center
@@ -47,17 +48,18 @@ const MapCenter = () => {
         const loadGeoData = async () => {
             try {
                 // Use authenticated 'api' instance to ensure JWT is sent
-                const [farmsRes, vetsRes, hivesRes] = await Promise.all([
+                const [farmsRes, vetsRes, hivesRes, marketsRes] = await Promise.all([
                     api.get('/geo/farms'),
                     api.get('/geo/vets'),
-                    api.get('/geo/hives')
+                    api.get('/geo/hives'),
+                    api.get('/geo/markets')
                 ]);
                 
                 // Real Bee Hives from Backend GIS (Joined with Telemetry)
                 setHives(hivesRes.data.features || []);
-                
                 setFarms(farmsRes.data.features || []);
                 setVets(vetsRes.data.features || []);
+                setMarkets(marketsRes.data.features || []);
 
                 // Auto-Locate on mount to activate 50km filter
                 handleLocateMe();
@@ -218,6 +220,7 @@ const MapCenter = () => {
         })),
         ...farms.map(f => ({ ...f, type: 'farm', name: f.properties.name, coords: [f.geometry.coordinates[1], f.geometry.coordinates[0]], id: f.properties.id, properties: f.properties })),
         ...vets.map(v => ({ ...v, type: 'vet', name: v.properties.name, coords: [v.geometry.coordinates[1], v.geometry.coordinates[0]], id: v.properties.id, properties: v.properties, discovery: false })),
+        ...markets.map(m => ({ ...m, type: 'market', name: m.properties.name, coords: [m.geometry.coordinates[1], m.geometry.coordinates[0]], id: m.properties.id, properties: m.properties })),
         ...discoveredVets,
         // Any specific search result found via global search
         ...(selectedEntity?.type === 'search' ? [selectedEntity] : [])
@@ -258,6 +261,7 @@ const MapCenter = () => {
                             farms={farms.filter(f => f.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], f.geometry.coordinates[1], f.geometry.coordinates[0]) <= 1000 : false)} 
                             vets={vets.filter(v => v.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], v.geometry.coordinates[1], v.geometry.coordinates[0]) <= 1000 : false)} 
                             hives={hives.filter(h => h.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], h.geometry.coordinates[1], h.geometry.coordinates[0]) <= 1000 : false)}
+                            markets={markets.filter(m => m.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], m.geometry.coordinates[1], m.geometry.coordinates[0]) <= 1000 : false)}
                             userPos={userPos}
                             center={[viewCenter[1], viewCenter[0]]} // MapLibre uses [lon, lat]
                             zoom={zoom} 
@@ -425,6 +429,16 @@ const MapCenter = () => {
                             <div style={{ fontSize: '10px', textTransform: 'uppercase', opacity: 0.6, fontWeight: 800 }}>Fermes</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '16px', fontWeight: 900, color: '#22c55e' }}>
                                 <MapPin size={14} /> {filteredData.filter(i => i.type === 'farm').length}
+                            </div>
+                        </div>
+                        <div style={{ width: 1, background: '#e2e8f0' }} />
+                        <div 
+                            onClick={() => setCategoryFilter('market')}
+                            style={{ display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', opacity: categoryFilter === 'market' ? 1 : 0.7 }}
+                        >
+                            <div style={{ fontSize: '10px', textTransform: 'uppercase', opacity: 0.6, fontWeight: 800 }}>Marchés</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '16px', fontWeight: 900, color: '#f59e0b' }}>
+                                <Search size={14} /> {filteredData.filter(i => i.type === 'market').length}
                             </div>
                         </div>
                     </div>

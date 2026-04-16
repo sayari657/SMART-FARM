@@ -129,6 +129,15 @@ export const externalAPI = {
   }
 };
 
+// ---- GIS & Geo
+export const geoAPI = {
+  vets: () => api.get('/geo/vets'),
+  farms: () => api.get('/geo/farms'),
+  hives: () => api.get('/geo/hives'),
+  markets: () => api.get('/geo/markets'),
+  nearbyVets: (lat, lon, radius = 50) => api.get(`/geo/nearby-vets?lat=${lat}&lon=${lon}&radius_km=${radius}`),
+};
+
 // ---- Agent
 export const agentAPI = {
   chat: (query, species) => api.post('/agent/chat', null, { params: { query, species } }),

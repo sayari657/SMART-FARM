@@ -7,11 +7,12 @@ const SovereignMap = ({
     farms = [], 
     vets = [], 
     hives = [], 
-    center = [10.1815, 36.8065], // [lon, lat] - MapLibre uses [lon, lat]
+    markets = [],
+    center = [10.1815, 36.8065], 
     zoom = 7, 
     height = "100%",
     userPos = null,
-    onMarkerClick = () => {}
+    onMarkerClick = () => {} 
 }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
@@ -197,6 +198,23 @@ const SovereignMap = ({
             el.addEventListener('click', () => onMarkerClick(f));
         });
 
+        // Add Markets (Amber Honey Jars)
+        markets.forEach(m => {
+            const coords = [m.geometry.coordinates[0], m.geometry.coordinates[1]];
+            const el = createMarkerElement('market');
+            const marker = new maplibregl.Marker({ element: el })
+                .setLngLat([coords[0], coords[1]])
+                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
+                    <div class="map-popup premium market-popup">
+                        <div class="popup-type-tag">BIER MARKT</div>
+                        <h3>🍯 ${m.properties?.name || m.name}</h3>
+                        <p>${m.properties?.address || "Haddad Expert Partner"}</p>
+                    </div>
+                `))
+                .addTo(map.current);
+            el.addEventListener('click', () => onMarkerClick(m));
+        });
+
         // User Position (Pulsating Blue Navigation)
         if (userPos) {
              const el = createMarkerElement('user');
@@ -244,7 +262,7 @@ const SovereignMap = ({
                 });
              }
         }
-    }, [farms, vets, hives, userPos, center]);
+    }, [farms, vets, hives, markets, userPos, center, isStyleLoaded]);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: height }}>
@@ -320,6 +338,13 @@ function createMarkerElement(type) {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     <line x1="12" y1="8" x2="12" y2="16" />
                     <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+        `;
+    } else if (type === 'market') {
+        innerHTML = `
+            <div class="marker-icon market-icon shadow-lg">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="#f59e0b" stroke="white" stroke-width="1.5">
+                    <path d="M12 2a4 4 0 0 0-4 4v1h8V6a4 4 0 0 0-4-4zM6 8v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8H6zm4 4h4v2h-4v-2z" />
                 </svg>
             </div>
         `;

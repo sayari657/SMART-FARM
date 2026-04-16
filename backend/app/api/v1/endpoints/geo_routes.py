@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from app.core.database import get_db
-from app.models.domain import Farm, Veterinary
+from app.models.domain import Farm, Veterinary, Market
 from pydantic import BaseModel
 from geoalchemy2.functions import ST_AsGeoJSON, ST_DWithin
 import json
@@ -103,11 +103,40 @@ def get_farms_geojson(db: Session = Depends(get_db)):
         FROM farms
     """)
     result = db.execute(query)
+    return GeoJSONFeatureCollection(features=features)
+
+@router.get("/markets", response_model=GeoJSONFeatureCollection)
+def get_markets_geojson(db: Session = Depends(get_db)):
+    """Return all agricultural markets/suppliers in GeoJSON format."""
+    if settings.DATABASE_URL.startswith("sqlite"):
+        markets = db.query(Market).filter(Market.is_active == True).all()
+        features = []
+        for m in markets:
+            features.append(GeoJSONFeature(
+                geometry=GeoJSONGeometry(type="Point", coordinates=[m.longitude, m.latitude]),
+                properties={
+                    "id": m.id, "name": m.name, "type": m.market_type,
+                    "phone": m.phone, "address": m.address, "description": m.description
+                }
+            ))
+        return GeoJSONFeatureCollection(features=features)
+
+    from sqlalchemy import text
+    query = text("""
+        SELECT id, name, market_type, phone, address, description,
+               ST_X(geom) as lon, ST_Y(geom) as lat
+        FROM markets
+        WHERE is_active = true
+    """)
+    result = db.execute(query)
     features = []
     for row in result:
         features.append(GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[row.lon, row.lat]),
-            properties={"id": row.id, "name": row.name, "status": row.status}
+            properties={
+                "id": row.id, "name": row.name, "type": row.market_type,
+                "phone": row.phone, "address": row.address, "description": row.description
+            }
         ))
     return GeoJSONFeatureCollection(features=features)
 
