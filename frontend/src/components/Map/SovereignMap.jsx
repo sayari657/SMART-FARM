@@ -12,7 +12,8 @@ const SovereignMap = ({
     zoom = 7, 
     height = "100%",
     userPos = null,
-    onMarkerClick = () => {} 
+    onMarkerClick = () => {},
+    selectedEntity = null
 }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
@@ -262,7 +263,70 @@ const SovereignMap = ({
                 });
              }
         }
-    }, [farms, vets, hives, markets, userPos, center, isStyleLoaded]);
+
+        // --- HIVE-MARKET CONNECTIVITY LINKS ---
+        if (isStyleLoaded && map.current) {
+            const updateConnectivity = () => {
+                const sourceId = 'hive-market-links';
+                const layerId = 'hive-market-links-layer';
+
+                if (!selectedEntity || selectedEntity.type !== 'market') {
+                    if (map.current.getSource(sourceId)) {
+                        map.current.getSource(sourceId).setData({ type: 'FeatureCollection', features: [] });
+                    }
+                    return;
+                }
+
+                // Calculate links to top 3 nearest hives
+                const marketCoords = selectedEntity.coords || [selectedEntity.geometry.coordinates[1], selectedEntity.geometry.coordinates[0]];
+                const sortedHives = [...hives].sort((a, b) => {
+                    const distA = haversine(marketCoords[0], marketCoords[1], a.geometry.coordinates[1], a.geometry.coordinates[0]);
+                    const distB = haversine(marketCoords[0], marketCoords[1], b.geometry.coordinates[1], b.geometry.coordinates[0]);
+                    return distA - distB;
+                }).slice(0, 3);
+
+                const features = sortedHives.map(h => ({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: [
+                            [marketCoords[1], marketCoords[0]],
+                            [h.geometry.coordinates[0], h.geometry.coordinates[1]]
+                        ]
+                    }
+                }));
+
+                const source = map.current.getSource(sourceId);
+                if (source) {
+                    source.setData({ type: 'FeatureCollection', features });
+                } else {
+                    map.current.addSource(sourceId, {
+                        type: 'geojson',
+                        data: { type: 'FeatureCollection', features }
+                    });
+                    map.current.addLayer({
+                        id: layerId,
+                        type: 'line',
+                        source: sourceId,
+                        layout: { 'line-join': 'round', 'line-cap': 'round' },
+                        paint: {
+                            'line-color': '#f59e0b',
+                            'line-width': 2,
+                            'line-dasharray': [3, 2],
+                            'line-opacity': 0.8
+                        }
+                    });
+                }
+            };
+            
+            // MapLibre style might not be ready for sources immediately after load in some races
+            if (map.current.isStyleLoaded()) {
+                updateConnectivity();
+            } else {
+                map.current.once('styledata', updateConnectivity);
+            }
+        }
+    }, [farms, vets, hives, markets, userPos, center, isStyleLoaded, selectedEntity]);
 
     return (
         <div style={{ position: 'relative', width: '100%', height: height }}>
@@ -352,6 +416,18 @@ function createMarkerElement(type) {
     
     el.innerHTML = innerHTML;
     return el;
+}
+
+// Helper: Calculate Great-Circle Distance (Haversine Formula)
+function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
 }
 
 export default SovereignMap;

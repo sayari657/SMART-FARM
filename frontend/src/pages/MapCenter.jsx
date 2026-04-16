@@ -267,6 +267,7 @@ const MapCenter = () => {
                             zoom={zoom} 
                             height="100%" 
                             onMarkerClick={(item) => focusOn(item)}
+                            selectedEntity={selectedEntity}
                         />
                     )}
 
@@ -518,6 +519,14 @@ const MapCenter = () => {
                                         <div style={{ fontSize: 11, marginTop: 10, opacity: 0.9 }}>
                                             📍 Localisation: {selectedEntity.nom || selectedEntity.name}
                                         </div>
+                                        {selectedEntity.type === 'market' && hives.length > 0 && (
+                                            <div style={{ marginTop: 12, padding: 10, background: 'rgba(255,255,255,0.1)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)' }}>
+                                                <div style={{ fontSize: 9, textTransform: 'uppercase', fontWeight: 800 }}>📦 Logistique Proximité</div>
+                                                <div style={{ fontSize: 12, fontWeight: 800, color: '#facc15', marginTop: 4 }}>
+                                                    Plus proche ruche : {Math.min(...hives.map(h => haversine(selectedEntity.coords[0], selectedEntity.coords[1], h.geometry.coordinates[1], h.geometry.coordinates[0]))).toFixed(1)} km
+                                                </div>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                                 {selectedEntity.distance > 100 && (
@@ -557,7 +566,11 @@ const MapCenter = () => {
                                         </div>
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#64748b', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <span style={{ opacity: 0.7 }}>{item.type === 'hive' ? '🐝 Site Apicole' : item.type === 'vet' ? '🩺 Clinique Vétérinaire' : '🚜 Site de Ferme'}</span>
+                                        <span style={{ opacity: 0.7 }}>
+                                            {item.type === 'hive' ? '🐝 Site Apicole' : 
+                                             item.type === 'vet' ? '🩺 Clinique Vétérinaire' : 
+                                             item.type === 'market' ? '🍯 Marché Apicole' : '🚜 Site de Ferme'}
+                                        </span>
                                         {item.discovery && <span style={{ padding: '2px 6px', background: '#3b82f6', color: 'white', borderRadius: 4, fontSize: 8, fontWeight: 900 }}>REAL-WORLD</span>}
                                     </div>
                                 </div>
