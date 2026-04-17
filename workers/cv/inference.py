@@ -14,6 +14,30 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+# ── YOLO Model Paths (depuis config.py) ───────────────────────────────────────
+try:
+    import sys, os
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+    from app.core.config import settings
+    YOLO_PATHS: Dict[str, str] = {
+        "bee":      settings.YOLO_BEE_PATH,    # 🐝 bee/final_export/best.pt
+        "goat":     settings.YOLO_GOAT_PATH,   # 🐐 model goat cow/best.pt
+        "cow":      settings.YOLO_COW_PATH,    # 🐄 model goat cow/best.pt
+        "sheep":    settings.YOLO_SHEEP_PATH,  # 🐑 model goat cow/best.pt
+        "poultry":  settings.YOLO_BEE_PATH,    # 🐔 fallback bee (à remplacer)
+    }
+except Exception:
+    # Fallback si appelé hors contexte FastAPI
+    _BASE = r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights"
+    _LIVESTOCK = rf"{_BASE}\model goat cow\best.pt"
+    YOLO_PATHS: Dict[str, str] = {
+        "bee":     rf"{_BASE}\bee\final_export\best.pt",
+        "goat":    _LIVESTOCK,
+        "cow":     _LIVESTOCK,
+        "sheep":   _LIVESTOCK,
+        "poultry": rf"{_BASE}\bee\final_export\best.pt",
+    }
+
 
 @dataclass
 class Detection:
@@ -25,8 +49,9 @@ class Detection:
 
 class CVInference:
     """
-    YOLO-compatible inference wrapper.
-    Replace _simulate_detections() with actual model.predict() calls.
+    YOLO-compatible inference wrapper — multi-species.
+    Charge automatiquement le bon modèle selon l'espèce.
+    Replace _simulate_detections() avec model.predict() en production.
     """
 
     # Species → expected detection classes
@@ -48,11 +73,11 @@ class CVInference:
     }
 
     def __init__(self, model_path: Optional[str] = None, device: str = "cpu"):
-        self.model_path  = model_path
         self.device      = device
-        self._model      = None
+        self._models: Dict[str, Any] = {}   # cache par espèce
         self._is_real_model = False
 
+        # Pré-charger le modèle par défaut si un path est fourni
         if model_path:
             self._load_model(model_path)
 

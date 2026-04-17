@@ -487,6 +487,16 @@ tbody tr:hover td { background: var(--color-surface-2); }
   margin: 40px auto;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scanline { from { top: 0; } to { top: 100%; } }
+
+/* ---- Grid 2-1 (used in species detail pages) ------------------------- */
+.grid-2-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 1024px) { .grid-2-1 { grid-template-columns: 1fr; } }
+
 
 /* ---- Tag list -------------------------------------------------------- */
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -11,15 +11,6 @@ const StableCanvas = ({ children, fallback, ...props }) => {
   const [isSupported, setIsSupported] = useState(true);
 
   useEffect(() => {
-    // Check for WebGL support
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) {
-      console.warn("WebGL not supported, falling back to 2D renderer.");
-      setIsSupported(false);
-      return;
-    }
-
     // Handle context loss
     const handleContextLost = (event) => {
       event.preventDefault();
@@ -27,10 +18,8 @@ const StableCanvas = ({ children, fallback, ...props }) => {
       setHasError(true);
     };
 
-    canvas.addEventListener('webglcontextlost', handleContextLost, false);
-    return () => {
-      canvas.removeEventListener('webglcontextlost', handleContextLost);
-    };
+    // Note: Temporary support check removed to stay under WebGL context limits
+    return () => {};
   }, []);
 
   if (hasError || !isSupported) {

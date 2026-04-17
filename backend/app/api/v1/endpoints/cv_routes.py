@@ -14,21 +14,31 @@ except ImportError:
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.config import settings
 from app.services.data_service import CVService
 from app.schemas.domain import CVEventCreate
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/cv", tags=["Computer Vision"])
 
-# Model Registry (Provided by User)
+# ── Model Registry ────────────────────────────────────────────────────────────
+# Paths chargés depuis config.py (settings) — modifiables via variables d'env
+# ou directement dans backend/app/core/config.py
 MODEL_REGISTRY = {
-    "bee": r"D:\cv data\cv bee detect from roboflow\final_export\best.pt",
-    "livestock": r"D:\cv data\goat sheet and cow\model goat cow\best.pt",
-    "leaves": r"D:\cv data\leaves\Detection diseases Leaves\best.pt",
-    "olive": r"D:\cv data\olive\model olive-tree-diseases\best.pt",
-    "insects": r"D:\cv data\insects\model insects_final\best.pt",
-    "fire": r"D:\cv data\Fire Detection.v1i.yolov11\model-fire-detection-and-smoke\best.pt"
+    # ── Animaux ────────────────────────────────────────────────────────────────
+    "bee":      settings.YOLO_BEE_PATH,       # 🐝 bee/final_export/best.pt
+    "goat":     settings.YOLO_GOAT_PATH,      # 🐐 model goat cow/best.pt
+    "cow":      settings.YOLO_COW_PATH,       # 🐄 model goat cow/best.pt
+    "sheep":    settings.YOLO_SHEEP_PATH,     # 🐑 model goat cow/best.pt
+    "livestock": settings.YOLO_GOAT_PATH,     # Alias bétail générique
+    # ── Plantations ────────────────────────────────────────────────────────────
+    "leaves":   settings.YOLO_LEAVES_PATH,    # 🌿 Detection diseases Leaves (12 cls)
+    "olive":    settings.YOLO_OLIVE_PATH,     # 🫒 model olive-tree-diseases (5 cls)
+    "insects":  settings.YOLO_INSECTS_PATH,   # 🦟 model insects_final (10 cls)
+    "fire":     settings.YOLO_FIRE_PATH,      # 🔥 fire-detection-and-smoke
+    "plants":   settings.YOLO_LEAVES_PATH,    # Alias plantes → leaves
 }
+
 
 _models = {}
 
@@ -80,10 +90,20 @@ def ingest(data: CVEventCreate, db: Session = Depends(get_db), _=Depends(get_cur
     e = CVService(db).ingest(data)
     return {"id": e.id, "unit_id": e.unit_id, "object_class": e.object_class}
 
+@router.get("/models/{category}/metadata")
+def get_model_metadata(category: str):
+    """Get dynamic class names from the YOLO model data.yaml/names."""
+    model = get_yolo_model(category)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    return {"category": category, "names": model.names}
+
+
 @router.post("/detect")
 async def detect_in_file(
     file: UploadFile = File(...), 
     category: Optional[str] = Query("bee"),
+    db: Session = Depends(get_db),
     _=Depends(get_current_user)
 ):
     """Run real YOLO OBB inference on an uploaded image file."""
@@ -130,8 +150,57 @@ async def detect_in_file(
                     "task": "obb" if hasattr(item, 'xywhr') else "detect"
                 })
         
+        # ── Persist Analysis to Database ─────────────────────────────────────
+        try:
+            from app.models.domain import AnimalUnit, AnimalType
+            
+            # 1. Determine target system unit based on category
+            sys_type_map = {
+                "fire": "environment",
+                "leaves": "plantation", "olive": "plantation", "insects": "plantation",
+                "cow": "livestock", "goat": "livestock", "sheep": "livestock", "livestock": "livestock",
+                "bee": "bee"
+            }
+            target_species = sys_type_map.get(category, "livestock")
+            
+            # Find the designated system unit
+            unit = db.query(AnimalUnit).join(AnimalType).filter(
+                AnimalType.species == target_species,
+                AnimalUnit.name.like("System Monitor%")
+            ).first()
+            
+            # If no system unit found, fallback to first available unit
+            if not unit:
+                unit = db.query(AnimalUnit).first()
+
+            if unit:
+                cv_service = CVService(db)
+                for det in detections:
+                    # Map severity
+                    sev = "info"
+                    lbl_low = det["label"].lower()
+                    if any(x in lbl_low for x in ["fire", "blight", "army_worm", "critical"]):
+                        sev = "critical"
+                    elif any(x in lbl_low for x in ["smoke", "rust", "psyllid", "warning"]):
+                        sev = "warning"
+                    
+                    event_data = CVEventCreate(
+                        unit_id=unit.id,
+                        object_class=det["label"],
+                        confidence=det["confidence"],
+                        severity=sev,
+                        frame_metadata={"bbox": det["bbox"], "task": det["task"]},
+                        camera_id="manual_scan"
+                    )
+                    cv_service.ingest(event_data)
+                
+                logger.info(f"Persisted {len(detections)} detections for unit {unit.id}")
+        except Exception as db_err:
+            logger.error(f"Failed to persist CV session: {db_err}")
+
         return {"filename": file.filename, "detections": detections, "count": len(detections)}
         
     except Exception as e:
         logger.error(f"Inference error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+

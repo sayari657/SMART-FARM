@@ -1,474 +1,401 @@
-import React, { useState, useRef } from 'react';
-import { 
-  TreePine, ShieldCheck, AlertCircle, 
-  Search, Bot,
-  Sparkles, ArrowRight,
-  Send, User, Mic, MicOff, Volume2
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import {
+  TreePine, ShieldCheck, AlertCircle,
+  Search, Bot, Sparkles, Send, User, 
+  Mic, MicOff, Volume2, Upload, Leaf, 
+  Flower2, CheckCircle2, X, Bug
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import { Link } from 'react-router-dom';
-import { agentAPI } from '../services/api';
-import analysisResult from '../assets/trees/analysis_result.png';
-import AIScanner from '../components/AIScanner';
+import { agentAPI, cvAPI } from '../services/api';
 
-export default function ArbresPlantations() {
-  const { t, i18n } = useTranslation();
-  const fileInputRef = useRef(null);
-  const chatEndRef = useRef(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [hasResult, setHasResult] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState(null);
-  const [isPlantBotOpen, setIsPlantBotOpen] = useState(false);
-  const [chatAttachment, setChatAttachment] = useState(null);
+// ─── Reusable YOLO Scanner Panel ─────────────────────────────────────────────
+function YOLOScannerPanel({ title, subtitle, category, color = '#22c55e', icon: Icon }) {
+  const [capturedImage, setCapturedImage]   = useState(null);
+  const [detections, setDetections]         = useState([]);
+  const [isProcessing, setIsProcessing]     = useState(false);
+  const [error, setError]                   = useState(null);
+  const [metadata, setMetadata]             = useState(null);
+  const [palette, setPalette]               = useState({});
 
-  // PlantBot Chat State
-  const [messages, setMessages] = useState([
-    { id: 1, type: 'bot', text: "Bonjour ! Je suis PlantBot. Je viens d'être affecté à cette zone. Téléchargez une image de vos arbres et je l'analyserai avec vous.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [isLite, setIsLite] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const imgRef    = useRef(null);
+  const canvasRef = useRef(null);
 
-  // Chat scroll effect
-  React.useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  // Fetch model metadata and generate auto-palette
+  useEffect(() => {
+    cvAPI.getModelMetadata(category)
+      .then(res => {
+        setMetadata(res.data);
+        const p = {};
+        const colors = [
+          '#ef4444', '#f97316', '#22c55e', '#a855f7', '#8b5cf6', 
+          '#64748b', '#eab308', '#06b6d4', '#84cc16', '#f59e0b',
+          '#ec4899', '#3b82f6', '#10b981', '#ea580c', '#6366f1'
+        ];
+        // res.data.names is {0: 'name1', ...}
+        Object.values(res.data.names).forEach((name, i) => {
+          const key = name.toLowerCase().replace(/\s+/g, '_');
+          p[key] = colors[i % colors.length];
+        });
+        setPalette(p);
+      })
+      .catch(err => console.error(`Metadata error for ${category}:`, err));
+  }, [category]);
 
-  // STT: Speech to Text
-  const startListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Votre navigateur ne supporte pas la reconnaissance vocale.");
-      return;
+  const getDetColor = useCallback((label) => {
+    const key = label?.toLowerCase().replace(/\s+/g,'_') || '';
+    return palette[key] || color;
+  }, [palette, color]);
+
+  // Draw bounding boxes on canvas
+  const drawBoxes = useCallback((dets) => {
+    const canvas = canvasRef.current;
+    const img    = imgRef.current;
+    if (!canvas || !img || !dets?.length) return;
+
+    canvas.width  = img.offsetWidth;
+    canvas.height = img.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const W = canvas.width, H = canvas.height;
+
+    dets.forEach(det => {
+      const [cx_p, cy_p, w_p, h_p, rot = 0] = det.bbox;
+      const w  = (w_p  / 100) * W,  h  = (h_p  / 100) * H;
+      const cx = (cx_p / 100) * W,  cy = (cy_p / 100) * H;
+      const x1 = cx - w/2,          y1 = cy - h/2;
+      const boxColor = getDetColor(det.label);
+      const conf = Math.round(det.confidence * 100);
+
+      const r = parseInt(boxColor.slice(1,3),16);
+      const g = parseInt(boxColor.slice(3,5),16);
+      const b = parseInt(boxColor.slice(5,7),16);
+      const rgb = `${r},${g},${b}`;
+
+      ctx.save();
+      ctx.translate(cx, cy); ctx.rotate(rot); ctx.translate(-cx, -cy);
+
+      ctx.strokeStyle = boxColor;
+      ctx.lineWidth   = 3;
+      ctx.shadowBlur  = 14;
+      ctx.shadowColor = boxColor;
+      ctx.strokeRect(x1, y1, w, h);
+
+      const cl = Math.min(w, h) * 0.18;
+      ctx.lineWidth = 5;
+      [[x1,y1],[x1+w,y1],[x1,y1+h],[x1+w,y1+h]].forEach(([px,py]) => {
+        const dx = px===x1?cl:-cl, dy = py===y1?cl:-cl;
+        ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+dx,py); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px,py+dy); ctx.stroke();
+      });
+
+      const labelTxt = det.label.replace(/_/g,' ').toUpperCase() + '  ' + conf + '%';
+      ctx.font      = 'bold 12px Inter, sans-serif';
+      ctx.shadowBlur = 0;
+      const tw = ctx.measureText(labelTxt).width;
+      const lh = 20, ly = Math.max(y1 - lh - 5, 0);
+      ctx.fillStyle = `rgba(${rgb},0.92)`;
+      ctx.beginPath(); ctx.roundRect(x1, ly, tw+14, lh, 4); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(labelTxt, x1+7, ly+14);
+
+      ctx.restore();
+    });
+  }, [getDetColor]);
+
+  useEffect(() => {
+    if (capturedImage && detections.length > 0) {
+      const timer = setTimeout(() => drawBoxes(detections), 120);
+      return () => clearTimeout(timer);
     }
-    const recognition = new SpeechRecognition();
-    recognition.lang = i18n.language === 'ar' ? 'ar-TN' : (i18n.language === 'fr' ? 'fr-FR' : 'en-US');
-    recognition.continuous = false;
-    recognition.interimResults = false;
+  }, [detections, capturedImage, drawBoxes]);
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event) => {
-      setInput(event.results[0][0].transcript);
-    };
-    recognition.start();
+  const runInference = async (file) => {
+    setIsProcessing(true); setError(null); setDetections([]);
+    try {
+      const res = await cvAPI.detect(file, category);
+      setDetections(res.data.detections || []);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Erreur analyse.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // TTS: Text to Speech
-  const speak = (text) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = i18n.language === 'ar' ? 'ar-SA' : (i18n.language === 'fr' ? 'fr-FR' : 'en-US');
-    window.speechSynthesis.speak(utterance);
+  const handleFile = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = f => setCapturedImage(f.target.result);
+    reader.readAsDataURL(file);
+    await runInference(file);
+  };
+
+  const reset = () => {
+    setCapturedImage(null); setDetections([]); setError(null);
+  };
+
+  const counts = detections.reduce((acc, d) => {
+    acc[d.label] = (acc[d.label]||0)+1; return acc;
+  }, {});
+
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden', border: `1px solid ${color}33`, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 18px', background: `${color}11`, borderBottom: `1px solid ${color}22`, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexShrink: 0 }}>
+          <Icon size={20} />
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{title}</h3>
+          <span style={{ fontSize: 10, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: 1 }}>{subtitle}</span>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 99, background: `${color}22`, color }}>
+            {category}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ height: 280, background: '#080808', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {capturedImage ? (
+          <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img ref={imgRef} src={capturedImage}
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+              alt="scan"
+              onLoad={() => detections.length > 0 && drawBoxes(detections)}
+            />
+            <canvas ref={canvasRef} style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none', zIndex: 10 }} />
+
+            {isProcessing && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 30 }}>
+                <div style={{ width: 44, height: 44, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: color, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ color, marginTop: 12, fontWeight: 700, fontSize: 11, letterSpacing: 2 }}>YOLO SCANNING...</span>
+              </div>
+            )}
+
+            {!isProcessing && detections.length > 0 && (
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.82)', padding: '7px 12px', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', zIndex: 20 }}>
+                <CheckCircle2 size={13} color={color} />
+                <span style={{ color, fontWeight: 700, fontSize: 12 }}>{detections.length} détection(s) persistées en base</span>
+                {Object.entries(counts).slice(0,2).map(([lbl, cnt]) => (
+                  <span key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#fff' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: getDetColor(lbl), display: 'inline-block' }} />
+                    {lbl.replace(/_/g,' ')} ×{cnt}
+                  </span>
+                ))}
+                <button onClick={reset} style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid #444', color: '#999', borderRadius: 5, padding: '2px 9px', cursor: 'pointer', fontSize: 10 }}>
+                  Reset
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.35)' }}>
+            <Upload size={50} style={{ marginBottom: 10, opacity: 0.25 }} />
+            <p style={{ fontSize: 13, marginBottom: 3 }}>Importer une image</p>
+            <p style={{ fontSize: 10, opacity: 0.4, marginBottom: 18 }}>YOLO · {category}</p>
+            <label style={{ cursor: 'pointer', background: color, color: 'white', border: 'none', borderRadius: 8, padding: '9px 20px', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Upload size={14} /> Parcourir
+              <input type="file" hidden accept="image/*" onChange={handleFile} />
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div style={{ padding: '8px 12px', background: 'var(--color-surface)', borderTop: `1px solid ${color}22`, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {Object.entries(palette).slice(0, 5).map(([cls, clr]) => (
+          <span key={cls} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, color: 'var(--color-text-2)', fontWeight: 600 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: clr, display: 'inline-block', flexShrink: 0 }} />
+            {cls.replace(/_/g,' ')}
+          </span>
+        ))}
+        {Object.keys(palette).length > 5 && (
+          <span style={{ fontSize: 9, color: 'var(--color-text-3)' }}>+{Object.keys(palette).length - 5} others</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+export default function ArbresPlantations() {
+  const { t, i18n } = useTranslation();
+  const chatEndRef = useRef(null);
+  const [isPlantBotOpen, setIsPlantBotOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { id: 1, type: 'bot', text: "Bonjour ! Je suis PlantBot. Identifiez vos insectes et maladies instantanément.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+  ]);
+  const [input, setInput]         = useState('');
+  const [loading, setLoading]     = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const startListening = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return alert('Reconnaissance vocale non supportée.');
+    const r = new SR();
+    r.lang = i18n.language === 'ar' ? 'ar-TN' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
+    r.onstart = () => setIsListening(true);
+    r.onend   = () => setIsListening(false);
+    r.onresult = e => setInput(e.results[0][0].transcript);
+    r.start();
+  };
+
+  const speak = text => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = i18n.language === 'ar' ? 'ar-SA' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
+    window.speechSynthesis.speak(u);
   };
 
   const handleSend = async () => {
-    if ((!input.trim() && !chatAttachment) || loading) return;
-
-    const userMsg = { 
-        id: Date.now(), type: 'user', 
-        text: input, 
-        image: chatAttachment,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-    };
+    if (!input.trim() || loading) return;
+    const userMsg = { id: Date.now(), type: 'user', text: input, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
     setMessages(prev => [...prev, userMsg]);
-    setInput("");
-    setChatAttachment(null);
-    setLoading(true);
-
+    setInput(''); setLoading(true);
     try {
-      const res = await agentAPI.chat(input || 'Analyse d\'arbre');
-      const data = res.data;
-      setIsLite(data.is_lite);
-
-      const botMsg = {
-        id: Date.now() + 1, type: 'bot', text: data.response_derja || t('assistant.error'),
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        sources: data.sources || []
-      };
-      setMessages(prev => [...prev, botMsg]);
-    } catch (error) {
-      setMessages(prev => [...prev, { id: Date.now() + 2, type: 'bot', text: "Erreur de connexion à l'IA.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target.result);
-        startAnalysis();
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const triggerFileUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  const startAnalysis = () => {
-    setIsAnalyzing(true);
-    setHasResult(false);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      setHasResult(true);
-      // Auto-inject context into PlantBot
-      setMessages(prev => [...prev, { 
-        id: Date.now(), type: 'bot', 
-        text: "J'ai bien reçu votre image. L'analyse montre une santé globale de 94%. Souhaitez-vous des détails sur les taches détectées ou des conseils d'irrigation ?", 
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-      }]);
-      setIsPlantBotOpen(true);
-    }, 2500);
-  };
-
-  const resetAnalysis = () => {
-    setHasResult(false);
-    setUploadedImage(null);
-    setChatAttachment(null);
-  };
-
-  const pushImageToPlantBot = () => {
-    setChatAttachment(uploadedImage || analysisResult);
-    setIsPlantBotOpen(true);
+      const res = await agentAPI.chat(input, 'plant');
+      setMessages(prev => [...prev, { id: Date.now()+1, type: 'bot', text: res.data.response_derja || 'Désolé, erreur.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    } catch {
+      setMessages(prev => [...prev, { id: Date.now()+2, type: 'bot', text: "Erreur de connexion à l'IA.", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+    } finally { setLoading(false); }
   };
 
   const stats = [
-    { label: "Population d'Arbres", value: "1,240", icon: TreePine, color: "green" },
-    { label: "Alertes Maladies", value: "3", icon: AlertCircle, color: "red" },
-    { label: "Confiance AI", value: "94.2%", icon: ShieldCheck, color: "blue" },
-    { label: "Espèces Détectées", value: "5", icon: Search, color: "teal" },
+    { label: "Population d'Arbres", value: '1,240', icon: TreePine,    color: 'green' },
+    { label: 'Alertes Maladies',    value: '3',     icon: AlertCircle, color: 'red'   },
+    { label: 'Confiance AI',        value: '94.2%', icon: ShieldCheck, color: 'blue'  },
+    { label: 'Insects Détectés',   value: '12',    icon: Bug,         color: 'orange' },
   ];
 
   return (
     <>
       <Navbar title={t('trees.title')} subtitle={t('trees.subtitle')} />
-      
       <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr', position: 'relative', minHeight: 'calc(100vh - 80px)' }}>
-        
-        {/* Hidden File Input */}
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
-          accept="image/*" 
-          onChange={handleFileSelect} 
-        />
 
-        {/* KPI Grid */}
-        <div className="kpi-grid">
-          {stats.map((s, i) => (
+        <div className="kpi-grid" style={{ marginBottom: 28 }}>
+          {stats.map((s,i) => (
             <div key={i} className="kpi-box">
-              <div className={`kpi-icon ${s.color}`}>
-                <s.icon size={20} />
-              </div>
-              <div>
-                <div className="kpi-value">{s.value}</div>
-                <div className="kpi-label">{s.label}</div>
-              </div>
+              <div className={`kpi-icon ${s.color}`}><s.icon size={20} /></div>
+              <div><div className="kpi-value">{s.value}</div><div className="kpi-label">{s.label}</div></div>
             </div>
           ))}
         </div>
 
-        <div className="grid-2">
-          {/* AI Image Diagnostic Card (PROFESSIONAL VERSION) */}
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div className="card-header">
-              <div>
-                <h3 className="card-title">{t('trees.diagnostic_title')}</h3>
-                <p className="card-subtitle">{t('trees.diagnostic_subtitle')}</p>
-              </div>
-              <Sparkles size={20} className="text-primary" />
-            </div>
-
-            <AIScanner 
-              category="leaves" 
-              title="Phyto-Diagnostic AI" 
-              color="#22c55e"
-            />
-
-            <div style={{ padding: 16, background: 'var(--color-primary-light)', borderRadius: 'var(--radius)', color: 'var(--color-primary-dark)', fontSize: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, marginBottom: 4 }}>
-                <Bot size={16} /> Conseil de l'Intelligence Souveraine
-              </div>
-              "L'analyse montre une structure foliaire saine. Pensez à vérifier l'irrigation pour le mois prochain (Période de floraison)."
-            </div>
-          </div>
-
-          {/* CV Detection Log Card (Restored) */}
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <h3 className="card-title">{t('trees.detection_log')}</h3>
-                <p className="card-subtitle">Historique des détections automatiques</p>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                 <div className="pulse-dot green"></div>
-                 <span className="text-xs text-bold">LIVE</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-               {[
-                 { type: 'Bactériose de l’olivier', confidence: 0.98, time: '14:22', status: 'Sain' },
-                 { type: 'Mouche de l’olive', confidence: 0.12, time: '14:15', status: 'Alerte' },
-                 { type: 'Psylle de l’olivier', confidence: 0.05, time: '12:05', status: 'Sain' },
-                 { type: 'Cochenille noire', confidence: 0.08, time: '11:30', status: 'Sain' },
-               ].map((d, i) => (
-                 <div key={i} className="detection-item" style={{ 
-                   display: 'flex', 
-                   alignItems: 'center', 
-                   gap: 12, 
-                   padding: 12, 
-                   background: 'var(--color-bg)', 
-                   borderRadius: 'var(--radius)',
-                   border: '1px solid var(--color-border)'
-                 }}>
-                   <div style={{ 
-                     width: 32, height: 32, 
-                     borderRadius: 8, 
-                     background: d.status === 'Sain' ? 'var(--color-success-bg)' : 'var(--color-critical-bg)',
-                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                     color: d.status === 'Sain' ? 'var(--color-success)' : 'var(--color-critical)'
-                   }}>
-                     <TreePine size={18} />
-                   </div>
-                   <div style={{ flex: 1 }}>
-                     <div className="text-bold" style={{ fontSize: 13 }}>{d.type}</div>
-                     <div className="text-xs text-muted">Confiance: {(d.confidence * 100).toFixed(0)}% • {d.time}</div>
-                   </div>
-                   <span className={`badge ${d.status === 'Sain' ? 'badge-success' : 'badge-danger'}`}>
-                     {d.status}
-                   </span>
-                 </div>
-               ))}
-            </div>
-            
-            <button className="btn btn-secondary w-full mt-4" style={{ justifyContent: 'center' }}>
-              {t('common.view_all')} <ArrowRight size={14} />
-            </button>
+        <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 4, height: 32, background: 'linear-gradient(180deg,#16a34a,#22c55e)', borderRadius: 4 }} />
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Agronomie & Phyto-Vision</h2>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--color-text-3)' }}>Diagnostic IA des cultures, maladies et ravageurs</p>
           </div>
         </div>
 
-        {/* Floating PlantBot Widget */}
-        {isPlantBotOpen ? (
-          <div className="card plantbot-widget" style={{ 
-            position: 'fixed', bottom: 20, right: 20, width: 380, height: 600, zIndex: 1000, 
-            display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.2)', border: '1px solid var(--color-primary)'
-          }}>
-            <div className="card-header" style={{ padding: '16px', borderBottom: '1px solid var(--color-border)', margin: 0, background: 'var(--color-primary)', color: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'white', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <Bot size={20} />
-                  </div>
-                  <div>
-                    <h3 className="card-title" style={{ fontSize: 15, color: 'white', margin: 0 }}>PlantBot</h3>
-                    <p className="card-subtitle" style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center', gap: 4, margin: 0 }}>
-                      <span className="pulse-dot" style={{ background: 'white', width: 6, height: 6 }}></span>
-                      En ligne
-                    </p>
-                  </div>
-                </div>
-                <button onClick={() => setIsPlantBotOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div style={{ width: 14, height: 2, background: 'currentColor', borderRadius: 2 }}></div>
-                </button>
-              </div>
-            </div>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
+          gap: 20, 
+          marginBottom: 32 
+        }}>
+          <YOLOScannerPanel
+            title="Maladies des Feuilles"
+            subtitle="Diagnostic multi-espèces (Beans/Fraises/Tomates)"
+            category="leaves"
+            color="#22c55e"
+            icon={Leaf}
+          />
+          <YOLOScannerPanel
+            title="Maladies de l'Olivier"
+            subtitle="Pathologies de l'olivier (Peacock Spot/...)"
+            category="olive"
+            color="#d97706"
+            icon={Flower2}
+          />
+          <YOLOScannerPanel
+            title="Détection des Insectes"
+            subtitle="Identification des ravageurs"
+            category="insects"
+            color="#ea580c"
+            icon={Bug}
+          />
+        </div>
 
-            <div style={{ flex: 1, padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--color-bg)' }}>
-              {messages.map((msg, i) => (
-                <div key={msg.id} style={{ 
-                  alignSelf: msg.type === 'user' ? 'flex-end' : 'flex-start',
-                  maxWidth: '85%', display: 'flex', gap: 10,
-                  flexDirection: msg.type === 'user' ? 'row-reverse' : 'row'
-                }}>
-                  <div style={{ 
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                    background: msg.type === 'user' ? 'var(--color-primary)' : 'white',
-                    border: msg.type === 'bot' ? '1px solid var(--color-border)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: 'var(--shadow-sm)'
-                  }}>
-                    {msg.type === 'user' ? <User size={14} color="white" /> : <Bot size={14} color="var(--color-primary)" />}
+        <div className="card" style={{ marginBottom: 32 }}>
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">{t('trees.detection_log')}</h3>
+              <p className="card-subtitle">Flux combiné des analyses phyto-sanitaires</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="pulse-dot green" />
+              <span className="text-xs text-bold">LIVE STREAM</span>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+            {[
+              { type: 'Army_Worm',                 conf: 0.94, time: '16:05', status: 'Critique', model: 'insects' },
+              { type: 'Bactériose olivier',        conf: 0.98, time: '14:22', status: 'Sain',     model: 'olive'   },
+              { type: 'Tomato_Blight',              conf: 0.91, time: '13:50', status: 'Alerte',   model: 'leaves'  },
+              { type: 'Red_Spider',                conf: 0.88, time: '12:45', status: 'Alerte',   model: 'insects' },
+            ].map((d, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--color-bg)', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: d.status === 'Sain' ? 'var(--color-success-bg)' : 'var(--color-critical-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: d.status === 'Sain' ? 'var(--color-success)' : 'var(--color-critical)' }}>
+                  {d.model === 'insects' ? <Bug size={16} /> : <TreePine size={16} />}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className="text-bold" style={{ fontSize: 13 }}>{d.type.replace(/_/g,' ')}</div>
+                  <div className="text-xs text-muted">{(d.conf*100).toFixed(0)}% · {d.time} · Modèle: {d.model}</div>
+                </div>
+                <span className={`badge ${d.status==='Sain'?'badge-success':(d.status==='Alerte'?'badge-warning':'badge-danger')}`}>{d.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {isPlantBotOpen ? (
+          <div className="card" style={{ position: 'fixed', bottom: 20, right: 20, width: 370, height: 560, zIndex: 1000, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', boxShadow: '0 24px 48px rgba(0,0,0,0.2)', border: '1px solid var(--color-primary)' }}>
+            <div style={{ padding: '14px 16px', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'white', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Bot size={18} /></div>
+                <div><h3 style={{ margin: 0, fontSize: 14, color: 'white' }}>PlantBot</h3><p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>Expert Phyto IA</p></div>
+              </div>
+              <button onClick={() => setIsPlantBotOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', fontSize: 18 }}>×</button>
+            </div>
+            <div style={{ flex: 1, padding: 14, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--color-bg)' }}>
+              {messages.map(msg => (
+                <div key={msg.id} style={{ alignSelf: msg.type==='user'?'flex-end':'flex-start', maxWidth: '85%', display: 'flex', gap: 8, flexDirection: msg.type==='user'?'row-reverse':'row' }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, background: msg.type==='user'?'var(--color-primary)':'white', border: msg.type==='bot'?'1px solid var(--color-border)':'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {msg.type==='user' ? <User size={13} color="white" /> : <Bot size={13} color="var(--color-primary)" />}
                   </div>
-                  <div>
-                    <div style={{ 
-                      padding: '10px 14px', borderRadius: 16, fontSize: 13,
-                      background: msg.type === 'user' ? 'var(--color-primary)' : 'white',
-                      color: msg.type === 'user' ? 'white' : 'var(--color-text)',
-                      border: msg.type === 'bot' ? '1px solid var(--color-border)' : 'none',
-                      boxShadow: msg.type === 'bot' ? 'var(--shadow-sm)' : 'none',
-                      lineHeight: 1.4
-                    }}>
-                      {msg.image && <img src={msg.image} alt="Upload" style={{ width: 140, borderRadius: 8, marginBottom: 8, display: 'block', border: '1px solid rgba(255,255,255,0.2)' }} />}
-                      {msg.text}
-                      {msg.type === 'bot' && (
-                        <button onClick={() => speak(msg.text)} style={{ background: 'none', border: 'none', marginLeft: 8, cursor: 'pointer', opacity: 0.6 }} title="Vocaliser">
-                          <Volume2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--color-text-3)', marginTop: 4, textAlign: msg.type === 'user' ? 'right' : 'left' }}>
-                      {msg.time}
-                    </div>
+                  <div style={{ padding: '9px 13px', borderRadius: 14, fontSize: 13, background: msg.type==='user'?'var(--color-primary)':'white', color: msg.type==='user'?'white':'var(--color-text)', border: msg.type==='bot'?'1px solid var(--color-border)':'none', lineHeight: 1.45 }}>
+                    {msg.text}
+                    {msg.type==='bot' && <button onClick={() => speak(msg.text)} style={{ background: 'none', border: 'none', marginLeft: 8, cursor: 'pointer', opacity: 0.5 }}><Volume2 size={11} /></button>}
                   </div>
                 </div>
               ))}
-              {loading && (
-                <div style={{ alignSelf: 'flex-start', display: 'flex', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'white', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Bot size={14} color="var(--color-primary)" />
-                  </div>
-                  <div className="loading-dots" style={{ padding: '10px 16px', borderRadius: 16, background: 'white', border: '1px solid var(--color-border)', fontSize: 13 }}>
-                    Analyse en cours...
-                  </div>
-                </div>
-              )}
+              {loading && <div style={{ alignSelf: 'flex-start', padding: '9px 14px', borderRadius: 14, background: 'white', border: '1px solid var(--color-border)', fontSize: 13, color: 'var(--color-text-3)' }}>Analyse...</div>}
               <div ref={chatEndRef} />
             </div>
-
-            <div style={{ padding: 12, borderTop: '1px solid var(--color-border)', background: 'white' }}>
-              {/* Attachment Preview Box */}
-              {chatAttachment && (
-                <div style={{ marginBottom: 12, display: 'inline-block', position: 'relative' }}>
-                  <img src={chatAttachment} alt="Attachment" style={{ height: 60, borderRadius: 8, border: '2px solid var(--color-primary)' }} />
-                  <button onClick={() => setChatAttachment(null)} style={{ position: 'absolute', top: -6, right: -6, background: 'var(--color-critical)', color: 'white', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>✕</button>
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button 
-                  className={`btn ${isListening ? 'btn-danger' : 'btn-secondary'}`}
-                  onClick={startListening}
-                  style={{ width: 40, height: 40, borderRadius: 10, padding: 0, justifyContent: 'center' }}
-                  title="Assistant Vocal"
-                >
-                  {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-                </button>
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  placeholder="Demandez au PlantBot..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  style={{ borderRadius: 10, flex: 1, fontSize: 13 }}
-                />
-                <button 
-                  className="btn btn-primary" 
-                  onClick={handleSend}
-                  disabled={loading || (!input.trim() && !chatAttachment)}
-                  style={{ width: 40, height: 40, borderRadius: 10, padding: 0, justifyContent: 'center' }}
-                >
-                  <Send size={16} />
-                </button>
-              </div>
+            <div style={{ padding: 10, borderTop: '1px solid var(--color-border)', background: 'white', display: 'flex', gap: 8 }}>
+              <button className={`btn ${isListening?'btn-danger':'btn-secondary'}`} onClick={startListening} style={{ width: 38, height: 38, borderRadius: 9, padding: 0, justifyContent: 'center' }}>
+                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+              </button>
+              <input type="text" className="form-input" placeholder="Question..." value={input} onChange={e=>setInput(e.target.value)} onKeyPress={e=>e.key==='Enter'&&handleSend()} style={{ borderRadius: 9, flex: 1, fontSize: 13 }} />
+              <button className="btn btn-primary" onClick={handleSend} disabled={loading||!input.trim()} style={{ width: 38, height: 38, borderRadius: 9, padding: 0, justifyContent: 'center' }}>
+                <Send size={15} />
+              </button>
             </div>
           </div>
         ) : (
-          <button 
-            className="fab-assistant"
-            onClick={() => setIsPlantBotOpen(true)}
-            style={{
-              position: 'fixed', bottom: 40, right: 40, width: 64, height: 64,
-              background: 'var(--color-primary)', borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', boxShadow: '0 8px 32px rgba(22, 163, 74, 0.4)',
-              zIndex: 100, cursor: 'pointer', border: 'none'
-            }}
-          >
-            <div className="fab-pulse"></div>
-            <Bot size={28} />
+          <button onClick={() => setIsPlantBotOpen(true)} style={{ position: 'fixed', bottom: 40, right: 40, width: 62, height: 62, background: 'var(--color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 8px 32px rgba(22,163,74,0.4)', zIndex: 100, cursor: 'pointer', border: 'none' }}>
+            <Bot size={26} />
           </button>
         )}
 
-        {/* CSS for Professional Styles */}
         <style dangerouslySetInnerHTML={{ __html: `
-          .diagnostic-upload-zone:hover {
-            border-color: var(--color-primary) !important;
-            background: var(--color-primary-light) !important;
-          }
-          .spinner-large {
-            width: 48px;
-            height: 48px;
-            border: 4px solid var(--color-border);
-            border-top-color: var(--color-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-          .spinner-center {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 32px; height: 32px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-          }
           @keyframes spin { to { transform: rotate(360deg); } }
-
-          .fab-assistant:hover {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 12px 40px rgba(22, 163, 74, 0.6);
-          }
-          .fab-pulse {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: var(--color-primary);
-            opacity: 0.6;
-            animation: pulse 2s infinite;
-            z-index: -1;
-          }
-          @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.6; }
-            100% { transform: scale(1.6); opacity: 0; }
-          }
-          .fab-label {
-            position: absolute;
-            right: 80px;
-            background: #111827;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            white-space: nowrap;
-            opacity: 0;
-            transform: translateX(20px);
-            transition: all 0.3s ease;
-            pointer-events: none;
-          }
-          .fab-assistant:hover .fab-label {
-            opacity: 1;
-            transform: translateX(0);
-          }
-          .pulse-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-          }
-          .pulse-dot.green {
-            background: #22c55e;
-            box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
-            animation: pulse-green 2s infinite;
-          }
-          @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-          }
+          .pulse-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+          .pulse-dot.green { background:#22c55e; animation:pulse-g 2s infinite; }
+          @keyframes pulse-g { 0%{box-shadow:0 0 0 0 rgba(34,197,94,0.7)} 70%{box-shadow:0 0 0 8px rgba(34,197,94,0)} 100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} }
         `}} />
-
       </div>
     </>
   );

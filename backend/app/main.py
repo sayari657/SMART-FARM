@@ -36,11 +36,10 @@ async def global_exception_handler(request, exc):
         content={"detail": "Internal Server Error", "error": str(exc)},
     )
 
-# CORS
-origins = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
+# CORS - Dev override for mobility
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -35,10 +35,53 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
 
     # CORS
-    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
+    CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000")
 
     # External APIs
     TREFLE_API_TOKEN: str = "your_placeholder_token_here_from_trefle_io"
+
+    # ── YOLO Model Paths ──────────────────────────────────────────
+    # Modèle Abeilles (entraîné sur dataset Kaggle)
+    YOLO_BEE_PATH: str = os.getenv(
+        "YOLO_BEE_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\bee\final_export\best.pt"
+    )
+    # Modèle Chèvre / Vache / Mouton (modèle partagé multi-espèces)
+    YOLO_GOAT_PATH: str = os.getenv(
+        "YOLO_GOAT_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\model goat cow\best.pt"
+    )
+    YOLO_COW_PATH: str = os.getenv(
+        "YOLO_COW_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\model goat cow\best.pt"
+    )
+    YOLO_SHEEP_PATH: str = os.getenv(
+        "YOLO_SHEEP_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\model goat cow\best.pt"
+    )
+    # Modele Maladies des Feuilles (12 classes: Beans, Strawberry, Tomato)
+    YOLO_LEAVES_PATH: str = os.getenv(
+        "YOLO_LEAVES_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Detection diseases Leaves\best.pt"
+    )
+    # Modele Maladies Olivier (5 classes: Anthracnose, BlackScale, OlivePeacockSpot, Psyllid, Tuberculosis)
+    YOLO_OLIVE_PATH: str = os.getenv(
+        "YOLO_OLIVE_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model olive-tree-diseases\best.pt"
+    )
+    # Modele Insectes (10 classes: Army worm, Legume beetle, Rice pests...)
+    YOLO_INSECTS_PATH: str = os.getenv(
+        "YOLO_INSECTS_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model insects_final\best.pt"
+    )
+    # Modele Feu & Fumée
+    YOLO_FIRE_PATH: str = os.getenv(
+        "YOLO_FIRE_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\Alert\model-fire-detection-and-smoke\best.pt"
+    )
+
+
+
 
     # ── OTP Channels ──────────────────────────────────────────────
     # Gmail SMTP (Email OTP)

@@ -40,7 +40,7 @@ const NAV = [
 ];
 
 export default function Sidebar() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuth() || {};
   const { t } = useTranslation();
   const navigate = useNavigate();
 

@@ -69,10 +69,14 @@ export const cvAPI = {
   recent: (limit = 50) => api.get(`/cv/events?limit=${limit}`),
   byUnit: (unitId, limit = 100) => api.get(`/cv/events/${unitId}?limit=${limit}`),
   ingest: (data) => api.post('/cv/events', data),
-  detect: (file) => {
+  // Get model class names (data.yaml)
+  getModelMetadata: (category) => api.get(`/cv/models/${category}/metadata`),
+  // category: 'bee' | 'goat' | 'cow' | 'sheep' | 'livestock'
+  detect: (file, category = 'livestock') => {
+
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/cv/detect', formData, {
+    return api.post(`/cv/detect?category=${category}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   }
