@@ -16,6 +16,7 @@ from app.api.v1.endpoints.recommendations import router as recommendations_ext_r
 from app.api.v1.endpoints.agent import router as agent_router
 from app.api.v1.endpoints.bee import router as bee_router
 from app.api.v1.endpoints.geo_routes import router as geo_router
+from app.api.v1.endpoints.diagnostic_routes import router as diagnostic_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -32,6 +33,7 @@ api_router.include_router(dashboard_router)
 api_router.include_router(agent_router, prefix="/agent", tags=["Sovereign Agent"])
 api_router.include_router(bee_router, prefix="/bee", tags=["Bee Management"])
 api_router.include_router(geo_router)
+api_router.include_router(diagnostic_router, prefix="/diagnostics", tags=["Diagnostic History"])
 
 # External integrations
 api_router.include_router(weather_ext_router, prefix="/weather", tags=["Weather"])

@@ -389,3 +389,25 @@ class Settings(Base):
     __table_args__ = (
         Index("ix_settings_farm_type_key", "farm_id", "animal_type_id", "key"),
     )
+
+# ---------------------------------------------------------------------------
+# Diagnostic & Chat History
+# ---------------------------------------------------------------------------
+
+class DiagnosticHistory(Base):
+    __tablename__ = "diagnostic_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    category = Column(String(50), nullable=False)        # leaves, olive, insects, fire
+    image_url = Column(Text, nullable=True)              # DataURI or local path
+    detections = Column(JSON, nullable=True)             # Summary of findings
+    chat_log = Column(JSON, nullable=True)               # Messages in this session
+    notes = Column(Text, nullable=True)
+
+    user = relationship("User")
+
+    __table_args__ = (
+        Index("ix_diag_history_user_time", "user_id", "timestamp"),
+    )

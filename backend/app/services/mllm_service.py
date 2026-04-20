@@ -40,9 +40,20 @@ class MLLMService:
             return {"error": str(e), "response": "Error reaching sovereign cloud intelligence."}
 
     async def translate_to_derja(self, text: str) -> str:
-        """Translate or generate responses in Tunisian Derja using Groq (Cloud) or Ollama (Local)."""
+        """Translate or generate responses in Tunisian Derja using Ollama (Local/Sovereign) first, then Groq (Cloud) as fallback."""
         
-        # Priority 1: Groq Cloud (Agile Intelligence) if API Key is present
+        # Priority 1: Local Ollama (Sovereign Mode) - Now Primary
+        if not settings.LITE_MODE:
+            try:
+                import ollama
+                response = ollama.chat(model=settings.DERJA_MODEL, messages=[
+                    {'role': 'user', 'content': f"Translate/Respond in Tunisian Derja: {text}"},
+                ])
+                return response['message']['content']
+            except Exception as e:
+                logger.warning(f"Local Ollama ({settings.DERJA_MODEL}) unreachable: {str(e)}. Attempting Groq Cloud fallback.")
+
+        # Priority 2: Groq Cloud (Agile Intelligence) - Now Fallback
         if settings.GROQ_API_KEY:
             try:
                 import httpx
@@ -67,17 +78,6 @@ class MLLMService:
                         logger.warning(f"Groq API error: {response.text}")
             except Exception as e:
                 logger.error(f"Error calling Groq API: {str(e)}")
-
-        # Priority 2: Local Ollama (Sovereign Mode)
-        if not settings.LITE_MODE:
-            try:
-                import ollama
-                response = ollama.chat(model=settings.DERJA_MODEL, messages=[
-                    {'role': 'user', 'content': f"Translate/Respond in Tunisian Derja: {text}"},
-                ])
-                return response['message']['content']
-            except Exception as e:
-                logger.warning(f"Ollama error: {str(e)}. Falling back to Static Mode.")
 
         # Priority 3: Static Fallback (Mock Mode)
         return "يا فلاح، فمة مشكلة صغيرة في الاتصال. أما حسب ما نعرف، المزرعة لاباس. ثبت في لوميديتي والماء."

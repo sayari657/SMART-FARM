@@ -1,0 +1,19 @@
+names:
+- '0'
+- '1'
+- '2'
+- '3'
+- '4'
+- fire
+- object
+- smoke
+nc: 8
+roboflow:
+  license: MIT
+  project: fire-detection-for-khkt
+  url: https://universe.roboflow.com/kuumoneko/fire-detection-for-khkt/dataset/1
+  version: 1
+  workspace: kuumoneko
+test: /kaggle/input/datasets/mohamedsayari77/fire-detection-and-smoke/test/images
+train: /kaggle/input/datasets/mohamedsayari77/fire-detection-and-smoke/train/images
+val: /kaggle/input/datasets/mohamedsayari77/fire-detection-and-smoke/valid/images

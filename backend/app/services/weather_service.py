@@ -2,11 +2,13 @@ import httpx
 import logging
 from typing import Dict, Any, Optional
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 class WeatherService:
     def __init__(self):
-        self.base_url = "https://api.open-meteo.com/v1/forecast"
+        self.base_url = settings.WEATHER_API_URL
         self.timeout = 10.0
 
     async def get_current_weather(self, lat: float, lon: float) -> Optional[Dict[str, Any]]:

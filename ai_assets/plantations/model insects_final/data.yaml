@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 10
+names: ['army worm', 'legume blister beetle', 'red spider', 'rice gall midge', 'rice leaf roller', 'rice leafhopper', 'rice water weevil', 'wheat phloeothrips', 'white backed plant hopper', 'yellow rice borer']
+
+roboflow:
+  workspace: roboflow-100
+  project: insects-mytwu
+  version: 2
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/roboflow-100/insects-mytwu/dataset/2

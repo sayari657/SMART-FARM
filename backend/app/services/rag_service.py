@@ -119,18 +119,34 @@ class RAGService:
                 )
             }
             
-            # Robust Matching Engine
+            # Robust Matching Engine (Prioritizes specific multiple matches)
             query_lower = query.lower()
             results = []
-            for keywords, advice in expert_kb.items():
-                if any(kw in query_lower for kw in keywords):
-                    results.append(advice)
             
+            # Sort keys by number of keywords (longer first) to match specific cases better
+            sorted_keys = sorted(expert_kb.keys(), key=lambda x: len(x), reverse=True)
+            
+            for keywords in sorted_keys:
+                advice = expert_kb[keywords]
+                # If a key requires multiple terms to match, check them
+                match_count = sum(1 for kw in keywords if kw in query_lower)
+                if match_count > 0:
+                    # Score based on number of keyword matches
+                    results.append((match_count, advice))
+            
+            # Sort results by score and take top matches
+            results.sort(key=lambda x: x[0], reverse=True)
+            final_docs = [r[1] for r in results]
+
             # Catch-all Intelligent Response
-            if not results:
+            if not final_docs:
                 return ["يا فلاح، سؤالك مهم! أنا المساعد الذكي PlantBot. النصيحة الذهبية هي دائماً مراقبة مزرعتك بانتظام (الري، الأسمدة، ونظافة الحيوانات). إذا كان لديك صورة، أرسلها وسأحللها، أو اسألني سؤالاً محدداً عن الزيتون أو الأبقار أو النحل!"]
             
-            return results[:2] # Top 2 matches
+            # Return top results (deduplicated)
+            unique_docs = []
+            for d in final_docs:
+                if d not in unique_docs: unique_docs.append(d)
+            return unique_docs[:2]
 
         try:
             where_filter = {"species": species} if species else None

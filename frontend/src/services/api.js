@@ -2,7 +2,10 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
 
-const api = axios.create({ baseURL: BASE_URL });
+const api = axios.create({ 
+  baseURL: BASE_URL,
+  timeout: 120000 
+});
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
@@ -77,7 +80,8 @@ export const cvAPI = {
     const formData = new FormData();
     formData.append('file', file);
     return api.post(`/cv/detect?category=${category}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000 // 60s timeout for heavy YOLO models
     });
   }
 };
@@ -146,5 +150,13 @@ export const geoAPI = {
 export const agentAPI = {
   chat: (query, species) => api.post('/agent/chat', null, { params: { query, species } }),
 };
+
+// ---- Diagnostic History
+export const diagnosticAPI = {
+  list: () => api.get('/diagnostics/'),
+  save: (data) => api.post('/diagnostics/', data),
+  delete: (id) => api.delete(`/diagnostics/${id}`),
+};
+
 
 export default api;

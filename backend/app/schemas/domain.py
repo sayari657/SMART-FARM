@@ -369,3 +369,27 @@ class DashboardStats(BaseModel):
     avg_health_score: float
     units_by_species: Dict[str, int]
     recent_anomalies: int
+
+
+# ===========================================================================
+# Diagnostic History
+# ===========================================================================
+
+class DiagnosticSave(BaseModel):
+    category: str
+    image_url: Optional[str] = None
+    detections: Optional[Dict[str, Any]] = None
+    chat_log: Optional[List[Dict[str, Any]]] = None
+    notes: Optional[str] = None
+
+class DiagnosticRead(BaseModel):
+    id: int
+    timestamp: Any
+    category: str
+    image_url: Optional[str] = None
+    detections: Optional[Any] = None
+    chat_log: Optional[Any] = None
+    notes: Optional[str] = None
+
+    class Config:
+        from_attributes = True

@@ -1,0 +1,16 @@
+names:
+- Anthracnose
+- BlackScale
+- OlivePeacockSpot
+- Psyllid
+- Tuberculosis
+nc: 5
+roboflow:
+  license: CC BY 4.0
+  project: olive-tree-diseases
+  url: https://universe.roboflow.com/arina-fay/olive-tree-diseases/dataset/1
+  version: 1
+  workspace: arina-fay
+test: /kaggle/input/datasets/mohamedsayari77/olive-tree-diseases-v1i-yolov11/test/images
+train: /kaggle/input/datasets/mohamedsayari77/olive-tree-diseases-v1i-yolov11/train/images
+val: /kaggle/input/datasets/mohamedsayari77/olive-tree-diseases-v1i-yolov11/valid/images

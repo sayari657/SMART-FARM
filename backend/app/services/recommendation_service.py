@@ -48,19 +48,32 @@ class RecommendationService:
                         "reason": f"Wind speed: {wind} km/h — above 40 km/h threshold."
                     })
         
-        # 2. RAG based Wisdom (Species specific)
-        for unit in farm.units:
-            species = unit.animal_type.species if unit.animal_type else "general"
+        # 2. RAG based Wisdom (Species specific deduplication)
+        # We group by species to avoid repetitive cards if there are multiple units of the same type
+        farm_species = {unit.animal_type.species for unit in farm.units if unit.animal_type}
+        
+        for species in farm_species:
+            # Enhanced query including weather context for better RAG matching
+            context_query = f"Recommendations for {species} managing {weather_summary}"
             wisdom = await rag_service.query_wisdom(
-                query=f"Recommendations for {species} during {weather_summary}",
-                species=species
+                query=context_query,
+                species=species,
+                n_results=2
             )
+            
             if wisdom:
+                # Deduplicate identical wisdom snippets and combine them
+                unique_wisdom = []
+                for w in wisdom:
+                    if w not in unique_wisdom: unique_wisdom.append(w)
+                
+                combined_action = " ".join([w[:300] for w in unique_wisdom])
+                
                 recs.append({
                     "type": "sovereign_rag",
-                    "title": f"Local Expertise: {species.capitalize()}",
-                    "action": wisdom[0][:200], # Top result summary
-                    "reason": "Retrieved from local UTAP/AVFA database."
+                    "title": f"Expertise Locale: {species.capitalize()}",
+                    "action": combined_action,
+                    "reason": "Analyse croisée entre les guides UTAP/AVFA et les conditions météo actuelles."
                 })
 
         # Add a default if nothing triggered

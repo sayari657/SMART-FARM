@@ -39,6 +39,7 @@ class Settings(BaseSettings):
 
     # External APIs
     TREFLE_API_TOKEN: str = "your_placeholder_token_here_from_trefle_io"
+    WEATHER_API_URL: str = os.getenv("WEATHER_API_URL", "https://api.open-meteo.com/v1/forecast")
 
     # ── YOLO Model Paths ──────────────────────────────────────────
     # Modèle Abeilles (entraîné sur dataset Kaggle)
