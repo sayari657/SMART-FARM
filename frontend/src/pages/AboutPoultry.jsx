@@ -1,14 +1,15 @@
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Thermometer, 
-  Activity, 
-  Eye, 
-  Plus, 
-  Egg, 
-  Droplets, 
-  Utensils, 
+import {
+  ArrowLeft,
+  Thermometer,
+  Activity,
+  Eye,
+  Plus,
+  Egg,
+  Droplets,
+  Utensils,
   Wind,
   AlertCircle
 } from 'lucide-react';
@@ -262,6 +263,7 @@ export default function AboutPoultry() {
           </div>
         </div>
       </div>
+      <ExpertAssistant species="poultry" color="#0891b2" />
     </>
   );
 }

@@ -2,6 +2,15 @@ import sqlite3
 import json
 import os
 from datetime import datetime
+import sys
+from pathlib import Path
+
+# Add project root to path so 'app' can be resolved
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+from app.core.database import engine, Base
+import app.models.domain # noqa
+
 
 DB_PATH = 'smart_farm.db'
 
@@ -16,11 +25,15 @@ SPECIES_DATA = [
 
 def init_db():
     print(f"Initializing Local SQLite Database: {DB_PATH}")
+    
+    # Create all tables first
+    Base.metadata.create_all(bind=engine)
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # The tables should already be created by FastAPI/SQLAlchemy startup,
-    # but we ensure animal_types are seeded.
+    # The tables are now created by SQLAlchemy,
+    # we ensure animal_types are seeded.
     for species, name, schema in SPECIES_DATA:
         cursor.execute('''
             INSERT OR IGNORE INTO animal_types (species, display_name, telemetry_schema, created_at)

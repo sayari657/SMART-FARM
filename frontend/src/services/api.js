@@ -39,7 +39,8 @@ export const authAPI = {
 
 // ---- Dashboard
 export const dashboardAPI = {
-  stats: () => api.get('/dashboard/stats'),
+  stats:     () => api.get('/dashboard/stats'),
+  analytics: (days = 30) => api.get('/dashboard/analytics', { params: { days } }),
 };
 
 // ---- Farms
@@ -72,18 +73,17 @@ export const cvAPI = {
   recent: (limit = 50) => api.get(`/cv/events?limit=${limit}`),
   byUnit: (unitId, limit = 100) => api.get(`/cv/events/${unitId}?limit=${limit}`),
   ingest: (data) => api.post('/cv/events', data),
-  // Get model class names (data.yaml)
   getModelMetadata: (category) => api.get(`/cv/models/${category}/metadata`),
-  // category: 'bee' | 'goat' | 'cow' | 'sheep' | 'livestock'
+  plantStats: () => api.get('/cv/stats/plants'),
+  recentPlantEvents: (limit = 20) => api.get(`/cv/events/plants/recent?limit=${limit}`),
   detect: (file, category = 'livestock') => {
-
     const formData = new FormData();
     formData.append('file', file);
     return api.post(`/cv/detect?category=${category}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      timeout: 60000 // 60s timeout for heavy YOLO models
+      timeout: 60000,
     });
-  }
+  },
 };
 
 // ---- Anomalies
@@ -149,6 +149,8 @@ export const geoAPI = {
 // ---- Agent
 export const agentAPI = {
   chat: (query, species) => api.post('/agent/chat', null, { params: { query, species } }),
+  analyze: (query, species, detections = []) =>
+    api.post('/agent/analyze', { query, species, detections }),
 };
 
 // ---- Diagnostic History

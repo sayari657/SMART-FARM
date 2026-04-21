@@ -33,14 +33,6 @@ async def app_lifespan(app_instance: FastAPI):
         # a. Database Sync (with One-Time Reset for Diagnostic History)
         import app.models.domain  # noqa: F401
         from sqlalchemy import text
-        with engine.connect() as conn:
-            # Force reset only the problematic table to fix legacy schema issues
-            try:
-                conn.execute(text("DROP TABLE IF EXISTS diagnostic_history"))
-                conn.commit()
-                logger.info("[STARTUP] Resetting diagnostic_history for schema alignment.")
-            except Exception as reset_err:
-                logger.warning(f"[STARTUP] Table reset skipped/failed: {reset_err}")
                 
         Base.metadata.create_all(bind=engine)
         logger.info("[STARTUP] Database refreshed and synchronized.")
@@ -120,6 +112,10 @@ app.state.ws_manager = manager
 async def ws_telemetry(websocket: WebSocket):
     await manager.connect(websocket)
     try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:

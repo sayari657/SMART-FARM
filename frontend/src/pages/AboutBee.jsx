@@ -1,3 +1,4 @@
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -310,6 +311,7 @@ export default function AboutBee() {
            {activeTab === 'depenses' && <DepensesTab depenses={depenses} emplacements={emplacements} modalActive={modalActive} setModalActive={setModalActive} depenseForm={depenseForm} setDepenseForm={setDepenseForm} handleAddDepense={handlers.addDepense} />}
         </div>
       </div>
+      <ExpertAssistant species="bee" color="#d97706" />
     </div>
   );
 }

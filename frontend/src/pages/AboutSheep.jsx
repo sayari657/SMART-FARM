@@ -1,13 +1,14 @@
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Thermometer, 
-  Heart, 
-  Activity, 
-  Eye, 
-  Plus, 
-  Map, 
+import {
+  ArrowLeft,
+  Thermometer,
+  Heart,
+  Activity,
+  Eye,
+  Plus,
+  Map,
   Wind,
   ShieldCheck
 } from 'lucide-react';
@@ -260,6 +261,7 @@ export default function AboutSheep() {
           </div>
         </div>
       </div>
+      <ExpertAssistant species="sheep" color="#059669" />
     </>
   );
 }

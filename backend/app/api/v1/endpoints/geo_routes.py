@@ -219,3 +219,25 @@ def find_nearby_vets(lat: float, lon: float, radius_km: float = 100, db: Session
             "distance_km": round(row.distance_km, 2)
         } for row in result
     ]
+
+
+@router.get("/markets", response_model=GeoJSONFeatureCollection)
+def get_markets_geojson(db: Session = Depends(get_db)):
+    """
+    Public markets overlay.
+    Visible to all users.
+    """
+    markets = db.query(Market).filter(Market.is_active == True).all()
+    features = []
+    for m in markets:
+        if m.latitude is None or m.longitude is None: continue
+        features.append(GeoJSONFeature(
+            geometry=GeoJSONGeometry(coordinates=[m.longitude, m.latitude]),
+            properties={
+                "id": str(m.id), 
+                "name": m.name, 
+                "address": m.address,
+                "type": m.market_type
+            }
+        ))
+    return GeoJSONFeatureCollection(features=features)

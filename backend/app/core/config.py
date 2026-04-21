@@ -13,7 +13,10 @@ class Settings(BaseSettings):
 
     # Database
     USE_SQLITE: bool = True  # Enabled for Lite Mode
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./smart_farm.db")
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL", 
+        f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'smart_farm.db')}"
+    )
 
     # Sovereign Intelligence (v3.0)
     CHROMA_HOST: str = os.getenv("CHROMA_HOST", "localhost")
@@ -70,10 +73,20 @@ class Settings(BaseSettings):
         "YOLO_OLIVE_PATH",
         r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model olive-tree-diseases\best.pt"
     )
-    # Modele Insectes (10 classes: Army worm, Legume beetle, Rice pests...)
+    # Modele Insects (10 classes: Army worm, Legume beetle, Rice pests...)
     YOLO_INSECTS_PATH: str = os.getenv(
         "YOLO_INSECTS_PATH",
         r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model insects_final\best.pt"
+    )
+    # Modele Lemon Disease (Placeholder)
+    YOLO_LEMON_PATH: str = os.getenv(
+        "YOLO_LEMON_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Detection diseases Leaves\best.pt"
+    )
+    # Modele Orange Disease (Placeholder)
+    YOLO_ORANGE_PATH: str = os.getenv(
+        "YOLO_ORANGE_PATH",
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Detection diseases Leaves\best.pt"
     )
     # Modele Feu & Fumée
     YOLO_FIRE_PATH: str = os.getenv(

@@ -209,10 +209,17 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         ) : mode === 'camera' && (
           <button className="btn btn-primary btn-sm" onClick={captureAndScan} style={{ background: color }}><Camera size={14} /> Scan</button>
         )}
-        <button 
+        <button
           className="btn btn-sm"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-assistant', { detail: { species: category } }))}
+          onClick={() => window.dispatchEvent(new CustomEvent('open-assistant', {
+            detail: {
+              species: category,
+              detections: detections,
+              category: category,
+            }
+          }))}
           style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, #000)`, color: 'white' }}
+          title={detections.length ? `Analyser ${detections.length} détection(s) avec l'IA` : 'Ouvrir assistant IA'}
         >
           <Sparkles size={18} />
         </button>

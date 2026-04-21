@@ -1,9 +1,10 @@
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { 
   Search, Bot, Sparkles, Send, User, 
   Mic, MicOff, Volume2, Upload, Leaf, 
   Flower2, CheckCircle2, X, Bug, History, Trash2, ExternalLink, Image as ImageIcon,
-  TreePine, ShieldCheck, AlertCircle, Maximize2
+  TreePine, ShieldCheck, AlertCircle, Maximize2, Citrus
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
@@ -326,11 +327,25 @@ export default function ArbresPlantations() {
   const [input, setInput]         = useState('');
   const [loading, setLoading]     = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [plantStats, setPlantStats]   = useState(null);
+  const [recentPlantEvents, setRecentPlantEvents] = useState([]);
 
   useEffect(() => {
     fetchHistory();
+    fetchPlantStats();
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const fetchPlantStats = async () => {
+    try {
+      const [statsRes, eventsRes] = await Promise.all([
+        cvAPI.plantStats(),
+        cvAPI.recentPlantEvents(20),
+      ]);
+      setPlantStats(statsRes.data);
+      setRecentPlantEvents(eventsRes.data);
+    } catch (err) { console.error("Plant stats fetch error:", err); }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -446,10 +461,10 @@ export default function ArbresPlantations() {
   };
 
   const stats = [
-    { label: "Population d'Arbres", value: '1,240', icon: TreePine,    color: 'green' },
-    { label: 'Alertes Maladies',    value: '3',     icon: AlertCircle, color: 'red'   },
-    { label: 'Confiance AI',        value: '94.2%', icon: ShieldCheck, color: 'blue'  },
-    { label: 'Insects Détectés',   value: '12',    icon: Bug,         color: 'orange' },
+    { label: "Détections Totales",   value: plantStats ? plantStats.total_detections.toLocaleString() : '…', icon: TreePine,    color: 'green'  },
+    { label: 'Alertes Maladies 7j',  value: plantStats ? String(plantStats.disease_alerts_7d) : '…',          icon: AlertCircle, color: 'red'    },
+    { label: 'Confiance AI moy.',    value: plantStats ? `${plantStats.avg_confidence_pct}%` : '…',            icon: ShieldCheck, color: 'blue'   },
+    { label: 'Insectes 7j',         value: plantStats ? String(plantStats.insect_detections_7d) : '…',        icon: Bug,         color: 'orange' },
   ];
 
   return (
@@ -497,16 +512,67 @@ export default function ArbresPlantations() {
             onAnalyze={triggerPlantBotAnalysis}
           />
           <YOLOScannerPanel
-            title="Détection des Insectes"
+            title="Maladies des Insectes"
             subtitle="Identification des ravageurs"
             category="insects"
             color="#ea580c"
             icon={Bug}
             onAnalyze={triggerPlantBotAnalysis}
           />
+          <YOLOScannerPanel
+            title="Maladies du Citronnier"
+            subtitle="Identification des pathologies (Citron)"
+            category="lemon"
+            color="#facc15"
+            icon={Citrus}
+            onAnalyze={triggerPlantBotAnalysis}
+          />
+          <YOLOScannerPanel
+            title="Maladies de l'Oranger"
+            subtitle="Identification des pathologies (Orange)"
+            category="orange"
+            color="#fb923c"
+            icon={Citrus}
+            onAnalyze={triggerPlantBotAnalysis}
+          />
         </div>
 
-
+        <div className="card" style={{ marginBottom: 32 }}>
+          <div className="card-header">
+            <div>
+              <h3 className="card-title">{t('trees.detection_log', 'Journal des Détections')}</h3>
+              <p className="card-subtitle">Flux combiné des analyses phyto-sanitaires</p>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div className="pulse-dot green" />
+              <span className="text-xs text-bold">LIVE STREAM</span>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+            {recentPlantEvents.length === 0 ? (
+              <div style={{ color: 'var(--color-text-3)', padding: '20px 0', textAlign: 'center', gridColumn: '1/-1' }}>
+                Aucun évènement phyto enregistré. Lancez un scan pour voir les résultats ici.
+              </div>
+            ) : recentPlantEvents.map((d) => {
+              const sev = d.severity;
+              const badgeClass = sev === 'info' ? 'badge-success' : sev === 'warning' ? 'badge-warning' : 'badge-danger';
+              const label      = sev === 'info' ? 'Sain' : sev === 'warning' ? 'Alerte' : 'Critique';
+              const timeStr    = d.timestamp ? new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+              return (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--color-bg)', borderRadius: 'var(--radius)', border: '1px solid var(--color-border)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: sev === 'info' ? 'var(--color-success-bg)' : 'var(--color-critical-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: sev === 'info' ? 'var(--color-success)' : 'var(--color-critical)' }}>
+                    {d.camera_id === 'insects' ? <Bug size={16} /> : <TreePine size={16} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="text-bold" style={{ fontSize: 13 }}>{(d.object_class || '').replace(/_/g, ' ')}</div>
+                    <div className="text-xs text-muted">{d.confidence ? (d.confidence * 100).toFixed(0) + '%' : ''} · {timeStr} · Modèle: {d.camera_id}</div>
+                  </div>
+                  <span className={`badge ${badgeClass}`}>{label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {isPlantBotOpen ? (
           <div className="card" style={{ position: 'fixed', bottom: 20, right: 20, width: 370, height: 560, zIndex: 1000, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden', boxShadow: '0 24px 48px rgba(0,0,0,0.2)', border: '1px solid var(--color-primary)' }}>
@@ -667,6 +733,7 @@ export default function ArbresPlantations() {
           .history-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
         `}} />
       </div>
+      <ExpertAssistant species="plant" color="#22c55e" />
     </>
   );
 }

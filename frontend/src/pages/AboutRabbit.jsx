@@ -1,3 +1,4 @@
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -107,6 +108,7 @@ export default function AboutRabbit() {
             </div>
         </div>
       </div>
+      <ExpertAssistant species="rabbit" color="#16a34a" />
     </>
   );
 }

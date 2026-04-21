@@ -1,3 +1,4 @@
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -410,6 +411,7 @@ export default function AboutGoats() {
           </div>
         </div>
       </div>
+      <ExpertAssistant species="goat" color="#dc2626" />
     </>
   );
 }

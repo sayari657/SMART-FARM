@@ -4,6 +4,7 @@ import io
 import logging
 import time
 import threading
+from datetime import datetime, timedelta
 from PIL import Image
 from typing import List, Optional
 
@@ -39,6 +40,8 @@ MODEL_REGISTRY = {
     "leaves":   settings.YOLO_LEAVES_PATH,
     "olive":    settings.YOLO_OLIVE_PATH,
     "insects":  settings.YOLO_INSECTS_PATH,
+    "lemon":    settings.YOLO_LEMON_PATH,
+    "orange":   settings.YOLO_ORANGE_PATH,
     "fire":     settings.YOLO_FIRE_PATH,
     "plants":   settings.YOLO_LEAVES_PATH,
 }
@@ -97,6 +100,66 @@ def get_model_metadata(category: str):
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
     return {"category": category, "names": model.names}
+
+@router.get("/stats/plants")
+def plant_cv_stats(
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    """Real-time CV event KPIs for plant/crop monitoring dashboard."""
+    from app.models.domain import CVEvent
+    from sqlalchemy import func
+    plant_cats = ["leaves", "olive", "insects", "lemon", "orange"]
+    cutoff_7d  = datetime.utcnow() - timedelta(days=7)
+    cutoff_30d = datetime.utcnow() - timedelta(days=30)
+
+    total = db.query(func.count(CVEvent.id)).filter(
+        CVEvent.camera_id.in_(plant_cats)
+    ).scalar() or 0
+
+    disease_alerts = db.query(func.count(CVEvent.id)).filter(
+        CVEvent.camera_id.in_(plant_cats),
+        CVEvent.severity.in_(["warning", "critical"]),
+        CVEvent.timestamp >= cutoff_7d
+    ).scalar() or 0
+
+    avg_conf_raw = db.query(func.avg(CVEvent.confidence)).filter(
+        CVEvent.camera_id.in_(plant_cats),
+        CVEvent.confidence.isnot(None),
+        CVEvent.timestamp >= cutoff_30d
+    ).scalar()
+
+    insects_7d = db.query(func.count(CVEvent.id)).filter(
+        CVEvent.camera_id == "insects",
+        CVEvent.timestamp >= cutoff_7d
+    ).scalar() or 0
+
+    return {
+        "total_detections": total,
+        "disease_alerts_7d": disease_alerts,
+        "avg_confidence_pct": round(float(avg_conf_raw) * 100, 1) if avg_conf_raw else 0.0,
+        "insect_detections_7d": insects_7d,
+    }
+
+
+@router.get("/events/plants/recent")
+def plant_recent_events(
+    limit: int = Query(20, le=100),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    """Most recent plant CV detections (leaves / olive / insects) for detection log."""
+    from app.models.domain import CVEvent
+    plant_cats = ["leaves", "olive", "insects", "lemon", "orange"]
+    rows = (
+        db.query(CVEvent)
+        .filter(CVEvent.camera_id.in_(plant_cats))
+        .order_by(CVEvent.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+    return [_serialize(e) for e in rows]
+
 
 @router.post("/detect")
 async def detect_in_file(

@@ -75,18 +75,17 @@ def seed():
         VALUES (?, ?, ?, ?)
     ''', (unit_id, json.dumps(metrics), datetime.now().isoformat(), 'sensor_hub'))
 
-    # 5. Ensure persistent user 'MED' exists with forced password reset
+    # 5. Ensure persistent user 'MED' exists (Idempotent)
     res_user = cursor.execute('SELECT id FROM users WHERE username="MED"').fetchone()
-    pwd_hash = hash_password_local('password')
     if not res_user:
+        pwd_hash = hash_password_local('password')
         cursor.execute('''
             INSERT INTO users (username, email, password_hash, role, is_active, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', ('MED', 'med@smartfarm.ai', pwd_hash, 'admin', 1, datetime.now().isoformat()))
         print("[AUTH] Created user 'MED' with password 'password'")
     else:
-        cursor.execute('UPDATE users SET password_hash = ? WHERE username = "MED"', (pwd_hash,))
-        print("[AUTH] Reset password for existing user 'MED' to 'password'")
+        print("[AUTH] User 'MED' already exists. Skipping creation to preserve data.")
 
     conn.commit()
     print(f"Successfully seeded database with Bee Unit (ID: {unit_id}) and real telemetry.")

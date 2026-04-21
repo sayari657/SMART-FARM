@@ -38,8 +38,8 @@ const MapCenter = () => {
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     };
@@ -54,7 +54,7 @@ const MapCenter = () => {
                     api.get('/geo/hives'),
                     api.get('/geo/markets')
                 ]);
-                
+
                 // Real Bee Hives from Backend GIS (Joined with Telemetry)
                 setHives(hivesRes.data.features || []);
                 setFarms(farmsRes.data.features || []);
@@ -89,11 +89,11 @@ const MapCenter = () => {
     const fetchGlobalDiscoveries = async (lat, lon) => {
         if (isDiscovering) return;
         setIsDiscovering(true);
-        
+
         try {
             // Use authenticated 'api' instance
             const res = await api.get(`/geo/nearby-vets?lat=${lat}&lon=${lon}&radius_km=100`);
-            
+
             if (res.data) {
                 const discoveries = res.data.map(v => ({
                     type: 'vet',
@@ -127,7 +127,7 @@ const MapCenter = () => {
                 externalAPI.geocode.reverse(lat, lon),
                 externalAPI.weather.byCoords(lat, lon)
             ]);
-            
+
             if (geoRes.data) {
                 const addr = geoRes.data.address;
                 const name = addr.city || addr.town || addr.village || addr.suburb || geoRes.data.display_name.split(',')[0];
@@ -150,7 +150,7 @@ const MapCenter = () => {
             setUserPos([latitude, longitude]);
             setViewCenter([latitude, longitude]);
             setZoom(11);
-            
+
             // Trigger Discovery and localized info
             fetchGlobalDiscoveries(latitude, longitude);
             fetchLocationInfo(latitude, longitude);
@@ -167,18 +167,18 @@ const MapCenter = () => {
             if (userPos) {
                 const [lat, lon] = userPos;
                 const offset = 1.0; // Roughly 100km box
-                searchUrl += `&viewbox=${lon-offset},${lat+offset},${lon+offset},${lat-offset}&bounded=1`;
+                searchUrl += `&viewbox=${lon - offset},${lat + offset},${lon + offset},${lat - offset}&bounded=1`;
             }
-            
+
             const res = await axios.get(searchUrl);
             if (res.data && res.data.length > 0) {
                 const result = res.data[0];
                 const lat = parseFloat(result.lat);
                 const lon = parseFloat(result.lon);
-                
+
                 // Calculate distance to check if logical
                 const distToResult = userPos ? haversine(userPos[0], userPos[1], lat, lon) : 0;
-                
+
                 // STRICT LOGICAL CHECK
                 if (distToResult > 100) {
                     alert(`Attention: '${globalSearch}' a été trouvé à ${distToResult.toFixed(0)}km. Voulez-vous quand même afficher ce résultat hors-zone ?`);
@@ -189,13 +189,13 @@ const MapCenter = () => {
                     setViewCenter([lat, lon]);
                     setZoom(14);
                 }
-                
-                setSelectedEntity({ 
-                    type: 'search', 
+
+                setSelectedEntity({
+                    type: 'search',
                     name: result.display_name,
                     coords: [lat, lon],
-                    distance: distToResult, 
-                    properties: { name: result.display_name } 
+                    distance: distToResult,
+                    properties: { name: result.display_name }
                 });
             } else {
                 alert("Location not found in your 100km zone.");
@@ -209,11 +209,11 @@ const MapCenter = () => {
 
     // Unified Filtered Directory Data (Real items within 50km)
     const filteredData = [
-        ...hives.map(h => ({ 
-            ...h, 
-            type: 'hive', 
-            name: h.properties.name, 
-            coords: [h.geometry.coordinates[1], h.geometry.coordinates[0]], 
+        ...hives.map(h => ({
+            ...h,
+            type: 'hive',
+            name: h.properties.name,
+            coords: [h.geometry.coordinates[1], h.geometry.coordinates[0]],
             id: h.properties.id,
             metrics: h.properties.metrics,
             status: h.properties.status
@@ -231,23 +231,23 @@ const MapCenter = () => {
         const dist = hasCoords ? haversine(refPos[0], refPos[1], item.coords[0], item.coords[1]) : 9999;
         return { ...item, distance: dist };
     })
-    .filter(item => {
-        // STRICT LOGICAL CONSTRAINT: Max 100km for the directory
-        return item.distance <= 100;
-    })
-    .filter(item => categoryFilter === 'all' || item.type === categoryFilter)
-    .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => a.distance - b.distance);
+        .filter(item => {
+            // STRICT LOGICAL CONSTRAINT: Max 100km for the directory
+            return item.distance <= 100;
+        })
+        .filter(item => categoryFilter === 'all' || item.type === categoryFilter)
+        .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .sort((a, b) => a.distance - b.distance);
 
     return (
         <div className="page-container">
-            <Navbar 
-                title="Agricultural Map Center" 
+            <Navbar
+                title="Agricultural Map Center"
                 subtitle={isFetchingInfo ? "Détection en cours..." : (locationName ? `📍 ${locationName} | Rayon 100km actif` : (userPos ? `Filtrage local actif (Rayon 100km)` : `Initialisation du filtrage...`))}
             />
 
             <div className="page-content" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px', height: 'calc(100vh - 180px)' }}>
-                
+
                 {/* Main Map View */}
                 <div style={{ position: 'relative' }}>
                     {loading ? (
@@ -256,16 +256,16 @@ const MapCenter = () => {
                             <p style={{ marginLeft: '10px' }}>Mapping your ecosystem...</p>
                         </div>
                     ) : (
-                        <SovereignMap 
+                        <SovereignMap
                             // BUG FIX: Show all markers initially (within 1000km) if user hasn't located yet
-                            farms={farms.filter(f => f.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], f.geometry.coordinates[1], f.geometry.coordinates[0]) <= 1000 : false)} 
-                            vets={vets.filter(v => v.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], v.geometry.coordinates[1], v.geometry.coordinates[0]) <= 1000 : false)} 
+                            farms={farms.filter(f => f.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], f.geometry.coordinates[1], f.geometry.coordinates[0]) <= 1000 : false)}
+                            vets={vets.filter(v => v.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], v.geometry.coordinates[1], v.geometry.coordinates[0]) <= 1000 : false)}
                             hives={hives.filter(h => h.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], h.geometry.coordinates[1], h.geometry.coordinates[0]) <= 1000 : false)}
                             markets={markets.filter(m => m.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], m.geometry.coordinates[1], m.geometry.coordinates[0]) <= 1000 : false)}
                             userPos={userPos}
                             center={[viewCenter[1], viewCenter[0]]} // MapLibre uses [lon, lat]
-                            zoom={zoom} 
-                            height="100%" 
+                            zoom={zoom}
+                            height="100%"
                             onMarkerClick={(item) => focusOn(item)}
                             selectedEntity={selectedEntity}
                         />
@@ -281,11 +281,11 @@ const MapCenter = () => {
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <div style={{ position: 'relative', flex: 1 }}>
                                     <Search size={22} style={{ position: 'absolute', left: 20, top: 15, color: '#7c3aed' }} />
-                                    <input 
+                                    <input
                                         type="text"
                                         placeholder="Full Discovery Mode: Vets, Ruches, Cities..."
                                         className="form-control"
-                                        style={{ 
+                                        style={{
                                             padding: '16px 56px', background: 'rgba(255,255,255,0.98)', borderRadius: 32, fontSize: 16,
                                             border: 'none', fontWeight: 600, width: '100%', boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
                                             backdropFilter: 'blur(20px)'
@@ -298,10 +298,10 @@ const MapCenter = () => {
                                     />
                                     {isSearching && <div className="spinner-center" style={{ right: 20, left: 'auto', width: 18, height: 18 }} />}
                                 </div>
-                                <button 
-                                    type="submit" 
-                                    style={{ 
-                                        background: '#22c55e', color: 'white', border: 'none', padding: '15px 32px', 
+                                <button
+                                    type="submit"
+                                    style={{
+                                        background: '#22c55e', color: 'white', border: 'none', padding: '15px 32px',
                                         borderRadius: 32, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(34, 197, 94, 0.4)',
                                         display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.3s', fontSize: 14, letterSpacing: 0.5
                                     }}
@@ -360,7 +360,7 @@ const MapCenter = () => {
                                                 <span style={{ fontSize: 13, fontWeight: 800, color: '#1e293b' }}>{locationName || "Tunisie"}</span>
                                             </div>
                                         </div>
-                                        
+
                                         {currentWeather && (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                 <div style={{ fontSize: 24 }}>{currentWeather.temperature > 25 ? '☀️' : (currentWeather.precipitation > 0 ? '🌧️' : '☁️')}</div>
@@ -382,7 +382,7 @@ const MapCenter = () => {
                     </div>
 
                     {/* New: Locate Me Button */}
-                    <button 
+                    <button
                         onClick={handleLocateMe}
                         style={{
                             position: 'absolute', bottom: 30, right: 20, zIndex: 1000,
@@ -395,7 +395,7 @@ const MapCenter = () => {
                     >
                         <Navigation size={22} />
                     </button>
-                    
+
                     {/* Dynamic Map Dashboard: Real-time Coverage Status */}
                     <div style={{
                         position: 'absolute', top: 20, right: 20, zIndex: 1000,
@@ -403,7 +403,7 @@ const MapCenter = () => {
                         padding: '15px 25px', borderRadius: '24px', border: '1px solid var(--glass-border)',
                         boxShadow: 'var(--glass-shadow)', display: 'flex', gap: 20
                     }}>
-                        <div 
+                        <div
                             onClick={() => setCategoryFilter('hive')}
                             style={{ display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', opacity: categoryFilter === 'hive' ? 1 : 0.7 }}
                         >
@@ -413,7 +413,7 @@ const MapCenter = () => {
                             </div>
                         </div>
                         <div style={{ width: 1, background: '#e2e8f0' }} />
-                        <div 
+                        <div
                             onClick={() => setCategoryFilter('vet')}
                             style={{ display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', opacity: categoryFilter === 'vet' ? 1 : 0.7 }}
                         >
@@ -423,7 +423,7 @@ const MapCenter = () => {
                             </div>
                         </div>
                         <div style={{ width: 1, background: '#e2e8f0' }} />
-                        <div 
+                        <div
                             onClick={() => setCategoryFilter('farm')}
                             style={{ display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', opacity: categoryFilter === 'farm' ? 1 : 0.7 }}
                         >
@@ -433,7 +433,7 @@ const MapCenter = () => {
                             </div>
                         </div>
                         <div style={{ width: 1, background: '#e2e8f0' }} />
-                        <div 
+                        <div
                             onClick={() => setCategoryFilter('market')}
                             style={{ display: 'flex', flexDirection: 'column', gap: 2, cursor: 'pointer', opacity: categoryFilter === 'market' ? 1 : 0.7 }}
                         >
@@ -449,8 +449,8 @@ const MapCenter = () => {
                 <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 20, overflowY: 'auto' }}>
                     {/* Discovery Status Indicator */}
                     {isDiscovering && (
-                        <div style={{ 
-                            padding: '10px 15px', background: 'rgba(124, 58, 237, 0.05)', borderRadius: 12, 
+                        <div style={{
+                            padding: '10px 15px', background: 'rgba(124, 58, 237, 0.05)', borderRadius: 12,
                             display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#7c3aed', border: '1px dashed #7c3aed'
                         }}>
                             <div className="loader" style={{ width: 12, height: 12, borderWeight: 2 }} />
@@ -460,23 +460,23 @@ const MapCenter = () => {
 
                     {/* Detailed Card Display if Selected */}
                     {selectedEntity && (
-                        <div className="card detail-active" style={{ 
-                            padding: '20px', background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)', 
+                        <div className="card detail-active" style={{
+                            padding: '20px', background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
                             color: 'white', borderRadius: 20, position: 'relative', overflow: 'hidden',
                             animation: 'slideInRight 0.3s ease'
                         }}>
-                             <button 
+                            <button
                                 onClick={() => setSelectedEntity(null)}
                                 style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '50%', width: 24, height: 24, cursor: 'pointer' }}
-                             >
-                                <X size={14}/>
-                             </button>
-                             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.8, fontWeight: 800 }}>
+                            >
+                                <X size={14} />
+                            </button>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.8, fontWeight: 800 }}>
                                 Intelligence {selectedEntity.type === 'hive' ? 'Apiculture' : selectedEntity.type === 'vet' ? 'Vétérinaire' : 'Ferme'}
-                             </div>
-                             <h4 style={{ fontSize: 20, fontWeight: 800, margin: '8px 0' }}>{selectedEntity.nom || selectedEntity.properties?.name || selectedEntity.name}</h4>
-                             
-                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 15 }}>
+                            </div>
+                            <h4 style={{ fontSize: 20, fontWeight: 800, margin: '8px 0' }}>{selectedEntity.nom || selectedEntity.properties?.name || selectedEntity.name}</h4>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 15 }}>
                                 {selectedEntity.type === 'vet' && (
                                     <>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
@@ -488,7 +488,7 @@ const MapCenter = () => {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
                                             <MapPin size={16} /> <span style={{ fontWeight: 600 }}>Adresse:</span> {selectedEntity.properties?.address}
                                         </div>
-                                        <a href={`tel:${selectedEntity.properties?.phone}`} style={{ 
+                                        <a href={`tel:${selectedEntity.properties?.phone}`} style={{
                                             background: '#22c55e', color: 'white', textDecoration: 'none', padding: '10px', borderRadius: 12, textAlign: 'center',
                                             fontWeight: 800, fontSize: 14, marginTop: 10, display: 'block'
                                         }}>
@@ -501,15 +501,15 @@ const MapCenter = () => {
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10, background: 'rgba(0,0,0,0.15)', padding: 12, borderRadius: 12 }}>
                                             <div style={{ textAlign: 'center' }}>
                                                 <div style={{ fontSize: 10, opacity: 0.8 }}>POIDS</div>
-                                                <div style={{ fontSize: 16, fontWeight: 900 }}>{selectedEntity.metrics?.weight || '0'} <span style={{fontSize: 10}}>kg</span></div>
+                                                <div style={{ fontSize: 16, fontWeight: 900 }}>{selectedEntity.metrics?.weight || '0'} <span style={{ fontSize: 10 }}>kg</span></div>
                                             </div>
                                             <div style={{ textAlign: 'center' }}>
                                                 <div style={{ fontSize: 10, opacity: 0.8 }}>TEMP</div>
-                                                <div style={{ fontSize: 16, fontWeight: 900 }}>{selectedEntity.metrics?.temperature || '0'} <span style={{fontSize: 10}}>°C</span></div>
+                                                <div style={{ fontSize: 16, fontWeight: 900 }}>{selectedEntity.metrics?.temperature || '0'} <span style={{ fontSize: 10 }}>°C</span></div>
                                             </div>
                                             <div style={{ textAlign: 'center' }}>
                                                 <div style={{ fontSize: 10, opacity: 0.8 }}>HUMIDITÉ</div>
-                                                <div style={{ fontSize: 16, fontWeight: 900 }}>{selectedEntity.metrics?.humidity || '0'} <span style={{fontSize: 10}}>%</span></div>
+                                                <div style={{ fontSize: 16, fontWeight: 900 }}>{selectedEntity.metrics?.humidity || '0'} <span style={{ fontSize: 10 }}>%</span></div>
                                             </div>
                                             <div style={{ textAlign: 'center' }}>
                                                 <div style={{ fontSize: 10, opacity: 0.8 }}>SANTÉ</div>
@@ -530,11 +530,11 @@ const MapCenter = () => {
                                     </>
                                 )}
                                 {selectedEntity.distance > 100 && (
-                                     <div style={{ fontSize: 11, background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: 8, marginTop: 10, border: '1px solid rgba(255,255,255,0.3)' }}>
+                                    <div style={{ fontSize: 11, background: 'rgba(0,0,0,0.2)', padding: '8px', borderRadius: 8, marginTop: 10, border: '1px solid rgba(255,255,255,0.3)' }}>
                                         ⚠️ Cet élément est en dehors de votre zone locale (Distance: {selectedEntity.distance.toFixed(0)} km).
-                                     </div>
-                                 )}
-                             </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -544,15 +544,15 @@ const MapCenter = () => {
                         <h3 style={{ fontSize: '15px', fontWeight: 800, marginBottom: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
                             <Navigation size={16} /> Directory (Max 100km)
                         </h3>
-                        
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {filteredData.map((item, idx) => (
-                                <div 
+                                <div
                                     key={idx}
                                     onClick={() => focusOn(item)}
-                                    style={{ 
+                                    style={{
                                         padding: '14px', borderRadius: '16px', border: '1px solid var(--color-border)',
-                                        cursor: 'pointer', transition: 'all 0.2s', 
+                                        cursor: 'pointer', transition: 'all 0.2s',
                                         background: (selectedEntity?.id === item.id && selectedEntity?.type === item.type) ? 'rgba(124, 58, 237, 0.08)' : '#fafafa',
                                         borderColor: (selectedEntity?.id === item.id && selectedEntity?.type === item.type) ? '#7c3aed' : 'transparent',
                                         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
@@ -567,9 +567,9 @@ const MapCenter = () => {
                                     </div>
                                     <div style={{ fontSize: '11px', color: '#64748b', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
                                         <span style={{ opacity: 0.7 }}>
-                                            {item.type === 'hive' ? '🐝 Site Apicole' : 
-                                             item.type === 'vet' ? '🩺 Clinique Vétérinaire' : 
-                                             item.type === 'market' ? '🍯 Marché Apicole' : '🚜 Site de Ferme'}
+                                            {item.type === 'hive' ? '🐝 Site Apicole' :
+                                                item.type === 'vet' ? '🩺 Clinique Vétérinaire' :
+                                                    item.type === 'market' ? '🍯 Marché Apicole' : '🚜 Site de Ferme'}
                                         </span>
                                         {item.discovery && <span style={{ padding: '2px 6px', background: '#3b82f6', color: 'white', borderRadius: 4, fontSize: 8, fontWeight: 900 }}>REAL-WORLD</span>}
                                     </div>

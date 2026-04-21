@@ -1,5 +1,6 @@
 """Smart Farm AI - Anomaly, Alert, Recommendation, Report, Settings, Dashboard Routes"""
 from typing import Optional
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -147,3 +148,76 @@ dashboard_router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @dashboard_router.get("/stats", response_model=DashboardStats)
 def dashboard_stats(db: Session = Depends(get_db), _=Depends(get_current_user)):
     return DashboardService(db).get_stats()
+
+
+@dashboard_router.get("/analytics")
+def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Full analytics: telemetry averages per day, anomaly counts, alert severity breakdown."""
+    from app.models.domain import TelemetryRecord, Anomaly, Alert, AnimalUnit, AnimalType
+    from sqlalchemy import func, cast, Date
+    cutoff = datetime.utcnow() - timedelta(days=days)
+
+    daily_anomalies = (
+        db.query(
+            func.date(Anomaly.timestamp).label("day"),
+            func.count(Anomaly.id).label("count")
+        )
+        .filter(Anomaly.timestamp >= cutoff)
+        .group_by(func.date(Anomaly.timestamp))
+        .order_by(func.date(Anomaly.timestamp))
+        .all()
+    )
+
+    daily_alerts = (
+        db.query(
+            func.date(Alert.timestamp).label("day"),
+            Alert.severity,
+            func.count(Alert.id).label("count")
+        )
+        .filter(Alert.timestamp >= cutoff)
+        .group_by(func.date(Alert.timestamp), Alert.severity)
+        .order_by(func.date(Alert.timestamp))
+        .all()
+    )
+
+    species_health = (
+        db.query(AnimalType.species, func.avg(AnimalUnit.health_score).label("avg_health"))
+        .join(AnimalUnit, AnimalUnit.type_id == AnimalType.id)
+        .group_by(AnimalType.species)
+        .all()
+    )
+
+    alert_severity_dist = (
+        db.query(Alert.severity, func.count(Alert.id).label("count"))
+        .filter(Alert.timestamp >= cutoff)
+        .group_by(Alert.severity)
+        .all()
+    )
+
+    anomaly_type_dist = (
+        db.query(Anomaly.anomaly_type, func.count(Anomaly.id).label("count"))
+        .filter(Anomaly.timestamp >= cutoff)
+        .group_by(Anomaly.anomaly_type)
+        .order_by(func.count(Anomaly.id).desc())
+        .limit(8)
+        .all()
+    )
+
+    day_map = {}
+    for row in daily_anomalies:
+        day_map.setdefault(str(row.day), {"day": str(row.day), "anomalies": 0, "alerts_warning": 0, "alerts_critical": 0})
+        day_map[str(row.day)]["anomalies"] = row.count
+    for row in daily_alerts:
+        key = str(row.day)
+        day_map.setdefault(key, {"day": key, "anomalies": 0, "alerts_warning": 0, "alerts_critical": 0})
+        if row.severity == "critical":
+            day_map[key]["alerts_critical"] = row.count
+        elif row.severity == "warning":
+            day_map[key]["alerts_warning"] = row.count
+
+    return {
+        "timeline": sorted(day_map.values(), key=lambda x: x["day"]),
+        "species_health": [{"species": r.species, "avg_health": round(float(r.avg_health), 1)} for r in species_health],
+        "alert_severity_distribution": [{"severity": r.severity, "count": r.count} for r in alert_severity_dist],
+        "anomaly_type_distribution":   [{"type": r.anomaly_type, "count": r.count} for r in anomaly_type_dist],
+    }

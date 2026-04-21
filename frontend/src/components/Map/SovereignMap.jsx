@@ -3,16 +3,16 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './SovereignMap.css'; // We will create this file
 
-const SovereignMap = ({ 
-    farms = [], 
-    vets = [], 
-    hives = [], 
+const SovereignMap = ({
+    farms = [],
+    vets = [],
+    hives = [],
     markets = [],
-    center = [10.1815, 36.8065], 
-    zoom = 7, 
+    center = [10.1815, 36.8065],
+    zoom = 7,
     height = "100%",
     userPos = null,
-    onMarkerClick = () => {},
+    onMarkerClick = () => { },
     selectedEntity = null
 }) => {
     const mapContainer = useRef(null);
@@ -23,7 +23,7 @@ const SovereignMap = ({
     useEffect(() => {
         const checkStyleAvailability = async () => {
             const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            
+
             // LITE MODE / DEV: Skip 503-inducing checks and use OSM directly
             if (isLocalDev) {
                 setMapStyle({
@@ -96,7 +96,7 @@ const SovereignMap = ({
         }
 
         map.current.on('load', () => setIsStyleLoaded(true));
-        
+
         map.current.on('styledata', () => {
             if (map.current.isStyleLoaded()) {
                 setIsStyleLoaded(true);
@@ -146,11 +146,11 @@ const SovereignMap = ({
 
         // Process Hives (Yellow Hexagons)
         hives.forEach(h => {
-             const el = createMarkerElement('hive');
-             const metrics = h.properties?.metrics || { weight: 0, temperature: 0, humidity: 0 };
-             const status = h.properties?.status || 'healthy';
-             
-             const marker = new maplibregl.Marker({ element: el })
+            const el = createMarkerElement('hive');
+            const metrics = h.properties?.metrics || { weight: 0, temperature: 0, humidity: 0 };
+            const status = h.properties?.status || 'healthy';
+
+            const marker = new maplibregl.Marker({ element: el })
                 .setLngLat([h.geometry.coordinates[0], h.geometry.coordinates[1]])
                 .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
                     <div class="map-popup premium hive-live">
@@ -164,7 +164,7 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
-             el.addEventListener('click', () => onMarkerClick(h));
+            el.addEventListener('click', () => onMarkerClick(h));
         });
 
         // Process Vets (Red Shields)
@@ -218,8 +218,8 @@ const SovereignMap = ({
 
         // User Position (Pulsating Blue Navigation)
         if (userPos) {
-             const el = createMarkerElement('user');
-             new maplibregl.Marker({ element: el })
+            const el = createMarkerElement('user');
+            new maplibregl.Marker({ element: el })
                 .setLngLat([userPos[1], userPos[0]])
                 .setPopup(new maplibregl.Popup({ offset: 10 }).setHTML(`
                     <div style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 11px;">
@@ -227,17 +227,17 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
-             
-             // Open popup by default so user sees clearly where they are
-             const startPopup = new maplibregl.Popup({ offset: 15, closeButton: false })
+
+            // Open popup by default so user sees clearly where they are
+            const startPopup = new maplibregl.Popup({ offset: 15, closeButton: false })
                 .setLngLat([userPos[1], userPos[0]])
                 .setHTML('<div style="color: #3b82f6; font-weight: 900; font-size: 10px; text-transform: uppercase;">Moi</div>')
                 .addTo(map.current);
-             
-             // Dynamic 100km circle simulation (using a GeoJSON source in MapLibre for better performance)
-             if (map.current.getSource('proximity')) {
+
+            // Dynamic 100km circle simulation (using a GeoJSON source in MapLibre for better performance)
+            if (map.current.getSource('proximity')) {
                 map.current.getSource('proximity').setData(createGeoJSONCircle([userPos[1], userPos[0]], 100));
-             } else {
+            } else {
                 map.current.addSource('proximity', {
                     type: 'geojson',
                     data: createGeoJSONCircle([userPos[1], userPos[0]], 100)
@@ -261,7 +261,7 @@ const SovereignMap = ({
                         'line-dasharray': [2, 2]
                     }
                 });
-             }
+            }
         }
 
         // --- HIVE-MARKET CONNECTIVITY LINKS ---
@@ -318,7 +318,7 @@ const SovereignMap = ({
                     });
                 }
             };
-            
+
             // MapLibre style might not be ready for sources immediately after load in some races
             if (map.current.isStyleLoaded()) {
                 updateConnectivity();
@@ -367,7 +367,7 @@ function createGeoJSONCircle(center, radiusInKm, points = 64) {
 function createMarkerElement(type) {
     const el = document.createElement('div');
     el.className = `custom-marker marker-${type}`;
-    
+
     let innerHTML = '';
     if (type === 'user') {
         innerHTML = `
@@ -413,7 +413,7 @@ function createMarkerElement(type) {
             </div>
         `;
     }
-    
+
     el.innerHTML = innerHTML;
     return el;
 }
@@ -424,8 +424,8 @@ function haversine(lat1, lon1, lat2, lon2) {
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }

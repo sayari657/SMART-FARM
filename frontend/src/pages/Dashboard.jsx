@@ -9,6 +9,7 @@ import AlertCard from '../components/AlertCard';
 import TelemetryChart from '../components/TelemetryChart';
 import { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, anomalyAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
 import AIScanner from '../components/AIScanner';
+import ExpertAssistant from '../components/expert/ExpertAssistant';
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -272,6 +273,7 @@ export default function Dashboard() {
           }
         </div>
       </div>
+      <ExpertAssistant species="fire" color="#ef4444" />
     </>
   );
 }
