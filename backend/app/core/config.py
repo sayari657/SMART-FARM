@@ -12,10 +12,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
 
     # Database
-    USE_SQLITE: bool = True  # Enabled for Lite Mode
+    USE_SQLITE: bool = False  
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
-        f"sqlite:///{os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'smart_farm.db')}"
+        "postgresql+psycopg2://admin:password@localhost:5432/smart_farm"
     )
 
     # Sovereign Intelligence (v3.0)

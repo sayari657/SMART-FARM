@@ -72,3 +72,14 @@ def require_roles(*roles: str):
             )
         return current_user
     return _checker
+
+
+def get_ws_tenant_id(token: Optional[str]) -> str:
+    """Helper for WebSocket auth. Returns tenant_id (or 'public' if no token)."""
+    if not token:
+        return "public"
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return str(payload.get("tenant_id", "public"))
+    except:
+        return "public"

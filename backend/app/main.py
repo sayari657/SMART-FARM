@@ -120,3 +120,33 @@ async def ws_telemetry(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+# -- WebSockets (Distributed Secure Gateway) --
+from typing import Optional
+from app.core.websockets import socket_manager
+from app.core.security import get_ws_tenant_id
+
+@app.websocket("/ws/events")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: Optional[str] = None
+):
+    """
+    Secure WebSocket Gateway. 
+    Verifies token per-connection and manages the socket pool.
+    """
+    try:
+        tenant_id = get_ws_tenant_id(token)
+        await socket_manager.connect(websocket, tenant_id)
+        
+        while True:
+            # Maintain connection & listen for client closure
+            await websocket.receive_text()
+            
+    except WebSocketDisconnect:
+        # If we reached the connect stage, cleanup
+        if 'tenant_id' in locals():
+            socket_manager.disconnect(websocket, tenant_id)
+    except Exception as e:
+        logger.error(f"[WS] Auth/Bridge Error: {e}")
+        try: await websocket.close(code=1008)  # Policy Violation
+        except: pass

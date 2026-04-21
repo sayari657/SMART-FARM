@@ -95,3 +95,22 @@ class AuthService:
         # Clear OTP
         del MOCK_OTP_STORE[phone_number]
         return True
+        return otp
+
+    def reset_password_by_phone(self, phone_number: str, otp: str, new_password: str) -> bool:
+        user = self.db.query(User).filter(User.phone_number == phone_number).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Numéro de téléphone introuvable.")
+        
+        # Verify OTP
+        stored_otp = MOCK_OTP_STORE.get(phone_number)
+        if not stored_otp or stored_otp != otp:
+            raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré.")
+        
+        # Update password
+        user.password_hash = hash_password(new_password)
+        self.db.commit()
+        
+        # Clear OTP
+        del MOCK_OTP_STORE[phone_number]
+        return True

@@ -15,6 +15,7 @@ from app.api.v1.endpoints.plants import router as plants_router
 from app.api.v1.endpoints.recommendations import router as recommendations_ext_router
 from app.api.v1.endpoints.agent import router as agent_router
 from app.api.v1.endpoints.bee import router as bee_router
+from app.api.v1.endpoints.bee_history import router as bee_history_router
 from app.api.v1.endpoints.geo_routes import router as geo_router
 from app.api.v1.endpoints.diagnostic_routes import router as diagnostic_router
 
@@ -32,6 +33,7 @@ api_router.include_router(settings_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(agent_router, prefix="/agent", tags=["Sovereign Agent"])
 api_router.include_router(bee_router, prefix="/bee", tags=["Bee Management"])
+api_router.include_router(bee_history_router)
 api_router.include_router(geo_router)
 api_router.include_router(diagnostic_router, prefix="/diagnostics", tags=["Diagnostic History"])
 

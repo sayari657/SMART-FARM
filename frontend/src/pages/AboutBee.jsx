@@ -1,6 +1,5 @@
 import ExpertAssistant from '../components/expert/ExpertAssistant';
-import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
 import { 
   LayoutDashboard, MapPin, Hexagon, ClipboardCheck as VisitIcon, Droplets, Wallet, Sparkles, Search, X, Menu, Boxes, CalendarClock
 } from 'lucide-react';
@@ -44,8 +43,6 @@ const GlobalStyles = () => (
 );
 
 export default function AboutBee() {
-  const navigate = useNavigate();
-  const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [modalActive, setModalActive] = useState(null);
   const [isAddingVisit, setIsAddingVisit] = useState(false);
@@ -128,7 +125,7 @@ export default function AboutBee() {
   }), [productions, visites, stock]);
 
   // --- Formulaires locaux ---
-  const [previewImage, setPreviewImage] = useState(null);
+  const [previewImage] = useState(null);
   const [empForm, setEmpForm] = useState({ nom: '', saison: 'Printemps', fleur: '', lat: '', lng: '' });
   const [rucheForm, setRucheForm] = useState({ qr: `HIVE-${(ruches.length + 1).toString().padStart(4, '0')}`, empId: '', active: true });
   const [prodForm, setProdForm] = useState({ date: new Date().toISOString().split('T')[0], empId: '', miel: 0, pollen: 0 });
@@ -307,7 +304,7 @@ export default function AboutBee() {
            {activeTab === 'visites' && <VisitesTab visites={visites} ruches={ruches} isAddingVisit={isAddingVisit} setIsAddingVisit={setIsAddingVisit} visiteForm={visiteForm} setVisiteForm={setVisiteForm} captureGPS={() => captureGPS('visite')} handleAddVisite={handlers.addVisite} />}
            {activeTab === 'stock' && <StockTab stock={stock} visites={visites} ruches={ruches} onUpdate={handlers.updateStock} />}
            {activeTab === 'previsions' && <PrevisionsTab emplacements={emplacements} ruches={ruches} previsions={previsions} onAdd={handlers.addPrevision} onUpdateTask={handlers.updatePrevTask} />}
-           {activeTab === 'production' && <ProductionTab productions={productions} emplacements={emplacements} modalActive={modalActive} setModalActive={setModalActive} prodForm={prodForm} setProdForm={setProdForm} handleAddProd={handlers.addProd} />}
+           {activeTab === 'production' && <ProductionTab productions={productions} emplacements={emplacements} setProductions={setProductions} modalActive={modalActive} setModalActive={setModalActive} prodForm={prodForm} setProdForm={setProdForm} handleAddProd={handlers.addProd} />}
            {activeTab === 'depenses' && <DepensesTab depenses={depenses} emplacements={emplacements} modalActive={modalActive} setModalActive={setModalActive} depenseForm={depenseForm} setDepenseForm={setDepenseForm} handleAddDepense={handlers.addDepense} />}
         </div>
       </div>

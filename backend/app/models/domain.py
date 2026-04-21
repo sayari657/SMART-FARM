@@ -411,3 +411,113 @@ class DiagnosticHistory(Base):
     __table_args__ = (
         Index("ix_diag_history_user_time", "user_id", "timestamp"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Bee Management — Historisation complète
+# ---------------------------------------------------------------------------
+
+class BeeApiary(Base):
+    """Site apicole (emplacement géolocalisé)."""
+    __tablename__ = "bee_apiaries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    flower_type = Column(String(100), nullable=True)    # Oranger, Thym, etc.
+    season = Column(String(50), nullable=True)          # Printemps, Eté, etc.
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    hives = relationship("BeeHive", back_populates="apiary", cascade="all, delete-orphan")
+    productions = relationship("BeeProduction", back_populates="apiary", cascade="all, delete-orphan")
+    visits = relationship("BeeVisit", back_populates="apiary", cascade="all, delete-orphan")
+
+
+class BeeHive(Base):
+    """Ruche individuelle (identifiée par QR code)."""
+    __tablename__ = "bee_hives"
+
+    id = Column(Integer, primary_key=True, index=True)
+    apiary_id = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=False)
+    identifier = Column(String(50), unique=True, nullable=False)   # ex: HIVE-0001
+    is_active = Column(Boolean, default=True)
+    health_score = Column(Float, default=10.0)     # 1-10
+    honey_level = Column(Float, default=5.0)       # 1-10
+    force_level = Column(Float, default=5.0)       # 1-10
+    last_visit_date = Column(DateTime, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    apiary = relationship("BeeApiary", back_populates="hives")
+    visits = relationship("BeeVisit", back_populates="hive", cascade="all, delete-orphan")
+
+
+class BeeVisit(Base):
+    """Inspection / visite de ruche enregistrée par l'apiculteur."""
+    __tablename__ = "bee_visits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    hive_id = Column(Integer, ForeignKey("bee_hives.id", ondelete="CASCADE"), nullable=True)
+    apiary_id = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=True)
+    visit_date = Column(String(20), nullable=False)      # Date stockée telle quelle (fr-FR)
+    gps_coords = Column(String(100), nullable=True)
+    health_state = Column(String(20), default="health")  # health | warning | urgent
+    temperature = Column(Float, nullable=True)
+    honey_level = Column(String(20), default="Moyen")    # Abondant | Moyen | Faible
+    needs_sirop = Column(Float, default=0)
+    needs_pate = Column(Float, default=0)
+    needs_traitement = Column(Float, default=0)
+    harvest_kg = Column(Float, default=0)
+    pollen_kg = Column(Float, default=0)
+    notes = Column(Text, nullable=True)
+    photo_url = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    hive = relationship("BeeHive", back_populates="visits")
+    apiary = relationship("BeeApiary", back_populates="visits")
+
+    __table_args__ = (
+        Index("ix_bee_visits_apiary_date", "apiary_id", "visit_date"),
+    )
+
+
+class BeeProduction(Base):
+    """Récolte de miel / pollen enregistrée."""
+    __tablename__ = "bee_productions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    apiary_id = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=True)
+    production_date = Column(String(20), nullable=False)
+    honey_kg = Column(Float, default=0.0)
+    pollen_kg = Column(Float, default=0.0)
+    quality_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    apiary = relationship("BeeApiary", back_populates="productions")
+
+    __table_args__ = (
+        Index("ix_bee_prod_apiary_date", "apiary_id", "production_date"),
+    )
+
+
+class BeeStockLog(Base):
+    """Snapshot journalier du stock apicole — historisation des niveaux."""
+    __tablename__ = "bee_stock_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    log_date = Column(String(20), nullable=False)
+    sirop = Column(Float, default=0)
+    pate = Column(Float, default=0)
+    traitement = Column(Float, default=0)
+    cadres = Column(Integer, default=0)
+    hausse = Column(Integer, default=0)
+    equipement = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_bee_stock_date", "log_date"),
+    )
