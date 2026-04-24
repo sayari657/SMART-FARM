@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     CHROMA_PORT: int = int(os.getenv("CHROMA_PORT", 8001))
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     VISION_MODEL: str = os.getenv("VISION_MODEL", "llava")
-    DERJA_MODEL: str = os.getenv("DERJA_MODEL", "labess")
+    DERJA_MODEL: str = os.getenv("DERJA_MODEL", "wghezaiel/labess-7b-chat")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
     # Lite Mode
@@ -81,12 +81,12 @@ class Settings(BaseSettings):
     # Modele Lemon Disease (Placeholder)
     YOLO_LEMON_PATH: str = os.getenv(
         "YOLO_LEMON_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Detection diseases Leaves\best.pt"
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model lemon-leaf\best.pt"
     )
     # Modele Orange Disease (Placeholder)
     YOLO_ORANGE_PATH: str = os.getenv(
         "YOLO_ORANGE_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Detection diseases Leaves\best.pt"
+        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Model orange-leaf\best.pt"
     )
     # Modele Feu & Fumée
     YOLO_FIRE_PATH: str = os.getenv(

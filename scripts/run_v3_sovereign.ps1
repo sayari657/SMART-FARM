@@ -43,7 +43,7 @@ Write-Host "✅ ChromaDB is Ready!" -ForegroundColor Green
 Write-Host "🧠 Pulling Sovereign Intelligence Models (Llava & Labess)..." -ForegroundColor Cyan
 Write-Host "Note: This may take time on the first run." -ForegroundColor Yellow
 docker exec smart_farm_ollama ollama pull llava
-docker exec smart_farm_ollama ollama pull labess
+docker exec smart_farm_ollama ollama pull wghezaiel/labess-7b-chat
 
 # 3. Seed Knowledge & Data
 Write-Host "🌱 Ingesting Tunisian Agricultural Wisdom (RAG)..." -ForegroundColor Cyan

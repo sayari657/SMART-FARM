@@ -68,7 +68,7 @@ Spin up the entire enterprise stack (MLLM + VectorDB + Backend + Dashboard) with
 ```bash
 # 1. Start Ollama with Llava and Labess
 ollama run llava
-ollama run labess
+ollama run wghezaiel/labess-7b-chat
 
 # 2. Launch the sovereign stack
 docker-compose up -d

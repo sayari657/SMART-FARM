@@ -25,6 +25,7 @@ class ApiaryIn(BaseModel):
     longitude: Optional[float] = None
     flower_type: Optional[str] = None
     season: Optional[str] = None
+    region: Optional[str] = None
     notes: Optional[str] = None
 
 class ApiaryOut(ApiaryIn):
@@ -40,6 +41,8 @@ class HiveIn(BaseModel):
     health_score: float = 10.0
     honey_level: float = 5.0
     force_level: float = 5.0
+    hive_type: Optional[str] = None
+    queen_year: Optional[int] = None
     notes: Optional[str] = None
 
 class HiveOut(HiveIn):
@@ -181,6 +184,87 @@ def delete_hive(hive_id: int, db: Session = Depends(get_db)):
     return {"status": "deleted", "id": hive_id}
 
 
+@router.get("/hives/{hive_id}")
+def get_hive_details(hive_id: int, db: Session = Depends(get_db)):
+    hive = db.query(BeeHive).filter(BeeHive.id == hive_id).first()
+    if not hive:
+        raise HTTPException(404, "Hive not found")
+
+    visits = (
+        db.query(BeeVisit)
+        .filter(BeeVisit.hive_id == hive_id)
+        .order_by(desc(BeeVisit.visit_date))
+        .all()
+    )
+    productions = (
+        db.query(BeeProduction)
+        .filter(BeeProduction.apiary_id == hive.apiary_id)
+        .order_by(desc(BeeProduction.production_date))
+        .limit(50)
+        .all()
+    )
+    latest_stock = (
+        db.query(BeeStockLog)
+        .order_by(desc(BeeStockLog.log_date))
+        .first()
+    )
+
+    total_harvest = sum(v.harvest_kg or 0 for v in visits)
+    total_pollen  = sum(v.pollen_kg  or 0 for v in visits)
+
+    return {
+        "id": hive.id,
+        "identifier": hive.identifier,
+        "apiary_id": hive.apiary_id,
+        "is_active": hive.is_active,
+        "hive_type": hive.hive_type,
+        "queen_year": hive.queen_year,
+        "health_score": hive.health_score,
+        "honey_level": hive.honey_level,
+        "force_level": hive.force_level,
+        "last_visit_date": hive.last_visit_date.isoformat() if hive.last_visit_date else None,
+        "visits": [
+            {
+                "id": v.id,
+                "visit_date": v.visit_date,
+                "health_state": v.health_state,
+                "honey_level": v.honey_level,
+                "temperature": v.temperature,
+                "harvest_kg": v.harvest_kg,
+                "pollen_kg": v.pollen_kg,
+                "needs_sirop": v.needs_sirop,
+                "needs_pate": v.needs_pate,
+                "needs_traitement": v.needs_traitement,
+                "notes": v.notes,
+                "gps_coords": v.gps_coords,
+            }
+            for v in visits
+        ],
+        "production": [
+            {
+                "id": p.id,
+                "production_date": p.production_date,
+                "honey_kg": p.honey_kg,
+                "pollen_kg": p.pollen_kg,
+                "quality_notes": p.quality_notes,
+            }
+            for p in productions
+        ],
+        "summary": {
+            "total_visits": len(visits),
+            "total_harvest_kg": round(total_harvest, 2),
+            "total_pollen_kg": round(total_pollen, 2),
+        },
+        "stock": {
+            "sirop": latest_stock.sirop if latest_stock else 0,
+            "pate": latest_stock.pate if latest_stock else 0,
+            "traitement": latest_stock.traitement if latest_stock else 0,
+            "cadres": latest_stock.cadres if latest_stock else 0,
+            "hausse": latest_stock.hausse if latest_stock else 0,
+        },
+    }
+
+
 # ─── Visits ──────────────────────────────────────────────────────────────────
 
 @router.get("/visits", response_model=List[VisitOut])
@@ -195,15 +279,20 @@ def list_visits(
     return q.order_by(desc(BeeVisit.created_at)).limit(limit).all()
 
 
+_VISIT_STATE_SCORES = {
+    "health": 10.0, "warning": 5.5, "treatment": 4.0, "urgent": 1.5
+}
+
 @router.post("/visits", response_model=VisitOut, status_code=201)
 def create_visit(body: VisitIn, db: Session = Depends(get_db)):
     obj = BeeVisit(**body.model_dump())
     db.add(obj)
-    # Mettre à jour la date de dernière visite de la ruche
     if body.hive_id:
         hive = db.query(BeeHive).filter(BeeHive.id == body.hive_id).first()
         if hive:
-            hive.health_score = 10 if body.health_state == "health" else (2 if body.health_state == "urgent" else 5)
+            visit_score = _VISIT_STATE_SCORES.get(body.health_state, 7.0)
+            # Blend new visit score (60%) with existing health_score (40%) for stability
+            hive.health_score = round(visit_score * 0.60 + (hive.health_score or 7.0) * 0.40, 2)
             hive.last_visit_date = datetime.utcnow()
     db.commit()
     db.refresh(obj)

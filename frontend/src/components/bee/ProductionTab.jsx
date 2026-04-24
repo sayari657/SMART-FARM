@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
 
-const API = 'http://127.0.0.1:8000/api/v1/bee/history';
+const API = 'http://localhost:8000/api/v1/bee/history';
 
 /* ── Helpers ────────────────────────────────────────────────── */
 const fmt = (n) => Number(n || 0).toFixed(1);
@@ -73,8 +73,8 @@ function SiteCard({ site, total, onSelect, isSelected }) {
             <MapPin size={18} color={COLORS.accent} />
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>{site.nom}</div>
-            <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2 }}>{site.typeFleur} · {site.saison}</div>
+            <div style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>{site.name || site.nom}</div>
+            <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2 }}>{site.flower_type || site.typeFleur} · {site.season || site.saison}</div>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
@@ -113,19 +113,19 @@ function HarvestRow({ p, emplacements, onDelete }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Calendar size={13} color={COLORS.textMuted} />
-        <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{p.date}</span>
+        <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{p.production_date || p.date}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <MapPin size={13} color={COLORS.accent} />
-        <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{emp?.nom || '—'}</span>
+        <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{emp?.name || emp?.nom || '—'}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Droplets size={13} color={COLORS.info} />
-        <span style={{ color: 'white', fontWeight: 700 }}>{fmt(p.miel)} kg</span>
+        <span style={{ color: 'white', fontWeight: 700 }}>{fmt(p.honey_kg || p.miel)} kg</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Leaf size={13} color={COLORS.success || '#22c55e'} />
-        <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{fmt(p.pollen)} kg</span>
+        <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{fmt(p.pollen_kg || p.pollen)} kg</span>
       </div>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -150,18 +150,18 @@ function HarvestRow({ p, emplacements, onDelete }) {
 
 /* ── Main component ─────────────────────────────────────────── */
 export default function ProductionTab({
-  productions, emplacements, setProductions,
+  productions, emplacements, ruches, visites, stock, setProductions,
   modalActive, setModalActive,
-  prodForm, setProdForm, handleAddProd,
+  prodForm, setProdForm, handleAddProd, onSync, syncing
 }) {
   const [selectedSite, setSelectedSite] = useState(null);
   const [dbStats, setDbStats] = useState(null);
-  const [syncing, setSyncing] = useState(false);
+
 
   /* Charger les stats depuis l'API */
   const loadStats = async () => {
     try {
-      const r = await fetch(`${API}/stats`);
+      const r = await fetch(`${API}/apiaries`);
       if (r.ok) setDbStats(await r.json());
     } catch (_) {}
   };
@@ -170,11 +170,11 @@ export default function ProductionTab({
 
   /* Stats locales (localStorage) */
   const statsParSite = useMemo(() => emplacements.map(emp => {
-    const sp = productions.filter(p => Number(p.empId) === Number(emp.id));
+    const sp = productions.filter(p => Number(p.apiary_id) === Number(emp.id));
     return {
       ...emp,
-      totalMiel: sp.reduce((s, p) => s + parseFloat(p.miel || 0), 0),
-      totalPollen: sp.reduce((s, p) => s + parseFloat(p.pollen || 0), 0),
+      totalMiel: sp.reduce((s, p) => s + parseFloat(p.honey_kg || 0), 0),
+      totalPollen: sp.reduce((s, p) => s + parseFloat(p.pollen_kg || 0), 0),
       totalRecoltes: sp.length,
     };
   }), [productions, emplacements]);
@@ -182,61 +182,51 @@ export default function ProductionTab({
   const statsParFleur = useMemo(() => {
     const f = {};
     productions.forEach(p => {
-      const emp = emplacements.find(e => Number(e.id) === Number(p.empId));
-      const fleur = emp?.typeFleur || 'Inconnu';
+      const emp = emplacements.find(e => Number(e.id) === Number(p.apiary_id));
+      const fleur = emp?.flower_type || emp?.typeFleur || 'Inconnu';
       if (!f[fleur]) f[fleur] = { honey: 0, pollen: 0, count: 0 };
-      f[fleur].honey += parseFloat(p.miel || 0);
-      f[fleur].pollen += parseFloat(p.pollen || 0);
+      f[fleur].honey += parseFloat(p.honey_kg || 0);
+      f[fleur].pollen += parseFloat(p.pollen_kg || 0);
       f[fleur].count++;
     });
     return Object.entries(f).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.honey - a.honey);
   }, [productions, emplacements]);
 
-  const totalGlobal = useMemo(() => productions.reduce((a, p) => a + parseFloat(p.miel || 0), 0), [productions]);
-  const totalPollen = useMemo(() => productions.reduce((a, p) => a + parseFloat(p.pollen || 0), 0), [productions]);
+  const totalGlobal = useMemo(() => productions.reduce((a, p) => a + parseFloat(p.honey_kg || 0), 0), [productions]);
+  const totalPollen = useMemo(() => productions.reduce((a, p) => a + parseFloat(p.pollen_kg || 0), 0), [productions]);
 
   /* Chart data : regrouper par mois */
   const chartData = useMemo(() => {
     const months = {};
     productions.forEach(p => {
-      const date = p.date || '';
-      const parts = date.split('/');
-      const key = parts.length >= 2 ? `${parts[1]}/${parts[2] || ''}`.replace(/\/$/, '') : date.substring(0, 7);
+      const date = p.production_date || p.date || '';
+      const key = date.substring(0, 7);
       if (!months[key]) months[key] = 0;
-      months[key] += parseFloat(p.miel || 0);
+      months[key] += parseFloat(p.honey_kg || 0);
     });
     const MONTH_LABELS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
     return Object.entries(months)
       .slice(-8)
       .map(([k, value]) => {
-        const parts = k.split('/');
-        const mNum = parseInt(parts[0]) - 1;
+        const mNum = parseInt(k.split('-')[1]) - 1;
         return { label: MONTH_LABELS[mNum] || k, value };
       });
   }, [productions]);
 
   /* Sync vers l'API */
   const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const r = await fetch(`${API}/sync`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emplacements, productions }),
-      });
-      if (r.ok) await loadStats();
-    } catch (_) {}
-    setSyncing(false);
+    await onSync();
+    await loadStats();
   };
 
-  const handleDelete = (id) => {
-    if (confirm('Supprimer cette récolte ?')) {
-      setProductions(prev => prev.filter(p => p.id !== id));
-    }
+  const handleDelete = async (id) => {
+    if (!confirm('Supprimer cette récolte ?')) return;
+    await fetch(`${API}/productions/${id}`, { method: 'DELETE' });
+    if (onSync) onSync();
   };
 
   const filteredProductions = selectedSite
-    ? productions.filter(p => Number(p.empId) === Number(selectedSite))
+    ? productions.filter(p => Number(p.apiary_id) === Number(selectedSite))
     : productions;
 
   const topSite = statsParSite.reduce((best, s) => s.totalMiel > (best?.totalMiel || 0) ? s : best, null);
@@ -430,7 +420,7 @@ export default function ProductionTab({
                 background: `${COLORS.accent}20`, color: COLORS.accent,
                 fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
               }}>
-                {emplacements.find(e => e.id === selectedSite)?.nom}
+                {emplacements.find(e => e.id === selectedSite)?.name || emplacements.find(e => e.id === selectedSite)?.nom}
               </span>
             )}
           </div>
@@ -522,8 +512,8 @@ export default function ProductionTab({
                 <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date de récolte</label>
                 <input
                   type="date"
-                  value={prodForm.date}
-                  onChange={e => setProdForm({ ...prodForm, date: e.target.value })}
+                  value={prodForm.production_date || ''}
+                  onChange={e => setProdForm({ ...prodForm, production_date: e.target.value })}
                   style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: 'white', fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
@@ -533,12 +523,12 @@ export default function ProductionTab({
                 <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Site apicole</label>
                 <div style={{ position: 'relative' }}>
                   <select
-                    value={prodForm.empId}
-                    onChange={e => setProdForm({ ...prodForm, empId: e.target.value })}
-                    style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: prodForm.empId ? 'white' : COLORS.textMuted, fontSize: 14, boxSizing: 'border-box', appearance: 'none' }}
+                    value={prodForm.apiary_id || ''}
+                    onChange={e => setProdForm({ ...prodForm, apiary_id: e.target.value })}
+                    style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: prodForm.apiary_id ? 'white' : COLORS.textMuted, fontSize: 14, boxSizing: 'border-box', appearance: 'none' }}
                   >
                     <option value="">Sélectionner un site</option>
-                    {emplacements.map(e => <option key={e.id} value={e.id}>{e.nom} — {e.typeFleur}</option>)}
+                    {emplacements.map(e => <option key={e.id} value={e.id}>{e.name || e.nom} — {e.flower_type || e.typeFleur}</option>)}
                   </select>
                   <ChevronDown size={16} color={COLORS.textMuted} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                 </div>
@@ -552,8 +542,8 @@ export default function ProductionTab({
                   </label>
                   <input
                     type="number" min="0" step="0.1"
-                    value={prodForm.miel}
-                    onChange={e => setProdForm({ ...prodForm, miel: e.target.value })}
+                    value={prodForm.honey_kg || ''}
+                    onChange={e => setProdForm({ ...prodForm, honey_kg: e.target.value })}
                     style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: 'white', fontSize: 14, boxSizing: 'border-box' }}
                   />
                 </div>
@@ -563,8 +553,8 @@ export default function ProductionTab({
                   </label>
                   <input
                     type="number" min="0" step="0.1"
-                    value={prodForm.pollen}
-                    onChange={e => setProdForm({ ...prodForm, pollen: e.target.value })}
+                    value={prodForm.pollen_kg || ''}
+                    onChange={e => setProdForm({ ...prodForm, pollen_kg: e.target.value })}
                     style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: 'white', fontSize: 14, boxSizing: 'border-box' }}
                   />
                 </div>
@@ -572,11 +562,11 @@ export default function ProductionTab({
 
               <button
                 onClick={handleAddProd}
-                disabled={!prodForm.empId}
+                disabled={!prodForm.apiary_id}
                 style={{
-                  height: 54, background: prodForm.empId ? COLORS.accent : 'rgba(255,255,255,0.06)',
-                  borderRadius: 16, border: 'none', color: prodForm.empId ? 'white' : COLORS.textMuted,
-                  fontWeight: 800, fontSize: 15, cursor: prodForm.empId ? 'pointer' : 'not-allowed',
+                  height: 54, background: prodForm.apiary_id ? COLORS.accent : 'rgba(255,255,255,0.06)',
+                  borderRadius: 16, border: 'none', color: prodForm.apiary_id ? 'white' : COLORS.textMuted,
+                  fontWeight: 800, fontSize: 15, cursor: prodForm.apiary_id ? 'pointer' : 'not-allowed',
                   transition: 'all 0.2s',
                 }}
               >

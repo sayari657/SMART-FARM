@@ -1,6 +1,6 @@
 """Smart Farm AI - Animal Unit Routes"""
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -27,8 +27,28 @@ def list_animals(
     db: Session = Depends(get_db),
     _=Depends(get_current_user)
 ):
+    from app.models.domain import BeeHive
     units = AnimalService(db).list_animals(farm_id=farm_id, species=species)
-    return [_serialize_unit(u) for u in units]
+    serialized = [_serialize_unit(u) for u in units]
+    
+    # Also include BeeHives from the Smart Bee module
+    if species is None or species == "bee":
+        hives = db.query(BeeHive).all()
+        for h in hives:
+            serialized.append({
+                "id": f"bee_{h.id}", 
+                "name": h.identifier,
+                "farm_id": h.apiary_id,
+                "type_id": None,
+                "identifier": h.identifier,
+                "status": "healthy" if h.health_score > 7 else ("warning" if h.health_score > 4 else "critical"),
+                "health_score": h.health_score * 10,
+                "species": "bee",
+                "species_display": "Abeilles (Smart Bee)",
+                "farm_name": h.apiary.name if h.apiary else "Smart Apiary",
+                "created_at": h.created_at.isoformat() if h.created_at else None,
+            })
+    return serialized
 
 @router.post("", status_code=201)
 def create_animal(data: AnimalUnitCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
@@ -43,8 +63,21 @@ def list_types(db: Session = Depends(get_db), _=Depends(get_current_user)):
              "telemetry_schema": t.telemetry_schema} for t in types]
 
 @router.get("/{unit_id}")
-def get_animal(unit_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    unit = AnimalService(db).get_animal(unit_id)
+def get_animal(unit_id: str, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    if str(unit_id).startswith("bee_"):
+        from app.models.domain import BeeHive
+        hive_id = int(str(unit_id).split("_")[1])
+        h = db.query(BeeHive).filter(BeeHive.id == hive_id).first()
+        if not h: raise HTTPException(status_code=404, detail="Ruche non trouvée")
+        return {
+            "id": f"bee_{h.id}", "name": h.identifier, "farm_id": h.apiary_id,
+            "identifier": h.identifier, "status": "healthy" if h.health_score > 7 else "warning",
+            "health_score": h.health_score * 10, "notes": h.notes,
+            "species": "bee", "species_display": "Abeilles (Smart Bee)",
+            "farm_name": h.apiary.name if h.apiary else "Smart Apiary",
+        }
+    
+    unit = AnimalService(db).get_animal(int(unit_id))
     return _serialize_unit(unit)
 
 @router.put("/{unit_id}")

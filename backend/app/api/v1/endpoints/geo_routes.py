@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from app.core.database import get_db
-from app.models.domain import Farm, Veterinary, Market
+from app.models.domain import Farm, Veterinary, Market, BeeHive, BeeApiary
 from pydantic import BaseModel
 from geoalchemy2.functions import ST_AsGeoJSON, ST_DWithin
 import json
@@ -146,37 +146,54 @@ def get_hives_geojson(db: Session = Depends(get_db)):
     from app.models.domain import AnimalUnit, AnimalType, TelemetryRecord
     from sqlalchemy import desc
     
-    # 1. Get the 'bee' type ID
-    bee_type = db.query(AnimalType).filter(AnimalType.species == "bee").first()
-    if not bee_type:
-        return GeoJSONFeatureCollection(features=[])
-        
-    # 2. Query hives
-    hives = db.query(AnimalUnit).filter(AnimalUnit.type_id == bee_type.id).all()
-    
     features = []
-    for h in hives:
-        # Skip hives whose farm has no GPS coordinates
-        if not h.farm or h.farm.latitude is None or h.farm.longitude is None:
-            continue
 
-        # Get latest telemetry for this unit
-        latest = db.query(TelemetryRecord).filter(TelemetryRecord.unit_id == h.id).order_by(desc(TelemetryRecord.timestamp)).first()
+    # --- 1. General Animal Units (Legacy/General) ---
+    bee_type = db.query(AnimalType).filter(AnimalType.species == "bee").first()
+    if bee_type:
+        hives = db.query(AnimalUnit).filter(AnimalUnit.type_id == bee_type.id).all()
+        for h in hives:
+            if not h.farm or h.farm.latitude is None or h.farm.longitude is None:
+                continue
+            latest = db.query(TelemetryRecord).filter(TelemetryRecord.unit_id == h.id).order_by(desc(TelemetryRecord.timestamp)).first()
+            metrics = latest.metrics if latest else {"weight": 0, "temperature": 0, "humidity": 0}
+            lat = h.farm.latitude + (hash(h.name) % 100 / 10000)
+            lon = h.farm.longitude + (hash(h.name) % 80 / 10000)
+            features.append(GeoJSONFeature(
+                geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
+                properties={
+                    "id": f"unit_{h.id}",
+                    "name": h.name,
+                    "status": h.status,
+                    "metrics": metrics,
+                    "timestamp": latest.timestamp.isoformat() if latest else None,
+                    "type": "unit"
+                }
+            ))
+
+    # --- 2. Smart Bee Hives (Management Module) ---
+    smart_hives = db.query(BeeHive).all()
+    for sh in smart_hives:
+        if not sh.apiary or sh.apiary.latitude is None or sh.apiary.longitude is None:
+            continue
         
-        # Default metrics if none found
-        metrics = latest.metrics if latest else {"weight": 0, "temperature": 0, "humidity": 0}
-        
-        lat = h.farm.latitude + (hash(h.name) % 100 / 10000)
-        lon = h.farm.longitude + (hash(h.name) % 80 / 10000)
+        # Mapping Smart Bee properties to common GIS format
+        lat = sh.apiary.latitude + (hash(sh.identifier) % 100 / 10000)
+        lon = sh.apiary.longitude + (hash(sh.identifier) % 80 / 10000)
         
         features.append(GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
             properties={
-                "id": h.id,
-                "name": h.name,
-                "status": h.status,
-                "metrics": metrics,
-                "timestamp": latest.timestamp.isoformat() if latest else None
+                "id": f"bee_{sh.id}",
+                "name": f"{sh.identifier} ({sh.apiary.name})",
+                "status": "healthy" if sh.health_score > 7 else ("warning" if sh.health_score > 4 else "critical"),
+                "metrics": {
+                    "weight": sh.honey_level, 
+                    "temperature": 35.0, # Placeholder
+                    "humidity": 60.0    # Placeholder
+                },
+                "timestamp": sh.updated_at.isoformat() if sh.updated_at else None,
+                "type": "beehive"
             }
         ))
         

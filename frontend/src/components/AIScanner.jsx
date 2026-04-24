@@ -14,7 +14,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
   const [error, setError] = useState(null);
   const [metadata, setMetadata] = useState(null);
   const [palette, setPalette] = useState({});
-  
+
   const videoRef = useRef(null);
   const imgRef = useRef(null);
   const canvasRef = useRef(null);
@@ -74,8 +74,8 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
       const h = (h_p / 100) * H;
       const cx = (cx_p / 100) * W;
       const cy = (cy_p / 100) * H;
-      const x1 = cx - w/2;
-      const y1 = cy - h/2;
+      const x1 = cx - w / 2;
+      const y1 = cy - h / 2;
       const boxColor = getDetColor(det.label);
 
       ctx.save();
@@ -167,8 +167,8 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
           </div>
         </div>
         <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: 3, borderRadius: 8, gap: 2 }}>
-          <button onClick={() => {setMode('upload'); reset();}} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'upload' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Fichier</button>
-          <button onClick={() => {setMode('camera'); reset();}} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'camera' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Live</button>
+          <button onClick={() => { setMode('upload'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'upload' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Fichier</button>
+          <button onClick={() => { setMode('camera'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'camera' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Live</button>
         </div>
       </div>
 
@@ -178,7 +178,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         ) : capturedImage && (
           <img ref={imgRef} src={capturedImage} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Scanning..." />
         )}
-        
+
         {!capturedImage && mode === 'upload' && (
           <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
             <Upload size={40} style={{ marginBottom: 12 }} />
@@ -190,15 +190,15 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }} />
 
         {isProcessing && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', display: 'flex', flexWrap:'wrap', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-             <div className="spinner-center" style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: color, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div className="spinner-center" style={{ width: 40, height: 40, border: '3px solid rgba(255,255,255,0.2)', borderTopColor: color, borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           </div>
         )}
-        
+
         {detections.length > 0 && (
-           <div style={{ position: 'absolute', bottom: 10, left: 10, right: 10, background: 'rgba(0,0,0,0.8)', padding: '5px 10px', borderRadius: 6, fontSize: 10, color: 'white', zIndex: 50 }}>
-              AI: {detections.length} objets détectés et enregistrés
-           </div>
+          <div style={{ position: 'absolute', bottom: 10, left: 10, right: 10, background: 'rgba(0,0,0,0.8)', padding: '5px 10px', borderRadius: 6, fontSize: 10, color: 'white', zIndex: 50 }}>
+            AI: {detections.length} objets détectés et enregistrés
+          </div>
         )}
       </div>
 

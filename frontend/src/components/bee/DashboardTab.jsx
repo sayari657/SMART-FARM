@@ -1,138 +1,223 @@
-import React from 'react';
-import { 
-  Hexagon, Droplets, Heart, AlertCircle, Eye, Upload, Activity, ArrowUpRight, ClipboardCheck as VisitIcon, Plus, MapPin
+import {
+  Hexagon, Droplets, Heart, AlertCircle, Activity,
+  ClipboardCheck as VisitIcon, MapPin, RefreshCw,
+  TrendingUp, Zap, ArrowUpRight, Sparkles, Shield
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
 import AIScanner from '../AIScanner';
 
-const AIPulse = () => (
-  <svg viewBox="0 0 100 20" style={{ width: '100%', height: 40 }}>
-    <path d="M0 10 Q 5 0, 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10" fill="none" stroke={COLORS.accent} strokeWidth="0.5">
-      <animate attributeName="d" dur="2s" repeatCount="indefinite" values="M0 10 Q 5 0, 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10; M0 10 Q 5 20, 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10; M0 10 Q 5 0, 10 10 T 20 10 T 30 10 T 40 10 T 50 10 T 60 10 T 70 10 T 80 10 T 90 10 T 100 10" />
-    </path>
-  </svg>
+/* ── Animated audio bar ── */
+const AudioBar = ({ i }) => (
+  <div style={{
+    width: 3, borderRadius: 4,
+    background: `linear-gradient(180deg, ${COLORS.accent}, ${COLORS.accentDark})`,
+    animation: `bPulse ${0.6 + (i % 4) * 0.15}s ${i * 0.04}s infinite ease-in-out`,
+    boxShadow: `0 0 6px ${COLORS.accentGlow}`,
+  }} />
 );
 
-const BeeHealthSonar = () => (
-  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 30 }}>
-    {[...Array(12)].map((_, i) => (
-      <div 
-        key={i} 
-        style={{ 
-          width: 3, 
-          background: COLORS.accent, 
-          borderRadius: 10, 
-          height: '40%',
-          animation: `beePulse ${0.6 + Math.random() * 0.4}s infinite ease-in-out` 
-        }} 
-      />
-    ))}
-    <style>{`
-      @keyframes beePulse {
-        0%, 100% { height: 30%; }
-        50% { height: 90%; }
-      }
-    `}</style>
-  </div>
-);
+/* ── Circular health ring ── */
+const HealthRing = ({ value = 0, max = 10, size = 80, stroke = 6, color }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (value / max) * c;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
+        style={{ transition: 'stroke-dashoffset 0.8s ease', filter: `drop-shadow(0 0 6px ${color}60)` }} />
+    </svg>
+  );
+};
 
-export default function DashboardTab({ ruches, isProcessing, previewImage, onImport, onAction, stats }) {
+/* ── Colony hive grid (mini heatmap) ── */
+const ColonyHeatmap = ({ ruches }) => {
+  const gradeColor = s => s >= 8 ? COLORS.gradeA : s >= 6 ? COLORS.gradeB : s >= 4 ? COLORS.gradeC : COLORS.gradeD;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '4px 0' }}>
+      {ruches.slice(0, 30).map(r => {
+        const c = gradeColor(r.health_score ?? 7);
+        return (
+          <div key={r.id} title={`${r.identifier} — ${r.health_score?.toFixed(1) || '?'}/10`}
+            style={{ width: 28, height: 28, borderRadius: 8, background: c + '22', border: `1px solid ${c}50`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default',
+              boxShadow: `0 0 8px ${c}18`, transition: 'transform 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.3)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
+            <div style={{ width: 8, height: 8, borderRadius: 3, background: c, boxShadow: `0 0 4px ${c}` }} />
+          </div>
+        );
+      })}
+      {ruches.length === 0 && <span style={{ color: COLORS.textMuted, fontSize: 12 }}>Aucune ruche enregistrée</span>}
+    </div>
+  );
+};
+
+export default function DashboardTab({ ruches = [], isProcessing, onAction, stats, onSync }) {
+  const activeRuches = ruches.filter(r => r.is_active !== false);
+  const avgHealth = ruches.length ? ruches.reduce((s, r) => s + (r.health_score || 0), 0) / ruches.length : 0;
+
   const kpis = [
-    { label: 'Ruches Actives', val: ruches.filter(r => r.active).length, trend: '+0', icon: Hexagon, color: COLORS.accent },
-    { label: 'Récolte Totale', val: stats?.totalMiel || '0 kg', trend: '+15%', icon: Droplets, color: COLORS.info },
-    { label: 'Santé Globale', val: stats?.sante || '92%', trend: 'Stable', icon: Heart, color: COLORS.success },
-    { label: 'Alertes Actives', val: stats?.alertes || '0', trend: '-1', icon: AlertCircle, color: COLORS.error }
+    { label: 'Ruches Actives', icon: Hexagon,     color: COLORS.accent,   val: activeRuches.length,       sub: `/ ${ruches.length} total`,   ring: activeRuches.length, ringMax: Math.max(ruches.length, 1), trend: '+2%' },
+    { label: 'Récolte Totale', icon: Droplets,    color: COLORS.info,     val: stats?.totalMiel || '0 kg', sub: 'Cette saison',               ring: null,                 trend: '+15%' },
+    { label: 'Santé Globale',  icon: Heart,       color: COLORS.success,  val: avgHealth.toFixed(1)+'/10', sub: 'Indice COLOSS',               ring: avgHealth,            ringMax: 10,  trend: 'Stable' },
+    { label: 'Alertes',        icon: AlertCircle, color: COLORS.error,    val: stats?.alertes || '0',      sub: 'Ruches critiques',            ring: null,                 trend: parseInt(stats?.alertes) > 0 ? '⚠ Urgent' : 'RAS' },
   ];
 
   const quickActions = [
-    { label: 'Nouvelle Visite', icon: VisitIcon, tab: 'visites', subAction: 'addVisit' },
-    { label: 'Ajouter Ruche', icon: Plus, tab: 'ruches', subAction: 'addRuche' },
-    { label: 'Ajouter Emplacement', icon: MapPin, tab: 'emplacements', subAction: 'addEmp' }
+    { label: 'Nouvelle Inspection', icon: VisitIcon, tab: 'visites',      subAction: 'addVisit', color: COLORS.accent,  desc: 'Enregistrer une visite' },
+    { label: 'Ajouter Ruche',       icon: Hexagon,   tab: 'ruches',       subAction: 'addRuche', color: COLORS.purple,  desc: 'Créer une nouvelle ruche' },
+    { label: 'Nouveau Site',        icon: MapPin,    tab: 'emplacements', subAction: 'addEmp',   color: COLORS.info,    desc: 'Ajouter un emplacement' },
+    { label: 'Synchroniser',        icon: RefreshCw, tab: 'sync',         subAction: 'sync',     color: COLORS.success, desc: 'Mettre à jour les données' },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-        {kpis.map((k, i) => (
-          <div key={i} style={{ background: COLORS.surface, borderRadius: 20, padding: 24, border: `1px solid ${COLORS.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: `${k.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <style>{`
+        @keyframes bPulse { 0%,100%{height:20%} 50%{height:100%} }
+        @keyframes spinIcon { to{transform:rotate(360deg)} }
+        @keyframes glow { 0%,100%{opacity:.6} 50%{opacity:1} }
+      `}</style>
+
+      {/* ── KPI bento row ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+        {kpis.map((k, idx) => (
+          <div key={idx} style={{ position: 'relative', background: COLORS.surface, borderRadius: 24, padding: '22px 24px', border: `1px solid ${COLORS.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* ambient glow */}
+            <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: k.color + '08', filter: 'blur(30px)', pointerEvents: 'none' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: k.color + '18', border: `1px solid ${k.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <k.icon size={20} color={k.color} />
               </div>
-              <div style={{ fontSize: 11, color: COLORS.success, fontWeight: 700 }}>{k.trend}</div>
+              {k.ring !== null ? (
+                <div style={{ position: 'relative', width: 44, height: 44 }}>
+                  <HealthRing value={k.ring} max={k.ringMax} size={44} stroke={4} color={k.color} />
+                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: k.color }}>
+                    {Math.round((k.ring / k.ringMax) * 100)}%
+                  </span>
+                </div>
+              ) : (
+                <span style={{ fontSize: 10, fontWeight: 800, color: k.color, background: k.color + '15', padding: '4px 10px', borderRadius: 8 }}>{k.trend}</span>
+              )}
             </div>
-            <div style={{ fontSize: 12, color: COLORS.textMuted }}>{k.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: 'white', marginTop: 4 }}>{k.val}</div>
+
+            <div>
+              <div style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>{k.label}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{k.val}</div>
+              <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4 }}>{k.sub}</div>
+            </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
-        <AIScanner 
-          category="bee" 
-          title="Hive Entrance Monitor (YOLO)" 
-          color={COLORS.accent} 
-        />
+      {/* ── AI Scanner + Colony map ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
+        <AIScanner category="bee" title="Hive Entrance Monitor · YOLO v8" color={COLORS.accent} />
 
-        <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-            <Activity size={18} color={COLORS.info} />
-            <span style={{ fontWeight: 700, color: 'white' }}>Intelligence Audio</span>
+        <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Colony heatmap */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: COLORS.accentGlow, border: `1px solid ${COLORS.accentDark}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Hexagon size={16} color={COLORS.accent} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, color: 'white', fontSize: 13 }}>Carte Santé Colonies</div>
+                <div style={{ fontSize: 10, color: COLORS.textMuted }}>{ruches.length} ruches · {activeRuches.length} actives</div>
+              </div>
+            </div>
+            <ColonyHeatmap ruches={ruches} />
+            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              {[['A', COLORS.gradeA, '≥8'], ['B', COLORS.gradeB, '6-8'], ['C', COLORS.gradeC, '4-6'], ['D', COLORS.gradeD, '<4']].map(([g, c, r]) => (
+                <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />
+                  <span style={{ fontSize: 9, color: COLORS.textMuted, fontWeight: 700 }}>Grade {g} {r}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Audio intelligence */}
+          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Activity size={15} color={COLORS.info} />
+              <span style={{ fontWeight: 800, color: 'white', fontSize: 12 }}>Intelligence Audio</span>
+            </div>
             {[
-              { label: 'Système', msg: 'Santé ruches 92%', color: COLORS.success },
-              { label: 'Alerte', msg: 'Vibration anormale détectée (H24)', color: COLORS.error },
-              { label: 'Météo', msg: 'Température optimale pour pollinisation', color: COLORS.info }
+              { label: 'Santé ruches', msg: stats?.sante || '100%', color: COLORS.success, icon: Shield },
+              { label: 'Vibration anormale', msg: 'Ruche H-24 · Analyser', color: COLORS.error, icon: AlertCircle },
+              { label: 'Floraison active', msg: 'Température optimale', color: COLORS.info, icon: Zap },
             ].map((log, i) => (
-              <div key={i} style={{ display: 'flex', gap: 12 }}>
-                <div style={{ width: 3, height: 36, borderRadius: 2, background: log.color }} />
+              <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 12px', borderRadius: 12, background: log.color + '08', border: `1px solid ${log.color}20`, marginBottom: 8 }}>
+                <log.icon size={14} color={log.color} style={{ marginTop: 1, flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{log.label}</div>
-                  <div style={{ fontSize: 11, color: COLORS.textMuted }}>{log.msg}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'white' }}>{log.label}</div>
+                  <div style={{ fontSize: 10, color: COLORS.textMuted }}>{log.msg}</div>
                 </div>
               </div>
             ))}
-          </div>
-          <div style={{ marginTop: 32, padding: 20, background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px solid ' + COLORS.border, display: 'flex', justifyContent: 'center' }}>
-            <BeeHealthSonar />
+            {/* Spectrum */}
+            <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: `1px solid ${COLORS.border}`, marginTop: 4 }}>
+              <div style={{ fontSize: 9, color: COLORS.textMuted, fontWeight: 800, letterSpacing: '1.5px', marginBottom: 8 }}>AUDIO SPECTRUM</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 32 }}>
+                {[...Array(18)].map((_, i) => <AudioBar key={i} i={i} />)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* ── Quick actions ── */}
       <div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: COLORS.textMuted, letterSpacing: '1px', marginBottom: 20 }}>ACTIONS RAPIDES</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 14 }}>Actions Rapides</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
           {quickActions.map(act => (
-            <button 
-              key={act.label} 
-              onClick={() => onAction(act.tab, act.subAction)}
-              style={{ 
-                background: COLORS.accent, 
-                border: 'none', 
-                borderRadius: 20, 
-                padding: '24px', 
-                color: 'white', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'space-between', 
-                cursor: 'pointer', 
-                boxShadow: '0 10px 20px -5px rgba(217,119,6,0.2)',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            <button key={act.label}
+              onClick={() => act.tab === 'sync' ? onSync?.() : onAction?.(act.tab, act.subAction)}
+              disabled={act.tab === 'sync' && isProcessing}
+              style={{ background: `linear-gradient(145deg, ${act.color}18, ${act.color}08)`, border: `1px solid ${act.color}30`, borderRadius: 20, padding: '20px 18px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12, cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden', textAlign: 'left' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = act.color + '70'; e.currentTarget.style.boxShadow = `0 12px 30px -8px ${act.color}30`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = act.color + '30'; e.currentTarget.style.boxShadow = 'none'; }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <act.icon size={24} />
-                </div>
-                <span style={{ fontWeight: 800, fontSize: 16 }}>{act.label}</span>
+              <div style={{ width: 42, height: 42, borderRadius: 13, background: act.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${act.color}30` }}>
+                <act.icon size={20} color={act.color} style={{ animation: act.tab === 'sync' && isProcessing ? 'spinIcon 1s linear infinite' : 'none' }} />
               </div>
-              <ArrowUpRight size={20} style={{ opacity: 0.7 }} />
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13 }}>{isProcessing && act.tab === 'sync' ? 'Synchronisation…' : act.label}</div>
+                <div style={{ fontSize: 10, color: COLORS.textMuted, marginTop: 3 }}>{act.desc}</div>
+              </div>
+              <ArrowUpRight size={14} style={{ position: 'absolute', top: 16, right: 16, color: act.color, opacity: 0.5 }} />
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── System health strip ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+        {[
+          { label: 'Moyenne Force Colonies', value: ruches.length ? (ruches.reduce((s,r)=>s+(r.force_level||5),0)/ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.success, icon: TrendingUp },
+          { label: 'Niveau Miel Moyen', value: ruches.length ? (ruches.reduce((s,r)=>s+(r.honey_level||5),0)/ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.accent, icon: Droplets },
+          { label: 'Score Santé Moyen', value: avgHealth.toFixed(1), unit: '/10', color: COLORS.info, icon: Sparkles },
+        ].map(m => (
+          <div key={m.label} style={{ background: COLORS.surface, borderRadius: 18, border: `1px solid ${COLORS.border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: m.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <m.icon size={17} color={m.color} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 9, color: COLORS.textMuted, fontWeight: 800, letterSpacing: '0.8px', textTransform: 'uppercase' }}>{m.label}</div>
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 3 }}>
+                <span style={{ color: m.color, fontWeight: 900, fontSize: 22, fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
+                <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{m.unit}</span>
+              </div>
+              <div style={{ marginTop: 6, height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ height: '100%', width: `${Math.min(((parseFloat(m.value)||0)/10)*100, 100)}%`, borderRadius: 3, background: `linear-gradient(90deg, ${m.color}, ${m.color}80)`, transition: 'width 0.8s ease' }} />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

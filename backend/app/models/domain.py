@@ -427,6 +427,7 @@ class BeeApiary(Base):
     longitude = Column(Float, nullable=True)
     flower_type = Column(String(100), nullable=True)    # Oranger, Thym, etc.
     season = Column(String(50), nullable=True)          # Printemps, Eté, etc.
+    region = Column(String(100), nullable=True)          # ex: Bizerte, Nabeul
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -447,6 +448,8 @@ class BeeHive(Base):
     health_score = Column(Float, default=10.0)     # 1-10
     honey_level = Column(Float, default=5.0)       # 1-10
     force_level = Column(Float, default=5.0)       # 1-10
+    hive_type = Column(String(50), nullable=True)  # ex: Langstroth, Dadant
+    queen_year = Column(Integer, nullable=True)     # ex: 2023
     last_visit_date = Column(DateTime, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

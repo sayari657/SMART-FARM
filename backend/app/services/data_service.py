@@ -230,9 +230,14 @@ class DashboardService:
         self.db = db
 
     def get_stats(self) -> DashboardStats:
-        from app.models.domain import Farm, AnimalUnit, AnimalType, Alert, Anomaly
+        from app.models.domain import Farm, AnimalUnit, AnimalType, Alert, Anomaly, BeeHive
         total_farms = self.db.query(func.count(Farm.id)).scalar() or 0
+        
+        # Count classic animal units
         total_units = self.db.query(func.count(AnimalUnit.id)).scalar() or 0
+        # Count bee hives from Smart Bee module
+        total_hives = self.db.query(func.count(BeeHive.id)).scalar() or 0
+        
         active_alerts = self.db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar() or 0
         critical_alerts = self.db.query(func.count(Alert.id)).filter(
             Alert.is_resolved == False, Alert.severity == "critical"
@@ -244,12 +249,19 @@ class DashboardService:
         ).scalar() or 0
 
         # Units per species
-        species_counts = (
+        species_counts_list = (
             self.db.query(AnimalType.species, func.count(AnimalUnit.id))
             .join(AnimalUnit, AnimalUnit.type_id == AnimalType.id)
             .group_by(AnimalType.species)
             .all()
         )
+        
+        species_counts = dict(species_counts_list)
+        
+        # Add bees from Smart Bee module if any
+        if total_hives > 0:
+            species_counts["bee"] = species_counts.get("bee", 0) + total_hives
+            total_units += total_hives
 
         return DashboardStats(
             total_farms=total_farms,
@@ -257,6 +269,6 @@ class DashboardService:
             active_alerts=active_alerts,
             critical_alerts=critical_alerts,
             avg_health_score=round(float(avg_health), 1) if avg_health else 0.0,
-            units_by_species=dict(species_counts),
+            units_by_species=species_counts,
             recent_anomalies=recent_anomalies,
         )

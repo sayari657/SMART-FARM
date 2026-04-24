@@ -35,3 +35,9 @@ Thumbs.db
 # Large Data Blocks
 *.mbtiles
 map_data/
+
+# AI Agent / IDE Internal
+.gemini/
+brain/
+.tempmediaStorage/
+artifacts/
