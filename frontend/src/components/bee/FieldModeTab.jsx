@@ -40,7 +40,7 @@ function BigStepper({ label, value, onChange, min = 0, max = 10, step = 0.5, uni
       <div style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', textAlign: 'center' }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <button onClick={dec}
-          style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.06)', border: `1px solid ${COLORS.border}`, color: 'white', fontSize: 26, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, userSelect: 'none', WebkitUserSelect: 'none' }}>
+          style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(28,10,0,0.06)', border: `1px solid ${COLORS.border}`, color: COLORS.text, fontSize: 26, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, userSelect: 'none', WebkitUserSelect: 'none' }}>
           −
         </button>
         <div style={{ minWidth: 70, textAlign: 'center' }}>
@@ -54,7 +54,7 @@ function BigStepper({ label, value, onChange, min = 0, max = 10, step = 0.5, uni
       </div>
       {/* Mini bar */}
       {max !== undefined && (
-        <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.05)' }}>
+        <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'rgba(28,10,0,0.08)' }}>
           <div style={{ height: '100%', width: `${Math.min(100, ((value - min) / (max - min)) * 100)}%`, borderRadius: 4, background: `linear-gradient(90deg, ${color}, ${color}70)` }} />
         </div>
       )}
@@ -98,9 +98,9 @@ function ApplySuggestion({ suggestion, visitId, hiveId, onApplied, toast }) {
       {Object.entries(upd).length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {Object.entries(upd).map(([k, v]) => (
-            <div key={k} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '6px 12px', fontSize: 11 }}>
+            <div key={k} style={{ background: 'rgba(28,10,0,0.05)', border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: '6px 12px', fontSize: 11 }}>
               <span style={{ color: COLORS.textMuted }}>{k}: </span>
-              <span style={{ color: '#f1f5f9', fontWeight: 700 }}>{String(v.current)} → </span>
+              <span style={{ color: COLORS.text, fontWeight: 700 }}>{String(v.current)} → </span>
               <span style={{ color: COLORS.accent, fontWeight: 800 }}>{String(v.proposed)}</span>
               {v.delta !== undefined && v.delta !== 0 && (
                 <span style={{ color: v.delta > 0 ? COLORS.success : COLORS.error, fontSize: 10, marginLeft: 4 }}>
@@ -130,7 +130,7 @@ function ApplySuggestion({ suggestion, visitId, hiveId, onApplied, toast }) {
           Appliquer
         </button>
         <button onClick={() => { setApplied(true); }}
-          style={{ height: 48, padding: '0 18px', borderRadius: 14, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, cursor: 'pointer', fontSize: 13 }}>
+          style={{ height: 48, padding: '0 18px', borderRadius: 14, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, cursor: 'pointer', fontSize: 13 }}>
           Ignorer
         </button>
       </div>
@@ -214,7 +214,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
           <Zap size={20} color={COLORS.accent} />
         </div>
         <div>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 17 }}>Mode Terrain</div>
+          <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 17 }}>Mode Terrain</div>
           <div style={{ color: COLORS.textMuted, fontSize: 11 }}>Inspection rapide · {new Date().toLocaleDateString('fr-FR')}</div>
         </div>
       </div>
@@ -238,7 +238,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
             const active = healthState === opt.id;
             return (
               <button key={opt.id} onClick={() => setHealthState(opt.id)}
-                style={{ height: 64, borderRadius: 16, background: active ? opt.color + '25' : 'rgba(255,255,255,0.03)', border: `2px solid ${active ? opt.color : COLORS.border}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s', transform: active ? 'scale(1.03)' : 'scale(1)' }}>
+                style={{ height: 64, borderRadius: 16, background: active ? opt.color + '25' : '#FEFCF7', border: `2px solid ${active ? opt.color : COLORS.border}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.15s', transform: active ? 'scale(1.03)' : 'scale(1)' }}>
                 <opt.icon size={20} color={active ? opt.color : COLORS.textMuted} />
                 <span style={{ color: active ? opt.color : COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '0.5px' }}>{opt.label.toUpperCase()}</span>
               </button>
@@ -279,13 +279,13 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
           onChange={e => setNotes(e.target.value)}
           placeholder="Observations rapides…"
           rows={2}
-          style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '10px 14px', color: 'white', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit' }}
+          style={{ width: '100%', background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '10px 14px', color: COLORS.text, fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit' }}
         />
       </div>
 
       {/* Save button */}
       <button onClick={handleSave} disabled={saving}
-        style={{ height: 60, borderRadius: 18, background: saving ? 'rgba(255,255,255,0.06)' : `linear-gradient(135deg, ${gc}, ${gc}bb)`, border: `2px solid ${saving ? COLORS.border : gc + '60'}`, color: 'white', fontWeight: 900, fontSize: 16, cursor: saving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: saving ? 'none' : `0 8px 24px -4px ${gc}40`, transition: 'all 0.2s' }}>
+        style={{ height: 60, borderRadius: 18, background: saving ? 'rgba(28,10,0,0.06)' : `linear-gradient(135deg, ${gc}, ${gc}bb)`, border: `2px solid ${saving ? COLORS.border : gc + '60'}`, color: saving ? COLORS.textMuted : 'white', fontWeight: 900, fontSize: 16, cursor: saving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, boxShadow: saving ? 'none' : `0 8px 24px -4px ${gc}40`, transition: 'all 0.2s' }}>
         {saving
           ? <><Loader size={20} style={{ animation: 'spin 0.8s linear infinite' }} /> Enregistrement…</>
           : <><CheckCircle size={20} /> Inspection Rapide · Enregistrer <ChevronRight size={18} /></>
@@ -299,7 +299,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
           { label: 'Miel actuel', value: `${hive.honey_level?.toFixed(1) ?? '?'}/10`, color: COLORS.accent },
           { label: 'Force actuelle', value: `${hive.force_level?.toFixed(1) ?? '?'}/10`, color: COLORS.info },
         ].map(s => (
-          <div key={s.label} style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, padding: '10px 14px', textAlign: 'center' }}>
+          <div key={s.label} style={{ background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '10px 14px', textAlign: 'center' }}>
             <div style={{ color: COLORS.textMuted, fontSize: 9, fontWeight: 800, letterSpacing: '0.8px', marginBottom: 4 }}>{s.label.toUpperCase()}</div>
             <div style={{ color: s.color, fontWeight: 900, fontSize: 18 }}>{s.value}</div>
           </div>

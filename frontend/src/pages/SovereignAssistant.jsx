@@ -264,22 +264,10 @@ export default function SovereignAssistant() {
 
       const doWork = async () => {
         if (sentImage) {
-          const { detections, category } = await analyzeImageFast(sentImage.dataUrl, sentInput);
-          if (detections.length > 0) {
-            const query = sentInput.trim()
-              ? sentInput
-              : `Analyse cette image : ${detections.length} objet(s) détecté(s) (${category}). Donne ton avis.`;
-            const r = await agentAPI.analyze(query, category, detections, sig);
-            window.dispatchEvent(new CustomEvent('yolo-analysis-update', {
-              detail: { category, analysis: r.data.response_derja },
-            }));
-            return r;
-          } else {
-            const query = sentInput.trim()
-              ? sentInput
-              : "L'utilisateur a envoyé une image agricole. Analyse et donne tes conseils.";
-            return agentAPI.chat(query, undefined, sig);
-          }
+          setLoadingStage('vision');
+          const b64 = sentImage.dataUrl.split(',')[1];
+          const species = pickCategory(sentInput);
+          return agentAPI.analyzeImage(b64, sentInput || null, species, sig);
         }
         return agentAPI.chat(sentInput, undefined, sig);
       };
@@ -540,7 +528,7 @@ export default function SovereignAssistant() {
                   {/* Meta row */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: msg.type === 'bot' ? 2 : 0, paddingRight: msg.type === 'user' ? 2 : 0, justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start' }}>
                     {msg.isVoice && <Mic size={9} color={S.muted} />}
-                    {msg.hadImage && <Scan size={9} color={S.accentLight} title="Image analysée par YOLO" />}
+                    {msg.hadImage && <Scan size={9} color={S.accentLight} title="Image analysée: Vision + OCR + RAG" />}
                     <span style={{ fontSize: 10, color: S.textDim }}>{msg.time}</span>
                   </div>
                   {/* Sources */}
@@ -570,10 +558,12 @@ export default function SovereignAssistant() {
                     ))}
                   </div>
                   <span style={{ fontSize: 13, color: S.muted }}>
-                    {elapsed < 5 ? "Réflexion en cours…"
-                    : elapsed < 15 ? `En cours… ${elapsed}s`
-                    : elapsed < 30 ? `Modèle en cours de chargement… ${elapsed}s`
-                    : `Encore un instant… ${elapsed}s / 45s`}
+                    {loadingStage === 'vision' && elapsed < 8
+                      ? `Vision + OCR en cours… ${elapsed}s`
+                      : elapsed < 5 ? "Réflexion en cours…"
+                      : elapsed < 15 ? `En cours… ${elapsed}s`
+                      : elapsed < 30 ? `Modèle en cours de chargement… ${elapsed}s`
+                      : `Encore un instant… ${elapsed}s / 45s`}
                   </span>
                   {elapsed >= 8 && (
                     <button
@@ -604,7 +594,7 @@ export default function SovereignAssistant() {
                 <ImageIcon size={13} color={S.accentLight} />
                 <img src={attachedImage.dataUrl} alt="preview" style={{ height: 38, borderRadius: 6, border: `1px solid ${S.botBorder}` }} />
                 <span style={{ fontSize: 11, color: S.muted, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachedImage.name}</span>
-                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 8, background: 'rgba(99,102,241,0.25)', color: S.accentLight, fontWeight: 700 }}>YOLO ✓</span>
+                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 8, background: 'rgba(99,102,241,0.25)', color: S.accentLight, fontWeight: 700 }}>Vision + OCR</span>
                 <button onClick={() => setAttachedImage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2 }}>
                   <X size={13} />
                 </button>
@@ -674,7 +664,7 @@ export default function SovereignAssistant() {
 
             {/* Hint bar */}
             <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: S.textDim, padding: '0 4px' }}>
-              <span>Entrée pour envoyer · Maj+Entrée pour saut · Images analysées par YOLO</span>
+              <span>Entrée pour envoyer · Maj+Entrée pour saut · Images analysées par Vision + OCR</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: S.muted }}>
                 <Sparkles size={9} color={isLite ? S.warn : S.accent} />
                 {isLite ? 'Lite (Labess-7B)' : 'Enterprise (Labess-7B)'}

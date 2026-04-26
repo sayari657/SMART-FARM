@@ -26,7 +26,7 @@ const HealthRing = ({ value = 0, max = 10, size = 80, stroke = 6, color }) => {
   const offset = c - (value / max) * c;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(0,0,0,0.10)" strokeWidth={stroke} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
         strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
         style={{ transition: 'stroke-dashoffset 0.8s ease', filter: `drop-shadow(0 0 6px ${color}60)` }} />
@@ -61,7 +61,7 @@ function PlanningWidget() {
           <CalendarClock size={16} color={COLORS.accent} />
         </div>
         <div>
-          <div style={{ fontWeight: 800, color: 'white', fontSize: 13 }}>Missions Planifiées</div>
+          <div style={{ fontWeight: 800, color: COLORS.text, fontSize: 13 }}>Missions Planifiées</div>
           <div style={{ fontSize: 10, color: COLORS.textMuted }}>{missions.length} mission(s) · {overdue.length} en retard</div>
         </div>
         {overdue.length > 0 && (
@@ -80,7 +80,7 @@ function PlanningWidget() {
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 11, background: COLORS.error + '08', border: `1px solid ${COLORS.error}25` }}>
               <AlertCircle size={13} color={COLORS.error} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: 'white', fontWeight: 700, fontSize: 12 }}>{m.action_type || 'Mission'}</div>
+                <div style={{ color: COLORS.text, fontWeight: 700, fontSize: 12 }}>{m.action_type || 'Mission'}</div>
                 <div style={{ color: COLORS.error, fontSize: 10 }}>{m.scheduled_date}</div>
               </div>
               <span style={{ fontSize: 10, color: COLORS.textMuted, flexShrink: 0 }}>{(m.tasks || []).length} tâche(s)</span>
@@ -99,10 +99,10 @@ function PlanningWidget() {
               const total = (m.tasks || []).length;
               const pct = total > 0 ? Math.round((done / total) * 100) : 0;
               return (
-                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}` }}>
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 11, background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}` }}>
                   {pct === 100 ? <CheckCircle size={13} color={COLORS.success} style={{ flexShrink: 0 }} /> : <Clock size={13} color="#fbbf24" style={{ flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: 'white', fontWeight: 700, fontSize: 12 }}>{m.action_type || 'Mission'}</div>
+                    <div style={{ color: COLORS.text, fontWeight: 700, fontSize: 12 }}>{m.action_type || 'Mission'}</div>
                     <div style={{ color: COLORS.textMuted, fontSize: 10 }}>{m.scheduled_date}</div>
                   </div>
                   {total > 0 && (
@@ -202,7 +202,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
 
             <div>
               <div style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase' }}>{k.label}</div>
-              <div style={{ fontSize: 28, fontWeight: 900, color: 'white', letterSpacing: '-0.03em', lineHeight: 1.1, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{k.val}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: COLORS.text, letterSpacing: '-0.03em', lineHeight: 1.1, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{k.val}</div>
               <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 4 }}>{k.sub}</div>
             </div>
           </div>
@@ -222,7 +222,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
                 <Hexagon size={16} color={COLORS.accent} />
               </div>
               <div>
-                <div style={{ fontWeight: 800, color: 'white', fontSize: 13 }}>Carte Santé Colonies</div>
+                <div style={{ fontWeight: 800, color: COLORS.text, fontSize: 13 }}>Carte Santé Colonies</div>
                 <div style={{ fontSize: 10, color: COLORS.textMuted }}>{ruches.length} ruches · {activeRuches.length} actives</div>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
           <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <Activity size={15} color={COLORS.info} />
-              <span style={{ fontWeight: 800, color: 'white', fontSize: 12 }}>Intelligence Audio</span>
+              <span style={{ fontWeight: 800, color: COLORS.text, fontSize: 12 }}>Intelligence Audio</span>
             </div>
             {[
               { label: 'Santé ruches', msg: stats?.sante || '100%', color: COLORS.success, icon: Shield },
@@ -251,13 +251,13 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
               <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 12px', borderRadius: 12, background: log.color + '08', border: `1px solid ${log.color}20`, marginBottom: 8 }}>
                 <log.icon size={14} color={log.color} style={{ marginTop: 1, flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: 'white' }}>{log.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.text }}>{log.label}</div>
                   <div style={{ fontSize: 10, color: COLORS.textMuted }}>{log.msg}</div>
                 </div>
               </div>
             ))}
             {/* Spectrum */}
-            <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: `1px solid ${COLORS.border}`, marginTop: 4 }}>
+            <div style={{ padding: '12px 14px', background: 'rgba(28,10,0,0.03)', borderRadius: 12, border: `1px solid ${COLORS.border}`, marginTop: 4 }}>
               <div style={{ fontSize: 9, color: COLORS.textMuted, fontWeight: 800, letterSpacing: '1.5px', marginBottom: 8 }}>AUDIO SPECTRUM</div>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 32 }}>
                 {[...Array(18)].map((_, i) => <AudioBar key={i} i={i} />)}
@@ -275,7 +275,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
             <button key={act.label}
               onClick={() => act.tab === 'sync' ? onSync?.() : onAction?.(act.tab, act.subAction)}
               disabled={act.tab === 'sync' && isProcessing}
-              style={{ background: `linear-gradient(145deg, ${act.color}18, ${act.color}08)`, border: `1px solid ${act.color}30`, borderRadius: 20, padding: '20px 18px', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12, cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden', textAlign: 'left' }}
+              style={{ background: `linear-gradient(145deg, ${act.color}18, ${act.color}08)`, border: `1px solid ${act.color}30`, borderRadius: 20, padding: '20px 18px', color: COLORS.text, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12, cursor: 'pointer', transition: 'all 0.2s', position: 'relative', overflow: 'hidden', textAlign: 'left' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = act.color + '70'; e.currentTarget.style.boxShadow = `0 12px 30px -8px ${act.color}30`; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = act.color + '30'; e.currentTarget.style.boxShadow = 'none'; }}
             >
@@ -309,7 +309,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
                 <span style={{ color: m.color, fontWeight: 900, fontSize: 22, fontVariantNumeric: 'tabular-nums' }}>{m.value}</span>
                 <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{m.unit}</span>
               </div>
-              <div style={{ marginTop: 6, height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.05)' }}>
+              <div style={{ marginTop: 6, height: 3, borderRadius: 3, background: 'rgba(28,10,0,0.08)' }}>
                 <div style={{ height: '100%', width: `${Math.min(((parseFloat(m.value) || 0) / 10) * 100, 100)}%`, borderRadius: 3, background: `linear-gradient(90deg, ${m.color}, ${m.color}80)`, transition: 'width 0.8s ease' }} />
               </div>
             </div>

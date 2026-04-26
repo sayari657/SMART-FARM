@@ -152,6 +152,8 @@ export const agentAPI = {
     api.post('/agent/chat', null, { params: { query, species }, signal }),
   analyze: (query, species, detections = [], signal) =>
     api.post('/agent/analyze', { query, species, detections }, { signal }),
+  analyzeImage: (image_b64, query, species, signal) =>
+    api.post('/agent/analyze-image', { image_b64, query: query || '', species: species || null }, { signal, timeout: 90000 }),
 };
 
 // ---- Diagnostic History

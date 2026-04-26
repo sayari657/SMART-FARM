@@ -50,3 +50,28 @@ async def analyze_with_detections(body: ChatRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+class ImageAnalysisRequest(BaseModel):
+    image_b64: str
+    query: Optional[str] = None
+    species: Optional[str] = None
+
+
+@router.post("/analyze-image")
+async def analyze_image_with_agent(body: ImageAnalysisRequest):
+    """
+    Full image analysis pipeline:
+      1. LLaVA / Groq Vision → visual description
+      2. pytesseract / Groq Vision OCR → text extraction
+      3. RAG + Labess-7B / Groq → Tunisian Darija response
+    """
+    try:
+        result = await agent_service.analyze_image(
+            image_b64=body.image_b64,
+            query=body.query or "",
+            species=body.species,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

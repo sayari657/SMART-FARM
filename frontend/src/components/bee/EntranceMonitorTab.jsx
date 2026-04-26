@@ -115,7 +115,7 @@ function ZoomModal({ entry, onClose }) {
         <div style={{ padding: '14px 20px', borderBottom: `1px solid ${COLORS.border}`,
           display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           <ScanEye size={16} color={COLORS.accent} />
-          <span style={{ color: 'white', fontWeight: 800, fontSize: 14, flex: 1 }}>
+          <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 14, flex: 1 }}>
             Analyse · {new Date(entry.timestamp).toLocaleString('fr-FR')}
           </span>
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginRight: 12 }}>
@@ -127,7 +127,7 @@ function ZoomModal({ entry, onClose }) {
             </span>
           </div>
           <button onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(255,255,255,0.06)',
+            style={{ width: 32, height: 32, borderRadius: 9, background: 'rgba(28,10,0,0.06)',
               border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={16} />
@@ -159,7 +159,7 @@ function ZoomModal({ entry, onClose }) {
                   <div key={i} style={{ padding: '7px 12px', borderRadius: 10,
                     background: COLORS.accent + '0a', border: `1px solid ${COLORS.accent}25`,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{d.label}</span>
+                    <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 700 }}>{d.label}</span>
                     <span style={{ color: COLORS.accent, fontWeight: 900, fontSize: 12 }}>
                       {Math.floor(d.confidence * 100)}%
                     </span>
@@ -188,7 +188,7 @@ function AnalysisCard({ entry, onZoom, onDelete, idx, total }) {
           onClick={onZoom}
         />
       ) : (
-        <div style={{ height: 130, background: 'rgba(255,255,255,0.02)', display: 'flex',
+        <div style={{ height: 130, background: 'rgba(28,10,0,0.03)', display: 'flex',
           alignItems: 'center', justifyContent: 'center', color: COLORS.textMuted, cursor: 'pointer' }}
           onClick={onZoom}>
           <ScanEye size={28} style={{ opacity: 0.3 }} />
@@ -254,7 +254,7 @@ function EvolutionStrip({ history }) {
   const deltaH = (recent.report.healthScore ?? 7) - (prev.report.healthScore ?? 7);
 
   return (
-    <div style={{ padding: '10px 16px', borderRadius: 14, background: 'rgba(255,255,255,0.02)',
+    <div style={{ padding: '10px 16px', borderRadius: 14, background: 'rgba(28,10,0,0.03)',
       border: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
       <div style={{ fontSize: 10, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1px', textTransform: 'uppercase' }}>
         Évolution vs analyse précédente
@@ -370,7 +370,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Monitor IA · Entrée Ruche</div>
+          <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Monitor IA · Entrée Ruche</div>
           <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 3 }}>
             YOLO v8 bee detection · {hive.identifier} · {history.length} analyse(s) sauvegardée(s)
           </div>
@@ -413,7 +413,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
           <div style={{ padding: '14px 22px', borderBottom: `1px solid ${COLORS.border}`,
             background: COLORS.accent + '08', display: 'flex', alignItems: 'center', gap: 10 }}>
             <ScanEye size={16} color={COLORS.accent} />
-            <span style={{ color: 'white', fontWeight: 800, fontSize: 14 }}>Rapport IA — {hive.identifier}</span>
+            <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 14 }}>Rapport IA — {hive.identifier}</span>
             <span style={{ color: COLORS.textMuted, fontSize: 11, marginLeft: 'auto' }}>
               {history[0] ? new Date(history[0].timestamp).toLocaleTimeString('fr-FR') : ''}
             </span>
@@ -440,7 +440,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
             </div>
 
             <div style={{ padding: '12px 16px', borderRadius: 14,
-              background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}`,
+              background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}`,
               display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: COLORS.success + '18',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -450,7 +450,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
                 <div style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 700, letterSpacing: '0.8px' }}>
                   CORRÉLATION SANTÉ COLONIE
                 </div>
-                <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+                <div style={{ color: COLORS.text, fontSize: 13, fontWeight: 700, marginTop: 4 }}>
                   Score COLOSS&nbsp;
                   <span style={{ color: COLORS.success, fontWeight: 900 }}>{report.healthScore?.toFixed(1)}/10</span>
                   &nbsp;·&nbsp;{report.healthLabel}
@@ -458,7 +458,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                 <div style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 700 }}>OBJETS TOTAUX</div>
-                <div style={{ color: 'white', fontWeight: 900, fontSize: 16 }}>{report.total}</div>
+                <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 16 }}>{report.total}</div>
               </div>
             </div>
 
@@ -473,7 +473,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
                     padding: '10px 14px', borderRadius: 11,
                     background: rec.color + '0a', border: `1px solid ${rec.color}25` }}>
                     <Shield size={13} color={rec.color} style={{ marginTop: 1, flexShrink: 0 }} />
-                    <span style={{ color: 'white', fontSize: 12, fontWeight: 600 }}>{rec.text}</span>
+                    <span style={{ color: COLORS.text, fontSize: 12, fontWeight: 600 }}>{rec.text}</span>
                   </div>
                 ))}
               </div>
@@ -484,7 +484,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
 
       {/* ── Empty state (no analysis yet) ── */}
       {!report && !loadingReport && history.length === 0 && (
-        <div style={{ height: 160, background: 'rgba(255,255,255,0.02)', border: `2px dashed ${COLORS.border}`,
+        <div style={{ height: 160, background: 'rgba(28,10,0,0.03)', border: `2px dashed ${COLORS.border}`,
           borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 10, color: COLORS.textMuted }}>
           <ScanEye size={38} strokeWidth={1} style={{ opacity: 0.4 }} />

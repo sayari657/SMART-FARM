@@ -58,13 +58,13 @@ function Section({ title, icon: Icon, color = COLORS.accent, children, action })
     <div style={{ background: COLORS.surface, borderRadius: 20, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
       <div style={{ padding: '14px 22px', borderBottom: `1px solid ${COLORS.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(255,255,255,0.02)' }}>
+        background: 'rgba(28,10,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 30, height: 30, borderRadius: 9, background: color + '18',
             display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon size={14} color={color} />
           </div>
-          <span style={{ color: 'white', fontWeight: 800, fontSize: 13 }}>{title}</span>
+          <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 13 }}>{title}</span>
         </div>
         {action}
       </div>
@@ -74,22 +74,22 @@ function Section({ title, icon: Icon, color = COLORS.accent, children, action })
 }
 
 const inputSt = {
-  width: '100%', height: 44, background: 'rgba(255,255,255,0.04)',
+  width: '100%', height: 44, background: '#FEFCF7',
   border: `1px solid ${COLORS.border}`, borderRadius: 12,
-  padding: '0 14px', color: 'white', outline: 'none', fontSize: 13,
+  padding: '0 14px', color: COLORS.text, outline: 'none', fontSize: 13,
 };
 
 function StepperInput({ label, value, onChange, min = 0, step = 1, color = COLORS.accent }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', borderRadius: 12, border: `1px solid ${COLORS.border}`,
-      background: 'rgba(255,255,255,0.02)' }}>
+      background: 'rgba(28,10,0,0.03)' }}>
       <span style={{ fontSize: 12, fontWeight: 700, color }}>{label}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button onClick={() => onChange(Math.max(min, value - step))}
-          style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.06)',
-            border: `1px solid ${COLORS.border}`, color: 'white', cursor: 'pointer', fontWeight: 900, fontSize: 16 }}>−</button>
-        <span style={{ color: 'white', fontWeight: 900, fontSize: 16, minWidth: 40, textAlign: 'center' }}>{value}</span>
+          style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(28,10,0,0.06)',
+            border: `1px solid ${COLORS.border}`, color: COLORS.text, cursor: 'pointer', fontWeight: 900, fontSize: 16 }}>−</button>
+        <span style={{ color: COLORS.text, fontWeight: 900, fontSize: 16, minWidth: 40, textAlign: 'center' }}>{value}</span>
         <button onClick={() => onChange(value + step)}
           style={{ width: 30, height: 30, borderRadius: 8, background: color + '25',
             border: `1px solid ${color}40`, color, cursor: 'pointer', fontWeight: 900, fontSize: 16 }}>+</button>
@@ -126,7 +126,7 @@ function ApplyModal({ preview, visitId, onApply, onSkip }) {
             <Info size={20} color={COLORS.accent} />
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 900, fontSize: 16 }}>Appliquer les changements ?</div>
+            <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 16 }}>Appliquer les changements ?</div>
             <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 2 }}>
               Visite enregistrée. Confirmer les mises à jour ruche :
             </div>
@@ -139,7 +139,7 @@ function ApplyModal({ preview, visitId, onApply, onSkip }) {
             const positive = delta >= 0;
             return (
               <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.03)',
+                padding: '10px 14px', borderRadius: 12, background: 'rgba(28,10,0,0.04)',
                 border: `1px solid ${COLORS.border}` }}>
                 <span style={{ color: COLORS.textDim, fontSize: 13, fontWeight: 600 }}>
                   {key === 'health_score' ? 'Score santé' : 'Niveau miel'}
@@ -195,7 +195,7 @@ function ApplyModal({ preview, visitId, onApply, onSkip }) {
           </button>
           <button onClick={onSkip}
             style={{ flex: 1, height: 48, borderRadius: 14, cursor: 'pointer',
-              background: 'rgba(255,255,255,0.05)', border: `1px solid ${COLORS.border}`,
+              background: 'rgba(28,10,0,0.07)', border: `1px solid ${COLORS.border}`,
               color: COLORS.textMuted, fontWeight: 700, fontSize: 14 }}>
             Ignorer
           </button>
@@ -325,7 +325,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
             <input type="date" value={form.visit_date} onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
               style={{ ...inputSt, width: 160 }} />
             <button onClick={captureGPS}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: form.gps_coords ? COLORS.success + '18' : 'rgba(255,255,255,0.04)',
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: form.gps_coords ? COLORS.success + '18' : '#FEFCF7',
                 border: `1px solid ${form.gps_coords ? COLORS.success + '40' : COLORS.border}`,
                 color: form.gps_coords ? COLORS.success : COLORS.textMuted,
                 padding: '0 14px', height: 44, borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 12 }}>
@@ -340,10 +340,10 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
               {HEALTH_OPTIONS.map(st => (
                 <button key={st.id} onClick={() => setForm(f => ({ ...f, health_state: st.id }))}
                   style={{ padding: '11px', borderRadius: 12, cursor: 'pointer', border: form.health_state === st.id ? `2px solid ${st.color}` : `1px solid ${COLORS.border}`,
-                    background: form.health_state === st.id ? st.color + '18' : 'rgba(255,255,255,0.02)',
+                    background: form.health_state === st.id ? st.color + '18' : '#FEFCF7',
                     display: 'flex', alignItems: 'center', gap: 8 }}>
                   <st.icon size={15} color={st.color} />
-                  <span style={{ fontWeight: 700, fontSize: 11, color: 'white' }}>{st.label}</span>
+                  <span style={{ fontWeight: 700, fontSize: 11, color: COLORS.text }}>{st.label}</span>
                 </button>
               ))}
             </div>
@@ -355,7 +355,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
                 <button key={lvl} onClick={() => setForm(f => ({ ...f, honey_level: lvl }))}
                   style={{ flex: 1, minWidth: 70, padding: '10px 6px', borderRadius: 10, cursor: 'pointer', fontSize: 11, fontWeight: 700,
                     border: form.honey_level === lvl ? `2px solid ${COLORS.accent}` : `1px solid ${COLORS.border}`,
-                    background: form.honey_level === lvl ? COLORS.accent + '20' : 'rgba(255,255,255,0.02)',
+                    background: form.honey_level === lvl ? COLORS.accent + '20' : '#FEFCF7',
                     color: form.honey_level === lvl ? COLORS.accent : COLORS.textMuted }}>
                   {lvl}
                 </button>
@@ -383,11 +383,11 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
         <Section title="Récolte (kg)" icon={Droplets} color={COLORS.accent}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[{ key: 'harvest_kg', label: 'Miel', color: COLORS.accent }, { key: 'pollen_kg', label: 'Pollen', color: COLORS.success }].map(f => (
-              <div key={f.key} style={{ padding: 14, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: 'rgba(255,255,255,0.02)' }}>
+              <div key={f.key} style={{ padding: 14, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: 'rgba(28,10,0,0.03)' }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: f.color, display: 'block', marginBottom: 6 }}>{f.label}</span>
                 <input type="number" min="0" step="0.1" placeholder="0.0" value={form[f.key] || ''}
                   onChange={e => setForm(ff => ({ ...ff, [f.key]: parseFloat(e.target.value) || 0 }))}
-                  style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }} />
+                  style={{ background: 'none', border: 'none', color: COLORS.text, fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }} />
               </div>
             ))}
           </div>
@@ -428,7 +428,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
           )}
           <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
             placeholder="Comportement, état du couvain, présence de maladies…"
-            style={{ width: '100%', minHeight: 90, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '12px 14px', color: 'white', resize: 'vertical', outline: 'none', fontSize: 13, lineHeight: 1.6 }} />
+            style={{ width: '100%', minHeight: 90, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '12px 14px', color: COLORS.text, resize: 'vertical', outline: 'none', fontSize: 13, lineHeight: 1.6 }} />
         </Section>
 
         <button onClick={handleSubmit} disabled={submitting}
@@ -444,7 +444,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
       {preview && <ApplyModal preview={preview} visitId={pendingVisitId} onApply={handleApply} onSkip={handleSkip} />}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Historique Inspections</div>
+          <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Historique Inspections</div>
           <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 3 }}>{visites.length} inspection(s)</div>
         </div>
         <button onClick={() => setShowForm(true)}
@@ -455,7 +455,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
 
       {loadingV ? <div style={{ color: COLORS.textMuted, textAlign: 'center', padding: 40 }}>Chargement…</div>
         : visites.length === 0 ? (
-          <div style={{ height: 180, background: 'rgba(255,255,255,0.02)', border: `2px dashed ${COLORS.border}`, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: COLORS.textMuted }}>
+          <div style={{ height: 180, background: 'rgba(28,10,0,0.03)', border: `2px dashed ${COLORS.border}`, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: COLORS.textMuted }}>
             <ClipboardCheck size={38} strokeWidth={1} style={{ opacity: 0.4 }} />
             <div style={{ fontWeight: 600 }}>Aucune inspection</div>
           </div>
@@ -468,7 +468,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ color: 'white', fontWeight: 800 }}>{v.visit_date}</span>
+                    <span style={{ color: COLORS.text, fontWeight: 800 }}>{v.visit_date}</span>
                     {healthBadge(v.health_state)}
                     {v.honey_level && <span style={{ color: COLORS.textMuted, fontSize: 11 }}>Miel: {v.honey_level}</span>}
                     {v.temperature && <span style={{ color: '#fbbf24', fontSize: 11 }}>🌡 {v.temperature}°C</span>}
@@ -552,7 +552,7 @@ function LogistiqueTab({ hive, toast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Stock & Logistique</div>
+        <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Stock & Logistique</div>
         <button onClick={() => setShowReplenish(s => !s)}
           style={{ background: `linear-gradient(135deg, ${COLORS.accent}, #92400e)`, color: 'white', border: 'none', padding: '9px 18px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
           <RefreshCw size={13} /> Réapprovisionner
@@ -567,18 +567,18 @@ function LogistiqueTab({ hive, toast }) {
             const low = val < item.min;
             return (
               <div key={item.key} style={{ padding: '14px 16px', borderRadius: 14,
-                background: low ? COLORS.error + '0a' : 'rgba(255,255,255,0.02)',
+                background: low ? COLORS.error + '0a' : 'rgba(28,10,0,0.03)',
                 border: `1px solid ${low ? COLORS.error + '40' : COLORS.border}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ color: item.color, fontSize: 11, fontWeight: 800 }}>{item.label}</span>
                   {low && <span style={{ fontSize: 9, color: COLORS.error, fontWeight: 800, background: COLORS.error + '20', padding: '2px 6px', borderRadius: 6 }}>BAS</span>}
                 </div>
-                <div style={{ color: 'white', fontWeight: 900, fontSize: 22 }}>
+                <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 22 }}>
                   {typeof val === 'number' ? val.toFixed(item.key === 'sirop' || item.key === 'pate' ? 1 : 0) : val}
                   <span style={{ fontSize: 12, color: COLORS.textMuted, marginLeft: 4 }}>{item.unit}</span>
                 </div>
                 {item.min > 0 && (
-                  <div style={{ height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.06)', marginTop: 8 }}>
+                  <div style={{ height: 3, borderRadius: 3, background: 'rgba(28,10,0,0.08)', marginTop: 8 }}>
                     <div style={{ height: '100%', borderRadius: 3, width: `${Math.min(100, (val / (item.min * 3)) * 100)}%`,
                       background: low ? COLORS.error : item.color }} />
                   </div>
@@ -617,7 +617,7 @@ function LogistiqueTab({ hive, toast }) {
             { label: 'Pâte totale', value: `${totals.pate.toFixed(1)} kg`, color: COLORS.success },
             { label: 'Traitements', value: totals.traitement, color: COLORS.error },
           ].map(item => (
-            <div key={item.label} style={{ padding: 14, borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}`, textAlign: 'center' }}>
+            <div key={item.label} style={{ padding: 14, borderRadius: 12, background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}`, textAlign: 'center' }}>
               <div style={{ color: item.color, fontWeight: 900, fontSize: 20 }}>{item.value}</div>
               <div style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 700, marginTop: 4 }}>{item.label}</div>
             </div>
@@ -635,9 +635,9 @@ function LogistiqueTab({ hive, toast }) {
               { label: 'Traitement Varroa', val: last.needs_traitement, unit: 'app.', color: COLORS.error },
             ].map(n => (
               <div key={n.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', borderRadius: 11,
-                background: n.val > 0 ? n.color + '0a' : 'rgba(255,255,255,0.02)',
+                background: n.val > 0 ? n.color + '0a' : 'rgba(28,10,0,0.03)',
                 border: `1px solid ${n.val > 0 ? n.color + '30' : COLORS.border}` }}>
-                <span style={{ color: 'white', fontWeight: 600, fontSize: 13 }}>{n.label}</span>
+                <span style={{ color: COLORS.text, fontWeight: 600, fontSize: 13 }}>{n.label}</span>
                 <span style={{ color: n.val > 0 ? n.color : COLORS.textMuted, fontWeight: 800 }}>
                   {n.val > 0 ? `${n.val} ${n.unit} requis` : 'RAS'}
                 </span>
@@ -663,23 +663,29 @@ function PlanningTab({ hive, toast }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [rm, rp] = await Promise.all([
-      api(`${PLAN_URL}?hive_id=${hive.id}`),
-      api(`${PRED_URL}/${hive.id}`),
-    ]);
-    if (rm.ok) setMissions(await rm.json());
-    if (rp.ok) {
-      const pred = await rp.json();
-      setPrediction(pred);
-      const p = pred.predictions;
-      setForm(f => ({
-        ...f,
-        _pred_sirop: p.sirop_L, _pred_pate: p.pate_kg,
-        _pred_traitement: p.traitement, _pred_cadres: p.cadres,
-      }));
+    try {
+      const [rm, rp] = await Promise.all([
+        api(`${PLAN_URL}?hive_id=${hive.id}`),
+        api(`${PRED_URL}/${hive.id}`),
+      ]);
+      if (rm.ok) setMissions(await rm.json());
+      if (rp.ok) {
+        const pred = await rp.json();
+        setPrediction(pred);
+        const p = pred.predictions;
+        setForm(f => ({
+          ...f,
+          _pred_sirop: p.sirop_L, _pred_pate: p.pate_kg,
+          _pred_traitement: p.traitement, _pred_cadres: p.cadres,
+        }));
+      }
+    } catch (err) {
+      console.error("Planning load error:", err);
+      toast("Erreur lors du chargement du planning", "error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [hive.id]);
+  }, [hive.id, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -722,7 +728,7 @@ function PlanningTab({ hive, toast }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Planning d'Interventions</div>
+          <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Planning d'Interventions</div>
           {totalTasks > 0 && <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 3 }}>
             Tâches: <span style={{ color: COLORS.success, fontWeight: 700 }}>{totalDone}/{totalTasks}</span>
           </div>}
@@ -786,8 +792,8 @@ function PlanningTab({ hive, toast }) {
             {tasks.length > 0 && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {tasks.map((t, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}` }}>
-                    <span style={{ fontSize: 12, color: 'white', fontWeight: 600 }}>{t}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', borderRadius: 9, background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}` }}>
+                    <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 600 }}>{t}</span>
                     <button onClick={() => setTasks(l => l.filter((_, j) => j !== i))}
                       style={{ background: 'none', border: 'none', color: COLORS.error, cursor: 'pointer' }}><X size={12} /></button>
                   </div>
@@ -804,7 +810,7 @@ function PlanningTab({ hive, toast }) {
 
       {/* Missions list */}
       {missions.length === 0 ? (
-        <div style={{ height: 140, background: 'rgba(255,255,255,0.02)', border: `2px dashed ${COLORS.border}`, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 9, color: COLORS.textMuted }}>
+        <div style={{ height: 140, background: 'rgba(28,10,0,0.03)', border: `2px dashed ${COLORS.border}`, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 9, color: COLORS.textMuted }}>
           <CalendarClock size={34} strokeWidth={1} style={{ opacity: 0.4 }} />
           <div style={{ fontWeight: 600, fontSize: 13 }}>Aucune mission planifiée</div>
         </div>
@@ -816,10 +822,10 @@ function PlanningTab({ hive, toast }) {
         const overdue = p.status !== 'done' && p.scheduled_date < today;
         return (
           <div key={p.id} style={{ background: COLORS.surface, borderRadius: 16, border: `1px solid ${overdue ? COLORS.error + '40' : COLORS.border}`, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${COLORS.border}` }}>
+            <div style={{ padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(28,10,0,0.03)', borderBottom: `1px solid ${COLORS.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: 'white', fontWeight: 800 }}>{p.scheduled_date}</span>
-                {p.action_type && <span style={{ fontSize: 10, color: COLORS.textMuted, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 6 }}>{p.action_type}</span>}
+                <span style={{ color: COLORS.text, fontWeight: 800 }}>{p.scheduled_date}</span>
+                {p.action_type && <span style={{ fontSize: 10, color: COLORS.textMuted, background: 'rgba(28,10,0,0.07)', padding: '2px 8px', borderRadius: 6 }}>{p.action_type}</span>}
                 {overdue && <span style={{ fontSize: 10, color: COLORS.error, fontWeight: 800 }}>EN RETARD</span>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -830,7 +836,7 @@ function PlanningTab({ hive, toast }) {
                 </button>
               </div>
             </div>
-            <div style={{ height: 3, background: 'rgba(255,255,255,0.05)' }}>
+            <div style={{ height: 3, background: 'rgba(28,10,0,0.07)' }}>
               <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? COLORS.success : COLORS.accent, transition: 'width 0.3s' }} />
             </div>
             {/* Predicted needs */}
@@ -846,7 +852,7 @@ function PlanningTab({ hive, toast }) {
               {taskList.map(task => {
                 const cfg = TASK_STATUS[task.status] || TASK_STATUS.todo;
                 return (
-                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}` }}>
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 10, background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {task.status === 'done' ? <CheckCircle size={14} color={COLORS.success} /> : task.status === 'doing' ? <Clock size={14} color="#fbbf24" /> : <Circle size={14} color={COLORS.textMuted} />}
                       <span style={{ color: task.status === 'done' ? COLORS.textMuted : 'white', textDecoration: task.status === 'done' ? 'line-through' : 'none', fontSize: 12, fontWeight: 600 }}>{task.text}</span>
@@ -923,7 +929,7 @@ function RecolteTab({ hive, toast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Récoltes</div>
+        <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Récoltes</div>
         <button onClick={() => setShowForm(s => !s)}
           style={{ background: `linear-gradient(135deg, ${COLORS.accent}, #92400e)`, color: 'white', border: 'none', padding: '9px 18px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
           <Plus size={14} /> Enregistrer Récolte
@@ -941,7 +947,7 @@ function RecolteTab({ hive, toast }) {
               <k.icon size={14} color={k.color} />
               <span style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 700 }}>{k.label}</span>
             </div>
-            <div style={{ color: 'white', fontWeight: 900, fontSize: 20 }}>{k.value}</div>
+            <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 20 }}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -980,7 +986,7 @@ function RecolteTab({ hive, toast }) {
         <Section title="Productions enregistrées (ruche)" icon={TrendingUp}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {prods.map(p => (
-              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}` }}>
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 14px', borderRadius: 11, background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}` }}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{p.production_date}</span>
                   {p.flower_type && <span style={{ fontSize: 10, color: COLORS.success, background: COLORS.success + '15', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>{p.flower_type}</span>}
@@ -1003,7 +1009,7 @@ function RecolteTab({ hive, toast }) {
         <Section title="Récoltes par inspection" icon={Calendar}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {visits.filter(v => v.harvest_kg > 0 || v.pollen_kg > 0).map(v => (
-              <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}` }}>
+              <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 11, background: 'rgba(28,10,0,0.03)', border: `1px solid ${COLORS.border}` }}>
                 <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{v.visit_date}</span>
                 <div style={{ display: 'flex', gap: 12 }}>
                   {v.harvest_kg > 0 && <span style={{ color: COLORS.accent, fontWeight: 800, fontSize: 13 }}>🍯 {v.harvest_kg}kg</span>}
@@ -1030,14 +1036,20 @@ function FinanceTab({ hive, toast }) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [rd, rs] = await Promise.all([
-      api(`${EXP_URL}?hive_id=${hive.id}`),
-      api(`${EXP_URL}/summary?hive_id=${hive.id}`),
-    ]);
-    if (rd.ok) setDepenses(await rd.json());
-    if (rs.ok) setSummary(await rs.json());
-    setLoading(false);
-  }, [hive.id]);
+    try {
+      const [rd, rs] = await Promise.all([
+        api(`${EXP_URL}?hive_id=${hive.id}`),
+        api(`${EXP_URL}/summary?hive_id=${hive.id}`),
+      ]);
+      if (rd.ok) setDepenses(await rd.json());
+      if (rs.ok) setSummary(await rs.json());
+    } catch (err) {
+      console.error("Finance load error:", err);
+      toast("Erreur lors du chargement des finances", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [hive.id, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -1064,7 +1076,7 @@ function FinanceTab({ hive, toast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Finance & Dépenses</div>
+        <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Finance & Dépenses</div>
         <button onClick={() => setShowForm(s => !s)}
           style={{ background: `linear-gradient(135deg, ${COLORS.accent}, #92400e)`, color: 'white', border: 'none', padding: '9px 18px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12 }}>
           <Plus size={14} /> Ajouter Dépense
@@ -1132,7 +1144,7 @@ function FinanceTab({ hive, toast }) {
       )}
 
       {depenses.length === 0 ? (
-        <div style={{ height: 140, background: 'rgba(255,255,255,0.02)', border: `2px dashed ${COLORS.border}`, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: COLORS.textMuted }}>
+        <div style={{ height: 140, background: 'rgba(28,10,0,0.03)', border: `2px dashed ${COLORS.border}`, borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: COLORS.textMuted }}>
           <Wallet size={34} strokeWidth={1} style={{ opacity: 0.4 }} />
           <div style={{ fontWeight: 600, fontSize: 13 }}>Aucune dépense enregistrée</div>
         </div>
@@ -1140,7 +1152,7 @@ function FinanceTab({ hive, toast }) {
         <div style={{ background: COLORS.surface, borderRadius: 16, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <tr style={{ background: 'rgba(28,10,0,0.04)' }}>
                 {['CATÉGORIE', 'MONTANT', 'DATE', 'DESCRIPTION', ''].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: COLORS.textMuted, fontSize: 9, fontWeight: 800, letterSpacing: '1px' }}>{h}</th>
                 ))}
@@ -1152,7 +1164,7 @@ function FinanceTab({ hive, toast }) {
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ padding: '3px 9px', borderRadius: 7, background: COLORS.accent + '15', color: COLORS.accent, fontSize: 10, fontWeight: 800 }}>{d.category}</span>
                   </td>
-                  <td style={{ padding: '10px 14px', color: 'white', fontWeight: 800 }}>{d.amount.toFixed(2)} TND</td>
+                  <td style={{ padding: '10px 14px', color: COLORS.text, fontWeight: 800 }}>{d.amount.toFixed(2)} TND</td>
                   <td style={{ padding: '10px 14px', color: COLORS.textMuted, fontSize: 12 }}>{d.expense_date}</td>
                   <td style={{ padding: '10px 14px', color: COLORS.textMuted, fontSize: 12 }}>{d.description || '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
@@ -1227,7 +1239,7 @@ function QueenBankTab({ hive, onUpdated, toast }) {
       <div style={{ padding: '18px 22px', borderRadius: 20, background: COLORS.accent + '0a', border: `1px solid ${COLORS.accent}30`, display: 'flex', alignItems: 'center', gap: 18 }}>
         <div style={{ fontSize: 40 }}>👑</div>
         <div style={{ flex: 1 }}>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Banque de Reines</div>
+          <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Banque de Reines</div>
           <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 3 }}>
             {hive.identifier} · Stock actuel
           </div>
@@ -1268,11 +1280,11 @@ function QueenBankTab({ hive, onUpdated, toast }) {
               const needsQueen = h2.has_queen === false;
               return (
                 <div key={h2.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
-                  borderRadius: 12, background: needsQueen ? COLORS.error + '06' : 'rgba(255,255,255,0.02)',
+                  borderRadius: 12, background: needsQueen ? COLORS.error + '06' : 'rgba(28,10,0,0.03)',
                   border: `1px solid ${needsQueen ? COLORS.error + '30' : COLORS.border}` }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{h2.identifier}</span>
+                      <span style={{ color: COLORS.text, fontWeight: 700, fontSize: 13 }}>{h2.identifier}</span>
                       {needsQueen
                         ? <span style={{ fontSize: 9, fontWeight: 800, color: COLORS.error, background: COLORS.error + '18', padding: '2px 6px', borderRadius: 5 }}>SANS REINE</span>
                         : <span style={{ fontSize: 10, color: COLORS.success }}>♛</span>}
@@ -1355,7 +1367,7 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
       {/* Header banner */}
       <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: '20px 20px 0 0', padding: '18px 26px', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
         <button onClick={onBack}
-          style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, width: 36, height: 36, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          style={{ background: 'rgba(28,10,0,0.07)', border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, width: 36, height: 36, borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <ArrowLeft size={16} />
         </button>
         <div style={{ width: 46, height: 46, borderRadius: 13,
@@ -1368,7 +1380,7 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
 
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ color: 'white', fontWeight: 900, fontSize: 20 }}>{currentHive.identifier}</span>
+            <span style={{ color: COLORS.text, fontWeight: 900, fontSize: 20 }}>{currentHive.identifier}</span>
             {isQBBank ? (
               <span style={{ padding: '3px 10px', borderRadius: 7, background: COLORS.accent + '22', color: COLORS.accent, fontSize: 12, fontWeight: 900 }}>
                 👑 Banque de Reines
@@ -1406,7 +1418,7 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
                 <span style={{ color: COLORS.textMuted, fontSize: 11 }}>Stock reines :</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: COLORS.accent + '10', border: `1px solid ${COLORS.accent}30`, borderRadius: 10, padding: '3px 8px' }}>
                   <button onClick={() => adjustQueenCount(-1)}
-                    style={{ width: 22, height: 22, borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 900, fontSize: 14, lineHeight: 1 }}>−</button>
+                    style={{ width: 22, height: 22, borderRadius: 6, background: 'rgba(28,10,0,0.08)', border: `1px solid ${COLORS.border}`, color: COLORS.text, cursor: 'pointer', fontWeight: 900, fontSize: 14, lineHeight: 1 }}>−</button>
                   <span style={{ color: COLORS.accent, fontWeight: 900, fontSize: 15, minWidth: 24, textAlign: 'center' }}>
                     {currentHive.queen_count ?? 0}
                   </span>
@@ -1429,7 +1441,7 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
             { label: 'MIEL',  value: `${currentHive.honey_level?.toFixed(0) || 5}/10`,  color: COLORS.accent },
             { label: 'FORCE', value: `${currentHive.force_level?.toFixed(0) || 5}/10`,  color: COLORS.success },
           ]).map(m => (
-            <div key={m.label} style={{ padding: '7px 12px', borderRadius: 11, background: 'rgba(255,255,255,0.03)', border: `1px solid ${COLORS.border}`, textAlign: 'center', minWidth: 58 }}>
+            <div key={m.label} style={{ padding: '7px 12px', borderRadius: 11, background: 'rgba(28,10,0,0.04)', border: `1px solid ${COLORS.border}`, textAlign: 'center', minWidth: 58 }}>
               <div style={{ color: m.color, fontWeight: 900, fontSize: 14 }}>{m.value}</div>
               <div style={{ color: COLORS.textMuted, fontSize: 8, fontWeight: 800, letterSpacing: '0.5px', marginTop: 2 }}>{m.label}</div>
             </div>

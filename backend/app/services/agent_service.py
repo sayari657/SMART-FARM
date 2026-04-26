@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List, Dict, Any, Optional
 from app.core.config import settings
@@ -166,6 +167,48 @@ class AgentService:
             "cv_detections_used": bool(cv_context),
             "species": species,
         }
+
+    async def analyze_image(
+        self,
+        image_b64: str,
+        query: str = "",
+        species: str = None,
+    ) -> Dict[str, Any]:
+        """
+        Analyse an image end-to-end:
+          1. Run LLaVA vision + OCR extraction in parallel
+          2. Build enriched prompt with visual description + OCR text
+          3. Pass through the full chat pipeline (RAG + Labess-7B / Groq)
+        """
+        logger.info(f"analyze_image: species={species} query='{query[:60]}'")
+
+        # Run vision description and OCR concurrently
+        vision_prompt = (
+            "Describe this agricultural image in detail: "
+            "identify all animals, plants, diseases, injuries, objects, and conditions visible. "
+            "Note any abnormalities, symptoms, or urgent issues."
+        )
+        vision_task = mllm_service.analyze_visual(image_b64, vision_prompt)
+        ocr_task = mllm_service.extract_text_ocr(image_b64)
+        vision_result, ocr_text = await asyncio.gather(vision_task, ocr_task)
+
+        # Build enriched query
+        context_parts = []
+        if vision_result:
+            context_parts.append(f"[وصف الصورة بالذكاء الاصطناعي]: {vision_result}")
+        if ocr_text:
+            context_parts.append(f"[نص مكتشف في الصورة (OCR)]: {ocr_text}")
+
+        user_query = query.strip() or "حلّل هذه الصورة وأعطيني تقرير مفصّل."
+        enriched_query = user_query
+        if context_parts:
+            enriched_query += "\n\n" + "\n\n".join(context_parts)
+
+        result = await self.chat(query=enriched_query, species=species, detections=None)
+        result["vision_analysis"] = vision_result
+        result["ocr_text"] = ocr_text
+        result["had_image"] = True
+        return result
 
 
 agent_service = AgentService()

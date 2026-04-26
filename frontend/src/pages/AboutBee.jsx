@@ -20,50 +20,46 @@ const GlobalStyles = () => (
   <style>{`
     *, *::before, *::after { box-sizing: border-box; margin: 0; }
 
-    /* Dropdown options — fond cire chaude */
-    select option { background: #180C00 !important; color: #FFF7ED !important; }
-    input::placeholder, textarea::placeholder { color: #A08060 !important; }
+    /* Dropdown options — fond crème ivoire */
+    select option { background: #FFF8E7 !important; color: #1C0A00 !important; }
+    input::placeholder, textarea::placeholder { color: #A07848 !important; }
 
-    /* Scrollbar — filet miel */
+    /* Scrollbar — filet miel doux */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: rgba(245,158,11,0.04); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.30); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(245,158,11,0.55); }
+    ::-webkit-scrollbar-track { background: rgba(237,224,196,0.4); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(217,119,6,0.28); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(217,119,6,0.50); }
 
     /* Animations */
     @keyframes spin     { to { transform: rotate(360deg); } }
     @keyframes fadeUp   { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
     @keyframes slideIn  { from { opacity:0; transform:translateX(22px); } to { opacity:1; transform:translateX(0); } }
     @keyframes floatHex { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-8px) rotate(3deg)} }
-    @keyframes orb1     { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,25px) scale(1.10)} }
-    @keyframes orb2     { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-35px,18px) scale(1.06)} }
-    @keyframes orb3     { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
     @keyframes pulse    { 0%,100%{opacity:0.45} 50%{opacity:1} }
     @keyframes badge    { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
-    @keyframes honeyDrip{ 0%{transform:scaleY(0);transform-origin:top} 100%{transform:scaleY(1);transform-origin:top} }
 
     .page-enter { animation: fadeUp 0.24s cubic-bezier(.22,1,.36,1) both; }
     .slide-in   { animation: slideIn 0.2s ease both; }
 
     /* Nav pill hover — chaleur miel */
     .nav-pill:hover {
-      background: rgba(245,158,11,0.12) !important;
-      color: #FCD34D !important;
-      border-color: rgba(245,158,11,0.30) !important;
+      background: rgba(217,119,6,0.09) !important;
+      color: #B45309 !important;
+      border-color: rgba(217,119,6,0.28) !important;
     }
 
-    /* Hive card hover — lévitation douce + glow ambré */
+    /* Hive card hover — lévitation douce + glow miel */
     .hive-card { transition: transform 0.22s cubic-bezier(.22,1,.36,1), border-color 0.2s, box-shadow 0.22s; }
     .hive-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 18px 44px rgba(245,158,11,0.16), 0 4px 12px rgba(0,0,0,0.4) !important;
+      box-shadow: 0 18px 44px rgba(217,119,6,0.14), 0 4px 12px rgba(0,0,0,0.08) !important;
     }
 
     /* Action btn */
     .action-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .action-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(245,158,11,0.28) !important;
+      box-shadow: 0 8px 28px rgba(217,119,6,0.25) !important;
     }
   `}</style>
 );
@@ -71,7 +67,7 @@ const GlobalStyles = () => (
 /* ────────────────────────────────────────── */
 /*  Ambient Background                        */
 /* ────────────────────────────────────────── */
-const AmbientBg = () => (
+const _AmbientBg = () => (
   <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
 
     {/* Orbe 1 — Miel / ambre (grand, en haut au centre) */}
@@ -128,9 +124,9 @@ function ToastContainer({ toasts, onRemove }) {
       {toasts.map(t => {
         const [Icon, color] = TOAST_MAP[t.type] || TOAST_MAP.success;
         return (
-          <div key={t.id} className="slide-in" style={{ background: 'rgba(13,19,42,0.97)', backdropFilter: 'blur(20px)', border: `1px solid ${color}35`, borderLeft: `3px solid ${color}`, borderRadius: 14, padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: `0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)`, minWidth: 280, maxWidth: 380 }}>
+          <div key={t.id} className="slide-in" style={{ background: '#FFFFFF', backdropFilter: 'blur(20px)', border: `1px solid ${color}35`, borderLeft: `3px solid ${color}`, borderRadius: 14, padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: `0 12px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(237,224,196,0.5)`, minWidth: 280, maxWidth: 380 }}>
             <Icon size={16} color={color} />
-            <span style={{ color: '#f1f5f9', fontSize: 13, fontWeight: 600, flex: 1 }}>{t.msg}</span>
+            <span style={{ color: COLORS.text, fontSize: 13, fontWeight: 600, flex: 1 }}>{t.msg}</span>
             <button onClick={() => onRemove(t.id)} style={{ background: 'none', border: 'none', color: COLORS.textMuted, cursor: 'pointer', padding: 0, fontSize: 16, lineHeight: 1 }}>×</button>
           </div>
         );
@@ -190,9 +186,9 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
   ruches.forEach(r => { grades[gradeLabel(r.health_score ?? 7)]++; });
 
   const iSt = {
-    height: 44, background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(8px)',
+    height: 44, background: COLORS.bg2,
     border: `1px solid ${COLORS.border}`, borderRadius: 12,
-    padding: '0 14px', color: '#f1f5f9', outline: 'none', fontSize: 13, width: '100%'
+    padding: '0 14px', color: COLORS.text, outline: 'none', fontSize: 13, width: '100%'
   };
 
   const BLANK_FORM = {
@@ -252,7 +248,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 16 }}>
         <div>
           <div style={{ fontSize: 9, fontWeight: 800, color: COLORS.accent, letterSpacing: '3px', textTransform: 'uppercase', marginBottom: 8 }}>Gestion Apicole · Enterprise</div>
-          <h1 style={{ fontSize: 34, fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.03em', lineHeight: 1 }}>Inventaire Ruches</h1>
+          <h1 style={{ fontSize: 34, fontWeight: 900, color: COLORS.text, letterSpacing: '-0.03em', lineHeight: 1 }}>Inventaire Ruches</h1>
           <p style={{ color: COLORS.textMuted, fontSize: 13, marginTop: 8 }}>{ruches.length} ruches enregistrées · {active} actives</p>
         </div>
         <button onClick={() => setShowForm(s => !s)} className="action-btn"
@@ -283,9 +279,9 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
               <div key={g} style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ color: gradeColor(g === 'A' ? 9 : g === 'B' ? 7 : g === 'C' ? 5 : 2), fontSize: 11, fontWeight: 800 }}>G{g}</span>
-                  <span style={{ color: '#f1f5f9', fontSize: 11, fontWeight: 700 }}>{n}</span>
+                  <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 700 }}>{n}</span>
                 </div>
-                <div style={{ height: 4, borderRadius: 4, background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ height: 4, borderRadius: 4, background: 'rgba(28,10,0,0.08)' }}>
                   <div style={{ height: '100%', width: ruches.length ? `${(n / ruches.length) * 100}%` : '0%', borderRadius: 4, background: gradeColor(g === 'A' ? 9 : g === 'B' ? 7 : g === 'C' ? 5 : 2) }} />
                 </div>
               </div>
@@ -301,14 +297,14 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
               <div style={{ width: 48, height: 48, borderRadius: 14, background: COLORS.accent + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>👑</div>
               <div>
-                <div style={{ color: 'white', fontWeight: 900, fontSize: 16 }}>Banque de Reines disponible</div>
+                <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 16 }}>Banque de Reines disponible</div>
                 <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 3 }}>
                   {queenDispatch.bankData.queen_count} reine(s) disponible(s) · {queenDispatch.bankData.identifier}
                 </div>
               </div>
             </div>
             <div style={{ padding: '12px 16px', borderRadius: 14, background: COLORS.accent + '0a', border: `1px solid ${COLORS.accent}25`, marginBottom: 20, color: COLORS.textDim, fontSize: 13 }}>
-              La ruche <strong style={{ color: 'white' }}>{queenDispatch.hiveName}</strong> n'a pas de reine.
+              La ruche <strong style={{ color: COLORS.text }}>{queenDispatch.hiveName}</strong> n'a pas de reine.
               Voulez-vous envoyer une reine depuis la Banque de Reines ?
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -317,7 +313,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
                 👑 Envoyer une Reine
               </button>
               <button onClick={() => setQueenDispatch(null)}
-                style={{ flex: 1, height: 48, borderRadius: 14, cursor: 'pointer', background: 'rgba(255,255,255,0.05)', border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, fontWeight: 700, fontSize: 14 }}>
+                style={{ flex: 1, height: 48, borderRadius: 14, cursor: 'pointer', background: COLORS.bg2, border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, fontWeight: 700, fontSize: 14 }}>
                 Plus tard
               </button>
             </div>
@@ -329,7 +325,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
       {showForm && (
         <div className="page-enter" style={{ background: COLORS.surface, backdropFilter: 'blur(12px)', border: `1px solid ${COLORS.borderHigh}`, borderRadius: 22, padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-            <span style={{ color: '#f1f5f9', fontWeight: 900, fontSize: 16 }}>
+            <span style={{ color: COLORS.text, fontWeight: 900, fontSize: 16 }}>
               {form.hive_type === 'queen_bank' ? '👑 Nouvelle Banque de Reines' : 'Nouvelle Ruche'}
             </span>
             <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', color: COLORS.textMuted, cursor: 'pointer' }}><X size={18} /></button>
@@ -379,7 +375,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
                   {[{ label: '♛ Oui', val: true, color: COLORS.success }, { label: '✕ Non', val: false, color: COLORS.error }].map(opt => (
                     <button key={String(opt.val)} onClick={() => setForm(f => ({ ...f, has_queen: opt.val }))}
                       style={{ flex: 1, height: 44, borderRadius: 12, cursor: 'pointer', fontWeight: 800, fontSize: 13,
-                        background: form.has_queen === opt.val ? opt.color + '22' : 'rgba(255,255,255,0.03)',
+                        background: form.has_queen === opt.val ? opt.color + '22' : COLORS.bg2,
                         border: `${form.has_queen === opt.val ? 2 : 1}px solid ${form.has_queen === opt.val ? opt.color : COLORS.border}`,
                         color: form.has_queen === opt.val ? opt.color : COLORS.textMuted }}>
                       {opt.label}
@@ -393,7 +389,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
               <button onClick={handleSubmit} style={{ flex: 1, height: 44, borderRadius: 12, background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`, border: 'none', color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>
                 {form.hive_type === 'queen_bank' ? '👑 Créer Banque' : 'Créer'}
               </button>
-              <button onClick={() => setShowForm(false)} style={{ height: 44, padding: '0 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, cursor: 'pointer', fontSize: 13 }}>✕</button>
+              <button onClick={() => setShowForm(false)} style={{ height: 44, padding: '0 14px', borderRadius: 12, background: COLORS.bg2, border: `1px solid ${COLORS.border}`, color: COLORS.textMuted, cursor: 'pointer', fontSize: 13 }}>✕</button>
             </div>
           </div>
         </div>
@@ -420,7 +416,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
         </div>
         {['', 'A', 'B', 'C', 'D'].map(g => (
           <button key={g} onClick={() => setFilterGrade(g)}
-            style={{ height: 44, padding: '0 16px', borderRadius: 12, background: filterGrade === g ? (g ? gradeColor(g === 'A' ? 9 : g === 'B' ? 7 : g === 'C' ? 5 : 2) + '25' : COLORS.accentGlow) : 'rgba(255,255,255,0.03)', border: `1px solid ${filterGrade === g ? (g ? gradeColor(g === 'A' ? 9 : g === 'B' ? 7 : g === 'C' ? 5 : 2) + '50' : COLORS.borderHigh) : COLORS.border}`, color: filterGrade === g ? '#f1f5f9' : COLORS.textMuted, cursor: 'pointer', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
+            style={{ height: 44, padding: '0 16px', borderRadius: 12, background: filterGrade === g ? (g ? gradeColor(g === 'A' ? 9 : g === 'B' ? 7 : g === 'C' ? 5 : 2) + '20' : COLORS.accentGlow) : COLORS.bg2, border: `1px solid ${filterGrade === g ? (g ? gradeColor(g === 'A' ? 9 : g === 'B' ? 7 : g === 'C' ? 5 : 2) + '50' : COLORS.borderHigh) : COLORS.border}`, color: filterGrade === g ? COLORS.text : COLORS.textMuted, cursor: 'pointer', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap' }}>
             {g ? `Grade ${g}` : 'Tous'}
           </button>
         ))}
@@ -428,7 +424,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
 
       {/* Hive grid */}
       {filtered.length === 0 ? (
-        <div style={{ height: 300, background: 'rgba(255,255,255,0.015)', border: `2px dashed rgba(255,255,255,0.06)`, borderRadius: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, color: COLORS.textMuted }}>
+        <div style={{ height: 300, background: COLORS.bg2, border: `2px dashed ${COLORS.border}`, borderRadius: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, color: COLORS.textMuted }}>
           <Hexagon size={52} strokeWidth={1} style={{ opacity: 0.2 }} />
           <div style={{ fontWeight: 700, fontSize: 16 }}>{ruches.length === 0 ? 'Aucune ruche enregistrée' : 'Aucun résultat'}</div>
           <div style={{ fontSize: 12 }}>{ruches.length === 0 ? 'Créez votre première ruche.' : 'Modifiez vos filtres.'}</div>
@@ -459,7 +455,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
                         <Hexagon size={22} color={gc} />
                       </div>
                       <div>
-                        <div style={{ color: '#f1f5f9', fontWeight: 900, fontSize: 17, letterSpacing: '-0.01em' }}>{r.identifier}</div>
+                        <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 17, letterSpacing: '-0.01em' }}>{r.identifier}</div>
                         <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <MapPin size={10} /> {site?.name || 'Site ?'}
                         </div>
@@ -486,7 +482,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
                           <span style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 700 }}>{m.label}</span>
                           <span style={{ color: m.color, fontSize: 10, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{m.value?.toFixed(1)}<span style={{ color: COLORS.textMuted }}>/10</span></span>
                         </div>
-                        <div style={{ height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.05)' }}>
+                        <div style={{ height: 3, borderRadius: 3, background: 'rgba(28,10,0,0.08)' }}>
                           <div style={{ height: '100%', width: `${(m.value / 10) * 100}%`, borderRadius: 3, background: `linear-gradient(90deg, ${m.color}, ${m.color}70)`, boxShadow: `0 0 6px ${m.color}40`, transition: 'width 0.6s ease' }} />
                         </div>
                       </div>
@@ -596,21 +592,18 @@ export default function AboutBee() {
   const alertCount = parseInt(stats.alertes) || 0;
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: COLORS.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", overflow: 'hidden', position: 'relative', color: '#f1f5f9' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: COLORS.bg, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", overflow: 'hidden', position: 'relative', color: COLORS.text }}>
       <GlobalStyles />
-      <AmbientBg />
       <ToastContainer toasts={toasts} onRemove={id => setToasts(p => p.filter(t => t.id !== id))} />
 
       {/* ══════════════ BARRE DE NAVIGATION APICOLE ══════════════ */}
       <header style={{
         flexShrink: 0, height: 66,
-        background: 'rgba(14,7,0,0.95)',
-        backdropFilter: 'blur(28px)',
-        borderBottom: `1px solid ${COLORS.border}`,
+        background: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
         display: 'flex', alignItems: 'center', padding: '0 24px', gap: 0,
         zIndex: 200, position: 'relative',
-        /* Filet miel en bas du header */
-        boxShadow: `0 1px 0 rgba(245,158,11,0.18), 0 4px 24px rgba(0,0,0,0.5)`,
+        boxShadow: `0 1px 0 rgba(245,158,11,0.15), 0 2px 12px rgba(0,0,0,0.05)`,
       }}>
 
         {/* ── Logo apicole ── */}
@@ -624,10 +617,10 @@ export default function AboutBee() {
             boxShadow: `0 0 22px ${COLORS.accent}55, inset 0 1px 0 rgba(255,255,255,0.20)`,
           }}>🐝</div>
           <div>
-            <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 14, letterSpacing: '0.6px', lineHeight: 1 }}>
+            <div style={{ color: '#0f172a', fontWeight: 900, fontSize: 14, letterSpacing: '0.6px', lineHeight: 1 }}>
               APICRAFT
             </div>
-            <div style={{ color: COLORS.accentLight, fontSize: 8, letterSpacing: '2.8px', fontWeight: 800, lineHeight: 1, marginTop: 2, opacity: 0.9 }}>
+            <div style={{ color: COLORS.accentDark, fontSize: 8, letterSpacing: '2.8px', fontWeight: 800, lineHeight: 1, marginTop: 2 }}>
               ENTERPRISE · IA
             </div>
           </div>
@@ -715,9 +708,9 @@ export default function AboutBee() {
           {/* Bouton synchronisation */}
           <button onClick={() => fetchData()} disabled={syncing}
             style={{ height: 32, padding: '0 14px', borderRadius: 10,
-              background: syncing ? `rgba(245,158,11,0.14)` : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${syncing ? COLORS.borderHigh : COLORS.border}`,
-              color: syncing ? COLORS.accent : COLORS.textMuted,
+              background: syncing ? `rgba(245,158,11,0.12)` : '#f8fafc',
+              border: `1px solid ${syncing ? COLORS.borderHigh : '#e2e8f0'}`,
+              color: syncing ? COLORS.accent : '#64748b',
               cursor: 'pointer', fontSize: 12, fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s' }}>
             <RefreshCw size={12} style={{ animation: syncing ? 'spin 0.8s linear infinite' : 'none' }} />
@@ -735,7 +728,7 @@ export default function AboutBee() {
       </header>
 
       {/* ──────────────── MAIN CONTENT ──────────────── */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', position: 'relative', zIndex: 1 }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', position: 'relative', zIndex: 1, background: COLORS.bg }}>
 
         {loading && !syncing ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 18 }}>

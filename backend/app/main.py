@@ -39,12 +39,24 @@ async def app_lifespan(app_instance: FastAPI):
 
         # Incremental migrations (safe: each wrapped in try/except)
         _migrations = [
+            # Bee Hives
             "ALTER TABLE bee_hives ADD COLUMN has_queen BOOLEAN DEFAULT 1",
             "ALTER TABLE bee_hives ADD COLUMN queen_count INTEGER DEFAULT 0",
+            # Bee Visits
             "ALTER TABLE bee_visits ADD COLUMN health_score REAL",
             "ALTER TABLE bee_visits ADD COLUMN force_level REAL",
+            # Bee Productions
             "ALTER TABLE bee_productions ADD COLUMN hive_id INTEGER",
             "ALTER TABLE bee_productions ADD COLUMN flower_type VARCHAR(100)",
+            # Bee Planning (Fixes stuck loading)
+            "ALTER TABLE bee_planning ADD COLUMN apiary_id INTEGER",
+            "ALTER TABLE bee_planning ADD COLUMN predicted_sirop FLOAT DEFAULT 0",
+            "ALTER TABLE bee_planning ADD COLUMN predicted_pate FLOAT DEFAULT 0",
+            "ALTER TABLE bee_planning ADD COLUMN predicted_traitement INTEGER DEFAULT 0",
+            "ALTER TABLE bee_planning ADD COLUMN predicted_cadres INTEGER DEFAULT 0",
+            # Bee Expenses (Fixes stuck loading)
+            "ALTER TABLE bee_expenses ADD COLUMN apiary_id INTEGER",
+            "ALTER TABLE bee_expenses ADD COLUMN visit_id INTEGER",
         ]
         with engine.connect() as _conn:
             for _stmt in _migrations:
@@ -53,6 +65,25 @@ async def app_lifespan(app_instance: FastAPI):
                     _conn.commit()
                 except Exception:
                     pass  # column already exists
+
+            # Handle column renaming for Planning/Expenses (if old schema)
+            try:
+                _conn.execute(text("ALTER TABLE bee_planning RENAME COLUMN planned_date TO scheduled_date"))
+                _conn.commit()
+            except Exception: pass
+            try:
+                _conn.execute(text("ALTER TABLE bee_expenses RENAME COLUMN date TO expense_date"))
+                _conn.commit()
+            except Exception: pass
+            try:
+                _conn.execute(text("ALTER TABLE bee_expenses RENAME COLUMN expense_type TO category"))
+                _conn.commit()
+            except Exception: pass
+            try:
+                _conn.execute(text("ALTER TABLE bee_expenses RENAME COLUMN note TO description"))
+                _conn.commit()
+            except Exception: pass
+
 
 
     except Exception as e:

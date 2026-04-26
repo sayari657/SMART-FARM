@@ -1,49 +1,51 @@
 /**
- * BeeConstants — "Champ de Fleurs" Design System
- * Palette calquée sur la logique métier de l'apiculture :
- *   Miel/cire   → ambre chaud (accent principal)
- *   Santé/champ → vert de champ (success)
- *   Reine       → violet royal (info/queen)
- *   Alerte      → orange pollen (warning)
- *   Critique    → rouge (error)
- *   Fonds       → brun-ambre sombre (cire de ruche)
+ * BeeConstants — "Miel du Matin" Design System
+ * Palette apicole lumineuse :
+ *   Fond       → crème ivoire chaud  (lumière du matin dans le rucher)
+ *   Surface    → blanc pur           (carte de ruche propre)
+ *   Accent     → ambre miel          (couleur signature apicole)
+ *   Santé      → vert de champ       (colonie saine)
+ *   Reine      → violet royal        (essaimage / banque reines)
+ *   Alerte     → orange pollen       (surveillance)
+ *   Critique   → rouge               (urgence)
+ *   Texte      → brun profond chaud  (comme un vieux carnet d'apiculteur)
  */
 export const COLORS = {
-  /* ── Fonds — brun cire d'abeille, pas de bleu froid ── */
-  bg:         '#0E0700',                       // intérieur de ruche (nuit)
-  bg2:        '#180C00',                       // légèrement plus clair
-  surface:    'rgba(34, 18, 2, 0.97)',         // panneau cire sombre
-  surface2:   'rgba(52, 30, 5, 0.82)',         // panneau cire moyen
-  glass:      'rgba(255, 200, 50, 0.06)',      // reflet verre doré
+  /* ── Fonds — crème de miel matinal ── */
+  bg:         '#FEFCF7',                       // ivoire chaud — lumière matinale
+  bg2:        '#FFF8E7',                       // crème miel légère
+  surface:    '#FFFFFF',                       // carte blanche pure
+  surface2:   'rgba(255, 248, 231, 0.92)',     // panneau crème doux
+  glass:      'rgba(245, 158, 11, 0.05)',      // reflet doré subtil
 
-  /* ── Bordures — miel doré ── */
-  border:     'rgba(245, 175, 40, 0.16)',
-  borderHigh: 'rgba(245, 158, 11, 0.58)',
+  /* ── Bordures — cire claire ── */
+  border:     '#EDE0C4',
+  borderHigh: 'rgba(217, 119, 6, 0.52)',
 
-  /* ── Accent principal — miel liquide ── */
-  accent:      '#F59E0B',   // miel pur
-  accentLight: '#FCD34D',   // pollen clair
-  accentDark:  '#B45309',   // miel foncé
-  accentGlow:  'rgba(245, 158, 11, 0.22)',
+  /* ── Accent principal — miel ambré ── */
+  accent:      '#D97706',   // ambre miel (lisible sur fond blanc)
+  accentLight: '#F59E0B',   // miel lumineux
+  accentDark:  '#92400E',   // miel foncé / acajou
+  accentGlow:  'rgba(217, 119, 6, 0.13)',
 
   /* ── Sémantique métier apicole ── */
-  success:  '#65A30D',   // vert de champ  → colonie en bonne santé / récolte OK
-  error:    '#EF4444',   // rouge critique → colonie en danger
-  warning:  '#F97316',   // orange pollen  → surveillance nécessaire
-  info:     '#A855F7',   // violet royal   → reine / essaimage / banque reines
-  purple:   '#C084FC',   // lavande clover → référence florale/royale
+  success:  '#15803D',   // vert champ        → colonie saine / récolte OK
+  error:    '#DC2626',   // rouge critique     → colonie en danger
+  warning:  '#EA580C',   // orange pollen      → surveillance nécessaire
+  info:     '#7C3AED',   // violet royal       → reine / essaimage / banque
+  purple:   '#8B5CF6',   // lavande clover     → référence florale / royale
 
-  /* ── Texte — crème chaude, jamais blanc froid ── */
-  text:      '#FFF7ED',   // crème orange-chaude
-  textMuted: '#A08060',   // brun-or discret
-  textDim:   '#C4965A',   // or tamisé
+  /* ── Texte — brun profond chaud ── */
+  text:      '#1C0A00',   // brun très sombre — carnet d'apiculteur
+  textMuted: '#78716C',   // gris chaud neutre
+  textDim:   '#A07848',   // or ambré tamisé
 
   /* ── Graphiques ── */
-  chart: ['#FCD34D', '#F59E0B', '#65A30D', '#F97316', '#A855F7', '#EF4444'],
+  chart: ['#F59E0B', '#D97706', '#15803D', '#EA580C', '#8B5CF6', '#DC2626'],
 
   /* ── Grades santé colonie ── */
-  gradeA: '#65A30D',   // vert champ    → A : excellente santé
-  gradeB: '#F59E0B',   // or miel       → B : bonne santé
-  gradeC: '#F97316',   // orange pollen → C : à surveiller
-  gradeD: '#EF4444',   // rouge urgence → D : critique
+  gradeA: '#15803D',   // vert champ    → A : excellente santé
+  gradeB: '#D97706',   // ambre miel    → B : bonne santé
+  gradeC: '#EA580C',   // orange pollen → C : à surveiller
+  gradeD: '#DC2626',   // rouge urgence → D : critique
 };
