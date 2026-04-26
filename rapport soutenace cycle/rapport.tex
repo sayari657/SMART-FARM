@@ -1,0 +1,336 @@
+% =============================================================
+%  Mémoire de fin d'études – Mohamed Sayari
+%  FARM AI : Plateforme d'Agriculture Intelligente et Diagnostic Phyto-Sanitaire
+%  Université de Tunis El Manar – FSEGT – 2024-2025
+% =============================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ---- Encodage et langue ----
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+% ---- Mise en page ----
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm}
+\usepackage{setspace}
+\onehalfspacing
+
+% ---- Polices et typographie ----
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% ---- Mathématiques ----
+\usepackage{amsmath,amssymb,amsfonts}
+
+% ---- Graphiques et couleurs ----
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+
+% ---- Tableaux ----
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+
+% ---- En-têtes et pieds de page ----
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small\thepage}
+\fancyfoot[C]{\small FARM AI : Agriculture Intelligente et Diagnostic Phyto-Sanitaire}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% ---- Listes ----
+\usepackage{enumitem}
+
+% ---- Hyperliens ----
+\usepackage[hidelinks,colorlinks=false]{hyperref}
+\usepackage{url}
+
+% ---- Code source ----
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  breaklines=true,
+  captionpos=b,
+  language=Python
+}
+
+% ---- Numérotation des chapitres ----
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{green!40!black}}
+  {\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{20pt}
+
+% ---- Légendes ----
+\usepackage{caption}
+\captionsetup{labelfont=bf, font=small}
+
+% ---- Références bibliographiques ----
+\usepackage{cite}
+
+% ---- Glossaire / Abréviations ----
+\usepackage{nomencl}
+\makenomenclature
+
+% ---- TOC, LOF, LOT ----
+\usepackage[nottoc]{tocbibind}
+
+% =============================================================
+\begin{document}
+
+% ---- Style plain pour les pages spéciales ----
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyfoot[C]{\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+% =============================================================
+%  PAGE DE COUVERTURE
+% =============================================================
+\begin{titlepage}
+\centering
+{\large\textbf{République Tunisienne}}\\[0.3cm]
+{\large Ministère de l'Enseignement Supérieur et de la Recherche Scientifique}\\[0.5cm]
+\rule{\linewidth}{0.5pt}\\[0.3cm]
+{\large\textbf{Université de Tunis El Manar}}\\[0.2cm]
+{\large Faculté des Sciences Économiques et de Gestion de Tunis}\\[0.8cm]
+
+\rule{\linewidth}{1.5pt}\\[0.5cm]
+{\LARGE\bfseries MÉMOIRE DE FIN D'ÉTUDES}\\[0.3cm]
+\rule{\linewidth}{1.5pt}\\[0.5cm]
+
+{\large Présenté en vue de l'obtention du diplôme :}\\[0.3cm]
+{\large\bfseries Master Professionnel :}\\
+{\large Ingénierie des Systèmes d'Information et Data Science}\\[1cm]
+
+\begin{center}
+  \rule{0.8\linewidth}{0.4pt}\\[0.3cm]
+  {\Huge\bfseries\color{green!40!black}
+    FARM AI\\[0.3cm]
+    Plateforme d'Agriculture Intelligente et\\[0.3cm]
+    Diagnostic Phyto-Sanitaire par IA}\\[0.3cm]
+  \rule{0.8\linewidth}{0.4pt}
+\end{center}
+
+\vspace{0.8cm}
+{\large\textit{Organisme d'accueil :} \textbf{Sayari Smart Solutions}}\\[1.2cm]
+
+\begin{minipage}{0.45\textwidth}
+  \centering
+  {\large\textbf{Élaboré par}}\\[0.3cm]
+  {\large Mohamed Sayari}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+  \centering
+  {\large\textbf{Sous la direction de}}\\[0.3cm]
+  {\large Mme Ferihane Kboubi (FSEGT)}\\
+\end{minipage}
+
+\vfill
+\rule{\linewidth}{0.5pt}\\[0.3cm]
+{\large\textbf{ANNÉE UNIVERSITAIRE : 2024 -- 2025}}
+\end{titlepage}
+
+% =============================================================
+%  DÉDICACES
+% =============================================================
+\chapter*{Dédicaces}
+\addcontentsline{toc}{chapter}{Dédicaces}
+\thispagestyle{plain}
+
+Je dédie ce travail à ma famille, qui m'a toujours soutenu avec amour et patience. À mes parents, pour leur sacrifice et leurs prières. À mes frères et amis, pour leur présence constante. 
+
+\bigskip
+\begin{flushright}
+\textit{Sayari Mohamed}
+\end{flushright}
+
+% =============================================================
+%  REMERCIEMENTS
+% =============================================================
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+\thispagestyle{plain}
+
+Je tiens à exprimer ma profonde gratitude à ma directrice de mémoire, Mme Ferihane Kboubi, pour son encadrement et ses conseils précieux. Je remercie également tous mes enseignants de la FSEGT pour la qualité de la formation reçue.
+
+\bigskip
+\begin{flushright}
+\textit{Sayari Mohamed}
+\end{flushright}
+
+% =============================================================
+%  TABLE DES MATIÈRES
+% =============================================================
+\tableofcontents
+\listoffigures
+\listoftables
+
+% =============================================================
+%  LISTE DES ABRÉVIATIONS
+% =============================================================
+\chapter*{Liste des Abréviations}
+\addcontentsline{toc}{chapter}{Liste des Abréviations}
+\thispagestyle{plain}
+
+\begin{tabular}{ll}
+\toprule
+\textbf{Abréviation} & \textbf{Signification} \\
+\midrule
+\textbf{AI / IA}  & Artificial Intelligence / Intelligence Artificielle \\
+\textbf{API}      & Application Programming Interface \\
+\textbf{BBox}     & Bounding Box (Boîte englobante) \\
+\textbf{CNN}      & Convolutional Neural Network \\
+\textbf{DL}       & Deep Learning \\
+\textbf{GIS / SIG} & Geographic Information System / Système d'Information Géographique \\
+\textbf{IoT}      & Internet of Things (Internet des Objets) \\
+\textbf{mAP}      & Mean Average Precision \\
+\textbf{ML}       & Machine Learning \\
+\textbf{YOLO}     & You Only Look Once (Algorithme de détection d'objets) \\
+\bottomrule
+\end{tabular}
+
+% =============================================================
+%  INTRODUCTION GÉNÉRALE
+% =============================================================
+\chapter*{Introduction Générale}
+\addcontentsline{toc}{chapter}{Introduction Générale}
+\thispagestyle{plain}
+\markboth{Introduction Générale}{Introduction Générale}
+
+L'agriculture moderne fait face à des défis sans précédent : changement climatique, raréfaction des ressources et besoin croissant de rendement. Dans ce contexte, l'agriculture de précision, portée par l'Intelligence Artificielle (IA) et l'Internet des Objets (IoT), émerge comme une solution incontournable pour optimiser la gestion des exploitations.
+
+Le projet \textbf{FARM AI} s'inscrit dans cette dynamique en proposant une plateforme intégrée pour le suivi intelligent des actifs agricoles. Que ce soit pour l'apiculture (suivi des ruches), l'élevage ou l'arboriculture, FARM AI utilise des modèles de vision artificielle avancés pour détecter en temps réel les anomalies, les maladies et les ravageurs.
+
+Ce mémoire présente la conception et la réalisation de cette plateforme, structuré comme suit :
+\begin{itemize}
+  \item Le \textbf{premier chapitre} expose le contexte du projet et les enjeux de l'agriculture connectée.
+  \item Le \textbf{deuxième chapitre} détaille l'analyse des besoins et les choix technologiques.
+  \item Le \textbf{troisième chapitre} se concentre sur le développement des modèles d'IA et l'architecture du système.
+  \item Enfin, le \textbf{quatrième chapitre} présente les résultats, les interfaces et les tests effectués.
+\end{itemize}
+
+% =============================================================
+%  CHAPITRE 1 – CONTEXTE DU PROJET
+% =============================================================
+\chapter{Contexte du projet et Étude Préliminaire}
+
+\section{Introduction}
+L'agriculture est le pilier de l'économie tunisienne. Cependant, le manque de données en temps réel sur l'état des cultures et du bétail entraîne souvent des pertes importantes. L'intégration de l'IA permet de passer d'une agriculture réactive à une agriculture proactive.
+
+\section{Présentation du projet FARM AI}
+FARM AI est un écosystème digital conçu pour les agriculteurs modernes. Il combine :
+\begin{itemize}
+    \item \textbf{Smart Bee :} Monitoring des ruches par télémétrie audio et vision IA.
+    \item \textbf{Phyto-Vision :} Diagnostic des maladies des plantes (oliviers, citronniers, etc.).
+    \item \textbf{Livestock Monitor :} Suivi de la santé animale.
+    \item \textbf{GIS Center :} Cartographie intelligente des exploitations.
+\end{itemize}
+
+\section{Problématique}
+Les agriculteurs souffrent de :
+\begin{enumerate}
+    \item Difficulté de détection précoce des maladies.
+    \item Absence de centralisation des données de monitoring.
+    \item Manque d'outils d'aide à la décision basés sur des données réelles.
+\end{enumerate}
+
+\section{Objectifs du projet}
+Le projet vise à :
+\begin{itemize}
+    \item Automatiser le diagnostic phyto-sanitaire via YOLO.
+    \item Centraliser la gestion multisite via un SIG.
+    \item Offrir une assistance intelligente via un agent conversationnel (Expert AI).
+\end{itemize}
+
+% =============================================================
+%  CHAPITRE 2 – ANALYSE ET CONCEPTION
+% =============================================================
+\chapter{Analyse des Besoins et Conception du Système}
+
+\section{Analyse Fonctionnelle}
+La plateforme doit permettre :
+\begin{itemize}
+    \item L'authentification sécurisée des utilisateurs.
+    \item La visualisation des données télémétriques (température, humidité).
+    \item Le scan d'images pour la détection de maladies (YOLO v8/v11).
+    \item La génération de rapports d'analyse automatiques.
+\end{itemize}
+
+\section{Architecture Technique}
+L'architecture adoptée est de type Micro-services / API-first :
+\begin{itemize}
+    \item \textbf{Frontend :} React.js avec une interface premium (Glassmorphism).
+    \item \textbf{Backend :} FastAPI (Python) pour sa rapidité et son support asynchrone.
+    \item \textbf{IA :} YOLO pour la détection d'objets et ResNet pour la classification.
+    \item \textbf{Base de données :} SQLite/SQLAlchemy pour la gestion des relations.
+\end{itemize}
+
+% =============================================================
+%  CHAPITRE 3 – RÉALISATION ET RÉSULTATS
+% =============================================================
+\chapter{Réalisation et Implémentation de FARM AI}
+
+\section{Architecture logicielle du Backend}
+Le cœur de FARM AI repose sur un backend développé avec \textbf{FastAPI}. Ce choix se justifie par la nécessité de traiter des flux de données asynchrones (IoT) et des requêtes d'inférence IA gourmandes en ressources.
+
+\subsection{Structure des Endpoints API}
+L'API est structurée de manière modulaire :
+\begin{itemize}
+    \item \texttt{/api/v1/auth} : Gestion de l'authentification et des sessions utilisateurs.
+    \item \texttt{/api/v1/bee} : Monitoring des ruches, incluant la télémétrie et le planning des visites.
+    \item \texttt{/api/v1/cv} : Inférence Computer Vision pour la détection de maladies via YOLO.
+    \item \texttt{/api/v1/diagnostic} : Historisation des résultats d'analyse et journal de bord.
+\end{itemize}
+
+\subsection{Sécurité et Middlewares}
+Pour garantir la sécurité de la plateforme, nous avons implémenté :
+\begin{itemize}
+    \item \textbf{CORS (Cross-Origin Resource Sharing)} : Autorisation restreinte aux domaines de confiance.
+    \item \textbf{Authentification JWT} : Sécurisation des échanges entre le frontend React et le backend.
+\end{itemize}
+
+\section{Logique de Détection et Vision Artificielle}
+Le module \textbf{Phyto-Vision} utilise des modèles YOLO v8/v11 entraînés sur des datasets spécifiques.
+
+\subsection{Transformation des Coordonnées (BBoxes)}
+Un défi technique majeur a été la restitution visuelle des détections. L'IA renvoie des coordonnées normalisées ($cx, cy, w, h$) en pourcentage. Nous avons implémenté une logique de conversion côté Frontend :
+\begin{lstlisting}[language=JavaScript]
+const x1 = (cx - w/2) * imageWidth / 100;
+const y1 = (cy - h/2) * imageHeight / 100;
+\end{lstlisting}
+Cette approche permet un affichage réactif des cadres de détection quel que soit le support (Mobile ou Desktop).
+
+\section{Implémentation du Module Smart Bee}
+Le module Bee intègre un moniteur d'entrée de ruche utilisant l'IA pour compter les abeilles et détecter les prédateurs (frelons). Il historise également chaque analyse dans un journal de bord avec possibilité de zoomer sur les détections.
+
+\begin{figure}[H]
+    \centering
+    \fbox{\textbf{Interface Dashboard Bee - Live Monitor}}
+    \caption{Aperçu du Dashboard Intelligent Bee avec détection temps réel}
+\end{figure}
+
+\section{Expert AI Assistant}
+L'assistant est piloté par un agent conversationnel qui exploite le contexte des détections. Si une maladie est détectée, le contexte est injecté dans le prompt de l'IA pour fournir des conseils immédiats.
+
+% =============================================================
+%  CONCLUSION GÉNÉRALE
+% =============================================================
+\chapter*{Conclusion Générale}
+\addcontentsline{toc}{chapter}{Conclusion Générale}
+
+Le projet FARM AI démontre la puissance de l'IA appliquée au monde agricole. En fournissant des outils de diagnostic précis et une gestion centralisée, la plateforme permet d'augmenter la productivité tout en réduisant l'usage de produits chimiques grâce à une intervention ciblée.
+
+Les perspectives futures incluent l'intégration de capteurs IoT temps réel plus diversifiés et l'extension des modèles d'IA à de nouvelles cultures.
+
+\end{document}

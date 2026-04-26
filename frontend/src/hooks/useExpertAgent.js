@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { agentAPI } from '../services/api';
 
-// Per-species welcome messages in Derja
 const WELCOME = {
   cow:       "أهلاً بيك يا فلاح! أنا خبيرك في تربية الأبقار. حمّل صورة أو اسألني.",
   sheep:     "أهلاً! أنا خبيرك في الغنم. كيفاش نقدر نعاونك اليوم؟",
@@ -17,21 +16,18 @@ const WELCOME = {
   plant:     "أهلاً! أنا خبيرك في الزراعة. حمّل صورة المشكل أو اسألني.",
 };
 
-// Auto-generated question from detections
 function buildAutoQuery(detections, species) {
-  if (!detections || detections.length === 0) return null;
-
+  if (!detections?.length) return null;
   const counts = {};
   detections.forEach(d => {
     const label = d.label || d.object_class || 'unknown';
     counts[label] = (counts[label] || 0) + 1;
   });
-
   const summary = Object.entries(counts)
     .map(([label, count]) => `${count} ${label.replace(/_/g, ' ')}`)
     .join('، ');
 
-  const categoryMap = {
+  const map = {
     bee:       `شفت في الصورة: ${summary}. شنوا هو التشخيص وكيفاش نعالج؟`,
     cow:       `الكاميرا كشفت: ${summary}. شنوا هو المشكل وكيفاش نتصرف؟`,
     livestock: `الكاميرا كشفت: ${summary}. ما هو تشخيصك وما هي خطوات العلاج؟`,
@@ -45,18 +41,28 @@ function buildAutoQuery(detections, species) {
     fire:      `⚠️ الكاميرا كشفت: ${summary} — ما هو الإجراء الطارئ الفوري؟`,
     plant:     `الكاميرا كشفت: ${summary}. شنوا التشخيص والعلاج؟`,
   };
-
-  return categoryMap[species] || `الكاميرا كشفت: ${summary}. شنوا تشخيصك وكيفاش نتصرف؟`;
+  return map[species] || `الكاميرا كشفت: ${summary}. شنوا تشخيصك وكيفاش نتصرف؟`;
 }
 
 export const useExpertAgent = (species = 'cow') => {
+  const storageKey = `expert_messages_${species}`;
   const welcome = WELCOME[species] || "أهلاً! كيفاش نقدر نساعدك اليوم؟";
-  const [messages, setMessages] = useState([
-    { role: 'assistant', text: welcome }
-  ]);
-  const [isTyping,    setIsTyping]    = useState(false);
-  const [pendingDets, setPendingDets] = useState(null);
+
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey));
+      return saved?.length ? saved : [{ role: 'assistant', text: welcome }];
+    } catch {
+      return [{ role: 'assistant', text: welcome }];
+    }
+  });
+  const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
+
+  // Persist messages (keep last 60)
+  useEffect(() => {
+    try { localStorage.setItem(storageKey, JSON.stringify(messages.slice(-60))); } catch {}
+  }, [messages, storageKey]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -64,7 +70,6 @@ export const useExpertAgent = (species = 'cow') => {
     }
   }, [messages, isTyping]);
 
-  // Called when ExpertAssistant receives detections from AIScanner
   const analyzeDetections = async (detections, category) => {
     const sp = category || species;
     const autoQuery = buildAutoQuery(detections, sp);
@@ -81,13 +86,18 @@ export const useExpertAgent = (species = 'cow') => {
 
     try {
       const res = await agentAPI.analyze(autoQuery, sp, detections);
+      const analysisText = res.data.response_derja;
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: res.data.response_derja,
+        text: analysisText,
         intent: res.data.intent,
         sources: res.data.sources,
         cvContextUsed: res.data.cv_detections_used,
       }]);
+      // Notify AIScanner cards with agent analysis
+      window.dispatchEvent(new CustomEvent('yolo-analysis-update', {
+        detail: { category: sp, analysis: analysisText },
+      }));
     } catch {
       setMessages(prev => [...prev, {
         role: 'assistant',
@@ -105,7 +115,7 @@ export const useExpertAgent = (species = 'cow') => {
 
     try {
       let res;
-      if (detections && detections.length > 0) {
+      if (detections?.length) {
         res = await agentAPI.analyze(text, species, detections);
       } else {
         res = await agentAPI.chat(text, species);
@@ -126,7 +136,13 @@ export const useExpertAgent = (species = 'cow') => {
     }
   };
 
+  // Add image message without sending to agent
+  const addImageMessage = (imageUrl, caption = '') => {
+    setMessages(prev => [...prev, { role: 'user', text: caption, imageUrl }]);
+  };
+
   const clearHistory = () => {
+    try { localStorage.removeItem(storageKey); } catch {}
     setMessages([{ role: 'assistant', text: welcome }]);
   };
 
@@ -135,6 +151,7 @@ export const useExpertAgent = (species = 'cow') => {
     isTyping,
     sendMessage,
     analyzeDetections,
+    addImageMessage,
     clearHistory,
     scrollRef,
   };

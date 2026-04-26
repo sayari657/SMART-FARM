@@ -2,7 +2,7 @@ import { MapPin, Plus, Navigation, X, Trash2, LayoutGrid } from 'lucide-react';
 import { COLORS } from './BeeConstants';
 import { useState } from 'react';
 
-export default function EmplacementsTab({ emplacements = [], onAction, handleAddEmp, onDelete, modalActive, setModalActive }) {
+export default function EmplacementsTab({ emplacements = [], onAction, handleAddEmp, onDelete, modalActive, setModalActive, onSelectSite }) {
   const [empForm, setEmpForm] = useState({
     name: '',
     region: '',
@@ -55,7 +55,7 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
         ) : emplacements.map(e => (
           <div
             key={e.id}
-            onClick={() => onAction('ruches', 'filterHives', e)}
+            onClick={() => onSelectSite ? onSelectSite(e) : onAction('ruches', 'filterHives', e)}
             style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 28, padding: 24, transition: 'all 0.3s', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
             onMouseEnter={(e) => {
                e.currentTarget.style.transform = 'translateY(-6px)';

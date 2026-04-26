@@ -37,6 +37,23 @@ async def app_lifespan(app_instance: FastAPI):
         Base.metadata.create_all(bind=engine)
         logger.info("[STARTUP] Database refreshed and synchronized.")
 
+        # Incremental migrations (safe: each wrapped in try/except)
+        _migrations = [
+            "ALTER TABLE bee_hives ADD COLUMN has_queen BOOLEAN DEFAULT 1",
+            "ALTER TABLE bee_hives ADD COLUMN queen_count INTEGER DEFAULT 0",
+            "ALTER TABLE bee_visits ADD COLUMN health_score REAL",
+            "ALTER TABLE bee_visits ADD COLUMN force_level REAL",
+            "ALTER TABLE bee_productions ADD COLUMN hive_id INTEGER",
+            "ALTER TABLE bee_productions ADD COLUMN flower_type VARCHAR(100)",
+        ]
+        with engine.connect() as _conn:
+            for _stmt in _migrations:
+                try:
+                    _conn.execute(text(_stmt))
+                    _conn.commit()
+                except Exception:
+                    pass  # column already exists
+
 
     except Exception as e:
         logger.error(f"[STARTUP] DB Error: {e}")
@@ -71,17 +88,8 @@ app = FastAPI(
 # 4. Middleware & Handlers
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],

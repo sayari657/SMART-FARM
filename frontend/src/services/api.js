@@ -148,9 +148,10 @@ export const geoAPI = {
 
 // ---- Agent
 export const agentAPI = {
-  chat: (query, species) => api.post('/agent/chat', null, { params: { query, species } }),
-  analyze: (query, species, detections = []) =>
-    api.post('/agent/analyze', { query, species, detections }),
+  chat: (query, species, signal) =>
+    api.post('/agent/chat', null, { params: { query, species }, signal }),
+  analyze: (query, species, detections = [], signal) =>
+    api.post('/agent/analyze', { query, species, detections }, { signal }),
 };
 
 // ---- Diagnostic History

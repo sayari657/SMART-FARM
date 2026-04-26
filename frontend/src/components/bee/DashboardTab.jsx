@@ -1,10 +1,13 @@
+import { useState, useEffect } from 'react';
 import {
   Hexagon, Droplets, Heart, AlertCircle, Activity,
   ClipboardCheck as VisitIcon, MapPin, RefreshCw,
-  TrendingUp, Zap, ArrowUpRight, Sparkles, Shield
+  TrendingUp, Zap, ArrowUpRight, Sparkles, Shield,
+  CalendarClock, CheckCircle, Clock, AlertOctagon
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
-import AIScanner from '../AIScanner';
+
+const BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}`;
 
 /* ── Animated audio bar ── */
 const AudioBar = ({ i }) => (
@@ -23,13 +26,105 @@ const HealthRing = ({ value = 0, max = 10, size = 80, stroke = 6, color }) => {
   const offset = c - (value / max) * c;
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
         strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
         style={{ transition: 'stroke-dashoffset 0.8s ease', filter: `drop-shadow(0 0 6px ${color}60)` }} />
     </svg>
   );
 };
+
+/* ── Planning / Missions summary widget ── */
+function PlanningWidget() {
+  const [missions, setMissions] = useState([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const h = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    fetch(`${BASE}/bee/planning`, { headers: h })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMissions(Array.isArray(data) ? data : []))
+      .catch(() => { });
+  }, []);
+
+  const today = new Date().toISOString().split('T')[0];
+  const overdue = missions.filter(m => m.status !== 'done' && m.scheduled_date < today);
+  const upcoming = missions
+    .filter(m => m.status !== 'done' && m.scheduled_date >= today)
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
+    .slice(0, 4);
+
+  return (
+    <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: COLORS.accent + '18', border: `1px solid ${COLORS.accent}25`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CalendarClock size={16} color={COLORS.accent} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 800, color: 'white', fontSize: 13 }}>Missions Planifiées</div>
+          <div style={{ fontSize: 10, color: COLORS.textMuted }}>{missions.length} mission(s) · {overdue.length} en retard</div>
+        </div>
+        {overdue.length > 0 && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: COLORS.error + '18', border: `1px solid ${COLORS.error}30` }}>
+            <AlertOctagon size={12} color={COLORS.error} />
+            <span style={{ fontSize: 11, color: COLORS.error, fontWeight: 800 }}>{overdue.length} EN RETARD</span>
+          </div>
+        )}
+      </div>
+
+      {/* Overdue missions */}
+      {overdue.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 900, color: COLORS.error, letterSpacing: '1.5px', textTransform: 'uppercase' }}>En retard</div>
+          {overdue.slice(0, 2).map(m => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 11, background: COLORS.error + '08', border: `1px solid ${COLORS.error}25` }}>
+              <AlertCircle size={13} color={COLORS.error} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: 'white', fontWeight: 700, fontSize: 12 }}>{m.action_type || 'Mission'}</div>
+                <div style={{ color: COLORS.error, fontSize: 10 }}>{m.scheduled_date}</div>
+              </div>
+              <span style={{ fontSize: 10, color: COLORS.textMuted, flexShrink: 0 }}>{(m.tasks || []).length} tâche(s)</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upcoming missions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {upcoming.length > 0
+          ? <>
+            <div style={{ fontSize: 9, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px', textTransform: 'uppercase' }}>À venir</div>
+            {upcoming.map(m => {
+              const done = (m.tasks || []).filter(t => t.status === 'done').length;
+              const total = (m.tasks || []).length;
+              const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+              return (
+                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 11, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}` }}>
+                  {pct === 100 ? <CheckCircle size={13} color={COLORS.success} style={{ flexShrink: 0 }} /> : <Clock size={13} color="#fbbf24" style={{ flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ color: 'white', fontWeight: 700, fontSize: 12 }}>{m.action_type || 'Mission'}</div>
+                    <div style={{ color: COLORS.textMuted, fontSize: 10 }}>{m.scheduled_date}</div>
+                  </div>
+                  {total > 0 && (
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ color: pct === 100 ? COLORS.success : '#fbbf24', fontSize: 11, fontWeight: 800 }}>{done}/{total}</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </>
+          : (
+            <div style={{ height: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: COLORS.textMuted }}>
+              <CalendarClock size={26} strokeWidth={1} style={{ opacity: 0.4 }} />
+              <div style={{ fontSize: 11, fontWeight: 600 }}>Aucune mission planifiée</div>
+            </div>
+          )
+        }
+      </div>
+    </div>
+  );
+}
 
 /* ── Colony hive grid (mini heatmap) ── */
 const ColonyHeatmap = ({ ruches }) => {
@@ -40,9 +135,11 @@ const ColonyHeatmap = ({ ruches }) => {
         const c = gradeColor(r.health_score ?? 7);
         return (
           <div key={r.id} title={`${r.identifier} — ${r.health_score?.toFixed(1) || '?'}/10`}
-            style={{ width: 28, height: 28, borderRadius: 8, background: c + '22', border: `1px solid ${c}50`,
+            style={{
+              width: 28, height: 28, borderRadius: 8, background: c + '22', border: `1px solid ${c}50`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'default',
-              boxShadow: `0 0 8px ${c}18`, transition: 'transform 0.2s' }}
+              boxShadow: `0 0 8px ${c}18`, transition: 'transform 0.2s'
+            }}
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.3)'}
             onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
             <div style={{ width: 8, height: 8, borderRadius: 3, background: c, boxShadow: `0 0 4px ${c}` }} />
@@ -59,17 +156,17 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
   const avgHealth = ruches.length ? ruches.reduce((s, r) => s + (r.health_score || 0), 0) / ruches.length : 0;
 
   const kpis = [
-    { label: 'Ruches Actives', icon: Hexagon,     color: COLORS.accent,   val: activeRuches.length,       sub: `/ ${ruches.length} total`,   ring: activeRuches.length, ringMax: Math.max(ruches.length, 1), trend: '+2%' },
-    { label: 'Récolte Totale', icon: Droplets,    color: COLORS.info,     val: stats?.totalMiel || '0 kg', sub: 'Cette saison',               ring: null,                 trend: '+15%' },
-    { label: 'Santé Globale',  icon: Heart,       color: COLORS.success,  val: avgHealth.toFixed(1)+'/10', sub: 'Indice COLOSS',               ring: avgHealth,            ringMax: 10,  trend: 'Stable' },
-    { label: 'Alertes',        icon: AlertCircle, color: COLORS.error,    val: stats?.alertes || '0',      sub: 'Ruches critiques',            ring: null,                 trend: parseInt(stats?.alertes) > 0 ? '⚠ Urgent' : 'RAS' },
+    { label: 'Ruches Actives', icon: Hexagon, color: COLORS.accent, val: activeRuches.length, sub: `/ ${ruches.length} total`, ring: activeRuches.length, ringMax: Math.max(ruches.length, 1), trend: '+2%' },
+    { label: 'Récolte Totale', icon: Droplets, color: COLORS.info, val: stats?.totalMiel || '0 kg', sub: 'Cette saison', ring: null, trend: '+15%' },
+    { label: 'Santé Globale', icon: Heart, color: COLORS.success, val: avgHealth.toFixed(1) + '/10', sub: 'Indice COLOSS', ring: avgHealth, ringMax: 10, trend: 'Stable' },
+    { label: 'Alertes', icon: AlertCircle, color: COLORS.error, val: stats?.alertes || '0', sub: 'Ruches critiques', ring: null, trend: parseInt(stats?.alertes) > 0 ? '⚠ Urgent' : 'RAS' },
   ];
 
   const quickActions = [
-    { label: 'Nouvelle Inspection', icon: VisitIcon, tab: 'visites',      subAction: 'addVisit', color: COLORS.accent,  desc: 'Enregistrer une visite' },
-    { label: 'Ajouter Ruche',       icon: Hexagon,   tab: 'ruches',       subAction: 'addRuche', color: COLORS.purple,  desc: 'Créer une nouvelle ruche' },
-    { label: 'Nouveau Site',        icon: MapPin,    tab: 'emplacements', subAction: 'addEmp',   color: COLORS.info,    desc: 'Ajouter un emplacement' },
-    { label: 'Synchroniser',        icon: RefreshCw, tab: 'sync',         subAction: 'sync',     color: COLORS.success, desc: 'Mettre à jour les données' },
+    { label: 'Nouvelle Inspection', icon: VisitIcon, tab: 'visites', subAction: 'addVisit', color: COLORS.accent, desc: 'Enregistrer une visite' },
+    { label: 'Ajouter Ruche', icon: Hexagon, tab: 'ruches', subAction: 'addRuche', color: COLORS.purple, desc: 'Créer une nouvelle ruche' },
+    { label: 'Nouveau Site', icon: MapPin, tab: 'emplacements', subAction: 'addEmp', color: COLORS.info, desc: 'Ajouter un emplacement' },
+    { label: 'Synchroniser', icon: RefreshCw, tab: 'sync', subAction: 'sync', color: COLORS.success, desc: 'Mettre à jour les données' },
   ];
 
   return (
@@ -112,9 +209,9 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
         ))}
       </div>
 
-      {/* ── AI Scanner + Colony map ── */}
+      {/* ── Planning summary + Colony map ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
-        <AIScanner category="bee" title="Hive Entrance Monitor · YOLO v8" color={COLORS.accent} />
+        <PlanningWidget />
 
         <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -198,8 +295,8 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
       {/* ── System health strip ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
         {[
-          { label: 'Moyenne Force Colonies', value: ruches.length ? (ruches.reduce((s,r)=>s+(r.force_level||5),0)/ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.success, icon: TrendingUp },
-          { label: 'Niveau Miel Moyen', value: ruches.length ? (ruches.reduce((s,r)=>s+(r.honey_level||5),0)/ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.accent, icon: Droplets },
+          { label: 'Moyenne Force Colonies', value: ruches.length ? (ruches.reduce((s, r) => s + (r.force_level || 5), 0) / ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.success, icon: TrendingUp },
+          { label: 'Niveau Miel Moyen', value: ruches.length ? (ruches.reduce((s, r) => s + (r.honey_level || 5), 0) / ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.accent, icon: Droplets },
           { label: 'Score Santé Moyen', value: avgHealth.toFixed(1), unit: '/10', color: COLORS.info, icon: Sparkles },
         ].map(m => (
           <div key={m.label} style={{ background: COLORS.surface, borderRadius: 18, border: `1px solid ${COLORS.border}`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -213,7 +310,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
                 <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{m.unit}</span>
               </div>
               <div style={{ marginTop: 6, height: 3, borderRadius: 3, background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ height: '100%', width: `${Math.min(((parseFloat(m.value)||0)/10)*100, 100)}%`, borderRadius: 3, background: `linear-gradient(90deg, ${m.color}, ${m.color}80)`, transition: 'width 0.8s ease' }} />
+                <div style={{ height: '100%', width: `${Math.min(((parseFloat(m.value) || 0) / 10) * 100, 100)}%`, borderRadius: 3, background: `linear-gradient(90deg, ${m.color}, ${m.color}80)`, transition: 'width 0.8s ease' }} />
               </div>
             </div>
           </div>

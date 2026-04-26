@@ -1,39 +1,49 @@
+/**
+ * BeeConstants — "Champ de Fleurs" Design System
+ * Palette calquée sur la logique métier de l'apiculture :
+ *   Miel/cire   → ambre chaud (accent principal)
+ *   Santé/champ → vert de champ (success)
+ *   Reine       → violet royal (info/queen)
+ *   Alerte      → orange pollen (warning)
+ *   Critique    → rouge (error)
+ *   Fonds       → brun-ambre sombre (cire de ruche)
+ */
 export const COLORS = {
-  /* backgrounds */
-  bg:         '#06091a',
-  bg2:        '#0b1022',
-  surface:    'rgba(13,19,42,0.98)',
-  surface2:   'rgba(20,29,62,0.75)',
-  glass:      'rgba(255,255,255,0.025)',
+  /* ── Fonds — brun cire d'abeille, pas de bleu froid ── */
+  bg:         '#0E0700',                       // intérieur de ruche (nuit)
+  bg2:        '#180C00',                       // légèrement plus clair
+  surface:    'rgba(34, 18, 2, 0.97)',         // panneau cire sombre
+  surface2:   'rgba(52, 30, 5, 0.82)',         // panneau cire moyen
+  glass:      'rgba(255, 200, 50, 0.06)',      // reflet verre doré
 
-  /* borders */
-  border:     'rgba(255,255,255,0.07)',
-  borderHigh: 'rgba(245,158,11,0.28)',
+  /* ── Bordures — miel doré ── */
+  border:     'rgba(245, 175, 40, 0.16)',
+  borderHigh: 'rgba(245, 158, 11, 0.58)',
 
-  /* accent — amber/gold */
-  accent:      '#f59e0b',
-  accentLight: '#fbbf24',
-  accentDark:  '#d97706',
-  accentGlow:  'rgba(245,158,11,0.15)',
+  /* ── Accent principal — miel liquide ── */
+  accent:      '#F59E0B',   // miel pur
+  accentLight: '#FCD34D',   // pollen clair
+  accentDark:  '#B45309',   // miel foncé
+  accentGlow:  'rgba(245, 158, 11, 0.22)',
 
-  /* semantic */
-  success:  '#10b981',
-  error:    '#f43f5e',
-  warning:  '#fb923c',
-  info:     '#6366f1',
-  purple:   '#a855f7',
+  /* ── Sémantique métier apicole ── */
+  success:  '#65A30D',   // vert de champ  → colonie en bonne santé / récolte OK
+  error:    '#EF4444',   // rouge critique → colonie en danger
+  warning:  '#F97316',   // orange pollen  → surveillance nécessaire
+  info:     '#A855F7',   // violet royal   → reine / essaimage / banque reines
+  purple:   '#C084FC',   // lavande clover → référence florale/royale
 
-  /* text */
-  text:      '#f1f5f9',
-  textMuted: '#64748b',
-  textDim:   '#94a3b8',
+  /* ── Texte — crème chaude, jamais blanc froid ── */
+  text:      '#FFF7ED',   // crème orange-chaude
+  textMuted: '#A08060',   // brun-or discret
+  textDim:   '#C4965A',   // or tamisé
 
-  /* chart palette */
-  chart: ['#fbbf24', '#f59e0b', '#d97706', '#b45309'],
+  /* ── Graphiques ── */
+  chart: ['#FCD34D', '#F59E0B', '#65A30D', '#F97316', '#A855F7', '#EF4444'],
 
-  /* grade */
-  gradeA: '#10b981',
-  gradeB: '#f59e0b',
-  gradeC: '#fb923c',
-  gradeD: '#f43f5e',
+  /* ── Grades santé colonie ── */
+  gradeA: '#65A30D',   // vert champ    → A : excellente santé
+  gradeB: '#F59E0B',   // or miel       → B : bonne santé
+  gradeC: '#F97316',   // orange pollen → C : à surveiller
+  gradeD: '#EF4444',   // rouge urgence → D : critique
 };

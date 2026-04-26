@@ -449,7 +449,9 @@ class BeeHive(Base):
     honey_level = Column(Float, default=5.0)       # 1-10
     force_level = Column(Float, default=5.0)       # 1-10
     hive_type = Column(String(50), nullable=True)  # ex: Langstroth, Dadant
-    queen_year = Column(Integer, nullable=True)     # ex: 2023
+    queen_year   = Column(Integer, nullable=True)    # ex: 2023
+    has_queen    = Column(Boolean, default=True)     # Présence reine confirmée
+    queen_count  = Column(Integer, default=0)        # Banque de Reines: nb reines stockées
     last_visit_date = Column(DateTime, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -469,6 +471,8 @@ class BeeVisit(Base):
     visit_date = Column(String(20), nullable=False)      # Date stockée telle quelle (fr-FR)
     gps_coords = Column(String(100), nullable=True)
     health_state = Column(String(20), default="health")  # health | warning | urgent
+    health_score = Column(Float, nullable=True)           # Score numérique direct (Mode Terrain)
+    force_level  = Column(Float, nullable=True)           # Force colonie observée
     temperature = Column(Float, nullable=True)
     honey_level = Column(String(20), default="Moyen")    # Abondant | Moyen | Faible
     needs_sirop = Column(Float, default=0)
@@ -489,26 +493,29 @@ class BeeVisit(Base):
 
 
 class BeeProduction(Base):
-    """Récolte de miel / pollen enregistrée."""
+    """Récolte de miel / pollen — liée à une ruche (agrégeable par site/fleur)."""
     __tablename__ = "bee_productions"
 
     id = Column(Integer, primary_key=True, index=True)
-    apiary_id = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=True)
-    production_date = Column(String(20), nullable=False)
-    honey_kg = Column(Float, default=0.0)
-    pollen_kg = Column(Float, default=0.0)
-    quality_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    hive_id    = Column(Integer, ForeignKey("bee_hives.id",    ondelete="SET NULL"), nullable=True)
+    apiary_id  = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=True)
+    flower_type      = Column(String(100), nullable=True)   # Oranger, Thym, Eucalyptus…
+    production_date  = Column(String(20), nullable=False)
+    honey_kg         = Column(Float, default=0.0)
+    pollen_kg        = Column(Float, default=0.0)
+    quality_notes    = Column(Text, nullable=True)
+    created_at       = Column(DateTime, default=datetime.utcnow)
 
     apiary = relationship("BeeApiary", back_populates="productions")
 
     __table_args__ = (
         Index("ix_bee_prod_apiary_date", "apiary_id", "production_date"),
+        Index("ix_bee_prod_hive_date",   "hive_id",   "production_date"),
     )
 
 
 class BeeStockLog(Base):
-    """Snapshot journalier du stock apicole — historisation des niveaux."""
+    """Snapshot journalier du stock apicole — historisation des niveaux (legacy)."""
     __tablename__ = "bee_stock_logs"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -524,3 +531,117 @@ class BeeStockLog(Base):
     __table_args__ = (
         Index("ix_bee_stock_date", "log_date"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Bee — Global warehouse stock (single-row singleton)
+# ---------------------------------------------------------------------------
+
+class BeeGlobalStock(Base):
+    """Stock entrepôt global de l'exploitation apicole (singleton)."""
+    __tablename__ = "bee_global_stock"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    sirop        = Column(Float,   default=0)   # litres
+    pate         = Column(Float,   default=0)   # kg
+    traitement   = Column(Integer, default=0)   # doses
+    cadres       = Column(Integer, default=0)
+    hausse       = Column(Integer, default=0)
+    equipement   = Column(Integer, default=0)
+    # Seuils d'alerte
+    sirop_min      = Column(Float,   default=50)
+    pate_min       = Column(Float,   default=20)
+    traitement_min = Column(Integer, default=10)
+    cadres_min     = Column(Integer, default=20)
+    updated_at   = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Bee — Per-hive stock
+# ---------------------------------------------------------------------------
+
+class BeeHiveStock(Base):
+    """Stock attribué à une ruche individuelle."""
+    __tablename__ = "bee_hive_stocks"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    hive_id      = Column(Integer, ForeignKey("bee_hives.id", ondelete="CASCADE"),
+                          nullable=False, unique=True)
+    sirop        = Column(Float,   default=0)
+    pate         = Column(Float,   default=0)
+    traitement   = Column(Integer, default=0)
+    cadres       = Column(Integer, default=0)
+    # Seuils d'alerte ruche
+    sirop_min      = Column(Float,   default=2)
+    pate_min       = Column(Float,   default=1)
+    traitement_min = Column(Integer, default=1)
+    updated_at   = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    hive = relationship("BeeHive")
+
+
+# ---------------------------------------------------------------------------
+# Bee — Expenses
+# ---------------------------------------------------------------------------
+
+class BeeExpense(Base):
+    """Dépense liée à une ruche ou un site apicole."""
+    __tablename__ = "bee_expenses"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    hive_id      = Column(Integer, ForeignKey("bee_hives.id",    ondelete="SET NULL"), nullable=True)
+    apiary_id    = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="SET NULL"), nullable=True)
+    visit_id     = Column(Integer, ForeignKey("bee_visits.id",   ondelete="SET NULL"), nullable=True)
+    expense_date = Column(String(20), nullable=False)
+    amount       = Column(Float, nullable=False)
+    category     = Column(String(50), nullable=False)   # Alimentation | Traitement | Équipement | Transport | Main-d'œuvre | Autre
+    description  = Column(Text, nullable=True)
+    created_at   = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_bee_expense_hive_date",   "hive_id",   "expense_date"),
+        Index("ix_bee_expense_apiary_date", "apiary_id", "expense_date"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Bee — Planning (visites planifiées + tâches)
+# ---------------------------------------------------------------------------
+
+class BeePlanning(Base):
+    """Mission planifiée pour une ruche."""
+    __tablename__ = "bee_planning"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    hive_id          = Column(Integer, ForeignKey("bee_hives.id",    ondelete="CASCADE"), nullable=False)
+    apiary_id        = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=True)
+    scheduled_date   = Column(String(20), nullable=False)
+    status           = Column(String(20), default="pending")   # pending | in_progress | done | cancelled
+    action_type      = Column(String(50), nullable=True)        # inspection | feeding | treatment | harvest
+    notes            = Column(Text, nullable=True)
+    # Besoins prévisionnels (préremplis par le moteur de prédiction)
+    predicted_sirop       = Column(Float,   default=0)
+    predicted_pate        = Column(Float,   default=0)
+    predicted_traitement  = Column(Integer, default=0)
+    predicted_cadres      = Column(Integer, default=0)
+    created_at       = Column(DateTime, default=datetime.utcnow)
+
+    tasks = relationship("BeePlanningTask", back_populates="planning",
+                         cascade="all, delete-orphan", order_by="BeePlanningTask.id")
+
+    __table_args__ = (
+        Index("ix_bee_plan_hive_date", "hive_id", "scheduled_date"),
+    )
+
+
+class BeePlanningTask(Base):
+    """Tâche individuelle au sein d'une mission planifiée."""
+    __tablename__ = "bee_planning_tasks"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    planning_id = Column(Integer, ForeignKey("bee_planning.id", ondelete="CASCADE"), nullable=False)
+    text        = Column(String(500), nullable=False)
+    status      = Column(String(20), default="todo")   # todo | doing | done
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+    planning = relationship("BeePlanning", back_populates="tasks")

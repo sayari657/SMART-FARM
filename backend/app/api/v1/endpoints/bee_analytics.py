@@ -15,7 +15,7 @@ from sqlalchemy import desc
 from datetime import datetime, timedelta
 from typing import List, Optional
 from app.core.database import get_db
-from app.models.domain import BeeApiary, BeeHive, BeeVisit, BeeProduction, BeeStockLog
+from app.models.domain import BeeApiary, BeeHive, BeeVisit, BeeProduction
 
 router = APIRouter(prefix="/bee/analytics", tags=["Bee Analytics"])
 
@@ -428,7 +428,7 @@ def analytics_dashboard(db: Session = Depends(get_db)):
 
     # Production stats (last 12 months)
     cutoff = today - timedelta(days=365)
-    recent_prods = [p for p in productions]
+    recent_prods = [p for p in productions if not p.production_date or p.production_date >= cutoff.strftime("%Y-%m-%d")]
     total_honey = sum(p.honey_kg for p in recent_prods)
     total_pollen = sum(p.pollen_kg for p in recent_prods)
 
@@ -532,6 +532,91 @@ def hive_scientific_report(hive_id: int, db: Session = Depends(get_db)):
             "total_pollen_kg": round(sum(p.pollen_kg for p in productions), 2),
             "harvest_count": len(productions),
         },
+    }
+
+
+@router.get("/predict/{hive_id}")
+def predict_visit_needs(hive_id: int, db: Session = Depends(get_db)):
+    """
+    Moteur de prédiction des besoins pour la prochaine visite.
+    Basé sur :
+      - Moyenne historique de consommation (5 dernières visites)
+      - Saison du site (via l'apiary)
+      - Type de fleur (via l'apiary)
+      - État de santé actuel de la ruche
+    """
+    hive = db.query(BeeHive).filter(BeeHive.id == hive_id).first()
+    if not hive:
+        from fastapi import HTTPException
+        raise HTTPException(404, "Hive not found")
+
+    apiary = db.query(BeeApiary).filter(BeeApiary.id == hive.apiary_id).first()
+    last_visits = (
+        db.query(BeeVisit)
+        .filter(BeeVisit.hive_id == hive_id)
+        .order_by(desc(BeeVisit.visit_date))
+        .limit(5)
+        .all()
+    )
+
+    # ── Moyenne historique de consommation ───────────────────────────────────
+    if last_visits:
+        avg_sirop     = sum(v.needs_sirop     or 0 for v in last_visits) / len(last_visits)
+        avg_pate      = sum(v.needs_pate      or 0 for v in last_visits) / len(last_visits)
+        avg_traitement= sum(v.needs_traitement or 0 for v in last_visits) / len(last_visits)
+    else:
+        avg_sirop, avg_pate, avg_traitement = 5.0, 1.0, 0.0
+
+    # ── Multiplicateurs saisonniers ──────────────────────────────────────────
+    season = apiary.season if apiary else None
+    SEASON_MULTIPLIERS = {
+        "Printemps": {"sirop": 1.4, "pate": 1.3, "traitement": 0.8},
+        "Eté":       {"sirop": 1.2, "pate": 1.0, "traitement": 0.6},
+        "Automne":   {"sirop": 1.5, "pate": 1.2, "traitement": 1.2},
+        "Hiver":     {"sirop": 1.8, "pate": 1.5, "traitement": 0.5},
+    }
+    mults = SEASON_MULTIPLIERS.get(season, {"sirop": 1.0, "pate": 1.0, "traitement": 1.0})
+
+    # ── Bonus santé : ruche en mauvais état → plus de traitement ────────────
+    health_score = hive.health_score or 7.0
+    if health_score < 4:
+        mults["traitement"] = min(mults["traitement"] * 1.8, 3.0)
+    elif health_score < 6:
+        mults["traitement"] = min(mults["traitement"] * 1.3, 2.5)
+
+    # ── Bonus fleur : certaines flores réduisent le besoin en sirop ─────────
+    flower_type = (apiary.flower_type or "").lower() if apiary else ""
+    HIGH_NECTAR_FLOWERS = ["oranger", "eucalyptus", "lavande", "colza"]
+    if any(f in flower_type for f in HIGH_NECTAR_FLOWERS):
+        mults["sirop"] = max(0.5, mults["sirop"] - 0.3)
+
+    # ── Calcul final + arrondi métier ────────────────────────────────────────
+    pred_sirop      = round(avg_sirop      * mults["sirop"],      1)
+    pred_pate       = round(avg_pate       * mults["pate"],       1)
+    pred_traitement = round(avg_traitement * mults["traitement"])
+
+    # Cadres : si colonie forte en printemps/été, on anticipe besoin hausse
+    today_month = datetime.utcnow().month
+    need_cadres = 0
+    if (hive.force_level or 5) >= 7 and today_month in (3, 4, 5, 6, 7):
+        need_cadres = 2
+
+    return {
+        "hive_id": hive_id,
+        "hive_identifier": hive.identifier,
+        "season": season,
+        "flower_type": apiary.flower_type if apiary else None,
+        "health_score": health_score,
+        "visits_analyzed": len(last_visits),
+        "predictions": {
+            "sirop_L":      pred_sirop,
+            "pate_kg":      pred_pate,
+            "traitement":   pred_traitement,
+            "cadres":       need_cadres,
+        },
+        "multipliers_applied": mults,
+        "confidence": "high" if len(last_visits) >= 3 else "medium" if len(last_visits) >= 1 else "low",
+        "note": "Basé sur historique + saison + fleur. Ajustez selon observation terrain.",
     }
 
 
