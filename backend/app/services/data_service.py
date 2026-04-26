@@ -199,6 +199,56 @@ class ReportService:
         db.refresh(report)
         return report
 
+    async def generate_intelligent(self, farm_id: int, report_type: str):
+        """
+        Build an intelligent strategic report using AI.
+        """
+        from app.services.mllm_service import mllm_service
+        from app.models.domain import Alert, Anomaly, AnimalUnit, AnimalType
+        db = self.repo.db
+        
+        # 1. Collect Data
+        animal_count = db.query(func.count(AnimalUnit.id)).filter(AnimalUnit.farm_id == farm_id).scalar() or 0
+        avg_health = db.query(func.avg(AnimalUnit.health_score)).filter(AnimalUnit.farm_id == farm_id).scalar() or 0
+        active_alerts = db.query(func.count(Alert.id)).join(AnimalUnit).filter(
+            AnimalUnit.farm_id == farm_id, Alert.is_resolved == False
+        ).scalar() or 0
+        critical_alerts = db.query(func.count(Alert.id)).join(AnimalUnit).filter(
+            AnimalUnit.farm_id == farm_id, Alert.is_resolved == False, Alert.severity == "critical"
+        ).scalar() or 0
+        
+        recent_anomalies = db.query(Anomaly.anomaly_type).join(AnimalUnit).filter(
+            AnimalUnit.farm_id == farm_id
+        ).order_by(Anomaly.timestamp.desc()).limit(5).all()
+        top_anomalies = ", ".join(list(set([r[0] for r in recent_anomalies]))) if recent_anomalies else "Aucune"
+
+        # 2. Call AI
+        stats = {
+            "animal_count": animal_count,
+            "avg_health": round(float(avg_health), 1),
+            "active_alerts": active_alerts,
+            "critical_alerts": critical_alerts,
+            "top_anomalies": top_anomalies
+        }
+        
+        summary_text = await mllm_service.generate_strategic_report(stats)
+        
+        # 3. Save Report
+        title = f"Rapport Intelligent ({report_type.capitalize()}) — {datetime.now().strftime('%d/%m/%Y')}"
+        report = Report(
+            farm_id=farm_id,
+            report_type=report_type,
+            title=title,
+            period_start=datetime.utcnow() - timedelta(days=7),
+            period_end=datetime.utcnow(),
+            summary={"ai_insight": summary_text, **stats},
+            generated_by="AI Agent",
+        )
+        db.add(report)
+        db.commit()
+        db.refresh(report)
+        return report
+
 
 class SettingsService:
     def __init__(self, db: Session):

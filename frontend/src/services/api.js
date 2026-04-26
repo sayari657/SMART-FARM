@@ -62,6 +62,12 @@ export const animalsAPI = {
   delete: (id) => api.delete(`/animals/${id}`),
 };
 
+// ---- Plants
+export const plantsAPI = {
+  list: (params) => api.get('/plants/search', { params: { q: '', ...params } }),
+  get: (id) => api.get(`/plants/details/${id}`),
+};
+
 // ---- Telemetry
 export const telemetryAPI = {
   history: (unitId, limit = 200) => api.get(`/telemetry/${unitId}`, { params: { limit } }),
@@ -109,6 +115,7 @@ export const recsAPI = {
 export const reportsAPI = {
   list: (farmId) => api.get('/reports', { params: farmId ? { farm_id: farmId } : {} }),
   generate: (data) => api.post('/reports/generate', data),
+  generateIntelligent: (type, farmId = 1) => api.post(`/reports/generate-intelligent?report_type=${type}&farm_id=${farmId}`),
 };
 
 // ---- Settings

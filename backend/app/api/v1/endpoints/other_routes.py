@@ -122,6 +122,15 @@ def generate_report(data: ReportGenerateRequest, db: Session = Depends(get_db), 
     data.generated_by = user.username
     return _serialize_report(ReportService(db).generate(data))
 
+@report_router.post("/generate-intelligent", status_code=201)
+async def generate_intelligent_report(
+    report_type: str = Query("general"),
+    farm_id: int = Query(1),
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user)
+):
+    return _serialize_report(await ReportService(db).generate_intelligent(farm_id, report_type))
+
 
 # ---- Settings --------------------------------------------------------------
 settings_router = APIRouter(prefix="/settings", tags=["Settings"])

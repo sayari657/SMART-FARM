@@ -1,6 +1,7 @@
 import logging
 import httpx
 import json
+from datetime import datetime
 from typing import Dict, Any, Optional
 from app.core.config import settings
 
@@ -160,6 +161,27 @@ class MLLMService:
         # Priority 3 — no vision available
         logger.warning("No vision model available — returning empty")
         return ""
+
+    # ── Strategic Reporting: Intelligent Farm Analysis ────────────────────────
+
+    async def generate_strategic_report(self, data: Dict[str, Any]) -> str:
+        """
+        Generate a strategic summary based on farm statistics.
+        Uses Labess-7B or Groq.
+        """
+        prompt = (
+            "أنت خبير زراعي ذكي. بناءً على هذه المعطيات للمزرعة، أعطيني تقرير استراتيجي "
+            "بالدارجة التونسية. ركز على المشاكل والحلول الممكنة.\n\n"
+            f"التاريخ: {datetime.now().strftime('%d/%m/%Y')}\n"
+            f"عدد الحيوانات: {data.get('animal_count', 0)}\n"
+            f"عدد النباتات/المساحات: {data.get('plant_count', 0)}\n"
+            f"متوسط الصحة: {data.get('avg_health', 0)}%\n"
+            f"التنبيهات النشطة: {data.get('active_alerts', 0)}\n"
+            f"التنبيهات الخطيرة: {data.get('critical_alerts', 0)}\n"
+            f"أهم المشاكل المكتشفة: {data.get('top_anomalies', 'لا توجد')}\n\n"
+            "التقرير يجب أن يكون احترافي، مشجع، وعملي."
+        )
+        return await self.translate_to_derja(prompt)
 
     # ── OCR: extract visible text from image ──────────────────────────────────
 
