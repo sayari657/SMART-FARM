@@ -30,9 +30,28 @@ import ArbresPlantations from './pages/ArbresPlantations';
 import MapCenter from './pages/MapCenter';
 import NotFound from './pages/NotFound';
 
-function ProtectedRoute({ children }) {
+// Worker Pages (PWA)
+import WorkerLogin from './pages/WorkerLogin';
+import WorkerLayout from './layouts/WorkerLayout';
+import WorkerHome from './pages/worker/WorkerHome';
+import WorkerTasks from './pages/worker/WorkerTasks';
+import WorkerScan from './pages/worker/WorkerScan';
+import WorkerReport from './pages/worker/WorkerReport';
+import WorkerSettings from './pages/worker/WorkerSettings';
+
+function OwnerRoute({ children }) {
+  const { user } = useAuth();
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" replace />;
+  if (user?.role === 'worker') return <Navigate to="/worker" replace />;
+  return children;
+}
+
+function WorkerRoute({ children }) {
+  const token = localStorage.getItem('token');
+  if (!token) return <Navigate to="/worker-login" replace />;
+  // Both workers and owners can use the mobile interface (owners log in via phone OTP)
+  return children;
 }
 
 function AppRoutes() {
@@ -41,13 +60,14 @@ function AppRoutes() {
       {/* Public */}
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/worker-login" element={<WorkerLogin />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Protected layout */}
+      {/* Protected layout — owner only */}
       <Route element={
-        <ProtectedRoute>
+        <OwnerRoute>
           <MainLayout />
-        </ProtectedRoute>
+        </OwnerRoute>
       }>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="farms" element={<Farms />} />
@@ -70,6 +90,19 @@ function AppRoutes() {
         <Route path="about-project" element={<AboutProject />} />
         <Route path="trees" element={<ArbresPlantations />} />
         <Route path="map" element={<MapCenter />} />
+      </Route>
+
+      {/* Worker Protected layout (PWA) */}
+      <Route path="/worker" element={
+        <WorkerRoute>
+          <WorkerLayout />
+        </WorkerRoute>
+      }>
+        <Route index element={<WorkerHome />} />
+        <Route path="tasks" element={<WorkerTasks />} />
+        <Route path="scan" element={<WorkerScan />} />
+        <Route path="report" element={<WorkerReport />} />
+        <Route path="settings" element={<WorkerSettings />} />
       </Route>
 
       {/* 404 */}

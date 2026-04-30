@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "author": "Smart Farm AI",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-relay-module", "id": "relay1", "top": -100, "left": 150, "attrs": {} },
+    { "type": "wokwi-relay-module", "id": "relay2", "top": -40, "left": 150, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "soil_moisture", "top": 100, "left": -150, "attrs": { "label": "Humidité Sol" } },
+    { "type": "wokwi-potentiometer", "id": "pressure", "top": 160, "left": -150, "attrs": { "label": "Pression Eau" } },
+    { "type": "wokwi-ds18b20", "id": "temp_soil", "top": 220, "left": -150, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "flow", "top": 280, "left": -150, "attrs": { "label": "Débit Eau (YF-S201)" } }
+  ],
+  "connections": [
+    [ "esp:GND.1", "soil_moisture:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "soil_moisture:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "pressure:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "pressure:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "flow:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "flow:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "temp_soil:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "temp_soil:VCC", "red", [ "v0" ] ],
+    
+    [ "esp:VP", "soil_moisture:SIG", "green", [ "h0" ] ],
+    [ "esp:VN", "pressure:SIG", "blue", [ "h0" ] ],
+    [ "esp:D32", "flow:SIG", "purple", [ "h0" ] ],
+    [ "esp:D33", "temp_soil:DQ", "yellow", [ "h0" ] ],
+
+    [ "esp:D5", "relay1:IN", "orange", [ "v0" ] ],
+    [ "esp:D18", "relay2:IN", "orange", [ "v0" ] ],
+    [ "esp:GND.2", "relay1:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "relay1:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.2", "relay2:GND", "black", [ "v0" ] ],
+    [ "esp:5V", "relay2:VCC", "red", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

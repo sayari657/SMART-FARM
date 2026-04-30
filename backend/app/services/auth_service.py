@@ -64,8 +64,78 @@ class AuthService:
         token = create_access_token({"sub": user.username, "role": user.role})
         return Token(access_token=token)
 
+    def worker_request_otp(self, phone_number: str) -> dict:
+        """Étape 1 — Both workers and owners can use the mobile OTP login with their phone number."""
+        from app.models.domain import WorkerAssignment
+        from app.services import otp_service
+
+        user = self.db.query(User).filter(User.phone_number == phone_number).first()
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Ce numéro n'est pas enregistré. Contactez votre responsable de ferme."
+            )
+
+        if user.role == "worker":
+            # Workers must be assigned to at least one farm
+            assignment = self.db.query(WorkerAssignment).filter(
+                WorkerAssignment.worker_id == user.id,
+                WorkerAssignment.is_active == True,
+            ).first()
+            if not assignment:
+                raise HTTPException(status_code=403, detail="Aucune ferme assignée. Contactez votre propriétaire.")
+        elif user.role != "owner":
+            raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
+        # Send OTP (WhatsApp) — dev fallback stores OTP in memory
+        try:
+            otp = otp_service.send_otp_whatsapp(phone_number)
+        except Exception:
+            import random as _r
+            otp = str(_r.randint(100000, 999999))
+            otp_service.OTP_STORE[f"whatsapp:{phone_number}"] = otp
+
+        return {"message": f"Code OTP envoyé sur WhatsApp au {phone_number}", "phone": phone_number, "debug_otp": otp}
+
+    def worker_verify_otp(self, phone_number: str, otp: str) -> dict:
+        """Étape 2 — Verify OTP and return a JWT with the user's actual role."""
+        from app.models.domain import WorkerAssignment, FarmOwner
+        from app.services import otp_service
+        from app.schemas.domain import WorkerLoginResponse
+
+        valid = otp_service.verify_otp("whatsapp", phone_number, otp)
+        if not valid:
+            raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré. Veuillez réessayer.")
+
+        user = self.db.query(User).filter(User.phone_number == phone_number).first()
+        if not user or not user.is_active:
+            raise HTTPException(status_code=400, detail="Compte inactif.")
+
+        # Resolve farm_id based on role
+        if user.role == "worker":
+            assignment = self.db.query(WorkerAssignment).filter(
+                WorkerAssignment.worker_id == user.id,
+                WorkerAssignment.is_active == True,
+            ).first()
+            farm_id = assignment.farm_id if assignment else None
+        else:
+            # Owner — pick the first farm they manage
+            ownership = self.db.query(FarmOwner).filter(FarmOwner.owner_id == user.id).first()
+            farm_id = ownership.farm_id if ownership else None
+
+        token = create_access_token({"sub": user.username, "role": user.role, "farm_id": farm_id})
+
+        return WorkerLoginResponse(
+            access_token=token,
+            role=user.role,
+            farm_id=farm_id,
+            worker_name=user.full_name or user.username,
+            phone_number=phone_number,
+        )
+
     def get_profile(self, user: User) -> User:
         return user
+
 
     def generate_otp_by_phone(self, phone_number: str) -> str:
         # Find user by phone
@@ -76,25 +146,6 @@ class AuthService:
         # Generate 5-digit OTP
         otp = str(random.randint(10000, 99999))
         MOCK_OTP_STORE[phone_number] = otp
-        return otp
-
-    def reset_password_by_phone(self, phone_number: str, otp: str, new_password: str) -> bool:
-        user = self.db.query(User).filter(User.phone_number == phone_number).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="Numéro de téléphone introuvable.")
-        
-        # Verify OTP
-        stored_otp = MOCK_OTP_STORE.get(phone_number)
-        if not stored_otp or stored_otp != otp:
-            raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré.")
-        
-        # Update password
-        user.password_hash = hash_password(new_password)
-        self.db.commit()
-        
-        # Clear OTP
-        del MOCK_OTP_STORE[phone_number]
-        return True
         return otp
 
     def reset_password_by_phone(self, phone_number: str, otp: str, new_password: str) -> bool:

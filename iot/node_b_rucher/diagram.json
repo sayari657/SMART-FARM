@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "author": "Smart Farm AI",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-hx711", "id": "hx711", "top": -100, "left": 150, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht", "top": 100, "left": -150, "attrs": {} },
+    { "type": "wokwi-ds18b20", "id": "temp_hive", "top": 160, "left": -150, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:GND.1", "hx711:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "hx711:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "dht:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "dht:VCC", "red", [ "v0" ] ],
+    [ "esp:GND.1", "temp_hive:GND", "black", [ "v0" ] ],
+    [ "esp:3V3", "temp_hive:VCC", "red", [ "v0" ] ],
+
+    [ "esp:D12", "hx711:PD_SCK", "orange", [ "v0" ] ],
+    [ "esp:D13", "hx711:DOUT", "yellow", [ "v0" ] ],
+    [ "esp:D14", "dht:SDA", "green", [ "v0" ] ],
+    [ "esp:D15", "temp_hive:DQ", "blue", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}

@@ -22,6 +22,8 @@ from app.api.v1.endpoints.bee_planning import router as bee_planning_router
 from app.api.v1.endpoints.bee_stock import router as bee_stock_router
 from app.api.v1.endpoints.geo_routes import router as geo_router
 from app.api.v1.endpoints.diagnostic_routes import router as diagnostic_router
+from app.api.v1.endpoints.worker_tasks import router as worker_tasks_router
+from app.api.v1.endpoints.worker_reports import router as worker_reports_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -44,6 +46,8 @@ api_router.include_router(bee_planning_router)
 api_router.include_router(bee_stock_router)
 api_router.include_router(geo_router)
 api_router.include_router(diagnostic_router, prefix="/diagnostics", tags=["Diagnostic History"])
+api_router.include_router(worker_tasks_router)
+api_router.include_router(worker_reports_router)
 
 # External integrations
 api_router.include_router(weather_ext_router, prefix="/weather", tags=["Weather"])

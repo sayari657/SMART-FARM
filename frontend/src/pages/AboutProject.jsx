@@ -1,13 +1,13 @@
 import React from 'react';
-import { 
-  Leaf, 
-  Cpu, 
-  Eye, 
-  BarChart3, 
-  ShieldCheck, 
-  Layers, 
-  Zap, 
-  Globe 
+import {
+  Leaf,
+  Cpu,
+  Eye,
+  BarChart3,
+  ShieldCheck,
+  Layers,
+  Zap,
+  Globe
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
@@ -16,9 +16,10 @@ import ThreeAnimalModel from '../components/ThreeAnimalModel';
 
 const LIVESTOCK = [
   { sp: 'Bee', url: '/models/bee.glb', color: '#fbbf24', desc: 'Precision apiary monitoring with acoustic health diagnostics and automated harvest forecasting.' },
-  { sp: 'Cow', url: '/models/cow.glb', color: '#7c3aed', desc: 'Comprehensive dairy & beef tracking: rumination analysis, milk yield forecasting, and biometric monitoring.' },
-  { sp: 'Goat', url: '/models/goat.glb', color: '#dc2626', desc: 'Active herd management with agility-based activity indexing and milk production tracking.' },
-  { sp: 'Poultry', url: '/models/poultry.glb', color: '#0891b2', desc: 'Automated environmental & egg production oversight for large-scale poultry facilities.', rotation: [0, Math.PI, 0] },
+  { sp: 'Cow', url: '/models/cow.glb', color: '#7c3aed', desc: 'Comprehensive dairy & beef tracking: rumination analysis, milk yield forecasting, and biometric monitoring.', rotation: [0, Math.PI / 2, 0] },
+  { sp: 'Goat', url: '/models/goat.glb', color: '#dc2626', desc: 'Active herd management with agility-based activity indexing and milk production tracking.', rotation: [0, Math.PI / 2, 0] },
+  { sp: 'Poultry', url: '/models/poultry.glb', color: '#0891b2', desc: 'Automated environmental & egg production oversight for large-scale poultry facilities.', rotation: [0, Math.PI / 2, 0] },
+  { sp: 'Rabbit', url: '/models/rabbit.glb', color: '#f472b6', desc: 'Optimized lagomorph breeding monitoring: litter health tracking, feed efficiency, and automated environmental controls.' },
   { sp: 'Sheep', url: '/models/sheep.glb', color: '#059669', desc: 'Advanced grazing behavior analysis and livestock health telemetry for high-quality wool and meat production.' }
 ];
 
@@ -27,13 +28,13 @@ const AboutProject = () => {
 
   return (
     <>
-      <Navbar 
-        title={t('project.title')} 
-        subtitle={t('project.subtitle')} 
+      <Navbar
+        title={t('project.title')}
+        subtitle={t('project.subtitle')}
       />
-      
+
       <div className="page-content" style={{ maxWidth: '1000px', margin: '0 auto', direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
-        
+
         {/* Mission Section */}
         <section className="card" style={{ padding: 40, marginBottom: 32, textAlign: 'center', background: 'linear-gradient(135deg, var(--color-surface) 0%, #f0fdf4 100%)' }}>
           <div style={{ display: 'inline-flex', padding: 16, background: 'var(--color-primary)', borderRadius: 20, color: 'white', marginBottom: 24 }}>
@@ -48,21 +49,21 @@ const AboutProject = () => {
         {/* Core Pillars */}
         <div className="grid-3" style={{ gap: 24, marginBottom: 48 }}>
           {[
-            { 
-              icon: Cpu, 
-              title: t('project.pillar_iot'), 
+            {
+              icon: Cpu,
+              title: t('project.pillar_iot'),
               desc: 'Real-time environmental and health monitoring using low-latency MQTT protocols and high-precision sensors.',
               color: '#3b82f6'
             },
-            { 
-              icon: Eye, 
-              title: t('project.pillar_cv'), 
+            {
+              icon: Eye,
+              title: t('project.pillar_cv'),
               desc: 'Advanced YOLO-based object detection for automated livestock tracking, health diagnostics, and security.',
               color: '#10b981'
             },
-            { 
-              icon: BarChart3, 
-              title: 'Predictive Insights', 
+            {
+              icon: BarChart3,
+              title: 'Predictive Insights',
               desc: 'Machine learning algorithms that forecast yields, identify disease patterns, and optimize resources.',
               color: '#8b5cf6'
             }
@@ -92,7 +93,7 @@ const AboutProject = () => {
               <div>
                 <h4 style={{ fontWeight: 700, marginBottom: 16, color: 'var(--color-text-1)', textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>High-Performance Backend</h4>
                 <p style={{ color: 'var(--color-text-2)', marginBottom: 16, fontSize: 15, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>
-                  Powered by <strong>FastAPI</strong> and <strong>PostgreSQL</strong>, our backend is optimized for 
+                  Powered by <strong>FastAPI</strong> and <strong>PostgreSQL</strong>, our backend is optimized for
                   asynchronous processing of high-frequency telemetry data.
                 </p>
               </div>
@@ -108,32 +109,32 @@ const AboutProject = () => {
 
         {/* Livestock Ecosystem Section */}
         <div style={{ marginBottom: 64 }}>
-           <h2 style={{ textAlign: 'center', fontSize: 28, fontWeight: 800, marginBottom: 8, color: 'var(--color-text-1)' }}>{t('project.livestock_title')}</h2>
-           <p style={{ textAlign: 'center', color: 'var(--color-text-3)', marginBottom: 40 }}>High-precision monitoring across multiple species</p>
-           
-           <div className="grid-3" style={{ gap: 24 }}>
-              {LIVESTOCK.map((animal) => (
-                <div key={animal.sp} className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
-                     <ThreeAnimalModel modelUrl={animal.url} rotation={animal.rotation} />
-                  </div>
-                  <div style={{ padding: 20 }}>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: animal.color }} />
-                       <h4 style={{ fontWeight: 700, fontSize: 16 }}>Managed {animal.sp}</h4>
-                     </div>
-                     <p style={{ fontSize: 13, color: 'var(--color-text-3)', lineHeight: 1.5 }}>{animal.desc}</p>
-                  </div>
+          <h2 style={{ textAlign: 'center', fontSize: 28, fontWeight: 800, marginBottom: 8, color: 'var(--color-text-1)' }}>{t('project.livestock_title')}</h2>
+          <p style={{ textAlign: 'center', color: 'var(--color-text-3)', marginBottom: 40 }}>High-precision monitoring across multiple species</p>
+
+          <div className="grid-3" style={{ gap: 24 }}>
+            {LIVESTOCK.map((animal) => (
+              <div key={animal.sp} className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
+                  <ThreeAnimalModel modelUrl={animal.url} rotation={animal.rotation} />
                 </div>
-              ))}
-           </div>
+                <div style={{ padding: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: animal.color }} />
+                    <h4 style={{ fontWeight: 700, fontSize: 16 }}>Managed {animal.sp}</h4>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-text-3)', lineHeight: 1.5 }}>{animal.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Footer */}
         <div style={{ textAlign: 'center', paddingBottom: 64 }}>
           <ShieldCheck size={24} color="var(--success)" style={{ display: 'block', margin: '0 auto 12px' }} />
           <p style={{ color: 'var(--color-text-3)', fontSize: 14 }}>
-            &copy; 2026 Smart Farm AI Enterprise. <br/>
+            &copy; 2026 Smart Farm AI Enterprise. <br />
             Version 3.0.0-Stable
           </p>
         </div>

@@ -10,9 +10,10 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.models.domain import BeePlanning, BeePlanningTask, BeeHive, BeeApiary
 
-router = APIRouter(prefix="/bee/planning", tags=["Bee Planning"])
+router = APIRouter(prefix="/bee/planning", tags=["Bee Planning"], dependencies=[Depends(get_current_user)])
 
 VALID_STATUSES    = ["pending", "in_progress", "done", "cancelled"]
 VALID_ACTION_TYPES = ["inspection", "feeding", "treatment", "harvest", "autre"]

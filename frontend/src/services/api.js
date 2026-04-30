@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 const api = axios.create({ 
   baseURL: BASE_URL,
@@ -14,14 +14,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401 — redirect to login
+// On 401 — redirect to role-appropriate login page
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      window.location.href = user?.role === 'worker' ? '/worker-login' : '/login';
     }
     return Promise.reject(err);
   }
@@ -30,6 +31,8 @@ api.interceptors.response.use(
 // ---- Auth
 export const authAPI = {
   login: (creds) => api.post('/auth/login', creds),
+  workerRequestOtp: (phone_number) => api.post('/auth/worker/request-otp', { phone_number }),
+  workerVerifyOtp: (phone_number, otp) => api.post('/auth/worker/verify-otp', { phone_number, otp }),
   register: (data) => api.post('/auth/register', data),
   profile: () => api.get('/auth/profile'),
   forgotByEmail: (data) => api.post('/auth/forgot-password/email', data),
@@ -50,6 +53,21 @@ export const farmsAPI = {
   create: (data) => api.post('/farms', data),
   update: (id, data) => api.put(`/farms/${id}`, data),
   delete: (id) => api.delete(`/farms/${id}`),
+};
+
+// ---- Farm Workers
+export const farmWorkersAPI = {
+  list:   (farmId)                  => api.get(`/farms/${farmId}/workers`),
+  add:    (farmId, data)            => api.post(`/farms/${farmId}/workers`, data),
+  update: (farmId, workerId, data)  => api.put(`/farms/${farmId}/workers/${workerId}`, data),
+  remove: (farmId, workerId)        => api.delete(`/farms/${farmId}/workers/${workerId}`),
+};
+
+// ---- Farm Owners (many-to-many)
+export const farmOwnersAPI = {
+  list:   (farmId)          => api.get(`/farms/${farmId}/owners`),
+  add:    (farmId, data)    => api.post(`/farms/${farmId}/owners`, data),
+  remove: (farmId, ownerId) => api.delete(`/farms/${farmId}/owners/${ownerId}`),
 };
 
 // ---- Animals

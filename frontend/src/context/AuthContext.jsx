@@ -25,6 +25,40 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const workerRequestOtp = async (phoneNumber) => {
+    setLoading(true);
+    try {
+      const { data } = await authAPI.workerRequestOtp(phoneNumber);
+      return { ok: true, data };
+    } catch (e) {
+      return { ok: false, error: e.response?.data?.detail || 'Erreur lors de l\'envoi du code.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const workerVerifyOtp = async (phoneNumber, otp) => {
+    setLoading(true);
+    try {
+      const { data } = await authAPI.workerVerifyOtp(phoneNumber, otp);
+      localStorage.setItem('token', data.access_token);
+      const userObj = {
+        role: data.role,
+        farm_id: data.farm_id,
+        full_name: data.worker_name,
+        username: data.worker_name,
+        phone_number: data.phone_number
+      };
+      localStorage.setItem('user', JSON.stringify(userObj));
+      setUser(userObj);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.response?.data?.detail || 'Code OTP invalide.' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const register = async (payload) => {
     setLoading(true);
     try {
@@ -44,7 +78,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, workerRequestOtp, workerVerifyOtp, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

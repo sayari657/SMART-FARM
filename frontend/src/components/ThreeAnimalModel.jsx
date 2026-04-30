@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useGLTF, Stage, PresentationControls, Environment, ContactShadows, Float } from '@react-three/drei';
+import { useGLTF, Stage, PresentationControls, Environment, ContactShadows, Float, Center } from '@react-three/drei';
 
 function Model({ url, scale = 1, rotation = [0, 0, 0] }) {
   const { scene } = useGLTF(url);
@@ -23,16 +23,18 @@ const ThreeAnimalModel = ({ modelUrl, scale = 1.5, rotation = [0, 0, 0] }) => {
           >
             <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
               <Stage intensity={0.5} contactShadow={false} adjustCamera={true} environment="city">
-                 <Model url={modelUrl} scale={scale} rotation={rotation} />
+                <Center>
+                  <Model url={modelUrl} scale={scale} rotation={rotation} />
+                </Center>
               </Stage>
             </Float>
           </PresentationControls>
-          <ContactShadows 
-            position={[0, -1, 0]} 
-            opacity={0.3} 
-            scale={5} 
-            blur={2} 
-            far={1.5} 
+          <ContactShadows
+            position={[0, -1, 0]}
+            opacity={0.3}
+            scale={5}
+            blur={2}
+            far={1.5}
           />
         </Suspense>
       </Canvas>

@@ -20,6 +20,7 @@ export default function Login() {
   const [otpCode, setOtpCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showNewPw, setShowNewPw] = useState(false);
+  const [debugOtp, setDebugOtp] = useState(null);
 
   const { login, loading } = useAuth();
   const navigate = useNavigate();
@@ -28,26 +29,32 @@ export default function Login() {
 
   const resetFlow = () => {
     setView('login'); setChannel(null); setIdentifier('');
-    setOtpCode(''); setNewPassword(''); setError(''); setMsg('');
+    setOtpCode(''); setNewPassword(''); setError(''); setMsg(''); setDebugOtp(null);
   };
 
   const handleLogin = async (e) => {
     e.preventDefault(); setError('');
     const res = await login(form.username, form.password);
-    if (res.ok) navigate('/about-project');
-    else setError(res.error);
+    if (res.ok) {
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      navigate(savedUser?.role === 'worker' ? '/worker' : '/dashboard');
+    } else {
+      setError(res.error);
+    }
   };
 
   const handleRequestOtp = async (e) => {
     e.preventDefault(); setError(''); setLoading2(true);
     try {
+      let res;
       if (channel === 'email') {
-        await authAPI.forgotByEmail({ email: identifier });
+        res = await authAPI.forgotByEmail({ email: identifier });
         setMsg(`✅ Code envoyé à ${identifier}. Vérifiez votre boîte mail.`);
       } else {
-        await authAPI.forgotByWhatsApp({ phone_number: identifier });
+        res = await authAPI.forgotByWhatsApp({ phone_number: identifier });
         setMsg(`✅ Code WhatsApp envoyé au ${identifier}. Vérifiez WhatsApp.`);
       }
+      setDebugOtp(res.data?.debug_otp || null);
       setView('enter_otp');
     } catch (err) {
       setError(err.response?.data?.detail || 'Erreur lors de l\'envoi du code.');
@@ -139,6 +146,11 @@ export default function Login() {
                 </button>
               </form>
               <div className="auth-footer">Don't have an account? <Link to="/register">Create one</Link></div>
+              <div style={{ textAlign: 'center', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+                <Link to="/worker-login" style={{ fontSize: '14px', color: 'var(--color-primary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <span>👷</span> Accès Ouvrier (Code PIN)
+                </Link>
+              </div>
             </>
           )}
 
@@ -235,6 +247,29 @@ export default function Login() {
               <h1 style={{ fontSize:20, marginBottom:8 }}>Entrez votre code</h1>
               {msg && <div className="alert-banner success" style={{ marginBottom:16 }}><div className="alert-banner-msg">{msg}</div></div>}
               {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
+
+              {/* Dev OTP helper — visible only when WhatsApp/Email API not configured */}
+              {debugOtp && (
+                <div style={{
+                  background:'rgba(234,179,8,0.1)', border:'1.5px dashed rgba(234,179,8,0.4)',
+                  borderRadius:10, padding:'10px 16px', marginBottom:12,
+                  display:'flex', alignItems:'center', justifyContent:'space-between', gap:12
+                }}>
+                  <div>
+                    <div style={{ color:'#fbbf24', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>
+                      DEV — Code OTP
+                    </div>
+                    <div style={{ color:'#fef08a', fontSize:24, fontWeight:800, fontFamily:'monospace', letterSpacing:'5px' }}>
+                      {debugOtp}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setOtpCode(debugOtp)}
+                    style={{ padding:'6px 12px', background:'rgba(234,179,8,0.15)', border:'1px solid rgba(234,179,8,0.3)',
+                      borderRadius:8, color:'#fbbf24', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                    Remplir
+                  </button>
+                </div>
+              )}
 
               <form onSubmit={handleResetPassword} style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 <div className="form-group">

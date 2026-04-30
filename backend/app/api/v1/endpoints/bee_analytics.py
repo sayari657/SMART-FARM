@@ -15,9 +15,10 @@ from sqlalchemy import desc
 from datetime import datetime, timedelta
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.models.domain import BeeApiary, BeeHive, BeeVisit, BeeProduction
 
-router = APIRouter(prefix="/bee/analytics", tags=["Bee Analytics"])
+router = APIRouter(prefix="/bee/analytics", tags=["Bee Analytics"], dependencies=[Depends(get_current_user)])
 
 
 # ─── Scientific Constants ─────────────────────────────────────────────────────

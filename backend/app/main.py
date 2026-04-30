@@ -134,9 +134,104 @@ async def global_exception_handler(request, exc):
 # 5. Routing
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+from pydantic import BaseModel
+
+class TelemetryPayload(BaseModel):
+    node: str
+    metric: str
+    value: float
+
+@app.post("/api/v1/iot/telemetry")
+def post_telemetry(payload: TelemetryPayload):
+    import os, csv
+    from pathlib import Path
+    from datetime import datetime
+    csv_path = str(Path(__file__).parent.parent.parent / "iot" / "iot_telemetry.csv")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    try:
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if f.tell() == 0:
+                writer.writerow(["Timestamp", "Node", "Metric", "Value"])
+            writer.writerow([timestamp, payload.node, payload.metric, payload.value])
+    except Exception as e:
+        logger.error(f"Error appending to IoT CSV: {e}")
+        return {"status": "error", "message": str(e)}
+        
+    return {"status": "ok"}
+
+@app.get("/api/v1/iot/latest")
+def get_latest_iot():
+    import os, csv
+    from pathlib import Path
+    csv_path = str(Path(__file__).parent.parent.parent / "iot" / "iot_telemetry.csv")
+    
+    latest = {
+        "nodeA": {"soil": 45.0, "pressure": 0.5, "flow": 12.0, "temp": 23.0},
+        "nodeB": {"weight": 46.0, "broodTemp": 35.0, "extTemp": 28.0, "extHum": 58.0}
+    }
+    
+    if not os.path.exists(csv_path):
+        return latest
+        
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            lines = list(csv.reader(f))
+            if len(lines) <= 1:
+                return latest
+            
+            metrics_found_a = set()
+            metrics_found_b = set()
+            for row in reversed(lines):
+                if len(row) < 4:
+                    continue
+                ts, node, metric, value = row[0], row[1], row[2], row[3]
+                
+                try:
+                    val_float = float(value)
+                except ValueError:
+                    continue
+                    
+                if "Node A" in node:
+                    if metric == "Humidité Sol" and "soil" not in metrics_found_a:
+                        latest["nodeA"]["soil"] = val_float
+                        metrics_found_a.add("soil")
+                    elif metric == "Pression" and "pressure" not in metrics_found_a:
+                        latest["nodeA"]["pressure"] = val_float
+                        metrics_found_a.add("pressure")
+                    elif metric == "Débit" and "flow" not in metrics_found_a:
+                        latest["nodeA"]["flow"] = val_float
+                        metrics_found_a.add("flow")
+                    elif metric == "Temp Sol" and "temp" not in metrics_found_a:
+                        latest["nodeA"]["temp"] = val_float
+                        metrics_found_a.add("temp")
+                elif "Node B" in node:
+                    if metric == "Poids Ruche" and "weight" not in metrics_found_b:
+                        latest["nodeB"]["weight"] = val_float
+                        metrics_found_b.add("weight")
+                    elif metric == "Temp Couvain" and "broodTemp" not in metrics_found_b:
+                        latest["nodeB"]["broodTemp"] = val_float
+                        metrics_found_b.add("broodTemp")
+                    elif metric == "Temp Ext" and "extTemp" not in metrics_found_b:
+                        latest["nodeB"]["extTemp"] = val_float
+                        metrics_found_b.add("extTemp")
+                    elif metric == "Humidité Ext" and "extHum" not in metrics_found_b:
+                        latest["nodeB"]["extHum"] = val_float
+                        metrics_found_b.add("extHum")
+                        
+                if len(metrics_found_a) == 4 and len(metrics_found_b) == 4:
+                    break
+    except Exception as e:
+        logger.error(f"Error reading IoT CSV: {e}")
+        
+    return latest
+
 # -- Health & Root --
 @app.get("/")
 def root(): return {"status": "Sovereign", "version": settings.VERSION}
+
 
 @app.get("/health")
 def health(): return {"status": "ok"}
@@ -161,10 +256,6 @@ app.state.ws_manager = manager
 async def ws_telemetry(websocket: WebSocket):
     await manager.connect(websocket)
     try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:

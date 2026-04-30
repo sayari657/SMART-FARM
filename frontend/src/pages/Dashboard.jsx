@@ -19,7 +19,30 @@ export default function Dashboard() {
   const [recentTelemetry, setRT]  = useState([]);
   const [weather, setWeather]     = useState(null);
   const [loading, setLoading]     = useState(true);
+  const [iotData, setIotData]     = useState({
+    nodeA: { soil: 45.2, pressure: 0.5, flow: 12.8, temp: 23.4 },
+    nodeB: { weight: 46.5, broodTemp: 34.8, extTemp: 28.2, extHum: 58.9 }
+  });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchIot = () => {
+      fetch('http://127.0.0.1:8002/api/v1/iot/latest')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.nodeA && data.nodeB) {
+            setIotData(data);
+          }
+        })
+        .catch(err => console.error("Erreur fetch IoT :", err));
+    };
+    
+    fetchIot(); // First load
+    const interval = setInterval(fetchIot, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+
 
   useEffect(() => {
     Promise.all([
@@ -241,6 +264,67 @@ export default function Dashboard() {
                 </table>
               </div>
             ) : <div className="empty-state" style={{ padding:'20px 0' }}><Eye size={28} /><p>No CV events yet</p></div>}
+          </div>
+        </div>
+
+        {/* Tendance Télémesure IoT (48h) */}
+        <div className="card" style={{ marginBottom: 28 }}>
+          <div className="card-header">
+            <div>
+              <div className="card-title">Tendance Télémesure IoT (En Temps Réel)</div>
+              <div className="card-subtitle">Données des capteurs de la Ferme Connectée (Actualisé toutes les 10s)</div>
+            </div>
+            <span className="badge badge-success" style={{ padding: '6px 12px', fontSize: 12 }}>LIVE</span>
+          </div>
+          
+          <div style={{ padding: 20 }}>
+            <h4 style={{ color: '#0284c7', marginBottom: 12, fontWeight: 700 }}>Nœud A — Local Pompe & Sol</h4>
+            <div className="kpi-grid" style={{ marginBottom: 24 }}>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Humidité Sol</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0284c7', margin: '8px 0' }}>{iotData.nodeA.soil} %</div>
+                <div style={{ fontSize: 11, color: iotData.nodeA.soil < 35 ? '#dc2626' : '#16a34a' }}>{iotData.nodeA.soil < 35 ? 'Trop Sec' : 'Normal'}</div>
+              </div>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Pression Réseau</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0284c7', margin: '8px 0' }}>{iotData.nodeA.pressure} MPa</div>
+                <div style={{ fontSize: 11, color: '#16a34a' }}>Nominal</div>
+              </div>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Débit Actuel</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0284c7', margin: '8px 0' }}>{iotData.nodeA.flow} L/min</div>
+                <div style={{ fontSize: 11, color: '#16a34a' }}>{iotData.nodeA.flow > 0 ? 'Irrigation OK' : 'En Veille'}</div>
+              </div>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Température Sol</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#0284c7', margin: '8px 0' }}>{iotData.nodeA.temp} °C</div>
+                <div style={{ fontSize: 11, color: '#16a34a' }}>Idéal Racines</div>
+              </div>
+            </div>
+
+            <h4 style={{ color: '#d97706', marginBottom: 12, fontWeight: 700 }}>Nœud B — Rucher & Extérieur</h4>
+            <div className="kpi-grid">
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Poids Ruche</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#d97706', margin: '8px 0' }}>{iotData.nodeB.weight} kg</div>
+                <div style={{ fontSize: 11, color: '#16a34a' }}>Stable</div>
+              </div>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Temp Couvain</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#d97706', margin: '8px 0' }}>{iotData.nodeB.broodTemp} °C</div>
+                <div style={{ fontSize: 11, color: (iotData.nodeB.broodTemp < 34 || iotData.nodeB.broodTemp > 36) ? '#dc2626' : '#16a34a' }}>{ (iotData.nodeB.broodTemp < 34 || iotData.nodeB.broodTemp > 36) ? 'Dérégulation' : 'Optimal'}</div>
+              </div>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Temp Extérieure</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#d97706', margin: '8px 0' }}>{iotData.nodeB.extTemp} °C</div>
+                <div style={{ fontSize: 11, color: '#16a34a' }}>Météo locale</div>
+              </div>
+              <div style={{ background: 'var(--glass-bg)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)', textAlign: 'center' }}>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Humidité Ext</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: '#d97706', margin: '8px 0' }}>{iotData.nodeB.extHum} %</div>
+                <div style={{ fontSize: 11, color: '#16a34a' }}>Optimal</div>
+              </div>
+            </div>
           </div>
         </div>
 

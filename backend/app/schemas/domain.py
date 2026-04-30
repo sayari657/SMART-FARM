@@ -24,6 +24,26 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+# Worker Auth via OTP WhatsApp/SMS
+class WorkerOtpRequest(BaseModel):
+    phone_number: str  # E.164 format: +21655123456
+
+class WorkerOtpVerify(BaseModel):
+    phone_number: str
+    otp: str
+
+class WorkerLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    farm_id: Optional[int] = None
+    worker_name: str
+    phone_number: str
+
+# Legacy (kept for compatibility)
+class WorkerLoginRequest(BaseModel):
+    farm_id: int
+    pin_code: str
 
 # ===========================================================================
 # Users
@@ -34,7 +54,7 @@ class UserBase(BaseModel):
     email: Optional[str] = None
     phone_number: Optional[str] = None
     full_name: Optional[str] = None
-    role: str = "operator"
+    role: str = "owner"
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)

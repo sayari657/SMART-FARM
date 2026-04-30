@@ -5,7 +5,7 @@ Full enterprise schema supporting multi-species farm monitoring.
 
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean,
-    ForeignKey, DateTime, Text, JSON, Enum, Index
+    ForeignKey, DateTime, Text, JSON, Enum, Index, UniqueConstraint
 )
 try:
     from geoalchemy2 import Geometry
@@ -32,10 +32,8 @@ def get_geom_column(geometry_type='POINT', srid=4326):
 # ---------------------------------------------------------------------------
 
 class UserRole(str, enum.Enum):
-    admin = "admin"
-    farm_manager = "farm_manager"
-    vet = "vet"
-    operator = "operator"
+    owner  = "owner"
+    worker = "worker"
 
 
 class FarmStatus(str, enum.Enum):
@@ -119,6 +117,84 @@ class Farm(Base):
 
 
 # ---------------------------------------------------------------------------
+# Farm Owners (many-to-many: a farm can have several owners)
+# ---------------------------------------------------------------------------
+
+class FarmOwner(Base):
+    __tablename__ = "farm_owners"
+    __table_args__ = (UniqueConstraint("farm_id", "owner_id", name="uq_farm_owner"),)
+
+    id       = Column(Integer, primary_key=True, index=True)
+    farm_id  = Column(Integer, ForeignKey("farms.id",  ondelete="CASCADE"), nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id",  ondelete="CASCADE"), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+    farm  = relationship("Farm")
+    owner = relationship("User")
+
+
+# ---------------------------------------------------------------------------
+# Workers (PWA)
+# ---------------------------------------------------------------------------
+
+class WorkerAssignment(Base):
+    __tablename__ = "worker_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    worker_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
+    pin_code = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    assigned_at = Column(DateTime, default=datetime.utcnow)
+
+    worker = relationship("User")
+    farm = relationship("Farm")
+
+class WorkerTask(Base):
+    __tablename__ = "worker_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
+    worker_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
+    due_date = Column(DateTime)
+    status = Column(String(50), default="pending") # pending, done, blocked
+    priority = Column(String(50), default="normal") # low, normal, urgent
+    photo_url = Column(Text)
+    notes = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    done_at = Column(DateTime)
+
+    farm = relationship("Farm")
+    worker = relationship("User", foreign_keys=[worker_id])
+    creator = relationship("User", foreign_keys=[created_by])
+
+class WorkerReport(Base):
+    __tablename__ = "worker_reports"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    worker_id   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    farm_id     = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True)
+    type        = Column(String(100), nullable=False, default="other")
+    notes       = Column(Text)
+    photo_b64   = Column(Text)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+
+    worker = relationship("User")
+
+
+class PushToken(Base):
+    __tablename__ = "push_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(Text, nullable=False)
+    platform = Column(String(50))
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")# ---------------------------------------------------------------------------
 # Veterinarians (GIS Entities)
 # ---------------------------------------------------------------------------
 

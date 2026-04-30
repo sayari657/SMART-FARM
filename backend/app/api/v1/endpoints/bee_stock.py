@@ -11,9 +11,10 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.models.domain import BeeGlobalStock, BeeHiveStock, BeeHive
 
-router = APIRouter(prefix="/bee/stock", tags=["Bee Stock"])
+router = APIRouter(prefix="/bee/stock", tags=["Bee Stock"], dependencies=[Depends(get_current_user)])
 
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────
