@@ -427,7 +427,7 @@ export default function SovereignAssistant() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, paddingTop: 40, animation: 'slideUp 0.4s ease' }}>
                 <div style={{
                   width: 72, height: 72, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${S.accent}, #7c3aed)`,
+                  background: `linear-gradient(135deg, ${S.accent}, ${S.accentLight})`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: `0 0 32px ${S.accentGlow}`,
                   animation: 'botGlow 3s ease-in-out infinite',
@@ -498,7 +498,7 @@ export default function SovereignAssistant() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0, maxWidth: '72%' }}>
                   {/* Image */}
                   {msg.imageUrl && (
-                    <div style={{ borderRadius: 14, overflow: 'hidden', maxWidth: 280, border: `1px solid ${S.botBorder}`, boxShadow: `0 4px 20px rgba(0,0,0,0.3)` }}>
+                    <div style={{ borderRadius: 14, overflow: 'hidden', maxWidth: 280, border: `1px solid ${S.botBorder}`, boxShadow: `0 2px 8px rgba(0,0,0,0.08)` }}>
                       <img src={msg.imageUrl} alt="joint" style={{ width: '100%', display: 'block' }} />
                     </div>
                   )}
@@ -630,7 +630,7 @@ export default function SovereignAssistant() {
               border: `1px solid ${S.inputBorder}`,
               borderRadius: 16,
               padding: '10px 12px',
-              boxShadow: `0 0 20px rgba(99,102,241,0.08)`,
+              boxShadow: `0 0 20px rgba(22,163,74,0.06)`,
               transition: 'border-color 0.2s, box-shadow 0.2s',
             }}
             onFocusCapture={e => e.currentTarget.style.borderColor = S.accent}
@@ -639,7 +639,7 @@ export default function SovereignAssistant() {
               {/* Mic */}
               <button onClick={toggleListening} className="sov-btn" title={isListening ? 'Arrêter' : 'Dicter'} style={{
                 width: 36, height: 36,
-                background: isListening ? 'rgba(99,102,241,0.25)' : 'transparent',
+                background: isListening ? 'rgba(22,163,74,0.15)' : 'transparent',
                 color: isListening ? S.accent : S.muted,
                 animation: isListening ? 'micPulse 1s ease-in-out infinite' : 'none',
               }}>
@@ -649,7 +649,7 @@ export default function SovereignAssistant() {
               {/* Image attach */}
               <button onClick={() => fileInputRef.current.click()} className="sov-btn" title="Joindre & analyser une image" style={{
                 width: 36, height: 36,
-                background: attachedImage ? 'rgba(99,102,241,0.2)' : 'transparent',
+                background: attachedImage ? 'rgba(22,163,74,0.12)' : 'transparent',
                 color: attachedImage ? S.accent : S.muted,
               }}>
                 <Paperclip size={16} />
@@ -675,8 +675,8 @@ export default function SovereignAssistant() {
                 style={{
                   width: 36, height: 36,
                   background: (!input.trim() && !attachedImage) || loading
-                    ? 'rgba(99,102,241,0.15)'
-                    : `linear-gradient(135deg, ${S.accent}, #7c3aed)`,
+                    ? 'rgba(22,163,74,0.1)'
+                    : `linear-gradient(135deg, ${S.accent}, ${S.accentLight})`,
                   color: 'white',
                   boxShadow: (!input.trim() && !attachedImage) ? 'none' : `0 4px 14px ${S.accentGlow}`,
                 }}>
