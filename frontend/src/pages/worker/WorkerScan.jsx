@@ -2,105 +2,152 @@ import React, { useState } from 'react';
 import AIScanner from '../../components/AIScanner';
 import ExpertAssistant from '../../components/expert/ExpertAssistant';
 
-const CATEGORIES = [
-  { id: 'bee',       icon: '🐝', label: 'Ruche',    color: '#f59e0b' },
-  { id: 'livestock', icon: '🐄', label: 'Bétail',   color: '#3b82f6' },
-  { id: 'leaves',    icon: '🌿', label: 'Plante',   color: '#22c55e' },
-  { id: 'fire',      icon: '🔥', label: 'Urgence',  color: '#ef4444' },
-  { id: 'sheep',     icon: '🐑', label: 'Mouton',   color: '#059669' },
-  { id: 'poultry',   icon: '🐓', label: 'Volaille', color: '#0891b2' },
-  { id: 'goat',      icon: '🐐', label: 'Chèvre',   color: '#dc2626' },
-  { id: 'rabbit',    icon: '🐰', label: 'Lapin',    color: '#16a34a' },
-  { id: 'olive',     icon: '🫒', label: 'Olivier',  color: '#65a30d' },
-  { id: 'insects',   icon: '🐛', label: 'Nuisible', color: '#ca8a04' },
+// All models available in the backend MODEL_REGISTRY (cv_routes.py)
+const GROUPS = [
+  {
+    label: 'Maladies Végétales',
+    emoji: '🌱',
+    items: [
+      { id: 'orange',  icon: '🍊', label: 'Maladies Oranger',     color: '#f97316' },
+      { id: 'lemon',   icon: '🍋', label: 'Maladies Citronnier',  color: '#eab308' },
+      { id: 'leaves',  icon: '🌿', label: 'Maladies des Feuilles',color: '#16a34a' },
+      { id: 'insects', icon: '🐛', label: 'Insectes & Ravageurs', color: '#ca8a04' },
+      { id: 'olive',   icon: '🫒', label: 'Maladies de l\'Olivier',color: '#65a30d' },
+    ],
+  },
+  {
+    label: 'Élevage & Apiculture',
+    emoji: '🐾',
+    items: [
+      { id: 'bee',      icon: '🐝', label: 'Hive Entrance',  color: '#f59e0b' },
+      { id: 'livestock',icon: '🐄', label: 'Bétail',         color: '#3b82f6' },
+      { id: 'sheep',    icon: '🐑', label: 'Mouton',         color: '#059669' },
+      { id: 'goat',     icon: '🐐', label: 'Chèvre',         color: '#dc2626' },
+    ],
+  },
+  {
+    label: 'Sécurité',
+    emoji: '🚨',
+    items: [
+      { id: 'fire', icon: '🔥', label: 'Détection Feu', color: '#ef4444' },
+    ],
+  },
 ];
 
-// Override CSS variables so AIScanner (built for light theme) renders on the dark worker bg
-const DARK_VARS = {
-  '--glass-bg':          'rgba(255,255,255,0.04)',
-  '--glass-border':      'rgba(255,255,255,0.09)',
-  '--glass-shadow':      '0 4px 20px rgba(0,0,0,0.35)',
-  '--color-bg':          '#1e293b',
-  '--color-bg2':         '#111827',
-  '--color-surface':     '#1e293b',
-  '--color-surface-2':   '#1a2439',
-  '--color-border':      'rgba(255,255,255,0.08)',
-  '--color-border-light':'rgba(255,255,255,0.05)',
-  '--color-text':        '#f1f5f9',
-  '--color-text-2':      '#cbd5e1',
-  '--color-text-3':      '#64748b',
-  '--radius-lg':         '16px',
-};
+const ALL_CATS = GROUPS.flatMap(g => g.items);
 
 export default function WorkerScan() {
-  const [activeId, setActiveId] = useState('bee');
-  const cat = CATEGORIES.find(c => c.id === activeId);
+  const [activeId, setActiveId] = useState('orange');
+  const cat = ALL_CATS.find(c => c.id === activeId) || ALL_CATS[0];
 
   return (
-    <div style={{ paddingBottom: 20 }}>
+    <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
 
-      {/* ── Header ── */}
+      {/* ── Page header ── */}
       <div style={{
-        padding: '18px 20px 14px',
-        background: 'rgba(255,255,255,0.02)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: '#fff',
+        borderBottom: '1px solid #e2e8f0',
+        padding: '14px 18px 12px',
       }}>
-        <h1 style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 800, margin: '0 0 3px' }}>
-          Vision IA
-        </h1>
-        <p style={{ color: '#64748b', fontSize: 12, margin: 0 }}>
-          Détection YOLO · Analyse Darija · Historique sauvegardé par catégorie
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+            background: `${cat.color}18`,
+            border: `1.5px solid ${cat.color}40`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18, transition: 'all .2s',
+          }}>
+            {cat.icon}
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.2 }}>
+              {cat.label}
+            </div>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+              Vision IA · Détection YOLO · {ALL_CATS.length} modèles disponibles
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* ── Category tabs (horizontal scroll) ── */}
-      <div style={{
-        overflowX: 'auto', overflowY: 'hidden',
-        display: 'flex', gap: 8,
-        padding: '12px 16px',
-        scrollbarWidth: 'none',
-      }}>
-        {CATEGORIES.map(c => {
-          const active = activeId === c.id;
-          return (
-            <button
-              key={c.id}
-              onClick={() => setActiveId(c.id)}
-              style={{
-                flex: '0 0 auto',
-                padding: '7px 14px',
-                borderRadius: 20,
-                border: `1.5px solid ${active ? c.color : 'rgba(255,255,255,0.09)'}`,
-                background: active ? `${c.color}1a` : 'rgba(255,255,255,0.03)',
-                color: active ? c.color : '#64748b',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                whiteSpace: 'nowrap',
-                transition: 'all 0.18s',
-              }}
-            >
-              <span style={{ fontSize: 16 }}>{c.icon}</span>
-              {c.label}
-            </button>
-          );
-        })}
+      {/* ── Model selector by group ── */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', paddingBottom: 4 }}>
+        {GROUPS.map(group => (
+          <div key={group.label} style={{ padding: '10px 16px 6px' }}>
+            {/* Group label */}
+            <div style={{
+              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '.06em', color: '#94a3b8',
+              marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              <span>{group.emoji}</span>
+              {group.label}
+            </div>
+
+            {/* Horizontal scroll row */}
+            <div style={{
+              display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
+              scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+            }}>
+              {group.items.map(c => {
+                const active = activeId === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveId(c.id)}
+                    style={{
+                      flex: '0 0 auto',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                      padding: '8px 10px',
+                      borderRadius: 12, cursor: 'pointer',
+                      border: `1.5px solid ${active ? c.color : '#e2e8f0'}`,
+                      background: active ? `${c.color}12` : '#f8fafc',
+                      minWidth: 72, maxWidth: 96,
+                      transition: 'all .18s',
+                      boxShadow: active ? `0 2px 8px ${c.color}30` : 'none',
+                    }}
+                  >
+                    <span style={{ fontSize: 22, lineHeight: 1 }}>{c.icon}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: active ? 700 : 500, lineHeight: 1.2,
+                      color: active ? c.color : '#64748b',
+                      textAlign: 'center', wordBreak: 'break-word',
+                    }}>
+                      {c.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* ── AIScanner wrapped in dark-theme variable overrides ── */}
-      <div style={{ padding: '0 12px 12px', ...DARK_VARS }}>
+      {/* ── Active model badge ── */}
+      <div style={{ padding: '10px 16px' }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '5px 12px', borderRadius: 99,
+          background: `${cat.color}15`,
+          border: `1px solid ${cat.color}30`,
+        }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: cat.color }}>{cat.label}</span>
+          <span style={{ fontSize: 11, color: '#94a3b8' }}>— Modèle actif</span>
+        </div>
+      </div>
+
+      {/* ── AIScanner (light theme — no dark overrides needed) ── */}
+      <div style={{ padding: '0 12px 12px' }}>
         <AIScanner
           key={activeId}
           category={activeId}
-          title={`${cat.icon} ${cat.label} — Vision IA`}
+          title={`${cat.icon} ${cat.label}`}
           color={cat.color}
         />
       </div>
 
-      {/* Expert assistant FAB — follows active category */}
+      {/* Expert assistant FAB */}
       <ExpertAssistant species={activeId} color={cat.color} />
     </div>
   );
