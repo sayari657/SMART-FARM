@@ -6,26 +6,35 @@ logger = logging.getLogger(__name__)
 
 class GeocodeService:
     def __init__(self):
-        self.search_url = "https://nominatim.openstreetmap.org/search"
+        self.photon_url  = "https://photon.komoot.io/api/"
         self.reverse_url = "https://nominatim.openstreetmap.org/reverse"
         self.timeout = 10.0
-        # Required by OSM policy
         self.headers = {
             "User-Agent": "SmartFarmAI/2.0 (Academic/PFE Project)"
         }
 
     async def search_address(self, query: str) -> Optional[list]:
-        params = {
-            "q": query,
-            "format": "json",
-            "limit": 5
-        }
-        
+        """Forward geocoding via Photon (OpenStreetMap-backed, free, no key required)."""
         try:
             async with httpx.AsyncClient(timeout=self.timeout, headers=self.headers) as client:
-                response = await client.get(self.search_url, params=params)
+                response = await client.get(
+                    self.photon_url,
+                    params={"q": query, "limit": 5, "lang": "fr"}
+                )
                 response.raise_for_status()
-                return response.json()
+                features = response.json().get("features", [])
+                return [
+                    {
+                        "lat": str(f["geometry"]["coordinates"][1]),
+                        "lon": str(f["geometry"]["coordinates"][0]),
+                        "display_name": ", ".join(filter(None, [
+                            f["properties"].get("name"),
+                            f["properties"].get("city"),
+                            f["properties"].get("country"),
+                        ]))
+                    }
+                    for f in features
+                ]
         except httpx.RequestError as exc:
             logger.error(f"Geocode search error: {exc}")
             return None

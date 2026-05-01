@@ -350,7 +350,7 @@ export default function StockTab({ stock, visites = [], ruches = [], onUpdate })
       </div>
 
       {/* Grille stock */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24 }}>
         {stockCategories.map(cat => {
           const isLow = stock[cat.id] < cat.limit;
           const stat = analytics[cat.id];
@@ -395,7 +395,7 @@ export default function StockTab({ stock, visites = [], ruches = [], onUpdate })
               </div>
 
               <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16,
                 background: 'rgba(255,255,255,0.02)',
                 borderRadius: 18, padding: 20, marginBottom: 24,
                 border: `1px solid ${COLORS.border}`,

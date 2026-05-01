@@ -1,0 +1,86 @@
+# FARM AI — Oracle Cloud Always-Free Deployment
+# SQLite database (no PostgreSQL container needed)
+# 2 containers only: backend + frontend-nginx
+#
+# START:  docker compose -f docker-compose.oracle.yml up -d --build
+# STOP:   docker compose -f docker-compose.oracle.yml down
+# LOGS:   docker compose -f docker-compose.oracle.yml logs -f
+# UPDATE: git pull && docker compose -f docker-compose.oracle.yml up -d --build
+
+services:
+
+  # ── FastAPI backend ─────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: farmai-backend
+    container_name: farmai-backend
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      # SQLite — stored in a named Docker volume so data survives container restarts
+      DATABASE_URL: sqlite:////data/smart_farm.db
+      # Lite mode: disables YOLO/Ollama (Oracle ARM CPU has no GPU)
+      LITE_MODE: "true"
+      # MQTT uses public HiveMQ broker — no local broker needed
+      MQTT_BROKER: broker.hivemq.com
+      MQTT_PORT: "1883"
+    volumes:
+      # SQLite database file — persisted across restarts
+      - app_data:/data
+      # IoT CSV — path resolves to /iot inside the container
+      - ./iot:/iot
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # ── React frontend — nginx reverse proxy ────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Empty = relative /api/v1 paths; nginx proxies them to backend:8000
+        VITE_API_URL: ""
+    image: farmai-frontend
+    container_name: farmai-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"   # used only when Caddy/certbot provides SSL termination
+
+  # ── Caddy (HTTPS — uncomment when you have a domain) ────────────────────────
+  # If you own a domain pointing to this VM's IP:
+  #   1. Uncomment the caddy block below
+  #   2. Remove the ports block from the frontend service above
+  #   3. Set DOMAIN=yourdomain.com in .env.production
+  #   4. Redeploy
+
+  # caddy:
+  #   image: caddy:2-alpine
+  #   container_name: farmai-caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     - backend
+  #     - frontend
+
+volumes:
+  app_data:
+  # caddy_data:
+  # caddy_config:

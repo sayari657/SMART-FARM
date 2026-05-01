@@ -155,7 +155,7 @@ export default function VisitesTab({
                 <Heart size={18} color={COLORS.textMuted} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>BILAN DE SANTÉ</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                 {HEALTH_OPTIONS.map(st => (
                   <button
                     key={st.id}
@@ -181,7 +181,7 @@ export default function VisitesTab({
                 <Package size={18} color={COLORS.textMuted} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>FOURNITURES UTILISÉES</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
                 {[
                   { key: 'needs_sirop',      label: 'Sirop (L)',   color: COLORS.info },
                   { key: 'needs_pate',       label: 'Pâte (kg)',   color: COLORS.success },
@@ -206,7 +206,7 @@ export default function VisitesTab({
                 <Droplets size={18} color={COLORS.accent} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>RÉCOLTE (KG)</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
                 {[
                   { key: 'harvest_kg', label: 'Miel', color: COLORS.accent },
                   { key: 'pollen_kg',  label: 'Pollen', color: '#10b981' }

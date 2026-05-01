@@ -24,26 +24,26 @@ const pickCategory = (text = '') => {
   return 'leaves'; // fastest / most general default
 };
 
-/* ─── Palette "Sovereign AI" ─────────────────────────────── */
+/* ─── Palette "Sovereign AI" — light enterprise theme ────── */
 const S = {
-  pageBg:      '#070b14',
-  sidebarBg:   'rgba(10,14,28,0.97)',
-  sideBorder:  'rgba(99,102,241,0.14)',
-  convActive:  'rgba(99,102,241,0.15)',
-  convHover:   'rgba(99,102,241,0.07)',
-  chatBg:      '#0a0f1e',
-  userBubble:  'linear-gradient(135deg,#4f46e5,#7c3aed)',
-  botBubble:   'rgba(18,26,60,0.95)',
-  botBorder:   'rgba(99,102,241,0.22)',
-  botText:     '#dde4ff',
+  pageBg:      '#f1f5f9',
+  sidebarBg:   '#ffffff',
+  sideBorder:  '#e2e8f0',
+  convActive:  '#dcfce7',
+  convHover:   '#f8fafc',
+  chatBg:      '#f8fafc',
+  userBubble:  'linear-gradient(135deg,#16a34a,#15803d)',
+  botBubble:   '#ffffff',
+  botBorder:   '#e2e8f0',
+  botText:     '#0f172a',
   userText:    '#ffffff',
-  input:       'rgba(18,26,60,0.9)',
-  inputBorder: 'rgba(99,102,241,0.3)',
-  accent:      '#6366f1',
-  accentLight: '#818cf8',
-  accentGlow:  'rgba(99,102,241,0.35)',
-  muted:       '#475da7',
-  textDim:     '#64748b',
+  input:       '#ffffff',
+  inputBorder: '#e2e8f0',
+  accent:      '#16a34a',
+  accentLight: '#15803d',
+  accentGlow:  'rgba(22,163,74,0.2)',
+  muted:       '#94a3b8',
+  textDim:     '#94a3b8',
   success:     '#22c55e',
   warn:        '#f59e0b',
 };
@@ -82,6 +82,7 @@ export default function SovereignAssistant() {
   const [isLite, setIsLite]         = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [attachedImage, setAttachedImage] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const chatEndRef    = useRef(null);
   const fileInputRef  = useRef(null);
@@ -315,7 +316,7 @@ export default function SovereignAssistant() {
     <>
       <style>{`
         .sov-page    { display:flex; height:calc(100vh - 0px); overflow:hidden; background:${S.pageBg}; }
-        .sov-sidebar { width:260px; flex-shrink:0; background:${S.sidebarBg}; border-right:1px solid ${S.sideBorder}; display:flex; flex-direction:column; backdrop-filter:blur(12px); }
+        .sov-sidebar { width:260px; flex-shrink:0; background:${S.sidebarBg}; border-right:1px solid ${S.sideBorder}; display:flex; flex-direction:column; }
         .sov-main    { flex:1; display:flex; flex-direction:column; overflow:hidden; background:${S.chatBg}; }
         .sov-msgs    { flex:1; overflow-y:auto; padding:32px 24px; display:flex; flex-direction:column; gap:24px; }
         .sov-msgs::-webkit-scrollbar { width:4px; }
@@ -330,19 +331,40 @@ export default function SovereignAssistant() {
         .sov-btn { border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:12px; transition:all 0.2s; flex-shrink:0; }
         .sov-new-btn { width:100%; padding:10px 14px; border-radius:12px; border:1px dashed ${S.sideBorder}; background:transparent; color:${S.accentLight}; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; transition:background 0.15s; }
         .sov-new-btn:hover { background:${S.convHover}; border-color:${S.accent}; }
-        @keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.5)} 50%{box-shadow:0 0 0 8px rgba(99,102,241,0)} }
+        @keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,0.5)} 50%{box-shadow:0 0 0 8px rgba(22,163,74,0)} }
         @keyframes botGlow  { 0%,100%{opacity:0.7} 50%{opacity:1} }
         @keyframes slideUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes scanPulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
         @keyframes dotBounce{ 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
       `}</style>
 
-      <Navbar title={t('sidebar.assistant')} subtitle="Interactive Agricultural Intelligence" />
+      <Navbar
+        title={t('sidebar.assistant')}
+        subtitle="Interactive Agricultural Intelligence"
+        actions={
+          <button
+            className="btn btn-secondary btn-sm sov-toggle-btn"
+            onClick={() => setSidebarOpen(o => !o)}
+            title="Discussions"
+          >
+            <MessageSquare size={14} /> Discussions
+          </button>
+        }
+      />
+
+      {/* Mobile overlay for conversation list */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:149, display:'none' }}
+          className="sov-overlay"
+        />
+      )}
 
       <div className="sov-page" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
 
         {/* ══ SIDEBAR ══════════════════════════════════════ */}
-        <div className="sov-sidebar">
+        <div className={`sov-sidebar${sidebarOpen ? ' sov-open' : ''}`}>
           <div style={{ padding: '16px 14px 10px' }}>
             <button className="sov-new-btn" onClick={createConv}>
               <Plus size={15} /> Nouvelle discussion
@@ -358,7 +380,7 @@ export default function SovereignAssistant() {
               <div
                 key={conv.id}
                 className={`conv-item${conv.id === activeId ? ' active' : ''}`}
-                onClick={() => setActiveId(conv.id)}
+                onClick={() => { setActiveId(conv.id); setSidebarOpen(false); }}
               >
                 <MessageSquare size={12} color={conv.id === activeId ? S.accentLight : S.muted} style={{ flexShrink: 0, marginTop: 2 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -413,7 +435,7 @@ export default function SovereignAssistant() {
                   <Sparkles size={32} color="white" />
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', letterSpacing: '-0.3px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
                     Assistant IA Agricole
                   </div>
                   <div style={{ fontSize: 13, color: S.muted, marginTop: 6 }}>
@@ -431,12 +453,12 @@ export default function SovereignAssistant() {
                     <button key={i} onClick={() => setInput(s)} style={{
                       padding: '9px 16px', borderRadius: 24,
                       border: `1px solid ${S.botBorder}`,
-                      background: 'rgba(99,102,241,0.07)',
-                      color: S.accentLight, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                      background: 'rgba(22,163,74,.06)',
+                      color: S.accent, cursor: 'pointer', fontSize: 12, fontWeight: 600,
                       transition: 'all 0.2s',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = S.convActive; e.currentTarget.style.borderColor = S.accent; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.07)'; e.currentTarget.style.borderColor = S.botBorder; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(22,163,74,.06)'; e.currentTarget.style.borderColor = S.botBorder; }}
                     >
                       {s}
                     </button>
@@ -462,7 +484,7 @@ export default function SovereignAssistant() {
                   width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                   background: msg.type === 'user'
                     ? S.userBubble
-                    : `linear-gradient(135deg, #1e2a5e, #2d3a8c)`,
+                    : `linear-gradient(135deg, #e0f2fe, #bae6fd)`,
                   border: msg.type === 'bot' ? `1px solid ${S.botBorder}` : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: msg.type === 'bot' ? `0 0 12px ${S.accentGlow}` : 'none',
@@ -494,8 +516,8 @@ export default function SovereignAssistant() {
                         : (msg.type === 'bot' ? `1px solid ${S.botBorder}` : 'none'),
                       fontSize: 14, lineHeight: 1.65, whiteSpace: 'pre-wrap',
                       boxShadow: msg.type === 'user' && !msg.isError
-                        ? `0 4px 20px rgba(79,70,229,0.3)`
-                        : `0 4px 20px rgba(0,0,0,0.2)`,
+                        ? `0 4px 20px rgba(22,163,74,0.2)`
+                        : `0 2px 8px rgba(0,0,0,0.06)`,
                     }}>
                       {msg.text}
                       {msg.type === 'bot' && !msg.isError && (
@@ -514,9 +536,9 @@ export default function SovereignAssistant() {
                           style={{
                             display: 'block', marginTop: 10,
                             padding: '6px 14px', borderRadius: 8,
-                            background: 'rgba(99,102,241,0.25)',
+                            background: 'rgba(22,163,74,.12)',
                             border: `1px solid ${S.botBorder}`,
-                            color: S.accentLight, cursor: 'pointer',
+                            color: S.accent, cursor: 'pointer',
                             fontSize: 12, fontWeight: 700,
                           }}
                         >
@@ -535,7 +557,7 @@ export default function SovereignAssistant() {
                   {msg.sources?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {msg.sources.map((s, i) => (
-                        <span key={i} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 10, background: 'rgba(99,102,241,0.15)', color: S.accentLight, border: `1px solid ${S.botBorder}`, cursor: 'help' }} title={s}>
+                        <span key={i} style={{ fontSize: 9, padding: '3px 8px', borderRadius: 10, background: 'rgba(22,163,74,.1)', color: S.accent, border: `1px solid ${S.botBorder}`, cursor: 'help' }} title={s}>
                           <BookOpen size={8} style={{ marginRight: 3, verticalAlign: 'middle' }} />RAG {i + 1}
                         </span>
                       ))}
@@ -548,7 +570,7 @@ export default function SovereignAssistant() {
             {/* Loading indicator */}
             {loading && (
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', animation: 'slideUp 0.2s ease' }}>
-                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #1e2a5e, #2d3a8c)', border: `1px solid ${S.botBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)', border: `1px solid ${S.botBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Loader2 size={15} color={S.accentLight} style={{ animation: 'spin 1s linear infinite' }} />
                 </div>
                 <div style={{ padding: '12px 16px', borderRadius: '4px 18px 18px 18px', background: S.botBubble, border: `1px solid ${S.botBorder}`, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -590,11 +612,11 @@ export default function SovereignAssistant() {
           <div className="sov-input-bar">
             {/* Image preview */}
             {attachedImage && (
-              <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(18,26,60,0.8)', padding: '6px 12px', borderRadius: 10, border: `1px solid ${S.botBorder}` }}>
+              <div style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f8fafc', padding: '6px 12px', borderRadius: 10, border: `1px solid ${S.botBorder}` }}>
                 <ImageIcon size={13} color={S.accentLight} />
                 <img src={attachedImage.dataUrl} alt="preview" style={{ height: 38, borderRadius: 6, border: `1px solid ${S.botBorder}` }} />
                 <span style={{ fontSize: 11, color: S.muted, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachedImage.name}</span>
-                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 8, background: 'rgba(99,102,241,0.25)', color: S.accentLight, fontWeight: 700 }}>Vision + OCR</span>
+                <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 8, background: 'rgba(22,163,74,.12)', color: S.accent, fontWeight: 700 }}>Vision + OCR</span>
                 <button onClick={() => setAttachedImage(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.muted, padding: 2 }}>
                   <X size={13} />
                 </button>

@@ -92,7 +92,7 @@ export default function RuchesTab({
 
       {/* ── KPI summary row ── */}
       {ruches.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 }}>
           {[
             { label: 'Total Ruches',  val: filteredRuches.length,                                      color: COLORS.accent,  icon: Hexagon },
             { label: 'Actives',       val: filteredRuches.filter(r => r.is_active).length,             color: COLORS.success, icon: TrendingUp },
@@ -278,7 +278,7 @@ export default function RuchesTab({
                   {/* ─ Overview ─ */}
                   {activeManagerTab === 'overview' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 20 }}>
                         {[
                           { label: 'Miel Total',     val: safeProduction.reduce((a,p)=>a+(p.honey_kg||0),0).toFixed(1)+' kg', icon: Droplets,   color: COLORS.accent },
                           { label: 'Vitalité Reine', val: (reportRuche.force_level??5)+'/10',                                  icon: Star,       color: '#f59e0b' },
@@ -295,7 +295,7 @@ export default function RuchesTab({
                       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
                         <div style={{ background: COLORS.surface, borderRadius: 28, padding: 28, border: `1px solid ${COLORS.border}` }}>
                           <h3 style={{ color: 'white', fontSize: 16, fontWeight: 800, marginBottom: 20 }}>Informations Ruche</h3>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
                             {[
                               { icon: Info,        label: 'Année Reine', val: reportRuche.queen_year || 'N/A' },
                               { icon: Zap,         label: 'Type',         val: reportRuche.hive_type || 'Standard' },
@@ -418,7 +418,7 @@ export default function RuchesTab({
                   {activeManagerTab === 'depenses' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                       <h3 style={{ color: 'white', fontSize: 18, fontWeight: 800 }}>Gestion Financière</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 20 }}>
                         {[
                           { label: 'Alimentation', type: 'food',        color: COLORS.accent },
                           { label: 'Traitements',  type: 'treatment',   color: COLORS.error },
@@ -479,7 +479,7 @@ export default function RuchesTab({
                   {emplacements.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
                 <div>
                   <label style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '1px', marginBottom: 8, display: 'block' }}>TYPE</label>
                   <select value={rucheForm.hive_type} onChange={e => setRucheForm({...rucheForm, hive_type: e.target.value})} style={{ ...inputStyle, height: 44 }}>

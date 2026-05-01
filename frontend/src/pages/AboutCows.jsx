@@ -155,7 +155,7 @@ export default function AboutCows() {
           <div className="card">
             <div className="card-header"><div className="card-title">Bovine Health Status</div></div>
             <div style={{ padding: 20 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
                 <div style={{ background: 'var(--color-bg)', padding: 16, borderRadius: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}><Footprints size={18} color="#7c3aed" /><span style={{ fontWeight: 600 }}>Daily Steps</span></div>
                   <div style={{ fontSize: 20, fontWeight: 700 }}>4,820</div>

@@ -269,7 +269,7 @@ export default function ProductionTab({
       </div>
 
       {/* ── KPI cards ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 }}>
         {[
           {
             label: 'Production Totale', value: `${fmt(totalGlobal)} kg`,
@@ -535,7 +535,7 @@ export default function ProductionTab({
               </div>
 
               {/* Quantités */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                 <div>
                   <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     <Droplets size={11} style={{ marginRight: 4 }} />Miel (kg)

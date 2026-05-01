@@ -1,0 +1,116 @@
+# FARM AI — Render.com Infrastructure-as-Code
+# Free tier: backend web service + PostgreSQL database.
+#
+# HOW TO DEPLOY (5 minutes):
+#   1. Push this repo to GitHub (github.com → New repository → push)
+#   2. Go to https://render.com → New → Blueprint
+#   3. Connect your GitHub repo → Render reads this file automatically
+#   4. Set the secret env vars in the Render dashboard (SECRET_KEY, SMTP_*, etc.)
+#   5. Done — your backend is live at https://farmAI-backend.onrender.com
+#
+# NOTE: Free-tier web services sleep after 15 min of inactivity and wake in ~30s.
+#       Upgrade to Render Starter ($7/mo) for always-on behaviour.
+
+services:
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────────
+  - type: web
+    name: farmai-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.cloud.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /docs
+
+    envVars:
+      # Injected automatically by Render from the database below
+      - key: DATABASE_URL
+        fromDatabase:
+          name: farmai-db
+          property: connectionString
+
+      # Generate once: python -c "import secrets; print(secrets.token_hex(32))"
+      - key: SECRET_KEY
+        sync: false          # means: set manually in Render dashboard
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+
+      # OTP — Email
+      - key: SMTP_EMAIL
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "465"
+
+      # OTP — WhatsApp
+      - key: WHATSAPP_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_ID
+        sync: false
+
+      # Cloud AI
+      - key: GROQ_API_KEY
+        sync: false
+
+      # Lite mode: disables YOLO/Ollama (required on Render — no GPU)
+      - key: LITE_MODE
+        value: "true"
+
+      # CORS: allow both Vercel frontend URLs (update after Vercel deploy)
+      - key: CORS_ORIGINS
+        value: "https://farmai-frontend.vercel.app,https://farmai.vercel.app"
+
+  # ── React Frontend (static site) ───────────────────────────────────────────
+  - type: web
+    name: farmai-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    plan: free
+    autoDeploy: true
+
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: "no-store, no-cache, must-revalidate"
+
+    routes:
+      # Proxy API and WebSocket calls to the backend service
+      - type: rewrite
+        source: /api/*
+        destination: https://farmai-backend.onrender.com/api/*
+      - type: rewrite
+        source: /ws/*
+        destination: https://farmai-backend.onrender.com/ws/*
+      # SPA fallback — all other routes serve index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    envVars:
+      # Empty → relative /api/v1 paths; Render's routes block proxies them above
+      - key: VITE_API_URL
+        value: ""
+
+# ── PostgreSQL Database ───────────────────────────────────────────────────────
+# Free tier: 1 GB storage, auto-expires after 90 days (upgrade to keep it).
+# For a permanent free DB use Supabase (see SUPABASE section below).
+databases:
+  - name: farmai-db
+    databaseName: smart_farm
+    user: admin
+    plan: free
+
+# ── Using Supabase instead of Render PostgreSQL (permanently free) ────────────
+# 1. Go to https://supabase.com → New project
+# 2. Settings → Database → Connection string (URI mode)
+# 3. In Render dashboard → farmai-backend → Environment:
+#    DATABASE_URL = postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres
+# Then remove the `databases:` block above.

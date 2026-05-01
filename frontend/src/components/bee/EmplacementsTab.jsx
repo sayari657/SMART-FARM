@@ -123,7 +123,7 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
                  </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
                  <div>
                     <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 800, marginBottom: 8, display: 'block' }}>RÉGION / GOUVERNORAT</label>
                     <input value={empForm.region} onChange={(e) => setEmpForm({ ...empForm, region: e.target.value })} placeholder="ex: Bizerte" style={{ width: '100%', height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text, fontSize: 15 }} />
@@ -139,7 +139,7 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
                   <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 800 }}>GÉOLOCALISATION</label>
                   <button onClick={captureGPS} style={{ background: 'none', border: 'none', color: COLORS.accent, fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>CAPTURER GPS</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
                   <input value={empForm.latitude} onChange={(e) => setEmpForm({ ...empForm, latitude: e.target.value })} placeholder="Lat" style={{ height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
                   <input value={empForm.longitude} onChange={(e) => setEmpForm({ ...empForm, longitude: e.target.value })} placeholder="Lng" style={{ height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
                 </div>

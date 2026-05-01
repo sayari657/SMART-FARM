@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://farmai-backend.onrender.com/api/:path*" },
+    { "source": "/ws/:path*",  "destination": "https://farmai-backend.onrender.com/ws/:path*" },
+    { "source": "/(.*)",       "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite"
+}

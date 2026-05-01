@@ -258,7 +258,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
       </div>
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr) 2fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
         {[
           { label: 'ACTIVES', value: `${active}`, sub: `/ ${ruches.length}`, color: COLORS.gradeA },
           { label: 'ALERTES', value: `${alerts}`, sub: 'Critiques', color: alerts > 0 ? COLORS.gradeD : COLORS.gradeA },
@@ -332,7 +332,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
           </div>
 
           {/* Row 1 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: 6 }}>IDENTIFIANT *</label>
               <input placeholder="HIVE-0042" value={form.identifier} onChange={e => setForm(f => ({ ...f, identifier: e.target.value }))} style={iSt} />
@@ -355,7 +355,7 @@ function InventaireRuches({ ruches, emplacements, onSelectHive, onAddRuche, toas
           </div>
 
           {/* Row 2 */}
-          <div style={{ display: 'grid', gridTemplateColumns: form.hive_type === 'queen_bank' ? '1fr 1fr auto' : '1fr 1fr 1fr auto', gap: 12, alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'end' }}>
             <div>
               <label style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: 6 }}>ANNÉE REINE</label>
               <input type="number" min="2015" max="2030" value={form.queen_year} onChange={e => setForm(f => ({ ...f, queen_year: parseInt(e.target.value) }))} style={iSt} />
@@ -728,7 +728,7 @@ export default function AboutBee() {
       </header>
 
       {/* ──────────────── MAIN CONTENT ──────────────── */}
-      <main style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', position: 'relative', zIndex: 1, background: COLORS.bg }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: 'clamp(12px, 3vw, 28px) clamp(12px, 3vw, 32px)', position: 'relative', zIndex: 1, background: COLORS.bg }}>
 
         {loading && !syncing ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 18 }}>

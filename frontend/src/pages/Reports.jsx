@@ -198,12 +198,12 @@ export default function Reports() {
       </div>
 
       <style>{`
-        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px; }
+        .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; }
         .stat-card { background: white; padding: 24px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
         .section-header { margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
         .premium-img { width: 100%; height: 200px; object-fit: cover; border-radius: 16px; margin-bottom: 16px; transition: transform 0.3s ease; }
         .premium-img:hover { transform: scale(1.02); }
-        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .kpi-item { background: white; padding: 20px; border-radius: 16px; border-bottom: 4px solid var(--p); }
         .badge-pro { padding: 4px 12px; border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
       `}</style>

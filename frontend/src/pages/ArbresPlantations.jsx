@@ -604,7 +604,7 @@ export default function ArbresPlantations() {
         <div style={{
           background:'linear-gradient(135deg,#ffffff 0%,#f7fdf9 60%,#fffefa 100%)',
           borderBottom:`1.5px solid ${T.border}`,
-          padding:'24px 40px 20px',
+          padding:'clamp(14px,3vw,24px) clamp(14px,4vw,40px) 20px',
           position:'relative',overflow:'hidden',
         }}>
           <div style={{position:'absolute',top:-50,right:60,width:220,height:220,borderRadius:'50%',background:`radial-gradient(circle,${T.green}0d 0%,transparent 70%)`,pointerEvents:'none'}}/>
@@ -634,7 +634,7 @@ export default function ArbresPlantations() {
           </div>
         </div>
 
-        <div style={{maxWidth:1600,margin:'0 auto',padding:'24px 32px 120px'}}>
+        <div style={{maxWidth:1600,margin:'0 auto',padding:'clamp(14px, 3vw, 32px) clamp(14px, 3vw, 32px) 120px'}}>
 
           {/* ── KPI Row ───────────────────────────────────── */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(185px,1fr))',gap:14,marginBottom:32}}>
@@ -823,7 +823,7 @@ export default function ArbresPlantations() {
         {/* ── Zoom Modal ────────────────────────────────── */}
         {selectedRec && (
           <div style={{position:'fixed',inset:0,background:'rgba(15,23,42,0.72)',backdropFilter:'blur(10px)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,animation:'fadeIn 0.2s ease'}}>
-            <div style={{width:'100%',maxWidth:900,height:'88vh',display:'flex',flexDirection:'column',background:T.surface,borderRadius:22,overflow:'hidden',border:`1.5px solid ${T.border}`,boxShadow:`0 40px 80px rgba(0,0,0,0.28)`}}>
+            <div style={{width:'100%',maxWidth:900,height:'min(88vh, 100%)',display:'flex',flexDirection:'column',background:T.surface,borderRadius:22,overflow:'hidden',border:`1.5px solid ${T.border}`,boxShadow:`0 40px 80px rgba(0,0,0,0.28)`}}>
               <div style={{padding:'14px 22px',borderBottom:`1.5px solid ${T.border}`,display:'flex',justifyContent:'space-between',alignItems:'center',background:T.surfaceAlt}}>
                 <div style={{display:'flex',alignItems:'center',gap:10}}>
                   <div style={{width:32,height:32,borderRadius:9,background:T.blueLt,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -886,7 +886,7 @@ export default function ArbresPlantations() {
         {/* ── PlantBot ─────────────────────────────────── */}
         {botOpen ? (
           <div style={{
-            position:'fixed',bottom:24,right:24,width:380,height:540,zIndex:1000,
+            position:'fixed',bottom:16,right:16,width:'min(380px, calc(100vw - 32px))',height:'min(540px,80dvh)',zIndex:1000,
             display:'flex',flexDirection:'column',
             background:T.surface, borderRadius:20, overflow:'hidden',
             border:`1.5px solid ${T.green}44`,

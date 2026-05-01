@@ -36,7 +36,7 @@ const AboutProject = () => {
       <div className="page-content" style={{ maxWidth: '1000px', margin: '0 auto', direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
         {/* Mission Section */}
-        <section className="card" style={{ padding: 40, marginBottom: 32, textAlign: 'center', background: 'linear-gradient(135deg, var(--color-surface) 0%, #f0fdf4 100%)' }}>
+        <section className="card card-hero" style={{ padding: 40, marginBottom: 32, textAlign: 'center', background: 'linear-gradient(135deg, var(--color-surface) 0%, #f0fdf4 100%)' }}>
           <div style={{ display: 'inline-flex', padding: 16, background: 'var(--color-primary)', borderRadius: 20, color: 'white', marginBottom: 24 }}>
             <Leaf size={40} />
           </div>

@@ -1,16 +1,25 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import ThreeBackground from '../components/ThreeBackground';
+import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 
-export default function MainLayout() {
+function Shell() {
+  const { open, close } = useSidebar();
   return (
-    <div className="app-shell">
-      <ThreeBackground />
+    <div className={`app-shell${open ? ' sidebar-open' : ''}`}>
+      {open && <div className="sidebar-overlay" onClick={close} />}
       <Sidebar />
-      <div className="main-area" style={{ position: 'relative', zIndex: 1, background: 'transparent' }}>
+      <div className="main-area" style={{ position: 'relative', zIndex: 1 }}>
         <Outlet />
       </div>
     </div>
+  );
+}
+
+export default function MainLayout() {
+  return (
+    <SidebarProvider>
+      <Shell />
+    </SidebarProvider>
   );
 }

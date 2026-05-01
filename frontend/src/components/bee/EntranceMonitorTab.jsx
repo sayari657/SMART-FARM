@@ -419,7 +419,7 @@ export default function EntranceMonitorTab({ hive, toast }) {
             </span>
           </div>
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
               {[
                 { label: 'Abeilles détectées', value: report.beeCount, unit: 'abeilles', color: COLORS.accent, icon: Activity },
                 { label: 'Activité entrée',    value: report.activityLevel, unit: '', color: report.activityColor, icon: Zap },

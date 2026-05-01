@@ -25,9 +25,11 @@ yarn-error.log*
 mlruns/
 mlruns.db
 
-# Environment variables
+# Environment variables (never commit secrets)
 .env
 .env.local
+.env.production
+cloudflared.exe
 
 # OS files
 .DS_Store

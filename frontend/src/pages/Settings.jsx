@@ -80,7 +80,7 @@ export default function Settings() {
               {keys.map(key => {
                 const def = DEFAULT_SETTINGS.find(d => d.key === key);
                 return (
-                  <div key={key} style={{ display:'grid', gridTemplateColumns: i18n.language === 'ar' ? '200px 1fr' : '1fr 200px', gap:16, alignItems:'center' }}>
+                  <div key={key} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))', gap:16, alignItems:'center' }}>
                     <div>
                       <div style={{ fontSize:13, fontWeight:600 }}>{key.replace(/_/g,' ')}</div>
                       <div style={{ fontSize:12, color:'var(--color-text-3)' }}>{def?.description}</div>

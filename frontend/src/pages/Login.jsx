@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Leaf, Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle, Shield, Cpu, Wifi } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import ThreeBackground from '../components/ThreeBackground';
-import ThreeFarmBackground from '../components/ThreeFarmBackground';
 import { authAPI } from '../services/api';
 
 export default function Login() {
@@ -78,24 +76,45 @@ export default function Login() {
   };
 
   const renderLeft = () => (
-    <div className="auth-left" style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 1, padding: '40px' }}>
-      <ThreeFarmBackground />
-      <div style={{ position: 'relative', zIndex: 2 }}>
+    <div className="auth-left" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Decorative SVG pattern */}
+      <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:.08 }} xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+      </svg>
+      {/* Decorative circles */}
+      <div style={{ position:'absolute', top:-60, right:-60, width:240, height:240, borderRadius:'50%', border:'1px solid rgba(255,255,255,.12)' }} />
+      <div style={{ position:'absolute', top:-30, right:-30, width:160, height:160, borderRadius:'50%', border:'1px solid rgba(255,255,255,.08)' }} />
+      <div style={{ position:'absolute', bottom:-80, left:-40, width:280, height:280, borderRadius:'50%', border:'1px solid rgba(255,255,255,.08)' }} />
+
+      <div style={{ position:'relative', zIndex:2 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:40 }}>
-          <div style={{ width:48, height:48, background:'rgba(255,255,255,.2)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width:48, height:48, background:'rgba(255,255,255,.15)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,.2)' }}>
             <Leaf size={24} />
           </div>
           <div>
             <div style={{ fontWeight:800, fontSize:20, color:'#fff' }}>Smart Farm AI</div>
-            <div style={{ opacity:.7, fontSize:12, color:'#fff' }}>Enterprise Platform</div>
+            <div style={{ opacity:.65, fontSize:12, color:'#fff' }}>Enterprise Platform</div>
           </div>
         </div>
-        <h2 style={{ color:'#fff' }}>Intelligent Farm<br />Monitoring at Scale</h2>
-        <p style={{ color:'#fff', opacity:.9 }}>Monitor bees, cows, poultry with IoT telemetry, computer vision, and AI anomaly detection.</p>
+        <h2 style={{ color:'#fff', fontSize:32, fontWeight:800, lineHeight:1.2, marginBottom:16 }}>Intelligent Farm<br />Monitoring at Scale</h2>
+        <p style={{ color:'#fff', opacity:.8, fontSize:15, lineHeight:1.7, maxWidth:360 }}>
+          Monitor bees, cows, poultry with IoT telemetry, computer vision, and AI anomaly detection.
+        </p>
         <div className="auth-features">
-          {['Real-time IoT telemetry', 'Computer vision detection', 'AI anomaly engine', 'Multi-species alerts', 'Automated recommendations'].map(f => (
-            <div className="auth-feature" key={f} style={{ color:'#fff' }}>
-              <div className="auth-feature-dot" />{f}
+          {[
+            { icon: Wifi,   label: 'Real-time IoT telemetry' },
+            { icon: Eye,    label: 'Computer vision detection' },
+            { icon: Cpu,    label: 'AI anomaly engine' },
+            { icon: Shield, label: 'Multi-species alerts' },
+          ].map(({ icon: Icon, label }) => (
+            <div className="auth-feature" key={label} style={{ color:'#fff' }}>
+              <Icon size={15} style={{ opacity:.8, flexShrink:0 }} />
+              <span>{label}</span>
             </div>
           ))}
         </div>
@@ -104,12 +123,11 @@ export default function Login() {
   );
 
   return (
-    <div className="auth-page" style={{ background: 'transparent', position: 'relative' }}>
-      <ThreeBackground />
+    <div className="auth-page">
       {renderLeft()}
 
-      <div className="auth-right" style={{ zIndex: 1 }}>
-        <div className="auth-card" style={{ background: 'var(--glass-bg)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)', boxShadow: 'var(--glass-shadow)' }}>
+      <div className="auth-right">
+        <div className="auth-card" style={{ background: '#fff', border: '1px solid var(--color-border-light)', boxShadow: 'var(--shadow-xl)' }}>
 
           {/* ── Login View ───────────────────────────────── */}
           {view === 'login' && (
@@ -173,7 +191,7 @@ export default function Login() {
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                 >
                   <div style={{ width:48, height:48, background:'rgba(59,130,246,0.15)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <Mail size={22} color="#3b82f6" />
+                    <Mail size={22} color="var(--color-info)" />
                   </div>
                   <div>
                     <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>📧 Par E-mail</div>
@@ -185,11 +203,11 @@ export default function Login() {
                 <button
                   onClick={() => { setChannel('whatsapp'); setIdentifier('+216'); setView('enter_id'); setError(''); }}
                   style={{ display:'flex', alignItems:'center', gap:16, padding:'20px 24px', background:'var(--color-bg-2)', border:'2px solid var(--color-border)', borderRadius:12, cursor:'pointer', textAlign:'left', transition:'all .2s' }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#25D366'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-whatsapp)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                 >
-                  <div style={{ width:48, height:48, background:'rgba(37,211,102,0.15)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <MessageCircle size={22} color="#25D366" />
+                  <div style={{ width:48, height:48, background:'rgba(37,211,102,.12)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    <MessageCircle size={22} color="var(--color-whatsapp)" />
                   </div>
                   <div>
                     <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>💬 Via WhatsApp</div>
@@ -209,7 +227,7 @@ export default function Login() {
               </button>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24 }}>
                 <div style={{ width:44, height:44, background: channel==='email' ? 'rgba(59,130,246,0.15)' : 'rgba(37,211,102,0.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  {channel === 'email' ? <Mail size={20} color="#3b82f6" /> : <MessageCircle size={20} color="#25D366" />}
+                  {channel === 'email' ? <Mail size={20} color="var(--color-info)" /> : <MessageCircle size={20} color="var(--color-whatsapp)" />}
                 </div>
                 <div>
                   <div style={{ fontWeight:700, fontSize:16 }}>{channel === 'email' ? 'Vérification par E-mail' : 'Vérification WhatsApp'}</div>
@@ -248,8 +266,8 @@ export default function Login() {
               {msg && <div className="alert-banner success" style={{ marginBottom:16 }}><div className="alert-banner-msg">{msg}</div></div>}
               {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
 
-              {/* Dev OTP helper — visible only when WhatsApp/Email API not configured */}
-              {debugOtp && (
+              {/* Dev OTP helper */}
+              {import.meta.env.DEV && debugOtp && (
                 <div style={{
                   background:'rgba(234,179,8,0.1)', border:'1.5px dashed rgba(234,179,8,0.4)',
                   borderRadius:10, padding:'10px 16px', marginBottom:12,

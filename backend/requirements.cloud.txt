@@ -1,0 +1,45 @@
+# FARM AI — Cloud / Lightweight Requirements
+# No YOLO, no PyTorch, no ChromaDB — fast build, small image (~400 MB vs ~8 GB).
+# AI scan features (WorkerScan) gracefully degrade to "model unavailable" at runtime.
+
+# FastAPI & server
+fastapi>=0.100.0
+uvicorn[standard]>=0.24.0
+
+# Database — supports both SQLite (dev) and PostgreSQL (prod)
+sqlalchemy>=2.0.36
+psycopg2-binary>=2.9.9
+alembic>=1.12.0
+
+# Pydantic & settings
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# Authentication
+python-jose[cryptography]>=3.3.0
+bcrypt>=4.0.0
+
+# WebSocket
+websockets>=12.0
+
+# HTTP client
+requests>=2.31.0
+httpx>=0.25.0
+
+# Data utilities (IoT CSV parsing, analytics)
+numpy>=1.26.0
+pandas>=2.1.0
+Pillow>=10.0.0
+
+# PDF export
+pypdf>=4.1.0
+
+# Groq (cloud AI — replaces Ollama in production)
+groq>=0.4.0
+
+# Utilities
+python-dotenv>=1.0.0
+python-multipart>=0.0.7
+scikit-learn>=1.3.0
+duckduckgo-search>=6.0.0
+beautifulsoup4>=4.12.0

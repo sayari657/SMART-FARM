@@ -79,7 +79,7 @@ export default function AnimalDetails() {
       <div className="page-content">
 
         {/* Header row */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:24, marginBottom:24, alignItems:'start' }}>
+        <div className="animal-header-grid">
           <div className="grid-3">
             {[
               { label:'Status',    value: <span className={`badge badge-${unit.status==='healthy'?'success':unit.status==='warning'?'warning':'danger'}`}>{unit.status}</span> },
@@ -112,7 +112,7 @@ export default function AnimalDetails() {
         )}
 
         {/* Tabs */}
-        <div style={{ display:'flex', gap:2, marginBottom:20, borderBottom:'1px solid var(--color-border)' }}>
+        <div className="tab-bar">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{ background:'none', border:'none', padding:'10px 14px', cursor:'pointer', fontSize:13,

@@ -44,7 +44,7 @@ export default function FarmCard({ farm, onDelete }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 'auto', paddingTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 12, marginTop: 'auto', paddingTop: 16 }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontWeight: 800, fontSize: 20 }}>{farm.unit_count ?? 0}</div>
             <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>Animal Units</div>

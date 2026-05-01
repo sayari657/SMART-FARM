@@ -631,7 +631,7 @@ export default function FarmDetails() {
       <div className="page-content">
 
         {/* Stats banner */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div className="stat-grid-4">
           {[
             { label: 'Animal Units',  value: farm.unit_count,        icon: '🐾' },
             { label: 'Active Alerts', value: farm.active_alerts,     icon: '⚠️', danger: farm.active_alerts > 0 },

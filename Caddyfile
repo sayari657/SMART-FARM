@@ -1,0 +1,64 @@
+# FARM AI — Caddyfile
+# Two modes — choose one:
+#
+# MODE A (IP only, no domain, HTTP only):
+#   - Uses the :80 block below (already uncommented)
+#   - No SSL cert, works immediately after deployment
+#   - Access via http://<your-oracle-public-ip>
+#
+# MODE B (custom domain, automatic HTTPS via Let's Encrypt):
+#   - Comment out the :80 block
+#   - Uncomment the {$DOMAIN} block at the bottom
+#   - Set DOMAIN=yourdomain.com and ADMIN_EMAIL=you@email.com in .env.production
+#   - Redeploy: docker compose -f docker-compose.oracle.yml up -d --build
+
+# ── MODE A: IP / no domain (default) ───────────────────────────────────────
+:80 {
+    # REST API
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # WebSocket (live telemetry)
+    handle /ws/* {
+        reverse_proxy backend:8000
+    }
+
+    # React SPA (owner dashboard + worker PWA)
+    handle {
+        reverse_proxy frontend:80
+    }
+
+    encode gzip
+}
+
+# ── MODE B: Custom domain + automatic HTTPS ─────────────────────────────────
+# Uncomment the block below (and comment out the :80 block above) when you
+# have a domain pointing to this VM's public IP.
+#
+# {
+#     email {$ADMIN_EMAIL}
+# }
+#
+# {$DOMAIN} {
+#     handle /api/* {
+#         reverse_proxy backend:8000
+#     }
+#
+#     handle /ws/* {
+#         reverse_proxy backend:8000
+#     }
+#
+#     handle {
+#         reverse_proxy frontend:80
+#     }
+#
+#     header {
+#         Strict-Transport-Security "max-age=31536000; includeSubDomains"
+#         X-Content-Type-Options    "nosniff"
+#         X-Frame-Options           "SAMEORIGIN"
+#         Referrer-Policy           "strict-origin-when-cross-origin"
+#     }
+#
+#     encode gzip
+# }

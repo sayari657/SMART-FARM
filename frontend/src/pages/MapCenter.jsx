@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Shield, Search, Navigation, Phone, Info, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -31,6 +31,11 @@ const MapCenter = () => {
     const [locationName, setLocationName] = useState('');
     const [currentWeather, setCurrentWeather] = useState(null);
     const [discoveredVets, setDiscoveredVets] = useState([]);
+    const [osmVets, setOsmVets] = useState([]);
+    const [isFetchingOSMVets, setIsFetchingOSMVets] = useState(false);
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchDebounceRef = useRef(null);
 
     // Helpers
     const haversine = (lat1, lon1, lat2, lon2) => {
@@ -119,6 +124,58 @@ const MapCenter = () => {
         }
     };
 
+    const fetchOSMVets = async (lat, lon) => {
+        setIsFetchingOSMVets(true);
+        try {
+            const query = `[out:json][timeout:30];(node["amenity"="veterinary"](around:100000,${lat},${lon});way["amenity"="veterinary"](around:100000,${lat},${lon}););out center;`;
+            // Try each mirror in sequence until one succeeds
+            let data = null;
+            for (const mirror of OVERPASS_MIRRORS) {
+                try {
+                    const res = await fetch(mirror, {
+                        method: 'POST',
+                        body: `data=${encodeURIComponent(query)}`
+                    });
+                    if (res.ok) { data = await res.json(); break; }
+                } catch { continue; }
+            }
+            if (!data) return;
+
+            const parsed = (data.elements || [])
+                .filter(el => el.lat != null || el.center != null)
+                .map(el => {
+                    const elLat = el.lat ?? el.center.lat;
+                    const elLon = el.lon ?? el.center.lon;
+                    const tags = el.tags || {};
+                    const addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean);
+                    return {
+                        id: `osm-${el.id}`,
+                        type: 'vet',
+                        osm: true,
+                        name: tags.name || tags['name:fr'] || tags['name:ar'] || 'Clinique Vétérinaire',
+                        coords: [elLat, elLon],
+                        distance: haversine(lat, lon, elLat, elLon),
+                        properties: {
+                            name: tags.name || 'Clinique Vétérinaire',
+                            specialty: tags.veterinary || tags['veterinary:for'] || 'Médecine Vétérinaire',
+                            phone: tags.phone || tags['contact:phone'] || null,
+                            website: tags.website || tags['contact:website'] || null,
+                            address: addrParts.length ? addrParts.join(', ') : (tags['addr:full'] || null),
+                            opening_hours: tags.opening_hours || null,
+                        }
+                    };
+                })
+                .filter(v => v.distance <= 100)
+                .sort((a, b) => a.distance - b.distance);
+
+            setOsmVets(parsed);
+        } catch (err) {
+            console.error('Overpass fetch failed:', err);
+        } finally {
+            setIsFetchingOSMVets(false);
+        }
+    };
+
     const fetchLocationInfo = async (lat, lon) => {
         setIsFetchingInfo(true);
         try {
@@ -154,57 +211,71 @@ const MapCenter = () => {
             // Trigger Discovery and localized info
             fetchGlobalDiscoveries(latitude, longitude);
             fetchLocationInfo(latitude, longitude);
+            fetchOSMVets(latitude, longitude);
         });
     };
 
     const handleGlobalSearch = async (e) => {
-        e.preventDefault();
-        if (!globalSearch) return;
+        e?.preventDefault();
+        if (!globalSearch.trim()) return;
         setIsSearching(true);
+        setShowSuggestions(false);
         try {
-            // Biasing search to the 100km zone around user
-            let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(globalSearch)}&limit=1`;
-            if (userPos) {
-                const [lat, lon] = userPos;
-                const offset = 1.0; // Roughly 100km box
-                searchUrl += `&viewbox=${lon - offset},${lat + offset},${lon + offset},${lat - offset}&bounded=1`;
+            let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(globalSearch)}&limit=1&lang=fr`;
+            if (userPos) url += `&lat=${userPos[0]}&lon=${userPos[1]}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const features = data.features || [];
+            if (!features.length) {
+                alert('Aucun résultat trouvé pour cette recherche.');
+                return;
             }
-
-            const res = await axios.get(searchUrl);
-            if (res.data && res.data.length > 0) {
-                const result = res.data[0];
-                const lat = parseFloat(result.lat);
-                const lon = parseFloat(result.lon);
-
-                // Calculate distance to check if logical
-                const distToResult = userPos ? haversine(userPos[0], userPos[1], lat, lon) : 0;
-
-                // STRICT LOGICAL CHECK
-                if (distToResult > 100) {
-                    alert(`Attention: '${globalSearch}' a été trouvé à ${distToResult.toFixed(0)}km. Voulez-vous quand même afficher ce résultat hors-zone ?`);
-                    // We allow viewing it but we don't zoom in super close to avoid "Pacific fly-to" confusion
-                    setViewCenter([lat, lon]);
-                    setZoom(6);
-                } else {
-                    setViewCenter([lat, lon]);
-                    setZoom(14);
-                }
-
-                setSelectedEntity({
-                    type: 'search',
-                    name: result.display_name,
-                    coords: [lat, lon],
-                    distance: distToResult,
-                    properties: { name: result.display_name }
-                });
-            } else {
-                alert("Location not found in your 100km zone.");
-            }
+            const f = features[0];
+            const lon = f.geometry.coordinates[0];
+            const lat = f.geometry.coordinates[1];
+            const name = [f.properties.name, f.properties.city, f.properties.country].filter(Boolean).join(', ');
+            const dist = userPos ? haversine(userPos[0], userPos[1], lat, lon) : 0;
+            setViewCenter([lat, lon]);
+            setZoom(dist > 100 ? 6 : 14);
+            setSelectedEntity({ type: 'search', name, coords: [lat, lon], distance: dist || null, properties: { name } });
         } catch (err) {
-            console.error("Search error", err);
+            console.error('Search error', err);
+            alert('Erreur de connexion au service de recherche.');
         } finally {
             setIsSearching(false);
         }
+    };
+
+    const handleSearchInput = (value) => {
+        setGlobalSearch(value);
+        setSearchQuery(value);
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        if (value.trim().length < 3) { setSuggestions([]); setShowSuggestions(false); return; }
+        searchDebounceRef.current = setTimeout(async () => {
+            try {
+                let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(value)}&limit=5&lang=fr`;
+                if (userPos) url += `&lat=${userPos[0]}&lon=${userPos[1]}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                setSuggestions((data.features || []).map(f => ({
+                    name: f.properties.name || f.properties.city || 'Lieu',
+                    display: [f.properties.name, f.properties.city, f.properties.country].filter(Boolean).join(', '),
+                    type: f.properties.osm_value || 'place',
+                    coords: [f.geometry.coordinates[1], f.geometry.coordinates[0]],
+                })));
+                setShowSuggestions(true);
+            } catch { setSuggestions([]); }
+        }, 300);
+    };
+
+    const selectSuggestion = (s) => {
+        setGlobalSearch(s.display);
+        setSuggestions([]);
+        setShowSuggestions(false);
+        const dist = userPos ? haversine(userPos[0], userPos[1], s.coords[0], s.coords[1]) : 0;
+        setViewCenter(s.coords);
+        setZoom(dist > 100 ? 6 : 14);
+        setSelectedEntity({ type: 'search', name: s.display, coords: s.coords, distance: dist || null, properties: { name: s.display } });
     };
 
     // Unified Filtered Directory Data (Real items within 50km)
@@ -222,6 +293,7 @@ const MapCenter = () => {
         ...vets.map(v => ({ ...v, type: 'vet', name: v.properties.name, coords: [v.geometry.coordinates[1], v.geometry.coordinates[0]], id: v.properties.id, properties: v.properties, discovery: false })),
         ...markets.map(m => ({ ...m, type: 'market', name: m.properties.name, coords: [m.geometry.coordinates[1], m.geometry.coordinates[0]], id: m.properties.id, properties: m.properties })),
         ...discoveredVets,
+        ...osmVets,
         // Any specific search result found via global search
         ...(selectedEntity?.type === 'search' ? [selectedEntity] : [])
     ].map(item => {
@@ -246,7 +318,7 @@ const MapCenter = () => {
                 subtitle={isFetchingInfo ? "Détection en cours..." : (locationName ? `📍 ${locationName} | Rayon 100km actif` : (userPos ? `Filtrage local actif (Rayon 100km)` : `Initialisation du filtrage...`))}
             />
 
-            <div className="page-content" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px', height: 'calc(100vh - 180px)' }}>
+            <div className="page-content map-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '24px', height: 'calc(100vh - 180px)' }}>
 
                 {/* Main Map View */}
                 <div style={{ position: 'relative' }}>
@@ -259,7 +331,14 @@ const MapCenter = () => {
                         <SovereignMap
                             // BUG FIX: Show all markers initially (within 1000km) if user hasn't located yet
                             farms={farms.filter(f => f.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], f.geometry.coordinates[1], f.geometry.coordinates[0]) <= 1000 : false)}
-                            vets={vets.filter(v => v.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], v.geometry.coordinates[1], v.geometry.coordinates[0]) <= 1000 : false)}
+                            vets={[
+                                ...vets.filter(v => v.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], v.geometry.coordinates[1], v.geometry.coordinates[0]) <= 1000 : false),
+                                ...osmVets.map(v => ({
+                                    type: 'Feature',
+                                    geometry: { type: 'Point', coordinates: [v.coords[1], v.coords[0]] },
+                                    properties: { id: v.id, name: v.name, specialty: v.properties.specialty, phone: v.properties.phone, address: v.properties.address, osm: true }
+                                }))
+                            ]}
                             hives={hives.filter(h => h.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], h.geometry.coordinates[1], h.geometry.coordinates[0]) <= 1000 : false)}
                             markets={markets.filter(m => m.geometry?.coordinates ? haversine(userPos ? userPos[0] : viewCenter[0], userPos ? userPos[1] : viewCenter[1], m.geometry.coordinates[1], m.geometry.coordinates[0]) <= 1000 : false)}
                             userPos={userPos}
@@ -274,16 +353,16 @@ const MapCenter = () => {
                     {/* Google Maps Architecture: Floating Discovery Controls */}
                     <div style={{
                         position: 'absolute', top: 20, left: 20, zIndex: 1000,
-                        display: 'flex', flexDirection: 'column', gap: 12, width: '400px'
+                        display: 'flex', flexDirection: 'column', gap: 12, width: 'min(400px, calc(100% - 40px))'
                     }}>
-                        {/* Unified Search Bar */}
+                        {/* Unified Search Bar + Photon Autocomplete */}
                         <form onSubmit={handleGlobalSearch} style={{ width: '100%' }}>
                             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <div style={{ position: 'relative', flex: 1 }}>
-                                    <Search size={22} style={{ position: 'absolute', left: 20, top: 15, color: '#7c3aed' }} />
+                                    <Search size={22} style={{ position: 'absolute', left: 20, top: 15, color: '#7c3aed', zIndex: 1 }} />
                                     <input
                                         type="text"
-                                        placeholder="Full Discovery Mode: Vets, Ruches, Cities..."
+                                        placeholder="Rechercher villes, fermes, vétérinaires..."
                                         className="form-control"
                                         style={{
                                             padding: '16px 56px', background: 'rgba(255,255,255,0.98)', borderRadius: 32, fontSize: 16,
@@ -291,12 +370,43 @@ const MapCenter = () => {
                                             backdropFilter: 'blur(20px)'
                                         }}
                                         value={globalSearch}
-                                        onChange={(e) => {
-                                            setGlobalSearch(e.target.value);
-                                            setSearchQuery(e.target.value);
-                                        }}
+                                        onChange={(e) => handleSearchInput(e.target.value)}
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                                        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                                        autoComplete="off"
                                     />
                                     {isSearching && <div className="spinner-center" style={{ right: 20, left: 'auto', width: 18, height: 18 }} />}
+
+                                    {/* Autocomplete dropdown */}
+                                    {showSuggestions && suggestions.length > 0 && (
+                                        <div style={{
+                                            position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 9999,
+                                            background: 'rgba(255,255,255,0.99)', borderRadius: 16,
+                                            boxShadow: '0 12px 40px rgba(0,0,0,0.18)', border: '1px solid #e2e8f0',
+                                            overflow: 'hidden', backdropFilter: 'blur(20px)'
+                                        }}>
+                                            {suggestions.map((s, i) => (
+                                                <div
+                                                    key={i}
+                                                    onMouseDown={() => selectSuggestion(s)}
+                                                    style={{
+                                                        padding: '11px 18px', cursor: 'pointer',
+                                                        display: 'flex', alignItems: 'center', gap: 12,
+                                                        borderBottom: i < suggestions.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                                        transition: 'background 0.1s'
+                                                    }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                                >
+                                                    <MapPin size={14} color="#7c3aed" style={{ flexShrink: 0 }} />
+                                                    <div style={{ overflow: 'hidden' }}>
+                                                        <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
+                                                        <div style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.display}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                                 <button
                                     type="submit"
@@ -534,6 +644,97 @@ const MapCenter = () => {
                                         ⚠️ Cet élément est en dehors de votre zone locale (Distance: {selectedEntity.distance.toFixed(0)} km).
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ── OSM Veterinarians Section ────────────────────────── */}
+                    {(isFetchingOSMVets || osmVets.length > 0) && (
+                        <div>
+                            <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8, color: '#ef4444' }}>
+                                <Shield size={16} color="#ef4444" />
+                                Vétérinaires à Proximité
+                                <span style={{ marginLeft: 'auto', fontSize: 11, background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', padding: '2px 10px', borderRadius: 99, fontWeight: 800 }}>
+                                    {isFetchingOSMVets ? '…' : `${osmVets.length} trouvé${osmVets.length !== 1 ? 's' : ''}`}
+                                </span>
+                            </h3>
+
+                            {isFetchingOSMVets && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: '#fef2f2', borderRadius: 12, fontSize: 13, color: '#ef4444', border: '1px dashed #fecaca', marginBottom: 12 }}>
+                                    <div className="loader" style={{ width: 14, height: 14 }} />
+                                    Recherche OpenStreetMap dans un rayon de 100 km…
+                                </div>
+                            )}
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {osmVets.map(v => (
+                                    <div key={v.id} style={{
+                                        borderRadius: 16, border: '1px solid #fecaca', overflow: 'hidden',
+                                        background: selectedEntity?.id === v.id ? '#fef2f2' : 'white',
+                                        boxShadow: '0 2px 8px rgba(239,68,68,0.07)', transition: 'all 0.2s'
+                                    }}>
+                                        {/* Card header */}
+                                        <div style={{ padding: '14px 16px 10px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <Shield size={16} color="#ef4444" />
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.name}</div>
+                                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{v.properties.specialty}</div>
+                                            </div>
+                                            <span style={{ flexShrink: 0, fontSize: 11, background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', padding: '3px 8px', borderRadius: 99, fontWeight: 800 }}>
+                                                {v.distance.toFixed(1)} km
+                                            </span>
+                                        </div>
+
+                                        {/* Info rows */}
+                                        <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            {v.properties.address && (
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: '#475569' }}>
+                                                    <MapPin size={12} color="#94a3b8" style={{ flexShrink: 0, marginTop: 1 }} />
+                                                    <span>{v.properties.address}</span>
+                                                </div>
+                                            )}
+                                            {v.properties.phone && (
+                                                <a href={`tel:${v.properties.phone}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#16a34a', textDecoration: 'none', fontWeight: 600 }}>
+                                                    <Phone size={12} color="#16a34a" style={{ flexShrink: 0 }} />
+                                                    {v.properties.phone}
+                                                </a>
+                                            )}
+                                            {v.properties.website && (
+                                                <a href={v.properties.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#7c3aed', textDecoration: 'none', fontWeight: 600 }}>
+                                                    <Info size={12} color="#7c3aed" style={{ flexShrink: 0 }} />
+                                                    Site web
+                                                </a>
+                                            )}
+                                            {v.properties.opening_hours && (
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 11, color: '#64748b' }}>
+                                                    <span style={{ flexShrink: 0 }}>🕐</span>
+                                                    <span>{v.properties.opening_hours}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Actions */}
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                                                <button onClick={() => focusOn(v)} style={{
+                                                    flex: 1, padding: '8px 0', borderRadius: 10, border: '1px solid #fecaca',
+                                                    background: '#fef2f2', color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer'
+                                                }}>
+                                                    📍 Voir sur la carte
+                                                </button>
+                                                {v.properties.phone && (
+                                                    <a href={`tel:${v.properties.phone}`} style={{
+                                                        flex: 1, padding: '8px 0', borderRadius: 10, border: 'none',
+                                                        background: '#16a34a', color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                                                        textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4
+                                                    }}>
+                                                        <Phone size={11} /> Appeler
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

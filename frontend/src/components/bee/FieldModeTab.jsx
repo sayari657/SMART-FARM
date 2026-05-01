@@ -233,7 +233,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
       {/* Health state buttons */}
       <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: '16px 18px' }}>
         <div style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px', marginBottom: 12 }}>ÉTAT GÉNÉRAL</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 8 }}>
           {HEALTH_OPTS.map(opt => {
             const active = healthState === opt.id;
             return (
@@ -248,7 +248,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
       </div>
 
       {/* Main metrics — 2×2 grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
         <BigStepper label="Santé" value={healthScore} onChange={setHealthScore} min={0} max={10} step={0.5} unit="/10" color={gc} icon={Heart} />
         <BigStepper label="Niveau Miel" value={honeyLevel} onChange={setHoneyLevel} min={0} max={10} step={0.5} unit="/10" color={COLORS.accent} icon={Droplets} />
         <BigStepper label="Force Colonie" value={forceLevel} onChange={setForceLevel} min={0} max={10} step={0.5} unit="/10" color={COLORS.info} icon={Hexagon} />
@@ -258,7 +258,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
       {/* Resource needs — 3 compact steppers */}
       <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: '16px 18px' }}>
         <div style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px', marginBottom: 14 }}>BESOINS RESSOURCES</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
           <BigStepper label="Sirop" value={sirop} onChange={setSirop} min={0} max={undefined} step={0.5} unit="L" color="#38bdf8" icon={Droplets} />
           <BigStepper label="Pâte" value={pate} onChange={setPate} min={0} max={undefined} step={0.5} unit="kg" color="#a78bfa" icon={Package} />
           <BigStepper label="Traitement" value={traitement} onChange={setTraitement} min={0} max={undefined} step={1} unit="doses" color="#f87171" icon={Beaker} />
@@ -293,7 +293,7 @@ export default function FieldModeTab({ hive, onVisitCreated, toast }) {
       </button>
 
       {/* Quick stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
         {[
           { label: 'Santé actuelle', value: `${hive.health_score?.toFixed(1) ?? '?'}/10`, color: gc },
           { label: 'Miel actuel', value: `${hive.honey_level?.toFixed(1) ?? '?'}/10`, color: COLORS.accent },

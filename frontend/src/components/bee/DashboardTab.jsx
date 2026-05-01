@@ -178,7 +178,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
       `}</style>
 
       {/* ── KPI bento row ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 16 }}>
         {kpis.map((k, idx) => (
           <div key={idx} style={{ position: 'relative', background: COLORS.surface, borderRadius: 24, padding: '22px 24px', border: `1px solid ${COLORS.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {/* ambient glow */}
@@ -270,7 +270,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
       {/* ── Quick actions ── */}
       <div>
         <div style={{ fontSize: 10, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 14 }}>Actions Rapides</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 14 }}>
           {quickActions.map(act => (
             <button key={act.label}
               onClick={() => act.tab === 'sync' ? onSync?.() : onAction?.(act.tab, act.subAction)}
@@ -293,7 +293,7 @@ export default function DashboardTab({ ruches = [], isProcessing, onAction, stat
       </div>
 
       {/* ── System health strip ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
         {[
           { label: 'Moyenne Force Colonies', value: ruches.length ? (ruches.reduce((s, r) => s + (r.force_level || 5), 0) / ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.success, icon: TrendingUp },
           { label: 'Niveau Miel Moyen', value: ruches.length ? (ruches.reduce((s, r) => s + (r.honey_level || 5), 0) / ruches.length).toFixed(1) : '—', unit: '/10', color: COLORS.accent, icon: Droplets },

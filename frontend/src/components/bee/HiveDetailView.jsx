@@ -334,9 +334,9 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
           <Section title="Bilan de santé" icon={Heart}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
               {HEALTH_OPTIONS.map(st => (
                 <button key={st.id} onClick={() => setForm(f => ({ ...f, health_state: st.id }))}
                   style={{ padding: '11px', borderRadius: 12, cursor: 'pointer', border: form.health_state === st.id ? `2px solid ${st.color}` : `1px solid ${COLORS.border}`,
@@ -381,7 +381,7 @@ function InspectionTab({ hive, onVisitCreated, toast }) {
         </Section>
 
         <Section title="Récolte (kg)" icon={Droplets} color={COLORS.accent}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
             {[{ key: 'harvest_kg', label: 'Miel', color: COLORS.accent }, { key: 'pollen_kg', label: 'Pollen', color: COLORS.success }].map(f => (
               <div key={f.key} style={{ padding: 14, borderRadius: 14, border: `1px solid ${COLORS.border}`, background: 'rgba(28,10,0,0.03)' }}>
                 <span style={{ fontSize: 10, fontWeight: 800, color: f.color, display: 'block', marginBottom: 6 }}>{f.label}</span>
@@ -561,7 +561,7 @@ function LogistiqueTab({ hive, toast }) {
 
       {/* Stock ruche */}
       <Section title="Stock Ruche" icon={Package} color={COLORS.info}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
           {stockItems.map(item => {
             const val = stock?.[item.key] ?? 0;
             const low = val < item.min;
@@ -611,7 +611,7 @@ function LogistiqueTab({ hive, toast }) {
 
       {/* Consommation historique */}
       <Section title="Consommation cumulée (toutes visites)" icon={Activity}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
           {[
             { label: 'Sirop total', value: `${totals.sirop.toFixed(1)} L`, color: COLORS.info },
             { label: 'Pâte totale', value: `${totals.pate.toFixed(1)} kg`, color: COLORS.success },
@@ -766,7 +766,7 @@ function PlanningTab({ hive, toast }) {
       {/* New mission form */}
       <Section title="Nouvelle Mission" icon={Plus} color={COLORS.accent}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
             <div>
               <label style={{ color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px', display: 'block', marginBottom: 6 }}>DATE *</label>
               <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={inputSt} />
@@ -936,7 +936,7 @@ function RecolteTab({ hive, toast }) {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
         {[
           { label: 'Miel total (ruche)', value: `${totalHoney.toFixed(1)} kg`, color: COLORS.accent, icon: Droplets },
           { label: 'Pollen total', value: `${totalPollen.toFixed(1)} kg`, color: COLORS.success, icon: Activity },
@@ -1085,7 +1085,7 @@ function FinanceTab({ hive, toast }) {
 
       {/* KPIs financiers */}
       {summary && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
           {[
             { label: 'DÉPENSES', value: `${summary.total_expenses.toFixed(0)} TND`, color: COLORS.error },
             { label: 'CHIFFRE D\'AFF.', value: `${summary.total_revenue_tnd.toFixed(0)} TND`, color: COLORS.success },
