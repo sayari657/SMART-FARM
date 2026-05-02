@@ -162,71 +162,121 @@ def post_telemetry(payload: TelemetryPayload):
         
     return {"status": "ok"}
 
+def _iot_csv_path():
+    from pathlib import Path
+    return str(Path(__file__).parent.parent.parent / "iot" / "iot_telemetry.csv")
+
+# Maps both old French metric names and new English key names to canonical keys
+_METRIC_MAP_A = {
+    "Humidité Sol": "soil", "soil": "soil",
+    "Pression": "pressure", "pressure": "pressure",
+    "Débit": "flow", "flow": "flow",
+    "Temp Sol": "temp", "temp": "temp",
+    "pump": "pump", "valve": "valve", "fault": "fault",
+}
+_METRIC_MAP_B = {
+    "Poids Ruche": "weight", "weight": "weight",
+    "Temp Couvain": "hive_temp", "hive_temp": "hive_temp",
+    "Temp Ext": "ext_temp", "ext_temp": "ext_temp",
+    "Humidité Ext": "ext_hum", "ext_hum": "ext_hum",
+}
+
+def _is_node_a(node: str) -> bool:
+    return node == "NODE_A" or "Node A" in node
+
+def _is_node_b(node: str) -> bool:
+    return node == "NODE_B" or "Node B" in node
+
 @app.get("/api/v1/iot/latest")
 def get_latest_iot():
-    import os, csv
-    from pathlib import Path
-    csv_path = str(Path(__file__).parent.parent.parent / "iot" / "iot_telemetry.csv")
-    
+    import os, csv as _csv
     latest = {
-        "nodeA": {"soil": 45.0, "pressure": 0.5, "flow": 12.0, "temp": 23.0},
-        "nodeB": {"weight": 46.0, "broodTemp": 35.0, "extTemp": 28.0, "extHum": 58.0}
+        "nodeA": {"soil": 45.0, "pressure": 3.0, "flow": 12.0, "temp": 23.0,
+                  "pump": 0, "valve": 0, "fault": 0, "mode": "OFFLINE"},
+        "nodeB": {"weight": 20.0, "hive_temp": 34.0, "broodTemp": 34.0,
+                  "ext_temp": 25.0, "extTemp": 25.0,
+                  "ext_hum": 60.0, "extHum": 60.0},
     }
-    
+    csv_path = _iot_csv_path()
     if not os.path.exists(csv_path):
         return latest
-        
     try:
         with open(csv_path, 'r', encoding='utf-8') as f:
-            lines = list(csv.reader(f))
-            if len(lines) <= 1:
-                return latest
-            
-            metrics_found_a = set()
-            metrics_found_b = set()
-            for row in reversed(lines):
+            lines = list(_csv.reader(f))
+        found_a, found_b = set(), set()
+        for row in reversed(lines):
+            if len(row) < 4:
+                continue
+            _, node, metric, value = row[0], row[1], row[2], row[3]
+            try:
+                val = float(value)
+            except ValueError:
+                continue
+            if _is_node_a(node):
+                key = _METRIC_MAP_A.get(metric)
+                if key and key not in found_a:
+                    latest["nodeA"][key] = val
+                    found_a.add(key)
+                    # keep old Dashboard.jsx key aliases
+                    if key == "soil":
+                        latest["nodeA"]["mode"] = "ONLINE"
+            elif _is_node_b(node):
+                key = _METRIC_MAP_B.get(metric)
+                if key and key not in found_b:
+                    latest["nodeB"][key] = val
+                    found_b.add(key)
+                    # keep legacy aliases for Dashboard.jsx
+                    if key == "hive_temp":
+                        latest["nodeB"]["broodTemp"] = val
+                    elif key == "ext_temp":
+                        latest["nodeB"]["extTemp"] = val
+                    elif key == "ext_hum":
+                        latest["nodeB"]["extHum"] = val
+            if len(found_a) >= 7 and len(found_b) >= 4:
+                break
+    except Exception as e:
+        logger.error(f"IoT latest error: {e}")
+    return latest
+
+@app.get("/api/v1/iot/history")
+def get_iot_history(limit: int = 50):
+    import os, csv as _csv
+    csv_path = _iot_csv_path()
+    if not os.path.exists(csv_path):
+        return {"nodeA": [], "nodeB": []}
+    snaps_a: dict = {}
+    snaps_b: dict = {}
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = _csv.reader(f)
+            next(reader, None)
+            for row in reader:
                 if len(row) < 4:
                     continue
                 ts, node, metric, value = row[0], row[1], row[2], row[3]
-                
                 try:
-                    val_float = float(value)
+                    val = float(value)
                 except ValueError:
                     continue
-                    
-                if "Node A" in node:
-                    if metric == "Humidité Sol" and "soil" not in metrics_found_a:
-                        latest["nodeA"]["soil"] = val_float
-                        metrics_found_a.add("soil")
-                    elif metric == "Pression" and "pressure" not in metrics_found_a:
-                        latest["nodeA"]["pressure"] = val_float
-                        metrics_found_a.add("pressure")
-                    elif metric == "Débit" and "flow" not in metrics_found_a:
-                        latest["nodeA"]["flow"] = val_float
-                        metrics_found_a.add("flow")
-                    elif metric == "Temp Sol" and "temp" not in metrics_found_a:
-                        latest["nodeA"]["temp"] = val_float
-                        metrics_found_a.add("temp")
-                elif "Node B" in node:
-                    if metric == "Poids Ruche" and "weight" not in metrics_found_b:
-                        latest["nodeB"]["weight"] = val_float
-                        metrics_found_b.add("weight")
-                    elif metric == "Temp Couvain" and "broodTemp" not in metrics_found_b:
-                        latest["nodeB"]["broodTemp"] = val_float
-                        metrics_found_b.add("broodTemp")
-                    elif metric == "Temp Ext" and "extTemp" not in metrics_found_b:
-                        latest["nodeB"]["extTemp"] = val_float
-                        metrics_found_b.add("extTemp")
-                    elif metric == "Humidité Ext" and "extHum" not in metrics_found_b:
-                        latest["nodeB"]["extHum"] = val_float
-                        metrics_found_b.add("extHum")
-                        
-                if len(metrics_found_a) == 4 and len(metrics_found_b) == 4:
-                    break
+                if _is_node_a(node):
+                    key = _METRIC_MAP_A.get(metric)
+                    if key:
+                        snap = snaps_a.setdefault(ts, {"timestamp": ts})
+                        snap[key] = val
+                elif _is_node_b(node):
+                    key = _METRIC_MAP_B.get(metric)
+                    if key:
+                        snap = snaps_b.setdefault(ts, {"timestamp": ts})
+                        snap[key] = val
     except Exception as e:
-        logger.error(f"Error reading IoT CSV: {e}")
-        
-    return latest
+        logger.error(f"IoT history error: {e}")
+        return {"nodeA": [], "nodeB": []}
+    list_a = sorted(snaps_a.values(), key=lambda x: x["timestamp"])
+    list_b = sorted(snaps_b.values(), key=lambda x: x["timestamp"])
+    # Only snapshots that have at least the primary metric
+    list_a = [s for s in list_a if "soil" in s]
+    list_b = [s for s in list_b if "weight" in s]
+    return {"nodeA": list_a[-limit:], "nodeB": list_b[-limit:]}
 
 # -- Health & Root --
 @app.get("/")

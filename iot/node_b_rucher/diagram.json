@@ -3,23 +3,41 @@
   "author": "Smart Farm AI",
   "editor": "wokwi",
   "parts": [
-    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
-    { "type": "wokwi-hx711", "id": "hx711", "top": -100, "left": 150, "attrs": {} },
-    { "type": "wokwi-dht22", "id": "dht", "top": 100, "left": -150, "attrs": {} },
-    { "type": "wokwi-ds18b20", "id": "temp_hive", "top": 160, "left": -150, "attrs": {} }
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 80, "left": 0, "attrs": {} },
+
+    { "type": "wokwi-slide-potentiometer", "id": "weight_slider", "top": 0,   "left": -250, "attrs": { "label": "Poids Ruche (kg)" } },
+    { "type": "wokwi-dht22",              "id": "dht",            "top": 110, "left": -250, "attrs": {} },
+    { "type": "wokwi-ds18b20",            "id": "temp_hive",      "top": 210, "left": -250, "attrs": {} },
+    { "type": "wokwi-resistor",           "id": "res_ds18",       "top": 190, "left": -140, "attrs": { "value": "4700" } },
+
+    { "type": "wokwi-led",      "id": "led_alert", "top": 16,  "left": 320, "attrs": { "color": "red"    } },
+    { "type": "wokwi-resistor", "id": "res_alert", "top": 10,  "left": 370, "attrs": { "value": "220" } },
+
+    { "type": "wokwi-led",      "id": "led_honey", "top": 76,  "left": 320, "attrs": { "color": "yellow" } },
+    { "type": "wokwi-resistor", "id": "res_honey", "top": 70,  "left": 370, "attrs": { "value": "220" } }
   ],
   "connections": [
-    [ "esp:GND.1", "hx711:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "hx711:VCC", "red", [ "v0" ] ],
-    [ "esp:GND.1", "dht:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "dht:VCC", "red", [ "v0" ] ],
-    [ "esp:GND.1", "temp_hive:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "temp_hive:VCC", "red", [ "v0" ] ],
+    ["esp:GND.1", "weight_slider:GND",   "black", []],
+    ["esp:3V3",   "weight_slider:VCC",   "red",   []],
+    ["esp:D34",   "weight_slider:WIPER", "green", []],
 
-    [ "esp:D12", "hx711:PD_SCK", "orange", [ "v0" ] ],
-    [ "esp:D13", "hx711:DOUT", "yellow", [ "v0" ] ],
-    [ "esp:D14", "dht:SDA", "green", [ "v0" ] ],
-    [ "esp:D15", "temp_hive:DQ", "blue", [ "v0" ] ]
+    ["esp:GND.1", "dht:GND", "black", []],
+    ["esp:3V3",   "dht:VCC", "red",   []],
+    ["esp:D14",   "dht:SDA", "green", []],
+
+    ["esp:GND.1",  "temp_hive:GND", "black",  []],
+    ["esp:3V3",    "temp_hive:VCC", "red",    []],
+    ["esp:D15",    "temp_hive:DQ",  "yellow", []],
+    ["esp:3V3",    "res_ds18:1",    "red",    []],
+    ["res_ds18:2", "temp_hive:DQ",  "orange", []],
+
+    ["esp:D2",      "res_alert:1", "red",    []],
+    ["res_alert:2", "led_alert:A", "red",    []],
+    ["led_alert:K", "esp:GND.2",   "black",  []],
+
+    ["esp:D4",      "res_honey:1", "yellow", []],
+    ["res_honey:2", "led_honey:A", "yellow", []],
+    ["led_honey:K", "esp:GND.2",   "black",  []]
   ],
   "dependencies": {}
 }

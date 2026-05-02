@@ -3,35 +3,65 @@
   "author": "Smart Farm AI",
   "editor": "wokwi",
   "parts": [
-    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
-    { "type": "wokwi-relay-module", "id": "relay1", "top": -100, "left": 150, "attrs": {} },
-    { "type": "wokwi-relay-module", "id": "relay2", "top": -40, "left": 150, "attrs": {} },
-    { "type": "wokwi-potentiometer", "id": "soil_moisture", "top": 100, "left": -150, "attrs": { "label": "Humidité Sol" } },
-    { "type": "wokwi-potentiometer", "id": "pressure", "top": 160, "left": -150, "attrs": { "label": "Pression Eau" } },
-    { "type": "wokwi-ds18b20", "id": "temp_soil", "top": 220, "left": -150, "attrs": {} },
-    { "type": "wokwi-potentiometer", "id": "flow", "top": 280, "left": -150, "attrs": { "label": "Débit Eau (YF-S201)" } }
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 80, "left": 0, "attrs": {} },
+
+    { "type": "wokwi-slide-potentiometer", "id": "soil_slider",     "top": 0,   "left": -250, "attrs": { "label": "Humidite Sol %" } },
+    { "type": "wokwi-slide-potentiometer", "id": "pressure_slider", "top": 80,  "left": -250, "attrs": { "label": "Pression Bar" } },
+    { "type": "wokwi-slide-potentiometer", "id": "flow_slider",     "top": 160, "left": -250, "attrs": { "label": "Debit L/min" } },
+
+    { "type": "wokwi-ds18b20",  "id": "temp_soil", "top": 250, "left": -250, "attrs": {} },
+    { "type": "wokwi-resistor", "id": "res_ds18",  "top": 230, "left": -140, "attrs": { "value": "4700" } },
+
+    { "type": "wokwi-relay-module", "id": "relay_valve", "top": 0,   "left": 330, "attrs": {} },
+    { "type": "wokwi-relay-module", "id": "relay_pump",  "top": 100, "left": 330, "attrs": {} },
+
+    { "type": "wokwi-led",      "id": "led_pump",  "top": 206, "left": 330, "attrs": { "color": "green"  } },
+    { "type": "wokwi-resistor", "id": "res_pump",  "top": 200, "left": 380, "attrs": { "value": "220" } },
+
+    { "type": "wokwi-led",      "id": "led_valve", "top": 246, "left": 330, "attrs": { "color": "blue"   } },
+    { "type": "wokwi-resistor", "id": "res_valve", "top": 240, "left": 380, "attrs": { "value": "220" } },
+
+    { "type": "wokwi-led",      "id": "led_alert", "top": 286, "left": 330, "attrs": { "color": "red"    } },
+    { "type": "wokwi-resistor", "id": "res_alert", "top": 280, "left": 380, "attrs": { "value": "220" } }
   ],
   "connections": [
-    [ "esp:GND.1", "soil_moisture:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "soil_moisture:VCC", "red", [ "v0" ] ],
-    [ "esp:GND.1", "pressure:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "pressure:VCC", "red", [ "v0" ] ],
-    [ "esp:GND.1", "flow:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "flow:VCC", "red", [ "v0" ] ],
-    [ "esp:GND.1", "temp_soil:GND", "black", [ "v0" ] ],
-    [ "esp:3V3", "temp_soil:VCC", "red", [ "v0" ] ],
-    
-    [ "esp:VP", "soil_moisture:SIG", "green", [ "h0" ] ],
-    [ "esp:VN", "pressure:SIG", "blue", [ "h0" ] ],
-    [ "esp:D32", "flow:SIG", "purple", [ "h0" ] ],
-    [ "esp:D33", "temp_soil:DQ", "yellow", [ "h0" ] ],
+    ["esp:GND.1", "soil_slider:GND",     "black",  []],
+    ["esp:3V3",   "soil_slider:VCC",     "red",    []],
+    ["esp:VP",    "soil_slider:WIPER",   "green",  []],
 
-    [ "esp:D5", "relay1:IN", "orange", [ "v0" ] ],
-    [ "esp:D18", "relay2:IN", "orange", [ "v0" ] ],
-    [ "esp:GND.2", "relay1:GND", "black", [ "v0" ] ],
-    [ "esp:5V", "relay1:VCC", "red", [ "v0" ] ],
-    [ "esp:GND.2", "relay2:GND", "black", [ "v0" ] ],
-    [ "esp:5V", "relay2:VCC", "red", [ "v0" ] ]
+    ["esp:GND.1", "pressure_slider:GND",   "black", []],
+    ["esp:3V3",   "pressure_slider:VCC",   "red",   []],
+    ["esp:VN",    "pressure_slider:WIPER", "blue",  []],
+
+    ["esp:GND.1", "flow_slider:GND",   "black",  []],
+    ["esp:3V3",   "flow_slider:VCC",   "red",    []],
+    ["esp:D32",   "flow_slider:WIPER", "purple", []],
+
+    ["esp:GND.1",    "temp_soil:GND", "black",  []],
+    ["esp:3V3",      "temp_soil:VCC", "red",    []],
+    ["esp:D33",      "temp_soil:DQ",  "yellow", []],
+    ["esp:3V3",      "res_ds18:1",    "red",    []],
+    ["res_ds18:2",   "temp_soil:DQ",  "orange", []],
+
+    ["esp:D5",       "relay_valve:IN",  "orange", []],
+    ["esp:GND.2",    "relay_valve:GND", "black",  []],
+    ["esp:5V",       "relay_valve:VCC", "red",    []],
+
+    ["esp:D18",      "relay_pump:IN",   "orange", []],
+    ["esp:GND.2",    "relay_pump:GND",  "black",  []],
+    ["esp:5V",       "relay_pump:VCC",  "red",    []],
+
+    ["esp:D2",       "res_pump:1",  "green",  []],
+    ["res_pump:2",   "led_pump:A",  "green",  []],
+    ["led_pump:K",   "esp:GND.2",   "black",  []],
+
+    ["esp:D4",       "res_valve:1", "blue",   []],
+    ["res_valve:2",  "led_valve:A", "blue",   []],
+    ["led_valve:K",  "esp:GND.2",   "black",  []],
+
+    ["esp:D16",      "res_alert:1", "red",    []],
+    ["res_alert:2",  "led_alert:A", "red",    []],
+    ["led_alert:K",  "esp:GND.2",   "black",  []]
   ],
   "dependencies": {}
 }
