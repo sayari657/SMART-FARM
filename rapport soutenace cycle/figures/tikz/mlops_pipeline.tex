@@ -1,0 +1,128 @@
+% ============================================================
+%  Pipeline MLOps — DVC + MLflow + IsolationForest
+%  Smart Farm AI v3.0
+% ============================================================
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  stage/.style={
+    rectangle, rounded corners=5pt,
+    draw=#1!70!black, fill=#1!15,
+    text width=2.6cm, minimum height=1.4cm,
+    align=center, font=\scriptsize\bfseries, inner sep=4pt
+  },
+  artifact/.style={
+    rectangle, rounded corners=2pt,
+    draw=farmgray!60, fill=farmgray!10,
+    text width=2.2cm, minimum height=0.9cm,
+    align=center, font=\tiny, inner sep=3pt,
+    dashed
+  },
+  metric/.style={
+    rectangle, rounded corners=2pt,
+    draw=farmgreen!60, fill=farmgreen!10,
+    text width=2cm, minimum height=0.8cm,
+    align=center, font=\tiny, inner sep=3pt
+  },
+  arrow/.style={->, thick, >=Stealth, #1},
+  darrow/.style={->, dashed, >=Stealth, farmgray!60}
+]
+
+% ─── Ligne principale du pipeline ────────────────────────────
+
+% 1. Source données CSV (IoT)
+\node[stage=farmgray] (csv) at (0, 0) {
+  Données IoT\\CSV\\NODE\_A/B
+};
+
+% 2. DVC Stage 1 — build_dataset
+\node[stage=farmblue] (dvc1) at (3.5, 0) {
+  DVC Stage 1\\build\_dataset.py\\Normalisation
+};
+
+% 3. DVC Stage 2 — train
+\node[stage=farmblue] (dvc2) at (7, 0) {
+  DVC Stage 2\\train\_anomaly.py\\Entraînement
+};
+
+% 4. MLflow Run
+\node[stage=farmgreen] (mlflow) at (10.5, 0) {
+  MLflow Run\\Logging\\Hyperparams
+};
+
+% 5. MLflow Registry
+\node[stage=farmgreen] (registry) at (14, 0) {
+  MLflow\\Registry\\Model Store
+};
+
+% ─── Flèches pipeline principal ───────────────────────────────
+\draw[arrow=farmblue] (csv)     -- (dvc1);
+\draw[arrow=farmblue] (dvc1)    -- (dvc2);
+\draw[arrow=farmgreen](dvc2)    -- node[above, font=\tiny]{log\_metrics()} (mlflow);
+\draw[arrow=farmgreen](mlflow)  -- node[above, font=\tiny]{register\_model()} (registry);
+
+% ─── Artefacts DVC (au-dessus) ────────────────────────────────
+\node[artifact] (art1) at (1.75, 2.0) {
+  \texttt{data/raw/}\\telemetry.csv
+};
+\draw[darrow] (csv.north) |- (art1.south);
+
+\node[artifact] (art2) at (5.25, 2.0) {
+  \texttt{data/processed/}\\features.csv
+};
+\draw[darrow] (dvc1.north) |- (art2.south);
+
+\node[artifact] (art3) at (8.75, 2.0) {
+  \texttt{models/}\\anomaly\_detector.pkl
+};
+\draw[darrow] (dvc2.north) |- (art3.south);
+
+\node[artifact] (art4) at (12.25, 2.0) {
+  \texttt{mlruns.db}\\648 KB
+};
+\draw[darrow] (mlflow.north) |- (art4.south);
+
+% ─── Métriques MLflow (en-dessous) ───────────────────────────
+\node[metric] (m_params) at (7, -2.5) {
+  n\_estimators=150\\contamination=0.05\\random\_state=42
+};
+\draw[darrow] (dvc2.south) -- (m_params.north);
+
+\node[metric] (m_score) at (10.5, -2.5) {
+  Silhouette: 0.73\\Anomalies: 5\%\\Inliers: 95\%
+};
+\draw[darrow] (mlflow.south) -- (m_score.north);
+
+% ─── Étape 6 : serve_latest_model ─────────────────────────────
+\node[stage=farmorange] (serve) at (14, -3.5) {
+  serve\_latest\\\_model.py\\FastAPI Service
+};
+\draw[arrow=farmorange] (registry.south) |-
+  node[right, font=\tiny, pos=0.75]{load\_model()} (serve.north);
+
+% ─── Étape 7 : Anomaly Alert ──────────────────────────────────
+\node[stage=farmred] (alert) at (10.5, -3.5) {
+  Anomaly Alert\\Dashboard\\WebSocket
+};
+\draw[arrow=farmred] (serve.west) -- node[above, font=\tiny]{score\_samples()} (alert.east);
+
+% ─── Retour vers données ──────────────────────────────────────
+\draw[arrow=farmgray!50, dashed, bend right=45]
+  (alert.south) to node[below, font=\tiny\itshape]
+  {nouvelles métriques} (csv.south);
+
+% ─── Bandes DVC ───────────────────────────────────────────────
+\draw[decorate, decoration={brace, amplitude=6pt},
+      farmblue, thick] (0.5, -0.8) -- (8.5, -0.8)
+  node[midway, below=8pt, font=\tiny\bfseries\color{farmblue}]
+  {Pipeline DVC versionné (\texttt{dvc.yaml})};
+
+\draw[decorate, decoration={brace, amplitude=6pt},
+      farmgreen, thick] (9, -0.8) -- (15.5, -0.8)
+  node[midway, below=8pt, font=\tiny\bfseries\color{farmgreen}]
+  {MLflow Experiment Tracking};
+
+% ─── Label global ─────────────────────────────────────────────
+\node[font=\small\bfseries\color{farmblue}, above] at (7, 3.2)
+  {Pipeline MLOps — IsolationForest Anomaly Detector};
+
+\end{tikzpicture}

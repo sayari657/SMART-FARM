@@ -1,0 +1,113 @@
+% ============================================================
+%  Diagramme de Cas d'Utilisation Global — Smart Farm AI v3.0
+%  Acteurs : Owner, Worker, ESP32 Nodes, Ollama LLM
+% ============================================================
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  actor/.style={
+    font=\scriptsize\bfseries, align=center,
+    text width=1.8cm
+  },
+  usecase/.style={
+    ellipse, draw=farmblue!70, fill=farmblue!8,
+    text width=2.5cm, align=center,
+    font=\tiny, inner sep=2pt,
+    minimum height=0.7cm
+  },
+  ucsmall/.style={
+    ellipse, draw=farmgreen!70, fill=farmgreen!8,
+    text width=2.2cm, align=center,
+    font=\tiny, inner sep=2pt,
+    minimum height=0.6cm
+  },
+  include/.style={dashed, ->, >=Stealth, farmblue!60, font=\tiny},
+  extend/.style={dashed, ->, >=Stealth, farmorange!70, font=\tiny},
+  assoc/.style={-, thick, farmgray!60}
+]
+
+% ── Frontière système ────────────────────────────────────────
+\draw[rounded corners=12pt, draw=farmblue, fill=farmblue!3, line width=1.5pt]
+  (1.2, -9.5) rectangle (12.8, 1.2);
+\node[font=\normalsize\bfseries\color{farmblue}, above] at (7, 1.2)
+  {\farmAI{} v3.0 — Système};
+
+% ── Macro stickman TikZ ──────────────────────────────────────
+\newcommand{\stickman}[3]{% x, y, label
+  \begin{scope}[shift={(#1,#2)}]
+    \draw[thick, farmgray] (0,0.55) circle (0.18);
+    \draw[thick, farmgray] (0,0.37) -- (0,-0.15);
+    \draw[thick, farmgray] (-0.22,0.15) -- (0.22,0.15);
+    \draw[thick, farmgray] (0,-0.15) -- (-0.18,-0.55);
+    \draw[thick, farmgray] (0,-0.15) -- ( 0.18,-0.55);
+  \end{scope}
+  \node[actor] at (#1, #2-0.85) {#3};
+}
+
+% ── Acteur : Owner (gauche haut) ─────────────────────────────
+\stickman{-1.5}{-0.7}{Owner\\(Propriétaire)}
+\coordinate (owner) at (-1.5, -1.5);
+
+% ── Acteur : Worker (gauche bas) ─────────────────────────────
+\stickman{-1.5}{-6.7}{Worker\\(Ouvrier)}
+\coordinate (worker) at (-1.5, -7.5);
+
+% ── Acteur : ESP32 Nodes (droite haut) ───────────────────────
+\stickman{15.5}{-0.7}{ESP32 Nodes\\(NODE\_A/B)}
+\coordinate (esp32) at (15.5, -1.5);
+
+% ── Acteur : Ollama LLM (droite bas) ─────────────────────────
+\stickman{15.5}{-6.7}{Ollama LLM\\(Labess-7B)}
+\coordinate (ollama) at (15.5, -7.5);
+
+% ── Cas d'utilisation Owner ───────────────────────────────────
+\node[usecase] (uc_auth)    at (3.5, 0)    {S'authentifier\\(JWT + OTP)};
+\node[usecase] (uc_farm)    at (3.5, -1.8) {Gérer les\\Fermes};
+\node[usecase] (uc_dash)    at (3.5, -3.5) {Tableau de bord\\(KPIs + Météo)};
+\node[usecase] (uc_tele)    at (3.5, -5.2) {Visualiser\\Télémétrie IoT};
+\node[usecase] (uc_alert)   at (3.5, -6.8) {Recevoir\\Alertes IoT};
+\node[usecase] (uc_map)     at (3.5, -8.5) {Consulter\\Map SIG};
+
+% ── Cas d'utilisation partagés Owner/Worker ────────────────────
+\node[usecase] (uc_scan)    at (7,   -1.5) {Scanner\\(Vision YOLO)};
+\node[usecase] (uc_hive)    at (7,   -4.5) {Gestion\\Apiculture};
+\node[usecase] (uc_worker)  at (7,   -7.5) {Gestion\\Ouvriers};
+
+% ── Cas d'utilisation Assistant ───────────────────────────────
+\node[usecase] (uc_chat)    at (10.5, -1.5) {Dialoguer\\(Darija)};
+\node[ucsmall] (uc_stt)     at (10.5, -3.0) {Parler / Écouter\\(STT/TTS)};
+\node[ucsmall] (uc_vision)  at (10.5, -4.5) {Analyse Image\\(LLaVA)};
+
+% ── Cas d'utilisation IoT / System ────────────────────────────
+\node[usecase] (uc_iot_post) at (10.5, -6.5) {Envoyer\\Télémétrie};
+\node[ucsmall] (uc_anomaly)  at (10.5, -8.5) {Détecter\\Anomalies};
+
+% ── Associations Owner ────────────────────────────────────────
+\draw[assoc] (owner) -- (uc_auth);
+\draw[assoc] (owner) -- (uc_farm);
+\draw[assoc] (owner) -- (uc_dash);
+\draw[assoc] (owner) -- (uc_tele);
+\draw[assoc] (owner) -- (uc_alert);
+\draw[assoc] (owner) -- (uc_map);
+\draw[assoc] (owner) -- (uc_scan);
+\draw[assoc] (owner) -- (uc_hive);
+\draw[assoc] (owner) -- (uc_worker);
+\draw[assoc] (owner) -- (uc_chat);
+
+% ── Associations Worker ───────────────────────────────────────
+\draw[assoc] (worker) -- (uc_auth);
+\draw[assoc] (worker) -- (uc_scan);
+\draw[assoc] (worker) -- (uc_worker);
+
+% ── Associations ESP32 ────────────────────────────────────────
+\draw[assoc] (esp32) -- (uc_iot_post);
+
+% ── Associations Ollama ───────────────────────────────────────
+\draw[assoc] (ollama) -- (uc_chat);
+
+% ── Relations include / extend ────────────────────────────────
+\draw[include] (uc_chat)    -- node[above, sloped]{\texttt{<<include>>}} (uc_stt);
+\draw[extend]  (uc_chat)    -- node[right]{\texttt{<<extend>>}}          (uc_vision);
+\draw[include] (uc_dash)    -- node[above, sloped, pos=0.4]{\texttt{<<include>>}} (uc_tele);
+\draw[extend]  (uc_iot_post)-- node[right]{\texttt{<<extend>>}}          (uc_anomaly);
+
+\end{tikzpicture}

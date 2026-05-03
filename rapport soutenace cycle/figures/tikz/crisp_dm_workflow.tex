@@ -1,0 +1,139 @@
+% ============================================================
+%  Diagramme CRISP-DM — Cycle Data Science pour FARM AI
+% ============================================================
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  phase/.style={
+    circle, draw=#1!80!black, fill=#1!25,
+    text width=2.1cm, align=center,
+    font=\scriptsize\bfseries, inner sep=3pt,
+    minimum size=2.3cm
+  },
+  annotation/.style={
+    rectangle, rounded corners=3pt,
+    draw=farmgray!60, fill=yellow!15,
+    text width=3cm, align=left,
+    font=\tiny, inner sep=4pt
+  },
+  arrow/.style={->, thick, >=Stealth, #1}
+]
+
+% ── Nœuds du cycle CRISP-DM (hexagone de rayon 4.2cm) ────────
+\def\R{4.2}
+
+% Phase 1 — Compréhension métier (haut)
+\node[phase=farmblue] (biz) at (0:\R) {
+  Compréhension\\Métier
+};
+
+% Phase 2 — Compréhension données (haut-droite)
+\node[phase=farmgreen] (data) at (300:\R) {
+  Compréhension\\Données
+};
+
+% Phase 3 — Préparation données (bas-droite)
+\node[phase=farmorange] (prep) at (240:\R) {
+  Préparation\\Données
+};
+
+% Phase 4 — Modélisation (bas)
+\node[phase=farmred] (model) at (180:\R) {
+  Modélisation
+};
+
+% Phase 5 — Évaluation (bas-gauche)
+\node[phase=farmblue!70] (eval) at (120:\R) {
+  Évaluation
+};
+
+% Phase 6 — Déploiement (haut-gauche)
+\node[phase=farmgreen!70] (deploy) at (60:\R) {
+  Déploiement
+};
+
+% ── Flèches du cycle principal ────────────────────────────────
+\draw[arrow=farmblue!60, bend left=20]  (biz)    to (data);
+\draw[arrow=farmgreen!60, bend left=20] (data)   to (prep);
+\draw[arrow=farmorange!60, bend left=20](prep)   to (model);
+\draw[arrow=farmred!60, bend left=20]   (model)  to (eval);
+\draw[arrow=farmblue!50, bend left=20]  (eval)   to (deploy);
+\draw[arrow=farmgreen!50, bend left=20] (deploy) to (biz);
+
+% ── Flèche d'itération (évaluation → modélisation) ───────────
+\draw[arrow=farmred!70, dashed, bend left=40, line width=1.2pt]
+  (eval) to node[above, font=\tiny\itshape, pos=0.5]
+  {si mAP $<$ 0.70} (model);
+
+% ── Ellipse centrale ──────────────────────────────────────────
+\node[
+  ellipse, draw=farmgray!40, fill=white,
+  text width=2.8cm, align=center,
+  font=\small\bfseries\color{farmblue},
+  inner sep=6pt
+] at (0,0) {
+  \farmAI\\[2pt]
+  \tiny\color{farmgray}Data Pipeline
+};
+
+% ── Annotations FARM AI par phase ─────────────────────────────
+% Compréhension Métier → droite
+\node[annotation, right=0.6cm of biz] (ann_biz) {
+  \textbf{FARM AI :}\\
+  • Détection maladies tunisiennes\\
+  • Monitoring ruches ESP32\\
+  • Anomalies télémétriques\\
+  • Assistant Darija
+};
+\draw[dashed, farmgray!50, thin] (biz.east) -- (ann_biz.west);
+
+% Compréhension Données → bas-droite
+\node[annotation, below right=0.3cm and 0.4cm of data] (ann_data) {
+  \textbf{Sources :}\\
+  • CSV IoT (NODE\_A/B)\\
+  • Datasets YOLO Roboflow\\
+  • Corpus UTAP/AVFA (RAG)\\
+  • Images maladies foliaires
+};
+\draw[dashed, farmgray!50, thin] (data.south east) -- (ann_data.north west);
+
+% Préparation → bas-gauche
+\node[annotation, below left=0.3cm and 0.4cm of prep] (ann_prep) {
+  \textbf{DVC Pipeline :}\\
+  • build\_dataset (stage 1)\\
+  • Normalisation CSV\\
+  • Augmentation images\\
+  • Split train/val/test
+};
+\draw[dashed, farmgray!50, thin] (prep.south west) -- (ann_prep.north east);
+
+% Modélisation → gauche
+\node[annotation, left=0.6cm of model] (ann_model) {
+  \textbf{Modèles :}\\
+  • YOLO v11 (8 modèles)\\
+  • IsolationForest\\
+  • RAG ChromaDB\\
+  • Labess-7B LLM
+};
+\draw[dashed, farmgray!50, thin] (model.west) -- (ann_model.east);
+
+% Évaluation → haut-gauche
+\node[annotation, above left=0.3cm and 0.4cm of eval] (ann_eval) {
+  \textbf{Métriques :}\\
+  • mAP50 / mAP50-95\\
+  • Silhouette Score\\
+  • Recall / Précision\\
+  • BLEU (LLM)
+};
+\draw[dashed, farmgray!50, thin] (eval.north west) -- (ann_eval.south east);
+
+% Déploiement → haut-droite
+\node[annotation, above right=0.3cm and 0.4cm of deploy] (ann_dep) {
+  \textbf{Production :}\\
+  • MLflow Registry\\
+  • Docker + Oracle\\
+  • serve\_latest\_model.py\\
+  • Alertes temps réel
+};
+\draw[dashed, farmgray!50, thin] (deploy.north east) -- (ann_dep.south west);
+
+\end{tikzpicture}

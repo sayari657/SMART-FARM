@@ -1,0 +1,98 @@
+% ============================================================
+%  Diagramme de Cas d'Utilisation — Module Apiculture HiveIntel
+%  Acteurs : Owner Apiculteur, NODE_B ESP32
+% ============================================================
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  actor/.style={font=\scriptsize\bfseries, align=center, text width=1.8cm},
+  usecase/.style={
+    ellipse, draw=farmgreen!80!black, fill=farmgreen!10,
+    text width=2.8cm, align=center,
+    font=\tiny, inner sep=3pt, minimum height=0.75cm
+  },
+  uciot/.style={
+    ellipse, draw=farmorange!80!black, fill=farmorange!10,
+    text width=2.8cm, align=center,
+    font=\tiny, inner sep=3pt, minimum height=0.75cm
+  },
+  include/.style={dashed, ->, >=Stealth, farmblue!60, font=\tiny},
+  extend/.style={dashed, ->, >=Stealth, farmorange!70, font=\tiny},
+  assoc/.style={-, thick, farmgray!60}
+]
+
+% ── Frontière système ────────────────────────────────────────
+\draw[rounded corners=10pt, draw=farmgreen, fill=farmgreen!3, line width=1.5pt]
+  (1.5, -11.8) rectangle (13, 1.0);
+\node[font=\large\bfseries\color{farmgreen}, above] at (7.25, 1.0)
+  {HiveIntel — Module Apiculture};
+
+% ── Acteur : Owner Apiculteur ─────────────────────────────────
+\begin{scope}[shift={(-0.5,-4.8)}]
+  \draw[thick,farmgray] (0,0.55) circle (0.18);
+  \draw[thick,farmgray] (0,0.37)--(0,-0.15);
+  \draw[thick,farmgray] (-0.22,0.15)--(0.22,0.15);
+  \draw[thick,farmgray] (0,-0.15)--(-0.18,-0.55);
+  \draw[thick,farmgray] (0,-0.15)--( 0.18,-0.55);
+\end{scope}
+\node[actor] (owner) at (-0.5, -5.9) {Owner\\Apiculteur};
+
+% ── Acteur : NODE_B ESP32 ─────────────────────────────────────
+\begin{scope}[shift={(15,-7.8)}]
+  \draw[thick,farmgray] (0,0.55) circle (0.18);
+  \draw[thick,farmgray] (0,0.37)--(0,-0.15);
+  \draw[thick,farmgray] (-0.22,0.15)--(0.22,0.15);
+  \draw[thick,farmgray] (0,-0.15)--(-0.18,-0.55);
+  \draw[thick,farmgray] (0,-0.15)--( 0.18,-0.55);
+\end{scope}
+\node[actor] (nodeb) at (15, -9.2) {NODE\_B\\ESP32 Rucher};
+
+% ── Cas d'utilisation Owner ───────────────────────────────────
+\node[usecase] (uc_apiaire)   at (4.5, 0)    {Créer / Gérer\\Apiaire};
+\node[usecase] (uc_ruche)     at (4.5, -1.9) {Ajouter Ruche\\+ QR Code};
+\node[usecase] (uc_visite)    at (4.5, -3.8) {Enregistrer\\Visite Ruche};
+\node[usecase] (uc_recolte)   at (4.5, -5.7) {Gérer\\Récoltes Miel};
+\node[usecase] (uc_stock)     at (4.5, -7.6) {Gérer\\Stock Hausses};
+\node[usecase] (uc_depense)   at (4.5, -9.5) {Enregistrer\\Dépenses};
+\node[usecase] (uc_planning)  at (4.5, -11.2){Planifier\\Interventions};
+
+% ── Cas d'utilisation Analytics ───────────────────────────────
+\node[usecase] (uc_analytics) at (9.5, -1.9) {Analytics\\Apiculture};
+\node[usecase] (uc_rapport)   at (9.5, -3.8) {Générer\\Rapport PDF};
+\node[uciot]   (uc_tele)      at (9.5, -5.7) {Visualiser\\Télémétrie NODE\_B};
+\node[uciot]   (uc_alerte)    at (9.5, -7.6) {Recevoir Alertes\\(SWARM/THERMAL)};
+
+% ── Cas d'utilisation NODE_B ──────────────────────────────────
+\node[uciot]   (uc_send)      at (9.5, -9.5)  {Envoyer\\Métriques IoT};
+\node[uciot]   (uc_check)     at (9.5, -11.2) {Contrôler\\LEDs Alertes};
+
+% ── Associations Owner ────────────────────────────────────────
+\foreach \uc in {uc_apiaire, uc_ruche, uc_visite, uc_recolte,
+                 uc_stock, uc_depense, uc_planning,
+                 uc_analytics, uc_rapport, uc_tele, uc_alerte}
+  \draw[assoc] (owner) -- (\uc);
+
+% ── Associations NODE_B ───────────────────────────────────────
+\draw[assoc] (nodeb) -- (uc_send);
+\draw[assoc] (nodeb) -- (uc_check);
+
+% ── Relations include ─────────────────────────────────────────
+\draw[include] (uc_analytics) --
+  node[above, sloped, font=\tiny]{\texttt{<<include>>}} (uc_tele);
+\draw[include] (uc_send) --
+  node[above, sloped, font=\tiny]{\texttt{<<include>>}} (uc_tele);
+
+% ── Relations extend ──────────────────────────────────────────
+\draw[extend] (uc_tele) --
+  node[right, font=\tiny]{\texttt{<<extend>>}} (uc_alerte);
+\draw[extend] (uc_visite) --
+  node[above, sloped, font=\tiny]{\texttt{<<extend>>}} (uc_planning);
+\draw[extend] (uc_analytics) --
+  node[right, font=\tiny]{\texttt{<<extend>>}} (uc_rapport);
+
+% ── Légende ───────────────────────────────────────────────────
+\node[usecase, scale=0.75] at (3, -12.8)   {UC Owner};
+\node[uciot,   scale=0.75] at (7.5, -12.8) {UC IoT};
+\node[font=\tiny, right] at (4.4, -12.8) {Fonctions apicoles};
+\node[font=\tiny, right] at (8.9, -12.8) {Télémétrie ESP32};
+
+\end{tikzpicture}

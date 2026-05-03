@@ -1,0 +1,211 @@
+% ============================================================
+%  Chapitre 2 — Contexte et Étude Préliminaire
+% ============================================================
+\chapter{Contexte et Étude Préliminaire}
+\thispagestyle{fancy}
+
+\section{Le secteur agricole tunisien}
+
+\subsection{Portrait économique et défis structurels}
+
+La Tunisie dispose d'un patrimoine agricole riche et diversifié. Avec environ
+\textbf{9,9 millions d'hectares de surface agricole utile} (SAU) dont 5,6 millions
+effectivement exploités, le pays est l'un des premiers exportateurs mondiaux d'huile
+d'olive et de dattes \cite{ins_tunisie_2023}.
+
+\begin{table}[H]
+\centering
+\caption{Chiffres clés du secteur agricole tunisien (2023)}
+\label{tab:agri_stats}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Indicateur} & \textbf{Valeur} & \textbf{Source} \\
+\midrule
+Contribution au PIB              & 10,3\%           & INS 2023 \\
+Part de l'emploi national        & 14,1\%           & INS 2023 \\
+Superficie agricole utilisée     & 5,6 M ha         & UTAP 2023 \\
+Nombre d'exploitations           & 516 000          & INS 2023 \\
+Exports agricoles                & 2,8 Md TND       & INS 2023 \\
+Nombre de ruches (apiculture)    & $\approx$ 300 000 & UTAP 2023 \\
+Pertes estimées (ravageurs)      & 20-40\% récoltes  & FAO 2022 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Apiculture tunisienne — enjeux spécifiques}
+
+L'apiculture représente un maillon essentiel de l'agro-système tunisien, assurant la
+pollinisation de cultures majeures (amandiers, fruitiers, courges) et produisant environ
+\textbf{4 000 tonnes de miel par an} \cite{utap2023}. Cependant, le secteur fait face à :
+
+\begin{itemize}
+  \item Mortalité hivernale des colonies atteignant 30-40\% dans certaines régions
+  \item Infestation par \textit{Varroa destructor} non contrôlée
+  \item Manque d'outils de monitoring de l'état des ruches
+  \item Faible traçabilité de la production (récoltes, stocks, dépenses)
+\end{itemize}
+
+\section{Agriculture de précision — opportunités technologiques}
+
+L'agriculture de précision est définie par la FAO comme «\,l'application de technologies
+modernes de l'information pour adapter la gestion des ressources selon la variabilité
+spatiale et temporelle des conditions agricoles\,». Elle repose sur trois piliers :
+
+\begin{description}
+  \item[\textbf{Observation :}] Capteurs IoT, drones, images satellitaires.
+  \item[\textbf{Analyse :}] Modèles ML pour la détection de pathologies, prédiction de
+        rendements, détection d'anomalies.
+  \item[\textbf{Action :}] Irrigation automatique, alertes en temps réel, recommandations
+        personnalisées.
+\end{description}
+
+Des études récentes confirment l'efficacité des modèles deep learning en agriculture :
+\cite{kamilaris2018deep} rapportent des précisions supérieures à 95\% pour la détection
+de maladies foliaires avec des CNN, tandis que \cite{liakos2018machine} montrent que
+l'IA réduit de 20-30\% la consommation d'eau en irrigation de précision.
+
+\section{Organisme d'accueil}
+
+\textbf{Sayari Smart Solutions} est une startup agritech fondée en 2024, dont la mission est
+de démocratiser l'accès aux technologies d'intelligence artificielle pour les agriculteurs
+tunisiens. La vision de l'entreprise : \textit{«\,Chaque agriculteur tunisien, quelle que soit
+la taille de son exploitation, mérite les mêmes outils d'analyse que les grandes entreprises
+agricoles mondiales.\,»}
+
+\section{Présentation détaillée de \farmAI}
+
+\subsection{Périmètre fonctionnel}
+
+\farmAI{} v3.0 est une plateforme SaaS (Software as a Service) multi-tenant couvrant :
+
+\begin{enumerate}
+  \item \textbf{Tableau de bord propriétaire (Owner Dashboard)} — KPIs en temps réel,
+        gestion multi-fermes, alertes IoT, intégration météo.
+  \item \textbf{Scanner Worker PWA} — application mobile progressive pour ouvriers,
+        utilisable hors-ligne, avec caméra live pour inférence YOLO (13 modèles).
+  \item \textbf{HiveIntel — Module Apiculture} — gestion complète de ruchers, ruches,
+        visites, récoltes, stocks, dépenses et planning avec télémétrie NODE\_B.
+  \item \textbf{Map Center SIG} — cartographie Leaflet des fermes, découverte OSM des
+        vétérinaires et fournisseurs à proximité.
+  \item \textbf{Assistant Souverain} — chatbot multimodal Darija avec STT/TTS et vision.
+  \item \textbf{Télémétrie IoT} — analyse historique et temps réel (NODE\_A + NODE\_B).
+  \item \textbf{Gestion des ouvriers} — assignation de tâches, suivi GPS, planning.
+  \item \textbf{MLOps Dashboard} — visualisation des expériences MLflow, métriques
+        d'anomalies.
+\end{enumerate}
+
+\subsection{Objectifs non-fonctionnels}
+
+\begin{table}[H]
+\centering
+\caption{Exigences non-fonctionnelles de Smart Farm AI}
+\label{tab:nonfunctional}
+\begin{tabular}{lll}
+\toprule
+\textbf{Catégorie} & \textbf{Exigence} & \textbf{Cible} \\
+\midrule
+Performance   & Latence inférence YOLO     & $<$ 200 ms \\
+Performance   & Temps de réponse API       & $<$ 500 ms (p95) \\
+Disponibilité & Uptime plateforme          & $\geq$ 99\% \\
+Sécurité      & Authentification           & JWT + OTP email \\
+Offline       & PWA Worker hors-ligne      & IndexedDB (Dexie.js) \\
+Multi-langue  & Interfaces                 & FR / AR / Darija \\
+IoT           & Fréquence télémétrie       & 10 secondes (configurable) \\
+Scalabilité   & Multi-tenant               & Isolation par farm\_id \\
+Souveraineté  & LLM local                  & Ollama (pas de cloud API) \\
+Déploiement   & Cloud free-tier            & Oracle Cloud ARM64 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Étude de l'existant — Benchmark des solutions}
+
+Un état de l'art des solutions agritech existantes a été conduit pour situer
+\farmAI{} dans le paysage concurrentiel. Le tableau \ref{tab:benchmark} compare les
+principales plateformes selon 9 critères pertinents pour le contexte tunisien.
+
+\begin{table}[H]
+\centering
+\caption{Benchmark des solutions agritech existantes vs Smart Farm AI v3.0}
+\label{tab:benchmark}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Critère}
+  & \textbf{Agrivi}
+  & \textbf{FarmLogs}
+  & \textbf{Trimble}
+  & \textbf{AgroMonitor}
+  & \textbf{Sol. locales}
+  & \textbf{\farmAI{}} \\
+\midrule
+IoT ESP32 intégré        & \no  & \no  & \yes & \no  & \no  & \yes \\
+YOLO vision pathologies  & \no  & \no  & \no  & \no  & \no  & \yes \\
+LLM Darija tunisien      & \no  & \no  & \no  & \no  & \no  & \yes \\
+RAG documents locaux     & \no  & \no  & \no  & \no  & \no  & \yes \\
+Module apiculture complet& \no  & \no  & \no  & \no  & \no  & \yes \\
+MLOps DVC + MLflow       & \no  & \no  & \yes & \no  & \no  & \yes \\
+PWA offline Worker       & \no  & \yes & \no  & \no  & \no  & \yes \\
+Open-source / gratuit    & \no  & \no  & \no  & \no  & \yes & \yes \\
+Déployable Oracle Free   & \no  & \no  & \no  & \no  & \no  & \yes \\
+\midrule
+\textbf{Score total}     & 0/9  & 1/9  & 2/9  & 0/9  & 2/9  & \textbf{9/9} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[infobox, title={Conclusion du benchmark}]
+Aucune solution existante — commerciale ou locale — ne combine simultanément la
+détection de pathologies par vision IA, l'assistant conversationnel en Darija tunisien,
+la gestion apicole complète et les pratiques MLOps industrielles. \farmAI{} v3.0 répond
+à un vide réel dans l'écosystème agritech tunisien.
+\end{tcolorbox}
+
+\section{Spécifications et acteurs du système}
+
+\subsection{Identification des acteurs}
+
+Le système implique cinq catégories d'acteurs :
+
+\begin{description}
+  \item[\textbf{Owner (Propriétaire) :}] Exploitant agricole principal. Accès complet à
+        toutes les fonctionnalités : gestion des fermes, apiculture, ouvriers, analytics,
+        configuration IoT, assistant.
+  \item[\textbf{Worker (Ouvrier) :}] Employé agricole. Accès limité via PWA mobile :
+        scanner YOLO, consultation de tâches assignées, reporting terrain.
+  \item[\textbf{ESP32 Nodes :}] Acteurs matériels (NODE\_A, NODE\_B) envoyant des données
+        télémétriques toutes les 10 secondes via HTTP POST.
+  \item[\textbf{Ollama/Groq LLM :}] Service IA répondant aux requêtes de l'assistant.
+        Priorité : Ollama local → Groq API fallback → base de connaissances statique.
+  \item[\textbf{Admin :}] Superutilisateur pour la gestion des tenants et la supervision
+        du système.
+\end{description}
+
+\subsection{Exigences fonctionnelles principales}
+
+\begin{table}[H]
+\centering
+\caption{Catalogue des exigences fonctionnelles principales}
+\label{tab:requirements}
+\begin{tabular}{llp{7.5cm}}
+\toprule
+\textbf{ID} & \textbf{Acteur} & \textbf{Exigence} \\
+\midrule
+EF01 & Owner   & Inscription, connexion JWT, OTP email, 2FA \\
+EF02 & Owner   & Création et gestion de fermes multi-tenant \\
+EF03 & Owner   & Tableau de bord KPIs en temps réel (IoT + météo) \\
+EF04 & Owner   & Visualisation télémétrie IoT (courbes historiques) \\
+EF05 & Owner   & Réception d'alertes IoT (SWARM\_RISK, THERMAL\_FAULT) \\
+EF06 & Owner   & Gestion complète du rucher (CRUD ruches, visites, récoltes) \\
+EF07 & Owner   & Génération de rapports apicoles (stock, dépenses, planning) \\
+EF08 & Owner/Worker & Inférence YOLO en temps réel (caméra ou upload) \\
+EF09 & Owner   & Consultation de la carte SIG (fermes, vétérinaires OSM) \\
+EF10 & Owner   & Conversation avec assistant Darija (texte + voix + image) \\
+EF11 & Worker  & Accès PWA hors-ligne avec synchronisation différée \\
+EF12 & Worker  & Scanner les 13 modèles YOLO depuis l'interface mobile \\
+EF13 & ESP32   & Envoi de métriques télémétriques via HTTP POST \\
+EF14 & System  & Détection d'anomalies IoT (IsolationForest) et alerte \\
+EF15 & Admin   & Gestion multi-tenant, supervision des modèles MLflow \\
+\bottomrule
+\end{tabular}
+\end{table}

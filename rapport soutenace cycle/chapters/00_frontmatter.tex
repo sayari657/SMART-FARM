@@ -1,0 +1,259 @@
+% ============================================================
+%  00 — Front Matter : Page de garde, Dédicaces, Remerciements,
+%       Résumés (FR / EN / AR), TOC, Liste des figures, Abréviations
+% ============================================================
+
+% ─── Page de garde ───────────────────────────────────────────
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+
+% En-tête institutionnel
+{\footnotesize\textbf{République Tunisienne}}\\[2pt]
+{\footnotesize Ministère de l'Enseignement Supérieur et de la Recherche Scientifique}\\[12pt]
+
+\begin{minipage}[c]{0.45\textwidth}
+  \centering
+  \begin{tcolorbox}[enhanced, colback=farmblue!10, colframe=farmblue,
+    arc=6pt, boxrule=1pt, width=3.5cm, height=2cm, valign=center, halign=center]
+    {\small\bfseries\color{farmblue} Tek-Up\\École d'Ingénieurs}
+  \end{tcolorbox}
+\end{minipage}%
+\begin{minipage}[c]{0.45\textwidth}
+  \centering
+  \begin{tcolorbox}[enhanced, colback=farmgreen!10, colframe=farmgreen,
+    arc=6pt, boxrule=1pt, width=3.5cm, height=2cm, valign=center, halign=center]
+    {\small\bfseries\color{farmgreen} PFE 2024-2025\\Data Science \& IA}
+  \end{tcolorbox}
+\end{minipage}
+
+\vspace{0.4cm}
+\rule{\textwidth}{1.5pt}\\[4pt]
+{\large\textbf{École Privée d'Ingénieurs — Tek-Up}}\\
+{\normalsize Spécialité : \textit{Data Science et Intelligence Artificielle}}\\[4pt]
+\rule{\textwidth}{1.5pt}
+
+\vspace{0.8cm}
+{\large\textsc{Rapport de Fin de Cycle d'Ingénierie}}\\[6pt]
+{\normalsize En vue de l'obtention du diplôme d'\\[2pt]
+\textbf{Ingénieur en Data Science et Intelligence Artificielle}}
+
+\vspace{0.8cm}
+
+% Titre du projet
+\begin{tcolorbox}[
+  enhanced, colback=farmblue!8, colframe=farmblue,
+  arc=8pt, boxrule=1.5pt,
+  width=\textwidth
+]
+\centering
+{\LARGE\bfseries\color{farmblue} Smart Farm AI v3.0}\\[6pt]
+{\large\color{farmgreen}
+  Plateforme Agro-Technologique Multi-Tenant basée sur\\
+  l'Intelligence Artificielle, l'IoT et les LLM Souverains}\\[4pt]
+{\normalsize\color{farmgray}\textit{Détection automatisée des maladies agricoles, gestion apicole intelligente\\
+et assistant conversationnel en Darija tunisien}}
+\end{tcolorbox}
+
+\vspace{0.8cm}
+
+% Auteur
+\begin{minipage}{0.5\textwidth}
+  \raggedright
+  {\normalsize\textbf{Réalisé par :}}\\[3pt]
+  {\large\color{farmblue}\textbf{Mohamed Sayari}}\\
+  {\small Classe : DSI-5 (Data Science 5\textsuperscript{ème} année)}
+\end{minipage}%
+\begin{minipage}{0.5\textwidth}
+  \raggedleft
+  {\normalsize\textbf{Encadré par :}}\\[3pt]
+  {\large\textbf{[Nom de l'encadrant]}}\\
+  {\small Maître de conférences, Tek-Up}
+\end{minipage}
+
+\vspace{0.6cm}
+
+% Jury
+\begin{tcolorbox}[
+  enhanced, colback=gray!5, colframe=farmgray,
+  arc=4pt, boxrule=0.8pt, width=0.88\textwidth
+]
+\centering
+\textbf{Jury de soutenance}\\[4pt]
+\begin{tabular}{ll}
+Président du jury  & [Nom Prénom], Professeur, [Institution]\\
+Rapporteur         & [Nom Prénom], Maître de conférences, [Institution]\\
+Encadrant          & [Nom Prénom], Maître de conférences, Tek-Up\\
+\end{tabular}
+\end{tcolorbox}
+
+\vfill
+{\normalsize Année universitaire : \textbf{2024--2025}}
+
+\end{center}
+\end{titlepage}
+
+% ─── Page vierge après couverture ────────────────────────────
+\cleardoublepage
+
+% ─── Dédicaces ───────────────────────────────────────────────
+\chapter*{Dédicaces}
+\thispagestyle{empty}
+\addcontentsline{toc}{chapter}{Dédicaces}
+
+\begin{center}
+\vspace{2cm}
+{\large\itshape
+À mes parents, pour leur soutien indéfectible\\
+et leurs sacrifices qui ont rendu ce parcours possible.\\[1.5em]
+À mes professeurs de Tek-Up,\\
+qui m'ont transmis la passion pour la Data Science et l'IA.\\[1.5em]
+À tous les agriculteurs tunisiens\\
+dont le travail quotidien a inspiré ce projet.
+}
+\vspace{2cm}
+
+\begin{flushright}
+\textit{Mohamed Sayari}
+\end{flushright}
+\end{center}
+
+\cleardoublepage
+
+% ─── Remerciements ────────────────────────────────────────────
+\chapter*{Remerciements}
+\thispagestyle{empty}
+\addcontentsline{toc}{chapter}{Remerciements}
+
+Je tiens à exprimer ma profonde gratitude à toutes les personnes qui ont contribué, de près ou de loin, à la réalisation de ce projet de fin de cycle.
+
+Mes sincères remerciements vont en premier lieu à mon encadrant pédagogique, dont les conseils avisés, la disponibilité et la rigueur scientifique ont guidé chaque étape de ce travail.
+
+Je remercie également le corps enseignant de l'École Tek-Up pour la formation de qualité dispensée tout au long de ces cinq années d'ingénierie en Data Science et Intelligence Artificielle.
+
+Ma gratitude s'adresse aussi à l'Union Tunisienne de l'Agriculture et de la Pêche (UTAP) et à l'Agence de Vulgarisation et de Formation Agricoles (AVFA) pour les ressources documentaires sur les pratiques agricoles et apicoles tunisiennes, qui ont enrichi le corpus RAG de l'assistant souverain.
+
+Enfin, je remercie ma famille pour son soutien moral constant et sa confiance tout au long de ce parcours académique.
+
+\cleardoublepage
+
+% ─── Résumé Français ─────────────────────────────────────────
+\chapter*{Résumé}
+\thispagestyle{empty}
+\addcontentsline{toc}{chapter}{Résumé}
+
+\noindent\textbf{Titre :} Smart Farm AI v3.0 — Plateforme Agro-Technologique Multi-Tenant basée sur l'IA et l'IoT
+
+\medskip
+Ce rapport présente le développement de \farmAI{} v3.0, une plateforme numérique innovante dédiée à l'agriculture de précision en Tunisie. Face aux défis de la productivité agricole — contraintes hydriques, ravageurs, maladies des cultures et déclin des populations de pollinisateurs — ce projet propose une solution intégrée combinant l'Internet des Objets (IoT), la vision par ordinateur et les grands modèles de langage (LLM).
+
+L'architecture repose sur un backend FastAPI avec plus de 50 endpoints REST, un frontend React/Vite responsive, et deux nœuds ESP32 pour la surveillance en temps réel : \textbf{NODE\_A} pour l'irrigation intelligente (détection d'humidité, pression de canalisation, débit) et \textbf{NODE\_B} pour la gestion apicole (température de ruche, poids, humidité extérieure).
+
+Le module de vision artificielle intègre huit modèles YOLO v11 couvrant treize espèces et pathologies : abeilles (détection de ruche par boîtes orientées), maladies foliaires (12 classes), maladies du bétail, du troupeau ovin/caprin, de l'olivie, des agrumes, des insectes ravageurs et la détection incendie/fumée. La précision moyenne (mAP50) atteint 91,4\% sur le modèle de détection des ruches.
+
+L'assistant conversationnel souverain utilise le modèle Labess-7B — un LLM spécialisé dans le dialecte arabe tunisien (Darija) — enrichi d'un système RAG (Retrieval-Augmented Generation) alimenté par ChromaDB et des sources officielles tunisiennes (UTAP, AVFA). Il intègre la reconnaissance vocale, la synthèse vocale et l'analyse d'images multimodale via LLaVA.
+
+La chaîne MLOps s'appuie sur DVC pour le versionnement des données et pipelines, et MLflow pour le suivi des expériences. Un modèle IsolationForest détecte les anomalies télémétriques (score de silhouette : 0,73) et déclenche des alertes en temps réel.
+
+Le projet a été conduit selon la méthodologie Scrum en 6 sprints sur 14 semaines, complétée par le cycle CRISP-DM pour la partie Data Science. La plateforme est déployée sur Oracle Cloud Free Tier (ARM64) avec Docker Compose.
+
+\medskip
+\noindent\textbf{Mots-clés :} Agriculture de précision, YOLO, IoT, ESP32, RAG, Darija, MLOps, FastAPI, React, Apiculture, Tunisie.
+
+\cleardoublepage
+
+% ─── Résumé Anglais ──────────────────────────────────────────
+\chapter*{Abstract}
+\thispagestyle{empty}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\noindent\textbf{Title:} Smart Farm AI v3.0 — Multi-Tenant Agro-Technological Platform based on AI and IoT
+
+\medskip
+This report presents the development of \farmAI{} v3.0, an innovative digital platform for precision agriculture in Tunisia. Facing agricultural productivity challenges — water constraints, pests, crop diseases, and declining pollinator populations — this project proposes an integrated solution combining Internet of Things (IoT), computer vision, and Large Language Models (LLMs).
+
+The architecture is built on a FastAPI backend with 50+ REST endpoints, a responsive React/Vite frontend, and two ESP32 nodes for real-time monitoring: \textbf{NODE\_A} for smart irrigation (humidity detection, pipe pressure, flow rate) and \textbf{NODE\_B} for beehive management (hive temperature, weight, external humidity).
+
+The computer vision module integrates eight YOLO v11 models covering thirteen species and pathologies: bees (oriented bounding box detection), leaf diseases (12 classes), livestock diseases, sheep/goat, olive, citrus, pest insects, and fire/smoke detection. The average precision (mAP50) reaches 91.4\% on the beehive detection model.
+
+The sovereign conversational assistant uses the Labess-7B model — an LLM specialized in the Tunisian Arabic dialect (Darija) — enhanced with a RAG (Retrieval-Augmented Generation) system powered by ChromaDB and official Tunisian sources (UTAP, AVFA). It integrates speech recognition, text-to-speech, and multimodal image analysis via LLaVA.
+
+The MLOps pipeline relies on DVC for data and pipeline versioning, and MLflow for experiment tracking. An IsolationForest model detects telemetric anomalies (silhouette score: 0.73) and triggers real-time alerts.
+
+The project was conducted using Scrum methodology over 6 sprints across 14 weeks, complemented by the CRISP-DM cycle for the Data Science component. The platform is deployed on Oracle Cloud Free Tier (ARM64) with Docker Compose.
+
+\medskip
+\noindent\textbf{Keywords:} Precision agriculture, YOLO, IoT, ESP32, RAG, Darija, MLOps, FastAPI, React, Beekeeping, Tunisia.
+
+\cleardoublepage
+
+% ─── Table des matières ───────────────────────────────────────
+\tableofcontents
+\cleardoublepage
+
+% ─── Liste des figures ────────────────────────────────────────
+\listoffigures
+\addcontentsline{toc}{chapter}{Liste des Figures}
+\cleardoublepage
+
+% ─── Liste des tableaux ───────────────────────────────────────
+\listoftables
+\addcontentsline{toc}{chapter}{Liste des Tableaux}
+\cleardoublepage
+
+% ─── Liste des abréviations ───────────────────────────────────
+\chapter*{Liste des Abréviations}
+\addcontentsline{toc}{chapter}{Liste des Abréviations}
+\thispagestyle{empty}
+
+\begin{longtable}{@{}lp{10cm}@{}}
+\toprule
+\textbf{Abréviation} & \textbf{Signification} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+API     & Application Programming Interface \\
+AVFA    & Agence de Vulgarisation et de Formation Agricoles \\
+CORS    & Cross-Origin Resource Sharing \\
+CPU     & Central Processing Unit \\
+CRISP-DM & Cross-Industry Standard Process for Data Mining \\
+CSV     & Comma-Separated Values \\
+CV      & Computer Vision (Vision par Ordinateur) \\
+DVC     & Data Version Control \\
+ESP32   & Microcontrôleur Wi-Fi/Bluetooth d'Espressif Systems \\
+FAO     & Food and Agriculture Organization (ONU) \\
+GPU     & Graphics Processing Unit \\
+HTTP    & HyperText Transfer Protocol \\
+IA      & Intelligence Artificielle \\
+INS     & Institut National de la Statistique \\
+IoT     & Internet of Things (Internet des Objets) \\
+JSON    & JavaScript Object Notation \\
+JWT     & JSON Web Token \\
+LLM     & Large Language Model (Grand Modèle de Langage) \\
+mAP     & Mean Average Precision \\
+MLOps   & Machine Learning Operations \\
+MQTT    & Message Queuing Telemetry Transport \\
+MVP     & Minimum Viable Product \\
+NLP     & Natural Language Processing \\
+OBB     & Oriented Bounding Box (Boîte Englobante Orientée) \\
+OCR     & Optical Character Recognition \\
+ORM     & Object-Relational Mapping \\
+OTP     & One-Time Password \\
+PIB     & Produit Intérieur Brut \\
+PWA     & Progressive Web App \\
+RAG     & Retrieval-Augmented Generation \\
+REST    & Representational State Transfer \\
+RGB     & Red-Green-Blue \\
+SQL     & Structured Query Language \\
+STT     & Speech-to-Text \\
+SIG/GIS & Système d'Information Géographique / Geographic Information System \\
+TTS     & Text-to-Speech \\
+UTAP    & Union Tunisienne de l'Agriculture et de la Pêche \\
+VPN     & Virtual Private Network \\
+WSGI    & Web Server Gateway Interface \\
+YOLO    & You Only Look Once \\
+\bottomrule
+\end{longtable}
+
+\cleardoublepage

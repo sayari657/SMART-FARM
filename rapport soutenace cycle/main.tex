@@ -1,0 +1,241 @@
+% ============================================================
+%  Smart Farm AI v3.0 — Rapport de Fin de Cycle d'Ingénierie
+%  Spécialité : Data Science et Intelligence Artificielle
+%  Institution : Tek-Up, Tunis — Année 2024-2025
+%  Auteur : Mohamed Sayari
+% ============================================================
+\documentclass[12pt, a4paper, oneside]{report}
+
+% ── Encodage & langue ────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+% ── Mise en page ─────────────────────────────────────────────
+\usepackage[left=3cm, right=2.5cm, top=2.5cm, bottom=2.5cm,
+            headheight=15pt]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Polices & micro-typographie ───────────────────────────────
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% ── Mathématiques ─────────────────────────────────────────────
+\usepackage{amsmath, amssymb, amsfonts}
+
+% ── Graphiques & couleurs ─────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{subcaption}
+
+% ── Couleurs institutionnelles ────────────────────────────────
+\definecolor{farmgreen}{RGB}{34,139,34}
+\definecolor{farmblue}{RGB}{0,71,171}
+\definecolor{farmgray}{RGB}{100,100,100}
+\definecolor{farmorange}{RGB}{230,126,34}
+\definecolor{farmred}{RGB}{192,57,43}
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{200,200,200}
+\definecolor{keywordcolor}{RGB}{0,0,180}
+\definecolor{commentcolor}{RGB}{0,128,0}
+\definecolor{stringcolor}{RGB}{180,0,0}
+
+% ── TikZ & PGF ────────────────────────────────────────────────
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usetikzlibrary{
+  shapes.geometric,
+  shapes.multipart,
+  shapes.symbols,
+  arrows.meta,
+  positioning,
+  fit,
+  backgrounds,
+  calc,
+  matrix,
+  shadows.blur,
+  decorations.pathreplacing,
+  decorations.markings,
+  patterns,
+  mindmap,
+  trees,
+  intersections
+}
+
+% ── Tableaux ──────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{pifont}   % \ding{52} ✔  \ding{56} ✘
+
+% ── Listings (code source) ────────────────────────────────────
+\usepackage{listings}
+\usepackage{lstautogobble}
+
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single, rulecolor=\color{codeframe},
+  keywordstyle=\color{keywordcolor}\bfseries,
+  commentstyle=\color{commentcolor}\itshape,
+  stringstyle=\color{stringcolor},
+  numbers=left, numberstyle=\tiny\color{farmgray},
+  stepnumber=1, numbersep=8pt,
+  showstringspaces=false,
+  breaklines=true, breakatwhitespace=false,
+  tabsize=4, autogobble=true,
+  morekeywords={import,from,as,def,class,return,if,else,elif,for,
+                while,with,try,except,pass,True,False,None,and,or,not}
+}
+
+\lstdefinestyle{arducstyle}{
+  language=C++,
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single, rulecolor=\color{codeframe},
+  keywordstyle=\color{keywordcolor}\bfseries,
+  commentstyle=\color{commentcolor}\itshape,
+  stringstyle=\color{stringcolor},
+  numbers=left, numberstyle=\tiny\color{farmgray},
+  stepnumber=1, numbersep=8pt,
+  showstringspaces=false,
+  breaklines=true, autogobble=true,
+  morekeywords={void,setup,loop,digitalWrite,digitalRead,analogRead,
+                analogWrite,pinMode,delay,millis,Serial,WiFi,
+                HTTPClient,String,const,float,int,bool,unsigned,long}
+}
+
+\lstdefinestyle{jsonstyle}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  frame=single, rulecolor=\color{codeframe},
+  showstringspaces=false,
+  breaklines=true, autogobble=true,
+  morestring=[b]",
+  stringstyle=\color{stringcolor},
+  literate={:}{\textbf{:}}{1}
+}
+
+% ── Algorithmes ────────────────────────────────────────────────
+\usepackage[ruled, vlined, french]{algorithm2e}
+
+% ── En-têtes & pieds de page ──────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\itshape\leftmark}
+\fancyhead[R]{\small\color{farmblue}\textbf{Smart Farm AI v3.0}}
+\fancyfoot[C]{\small\thepage}
+\fancyfoot[R]{\tiny\color{farmgray}Tek-Up 2024-2025}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+
+% ── Titres colorés ────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{farmblue}}
+  {\chaptertitlename\ \thechapter}{18pt}{\Huge\color{farmgreen}}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{farmblue}}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{farmgray}}
+  {\thesubsection}{1em}{}
+
+% ── Boîtes colorées ───────────────────────────────────────────
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\tcbset{
+  technote/.style={
+    enhanced, breakable,
+    colback=farmblue!5, colframe=farmblue!60!black,
+    fonttitle=\bfseries, coltitle=white,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=farmblue}
+  },
+  warningbox/.style={
+    enhanced, breakable,
+    colback=farmorange!10, colframe=farmorange!70!black,
+    fonttitle=\bfseries, coltitle=white,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=farmorange}
+  },
+  infobox/.style={
+    enhanced, breakable,
+    colback=farmgreen!8, colframe=farmgreen!60!black,
+    fonttitle=\bfseries, coltitle=white,
+    attach boxed title to top left={yshift=-2mm, xshift=4mm},
+    boxed title style={colback=farmgreen}
+  }
+}
+
+% ── Liens PDF ─────────────────────────────────────────────────
+\usepackage[
+  hidelinks,
+  pdftitle={Smart Farm AI v3.0 — Rapport PFE},
+  pdfauthor={Mohamed Sayari},
+  pdfsubject={Data Science et Intelligence Artificielle},
+  pdfkeywords={YOLO, IoT, ESP32, RAG, MLOps, Agriculture, Tunisie}
+]{hyperref}
+
+% ── Bibliographie ─────────────────────────────────────────────
+\usepackage[numbers, sort&compress]{natbib}
+\bibliographystyle{unsrtnat}
+
+% ── Nomenclature ─────────────────────────────────────────────
+\usepackage{nomencl}
+\makenomenclature
+
+% ── Espacement des paragraphes ─────────────────────────────────
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{1.5em}
+
+% ── Macros personnalisées ─────────────────────────────────────
+\newcommand{\farmAI}{\textbf{Smart Farm AI}\textsuperscript{\texttrademark}}
+\newcommand{\api}[1]{\texttt{\color{farmblue}\small#1}}
+\newcommand{\code}[1]{\texttt{\small\color{farmgray}#1}}
+\newcommand{\yes}{\ding{52}}    % ✔
+\newcommand{\no}{\ding{56}}     % ✘
+\newcommand{\chkmark}{\ding{51}}
+
+% ── Compteurs ────────────────────────────────────────────────
+\newcounter{reqcounter}
+\newcommand{\req}[1]{\refstepcounter{reqcounter}\textbf{EF\thereqcounter}\ #1}
+
+% ============================================================
+%                        DOCUMENT
+% ============================================================
+\begin{document}
+
+% ── Pages liminaires (numérotation romaine) ───────────────────
+\pagenumbering{roman}
+\include{chapters/00_frontmatter}
+
+% ── Corps du rapport (numérotation arabe) ─────────────────────
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{chapters/01_introduction}
+\include{chapters/02_contexte}
+\include{chapters/03_methodologie}
+\include{chapters/04_conception}
+\include{chapters/05_mlops}
+\include{chapters/06_realisation}
+\include{chapters/07_conclusion}
+
+% ── Bibliographie ─────────────────────────────────────────────
+\bibliography{bibliography/references}
+
+% ── Nomenclature ─────────────────────────────────────────────
+\renewcommand{\nomname}{Liste des Abréviations}
+\printnomenclature[3cm]
+
+\end{document}

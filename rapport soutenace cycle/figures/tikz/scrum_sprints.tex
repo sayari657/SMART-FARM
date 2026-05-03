@@ -1,0 +1,102 @@
+% ============================================================
+%  Diagramme Gantt — Planification Scrum (6 Sprints, 14 semaines)
+%  Smart Farm AI v3.0
+% ============================================================
+\begin{tikzpicture}[
+  x=0.9cm, y=1cm,
+  sprint/.style={
+    fill=#1, draw=#1!60!black, rounded corners=2pt, opacity=0.85
+  },
+  milestone/.style={
+    diamond, draw=farmgreen!80!black, fill=farmgreen!30,
+    minimum size=0.55cm, inner sep=0pt
+  },
+  soutenance/.style={
+    diamond, draw=red!70!black, fill=red!25,
+    minimum size=0.65cm, inner sep=0pt
+  }
+]
+
+% ── Axe temporel ─────────────────────────────────────────────────────────────
+\draw[->, thick, gray] (-0.3, 0) -- (15.2, 0) node[right, font=\small] {Semaines};
+
+% ── Graduations semaines ─────────────────────────────────────────────────────
+\foreach \w in {0,...,14}{
+  \draw[gray!40, thin] (\w, 0.05) -- (\w, -0.15);
+  \node[below, font=\tiny\color{gray}] at (\w, -0.18) {S\w};
+}
+
+% ── Sprints (barres) ─────────────────────────────────────────────────────────
+% Sprint 1 : Infra & Auth (S0-S2)
+\filldraw[sprint=farmblue!50]
+  (0, 0.15) rectangle (2, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (1, 0.45)
+  {S1 -- Infrastructure \& Auth};
+
+% Sprint 2 : IoT & Télémétrie (S2-S4)
+\filldraw[sprint=farmblue!65]
+  (2, 0.15) rectangle (4, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (3, 0.45)
+  {S2 -- IoT \& Télémétrie};
+
+% Sprint 3 : Module Apiculture (S4-S7)
+\filldraw[sprint=farmblue!75]
+  (4, 0.15) rectangle (7, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (5.5, 0.45)
+  {S3 -- Module Apiculture};
+
+% Sprint 4 : Vision IA & Scanner (S7-S10)
+\filldraw[sprint=farmblue!85]
+  (7, 0.15) rectangle (10, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (8.5, 0.45)
+  {S4 -- Vision IA \& Scanner};
+
+% Sprint 5 : Assistant Souverain (S10-S12)
+\filldraw[sprint=farmblue!90]
+  (10, 0.15) rectangle (12, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (11, 0.45)
+  {S5 -- Assistant};
+
+% Sprint 6 : MLOps & Finalisation (S12-S14)
+\filldraw[sprint=farmblue!95]
+  (12, 0.15) rectangle (14, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (13, 0.45)
+  {S6 -- MLOps};
+
+% ── Jalons (Milestones) ───────────────────────────────────────────────────────
+\node[milestone] (m1) at (2, -0.7) {};
+\node[below=0.05cm of m1, font=\tiny, align=center] {Auth OK\\JWT};
+
+\node[milestone] (m2) at (4, -0.7) {};
+\node[below=0.05cm of m2, font=\tiny, align=center] {IoT Live\\Dashboard};
+
+\node[milestone] (m3) at (7, -0.7) {};
+\node[below=0.05cm of m3, font=\tiny, align=center] {HiveIntel\\v1.0};
+
+\node[milestone] (m4) at (10, -0.7) {};
+\node[below=0.05cm of m4, font=\tiny, align=center] {YOLO\\Prod};
+
+\node[milestone] (m5) at (12, -0.7) {};
+\node[below=0.05cm of m5, font=\tiny, align=center] {RAG\\Darija};
+
+\node[soutenance] (ms) at (14, -0.7) {};
+\node[below=0.05cm of ms, font=\tiny\bfseries, align=center,
+      text=red!70!black] {Soutenance\\v3.0};
+
+% Lignes de jalons
+\foreach \x in {2, 4, 7, 10, 12}{
+  \draw[dashed, gray!50, thin] (\x, 0) -- (\x, -0.6);
+}
+\draw[dashed, red!50, thin] (14, 0) -- (14, -0.6);
+
+% ── Légende durées ────────────────────────────────────────────────────────────
+\node[right, font=\tiny\color{gray}] at (14.3, 0.45)
+  {14 semaines\\total};
+
+% ── Barre de légende des couleurs ────────────────────────────────────────────
+\node[milestone, scale=0.8] at (0, -1.6) {};
+\node[right, font=\tiny] at (0.3, -1.6) {Jalon sprint};
+\node[soutenance, scale=0.8] at (3, -1.6) {};
+\node[right, font=\tiny] at (3.3, -1.6) {Soutenance finale};
+
+\end{tikzpicture}

@@ -1,0 +1,312 @@
+% ============================================================
+%  Chapitre 3 — Méthodologies : Scrum + CRISP-DM
+% ============================================================
+\chapter{Méthodologies de Conduite de Projet}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+La réalisation de \farmAI{} v3.0 combine deux méthodologies complémentaires :
+
+\begin{itemize}
+  \item \textbf{Scrum} pour la gestion de projet agile, permettant des livraisons
+        incrémentales et une adaptation continue aux retours.
+  \item \textbf{CRISP-DM} (\textit{Cross-Industry Standard Process for Data Mining})
+        pour structurer le cycle de vie des modèles de Data Science intégrés à la
+        plateforme.
+\end{itemize}
+
+\section{Méthodologie Scrum}
+
+\subsection{Principes Agile}
+
+Le Manifeste Agile \cite{beck2001agile} postule quatre valeurs fondamentales :
+
+\begin{tcolorbox}[infobox, title={Les 4 valeurs Agile appliquées à FARM AI}]
+\begin{enumerate}
+  \item \textbf{Individus et interactions} $\succ$ processus et outils
+        \textit{(équipe réduite, communication directe)}
+  \item \textbf{Logiciel fonctionnel} $\succ$ documentation exhaustive
+        \textit{(démonstrations sprint par sprint)}
+  \item \textbf{Collaboration client} $\succ$ négociation contractuelle
+        \textit{(retours continus avec les utilisateurs-cibles agriculteurs)}
+  \item \textbf{Réponse au changement} $\succ$ suivi d'un plan
+        \textit{(adaptation aux contraintes GPU/cloud découvertes en cours de projet)}
+\end{enumerate}
+\end{tcolorbox}
+
+\subsection{Équipe Scrum et rôles}
+
+\begin{table}[H]
+\centering
+\caption{Équipe Scrum et responsabilités}
+\label{tab:scrum_team}
+\begin{tabular}{llp{7cm}}
+\toprule
+\textbf{Rôle} & \textbf{Personne} & \textbf{Responsabilités} \\
+\midrule
+Product Owner  & Mohamed Sayari (+ encadrant) &
+  Définition du Product Backlog, priorisation des User Stories,
+  validation des incréments fonctionnels \\
+Scrum Master   & Mohamed Sayari &
+  Organisation des cérémonies, identification et élimination des
+  obstacles (blocages cloud, dépendances GPU) \\
+Dev Team       & Mohamed Sayari &
+  Conception, développement, tests et déploiement de tous les
+  composants (backend, frontend, IoT, ML) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Artefacts Scrum}
+
+\subsubsection{Product Backlog (extrait)}
+
+\begin{longtable}{llp{5.5cm}c}
+\caption{Extrait du Product Backlog Smart Farm AI} \label{tab:backlog} \\
+\toprule
+\textbf{ID} & \textbf{Acteur} & \textbf{User Story} & \textbf{Points} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{ID} & \textbf{Acteur} & \textbf{User Story} & \textbf{Points} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+US01 & Owner  & Créer un compte et me connecter avec JWT + OTP email & 8 \\
+US02 & Owner  & Ajouter une ferme avec localisation GPS et superficie & 5 \\
+US03 & Owner  & Visualiser les KPIs en temps réel sur le tableau de bord & 13 \\
+US04 & Owner  & Recevoir des alertes IoT (SWARM\_RISK, THERMAL\_FAULT) & 8 \\
+US05 & Owner  & Scanner une plante malade et obtenir un diagnostic YOLO & 13 \\
+US06 & Owner  & Créer un apiaire avec des ruches numérotées (QR codes) & 8 \\
+US07 & Owner  & Enregistrer une visite de ruche avec observations & 5 \\
+US08 & Owner  & Consulter les graphiques de poids et température des ruches & 8 \\
+US09 & Owner  & Dialoguer avec l'assistant en Darija par voix & 13 \\
+US10 & Owner  & Envoyer une photo à l'assistant pour analyse multimodale & 8 \\
+US11 & Owner  & Voir mes fermes sur une carte et trouver des vétérinaires & 5 \\
+US12 & Worker & Scanner une maladie avec la PWA hors réseau & 13 \\
+US13 & Worker & Consulter mes tâches assignées et les valider & 5 \\
+US14 & System & Détecter les anomalies télémétriques automatiquement & 8 \\
+US15 & Admin  & Visualiser les métriques MLflow du dernier entraînement & 5 \\
+\bottomrule
+\end{longtable}
+
+\subsection{Planification des 6 Sprints}
+
+Le projet a été planifié sur \textbf{14 semaines} réparties en \textbf{6 sprints}
+de durée variable selon la complexité des livrables.
+
+\begin{table}[H]
+\centering
+\caption{Tableau de planification des 6 Sprints Scrum}
+\label{tab:sprints}
+\small
+\begin{tabular}{ccp{2.2cm}p{5.5cm}p{2.5cm}}
+\toprule
+\textbf{Sprint} & \textbf{Durée} & \textbf{Titre} &
+\textbf{Livrables principaux} & \textbf{Jalon} \\
+\midrule
+S1 & S0--S2\newline(2 sem.) & Infrastructure \& Auth &
+  • Preamble FastAPI (routes, middleware)\newline
+  • Authentification JWT + OTP email\newline
+  • Base de données PostgreSQL (30+ tables)\newline
+  • Frontend React/Vite scaffold
+  & Auth OK / JWT \\
+\midrule
+S2 & S2--S4\newline(2 sem.) & IoT \& Télémétrie &
+  • Firmware NODE\_A (irrigation ESP32)\newline
+  • Firmware NODE\_B (rucher ESP32)\newline
+  • Endpoint \api{/api/v1/iot/telemetry}\newline
+  • Dashboard télémétrie Recharts\newline
+  • Simulation Wokwi validée
+  & IoT Live / Dashboard \\
+\midrule
+S3 & S4--S7\newline(3 sem.) & Module Apiculture &
+  • HiveIntel 7 sous-modules\newline
+  • CRUD ruchers/ruches/visites\newline
+  • Récoltes, stocks, dépenses\newline
+  • Planning apicole\newline
+  • Intégration télémétrie NODE\_B
+  & HiveIntel v1.0 \\
+\midrule
+S4 & S7--S10\newline(3 sem.) & Vision IA \& Scanner &
+  • 8 modèles YOLO v11 intégrés\newline
+  • \api{/api/v1/cv/scan} multimodal\newline
+  • Scanner Worker PWA (13 modèles)\newline
+  • Résultats temps réel + Expert FAB\newline
+  • Map Center SIG (Leaflet + OSM)
+  & YOLO Prod \\
+\midrule
+S5 & S10--S12\newline(2 sem.) & Assistant Souverain &
+  • Labess-7B via Ollama local\newline
+  • RAG ChromaDB (UTAP/AVFA)\newline
+  • STT/TTS intégré (WebSpeech API)\newline
+  • Vision multimodale LLaVA\newline
+  • Lite Mode (Oracle sans GPU)
+  & RAG Darija \\
+\midrule
+S6 & S12--S14\newline(2 sem.) & MLOps \& Finalisation &
+  • Pipeline DVC (build\_dataset → train)\newline
+  • MLflow tracking (IsolationForest)\newline
+  • Gestion ouvriers (CRUD + tâches)\newline
+  • Docker Compose + Oracle Cloud\newline
+  • Tests finaux + rapport
+  & Soutenance v3.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Diagramme Gantt — Planification temporelle}
+
+La figure \ref{fig:gantt_sprints} présente le diagramme Gantt des 6 sprints sur
+les 14 semaines du projet.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.9cm, y=1cm]
+
+% Définition des styles locaux
+\tikzset{
+  sprint/.style={fill=#1, draw=#1!60!black, rounded corners=2pt, opacity=0.85},
+  milestone/.style={
+    diamond, draw=farmgreen!80!black, fill=farmgreen!30,
+    minimum size=0.55cm, inner sep=0pt
+  },
+  soutenance/.style={
+    diamond, draw=red!70!black, fill=red!25,
+    minimum size=0.65cm, inner sep=0pt
+  }
+}
+
+% ── Axe temporel
+\draw[->, thick, gray] (-0.3, 0) -- (15.2, 0) node[right, font=\small] {Semaines};
+
+% ── Graduations semaines
+\foreach \w in {0,...,14}{
+  \draw[gray!40, thin] (\w, 0.05) -- (\w, -0.15);
+  \node[below, font=\tiny\color{gray}] at (\w, -0.18) {S\w};
+}
+
+% ── Sprints (barres)
+\filldraw[sprint=farmblue!50]  (0,  0.15) rectangle (2,  0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (1,   0.45) {S1 -- Infra \& Auth};
+
+\filldraw[sprint=farmblue!65]  (2,  0.15) rectangle (4,  0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (3,   0.45) {S2 -- IoT \& Télémétrie};
+
+\filldraw[sprint=farmblue!75]  (4,  0.15) rectangle (7,  0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (5.5, 0.45) {S3 -- Apiculture};
+
+\filldraw[sprint=farmblue!85]  (7,  0.15) rectangle (10, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (8.5, 0.45) {S4 -- Vision IA};
+
+\filldraw[sprint=farmblue!90]  (10, 0.15) rectangle (12, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (11,  0.45) {S5 -- Assistant};
+
+\filldraw[sprint=farmblue!95]  (12, 0.15) rectangle (14, 0.75);
+\node[font=\scriptsize\bfseries\color{white}, align=center] at (13,  0.45) {S6 -- MLOps};
+
+% ── Jalons (Milestones)
+\node[milestone] (m1) at (2, -0.7) {};
+\node[below=0.05cm of m1, font=\tiny, align=center] {Auth OK\\JWT};
+
+\node[milestone] (m2) at (4, -0.7) {};
+\node[below=0.05cm of m2, font=\tiny, align=center] {IoT Live\\Dashboard};
+
+\node[milestone] (m3) at (7, -0.7) {};
+\node[below=0.05cm of m3, font=\tiny, align=center] {HiveIntel\\v1.0};
+
+\node[milestone] (m4) at (10, -0.7) {};
+\node[below=0.05cm of m4, font=\tiny, align=center] {YOLO\\Prod};
+
+\node[milestone] (m5) at (12, -0.7) {};
+\node[below=0.05cm of m5, font=\tiny, align=center] {RAG\\Darija};
+
+\node[soutenance] (ms) at (14, -0.7) {};
+\node[below=0.05cm of ms, font=\tiny\bfseries, align=center, text=red!70!black]
+  {Soutenance\\v3.0};
+
+% Lignes de jalons
+\foreach \x in {2, 4, 7, 10, 12}
+  \draw[dashed, gray!50, thin] (\x, 0) -- (\x, -0.6);
+\draw[dashed, red!50, thin] (14, 0) -- (14, -0.6);
+
+% Légende durée totale
+\node[right, font=\tiny\color{gray}] at (14.3, 0.45) {14 sem.\\total};
+
+% Légende
+\node[milestone, scale=0.8] at (0, -1.55) {};
+\node[right, font=\tiny] at (0.3, -1.55) {Jalon sprint};
+\node[soutenance, scale=0.8] at (3, -1.55) {};
+\node[right, font=\tiny] at (3.3, -1.55) {Soutenance finale};
+
+\end{tikzpicture}
+\caption{Diagramme Gantt — Planification Scrum (6 Sprints, 14 semaines)}
+\label{fig:gantt_sprints}
+\end{figure}
+
+\section{Méthodologie CRISP-DM}
+
+\subsection{Présentation de CRISP-DM}
+
+CRISP-DM (\textit{Cross-Industry Standard Process for Data Mining}) \cite{crisp_dm}
+est un processus standard en 6 phases cycliques pour mener des projets de Data Science
+de manière structurée et reproductible. Son principal atout est la gestion explicite
+des itérations : lorsque l'évaluation révèle des résultats insuffisants, le processus
+revient à la phase de modélisation (ou de préparation des données) sans rupture
+méthodologique.
+
+\subsection{Application à Smart Farm AI}
+
+La figure \ref{fig:crisp_dm} illustre le cycle CRISP-DM adapté au contexte de FARM AI,
+avec les actions concrètes associées à chaque phase.
+
+\begin{figure}[H]
+\centering
+\input{figures/tikz/crisp_dm_workflow}
+\caption{Cycle CRISP-DM appliqué à Smart Farm AI v3.0}
+\label{fig:crisp_dm}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{CRISP-DM — Détail des phases pour Smart Farm AI}
+\label{tab:crisp_dm_detail}
+\begin{tabular}{clp{8.5cm}}
+\toprule
+\textbf{Phase} & \textbf{Intitulé} & \textbf{Actions dans FARM AI} \\
+\midrule
+1 & Compréhension métier &
+  Identification des pathologies prioritaires (Varroa, mildiou, bruche),
+  définition des KPIs (mAP50 $\geq$ 0.85, Silhouette $\geq$ 0.60),
+  contraintes opérationnelles (inférence $<$ 200ms) \\
+2 & Compréhension données &
+  Collecte datasets Roboflow pour YOLO, extraction CSV IoT des nœuds ESP32,
+  constitution du corpus RAG (documents UTAP/AVFA en Darija) \\
+3 & Préparation données &
+  Pipeline DVC \texttt{build\_dataset} : normalisation des CSV, augmentation
+  d'images (rotation, bruit), split train/val/test 80/10/10 \\
+4 & Modélisation &
+  Entraînement 8 modèles YOLO v11, IsolationForest (n=150, contam.=0.05),
+  embedding ChromaDB (HNSW cosine), fine-tuning prompts Labess-7B \\
+5 & Évaluation &
+  mAP50 global 91.4\%, Silhouette Score 0.73 (anomalies),
+  \textit{itération si mAP50 $<$ 0.70} (retour phase 4) \\
+6 & Déploiement &
+  MLflow Registry, \texttt{serve\_latest\_model.py}, Docker Compose,
+  Oracle Cloud (LITE\_MODE sans GPU), alertes temps réel \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[technote, title={Critère d'arrêt des itérations CRISP-DM}]
+Le projet définit un critère d'arrêt explicite : si le mAP50 moyen des modèles YOLO
+est inférieur à \textbf{0.70} après 3 itérations d'entraînement, la phase de
+préparation des données est relancée avec une stratégie d'augmentation plus aggressive
+(Mosaic×8, MixUp, CutMix) avant de reprendre la modélisation.
+
+\medskip
+\textbf{Résultat obtenu :} mAP50 = 0.914 (bee OBB), 0.879 (leaf disease), 0.891
+(livestock) — aucune itération supplémentaire requise.
+\end{tcolorbox}

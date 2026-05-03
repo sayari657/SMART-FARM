@@ -1,0 +1,329 @@
+% ============================================================
+%  Chapitre 4 — Architecture et Conception
+% ============================================================
+\chapter{Architecture et Conception du Système}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+Ce chapitre détaille l'architecture logicielle et matérielle de \farmAI{} v3.0.
+L'approche de conception repose sur trois principes directeurs :
+
+\begin{enumerate}
+  \item \textbf{Séparation des responsabilités (SoC)} — chaque couche a une
+        responsabilité unique et bien délimitée.
+  \item \textbf{Principe de dépendances inversées (DIP)} — les couches hautes ne
+        dépendent pas des implémentations concrètes des couches basses.
+  \item \textbf{Multi-tenancy par isolation} — chaque exploitation agricole est isolée
+        par un \code{farm\_id} propagé dans toutes les requêtes.
+\end{enumerate}
+
+\section{Diagrammes de cas d'utilisation}
+
+\subsection{Cas d'utilisation global}
+
+La figure \ref{fig:uc_global} présente le diagramme de cas d'utilisation global de
+\farmAI{} v3.0, avec ses quatre acteurs principaux et les 15 cas d'utilisation
+couverts par la plateforme.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\input{figures/tikz/usecase_global}
+}
+\caption{Diagramme de cas d'utilisation global — Smart Farm AI v3.0}
+\label{fig:uc_global}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Description des cas d'utilisation principaux}
+\label{tab:uc_desc}
+\small
+\begin{tabular}{cllp{5cm}}
+\toprule
+\textbf{UC} & \textbf{Acteur} & \textbf{Intitulé} & \textbf{Description} \\
+\midrule
+UC01 & Owner/Worker & S'authentifier &
+  Connexion via email/mdp + JWT 30j, OTP email 6 chiffres \\
+UC02 & Owner & Gérer les Fermes &
+  CRUD fermes, associations GPS, dashboard multi-fermes \\
+UC03 & Owner & Tableau de bord &
+  KPIs temps réel : météo, IoT live, 6 badges espèces \\
+UC04 & Owner & Visualiser Télémétrie &
+  Courbes historiques Recharts, filtre NODE\_A/NODE\_B \\
+UC05 & Owner & Recevoir Alertes &
+  SWARM\_RISK, THERMAL\_FAULT via WebSocket \\
+UC06 & Owner/Worker & Scanner (YOLO) &
+  Inférence 13 modèles, caméra live ou upload image \\
+UC07 & Owner & Gestion Apiculture &
+  HiveIntel 7 sous-modules (voir UC apiculture) \\
+UC08 & Owner & Gestion Ouvriers &
+  CRUD ouvriers, assignation tâches, suivi GPS \\
+UC09 & Owner & Consulter Map SIG &
+  Leaflet, découverte vétérinaires/fournisseurs OSM \\
+UC10 & Owner & Dialoguer Darija &
+  Assistant Labess-7B, STT/TTS, vision multimodale \\
+UC11 & ESP32 & Envoyer Télémétrie &
+  HTTP POST JSON toutes les 10 secondes \\
+UC12 & System & Détecter Anomalies &
+  IsolationForest sur flux temps réel \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cas d'utilisation — Module Apiculture HiveIntel}
+
+Le module apiculture constitue l'une des contributions les plus originales du projet,
+intégrant la gestion complète d'un rucher avec la télémétrie IoT du NODE\_B.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.95\textwidth}{!}{%
+\input{figures/tikz/usecase_bee}
+}
+\caption{Diagramme de cas d'utilisation — Module HiveIntel (Apiculture)}
+\label{fig:uc_bee}
+\end{figure}
+
+\section{Architecture système en couches}
+
+\farmAI{} v3.0 adopte une architecture en \textbf{5 couches} inspirée du modèle
+N-tiers, avec une séparation nette entre la présentation, la logique métier, l'accès
+aux données et l'infrastructure physique.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\input{figures/tikz/architecture_systeme}
+}
+\caption{Architecture système en 5 couches — Smart Farm AI v3.0}
+\label{fig:archi_systeme}
+\end{figure}
+
+\subsection{Description des couches}
+
+\begin{description}
+  \item[\textbf{Couche Clients :}] Applications utilisateur — Owner Dashboard (React SPA),
+        Worker PWA (Progressive Web App avec Dexie.js pour l'offline), Map Center
+        (Leaflet/OpenStreetMap) et Assistant (interface chat multimodale).
+
+  \item[\textbf{Couche API Gateway :}] Backend FastAPI exposant 50+ endpoints REST,
+        protégés par middleware JWT, avec support WebSocket pour les alertes temps réel
+        et configuration CORS pour les domaines autorisés.
+
+  \item[\textbf{Couche Services Métier :}] Logique applicative — CV Service (chargement
+        et inférence YOLO), RAG Service (requêtage ChromaDB), LLM Agent (orchestration
+        Ollama/Groq), Anomaly Service (IsolationForest) et Weather Service (OpenMeteo).
+
+  \item[\textbf{Couche Données :}] Persistance multi-backend — PostgreSQL (production),
+        SQLite (Oracle LITE\_MODE), ChromaDB (vecteurs RAG), MLflow Registry (modèles),
+        DVC (données et pipelines) et Ollama (modèles LLM locaux).
+
+  \item[\textbf{Couche IoT :}] Nœuds ESP32 envoyant des données télémétriques via
+        HTTP POST toutes les 10 secondes. Simulés via Wokwi, opérationnels sur
+        matériel réel sans modification du firmware.
+\end{description}
+
+\section{Architecture backend — Clean Architecture}
+
+Le backend FastAPI implémente une variante de la \textbf{Clean Architecture}
+\cite{fastapi2023}, garantissant la testabilité indépendante de chaque couche et
+la substituabilité de l'infrastructure (PostgreSQL ↔ SQLite ↔ tests en mémoire).
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\input{figures/tikz/clean_architecture}
+}
+\caption{Clean Architecture du backend FastAPI — Smart Farm AI v3.0}
+\label{fig:clean_archi}
+\end{figure}
+
+\subsection{Organisation du code backend}
+
+\begin{lstlisting}[style=pythonstyle, caption={Structure du projet backend FastAPI}, label={lst:backend_struct}]
+backend/
+├── app/
+│   ├── api/v1/endpoints/
+│   │   ├── auth_routes.py        # /auth/login, /auth/register, /auth/otp
+│   │   ├── cv_routes.py          # /cv/scan, /cv/models, /cv/history
+│   │   ├── iot_routes.py         # /iot/telemetry, /iot/latest, /iot/history
+│   │   ├── bee_routes.py         # /bee/hives, /bee/visits, /bee/harvest
+│   │   └── assistant_routes.py   # /assistant/chat, /assistant/tts
+│   ├── core/
+│   │   ├── config.py             # YOLO paths, Ollama URL, LITE_MODE flag
+│   │   ├── security.py           # JWT encode/decode, OTP generation
+│   │   └── database.py           # SQLAlchemy engine + session
+│   ├── models/
+│   │   └── domain.py             # 30+ SQLAlchemy models
+│   ├── services/
+│   │   ├── cv_service.py         # MODEL_REGISTRY, YOLO infer()
+│   │   ├── rag_service.py        # ChromaDB query, embedding
+│   │   └── anomaly_service.py    # IsolationForest score
+│   └── repositories/
+│       ├── user_repo.py
+│       ├── farm_repo.py
+│       └── telemetry_repo.py
+├── mlops/
+│   ├── dvc.yaml                  # Pipeline stages
+│   └── scripts/
+│       ├── build_dataset.py      # Stage 1 DVC
+│       └── train_anomaly.py      # Stage 2 DVC → MLflow
+└── requirements.txt
+\end{lstlisting}
+
+\section{Modèle de données}
+
+\subsection{Entités principales}
+
+Le modèle de données de \farmAI{} v3.0 comprend \textbf{30+ entités} organisées en
+6 domaines fonctionnels.
+
+\begin{table}[H]
+\centering
+\caption{Domaines fonctionnels et entités principales}
+\label{tab:domains}
+\begin{tabular}{lll}
+\toprule
+\textbf{Domaine} & \textbf{Entités} & \textbf{Description} \\
+\midrule
+Authentification & User, OTPToken, RefreshToken &
+  Gestion des comptes, JWT, OTP email \\
+Exploitations    & Farm, FarmField, WeatherCache &
+  Fermes, parcelles, données météo \\
+Télémétrie IoT   & TelemetryRecord, Alert, Node &
+  Métriques ESP32, alertes, config nœuds \\
+Vision IA        & CVEvent, CVModel, Species &
+  Historique scans YOLO, modèles enregistrés \\
+Apiculture       & BeeHive, BeeYard, BeeVisit,\newline
+                   BeeHarvest, BeeStock, Expense &
+  Gestion complète des ruchers \\
+Ouvriers         & Worker, WorkerTask, WorkerGPS &
+  Personnel, tâches, tracking GPS \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Entités clés}
+
+\begin{lstlisting}[style=pythonstyle, caption={Entités principales SQLAlchemy (extrait)}, label={lst:models}]
+class User(Base):
+    __tablename__ = "users"
+    id         = Column(Integer, primary_key=True)
+    email      = Column(String, unique=True, nullable=False)
+    hashed_pw  = Column(String, nullable=False)
+    role       = Column(Enum("owner","worker","admin"), default="owner")
+    farms      = relationship("Farm", back_populates="owner")
+
+class TelemetryRecord(Base):
+    __tablename__ = "telemetry_records"
+    id         = Column(Integer, primary_key=True)
+    node       = Column(String, nullable=False)  # NODE_A / NODE_B
+    metric     = Column(String, nullable=False)  # soil, weight, hive_temp...
+    value      = Column(Float,  nullable=False)
+    is_anomaly = Column(Boolean, default=False)
+    timestamp  = Column(DateTime, default=datetime.utcnow)
+    farm_id    = Column(Integer, ForeignKey("farms.id"))
+
+class BeeHive(Base):
+    __tablename__ = "bee_hives"
+    id         = Column(Integer, primary_key=True)
+    name       = Column(String, nullable=False)
+    qr_code    = Column(String, unique=True)
+    yard_id    = Column(Integer, ForeignKey("bee_yards.id"))
+    visits     = relationship("BeeVisit", back_populates="hive")
+\end{lstlisting}
+
+\section{Architecture IoT}
+
+\subsection{NODE\_A — Nœud d'irrigation}
+
+Le NODE\_A surveille l'irrigation intelligente avec les capteurs et seuils suivants :
+
+\begin{table}[H]
+\centering
+\caption{Configuration NODE\_A — Irrigation ESP32}
+\label{tab:node_a}
+\begin{tabular}{llll}
+\toprule
+\textbf{Pin GPIO} & \textbf{Capteur} & \textbf{Métrique} & \textbf{Seuils} \\
+\midrule
+34 (ADC)  & Capteur sol (résistif)  & \code{soil}      & Sec $<$35\% / Humide $>$65\% \\
+35 (ADC)  & Capteur pression        & \code{pressure}  & Max : 10 bar \\
+32 (ADC)  & Débitmètre YF-S201      & \code{flow}      & Fuite $<$0.5 L/min (pompe ON) \\
+14 (DHT)  & DHT22 (température)     & \code{temp}      & Référence extérieure \\
+27 (OUT)  & Relais pompe            & \code{pump}      & 1=ON / 0=OFF \\
+26 (OUT)  & Electrovanne            & \code{valve}     & 1=Ouverte / 0=Fermée \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{NODE\_B — Nœud de surveillance des ruches}
+
+\begin{table}[H]
+\centering
+\caption{Configuration NODE\_B — Rucher ESP32}
+\label{tab:node_b}
+\begin{tabular}{llll}
+\toprule
+\textbf{Pin GPIO} & \textbf{Capteur} & \textbf{Métrique} & \textbf{Seuils d'alerte} \\
+\midrule
+34 (ADC) & Capteur de poids (jauge) & \code{weight}    & SWARM si $\Delta >$2 kg/h \\
+14 (DHT) & DHT22 extérieur          & \code{ext\_temp, ext\_hum} & Hum $>$85\% WARN \\
+15 (1-W) & DS18B20 (ruche)          & \code{hive\_temp}& $<$30°C ou $>$38°C ALERT \\
+2  (OUT) & LED rouge alerte         & --               & SWARM\_RISK / THERMAL \\
+4  (OUT) & LED verte production     & --               & HONEY\_FLOW positif \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Flux de données IoT}
+
+\begin{lstlisting}[style=arducstyle, caption={Envoi de télémétrie HTTP POST (extrait NODE\_B)}, label={lst:iot_post}]
+void postMetric(const char* metric, float value) {
+    HTTPClient http;
+    String url = String("http://") + API_HOST + ":"
+               + API_PORT + "/api/v1/iot/telemetry";
+    http.begin(url);
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(3000);
+    // JSON body : node + metric + value
+    String body = "{\"node\":\"NODE_B\","
+                  "\"metric\":\"" + String(metric) + "\","
+                  "\"value\":" + String(value, 4) + "}";
+    int code = http.POST(body);
+    http.end();
+}
+\end{lstlisting}
+
+Le flux complet est le suivant :
+\[
+\text{ESP32 (Wokwi)} \xrightarrow{\text{WiFi}} \text{HTTP POST}
+\xrightarrow{} \text{FastAPI /iot/telemetry}
+\xrightarrow{\text{SQLAlchemy}} \text{PostgreSQL/SQLite}
+\xrightarrow{\text{IsolationForest}} \text{Anomaly Alert}
+\xrightarrow{\text{WebSocket}} \text{Dashboard}
+\]
+
+\section{Architecture de déploiement}
+
+\farmAI{} v3.0 supporte deux modes de déploiement :
+
+\begin{table}[H]
+\centering
+\caption{Modes de déploiement}
+\label{tab:deploy}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mode} & \textbf{Local (dev)} & \textbf{Oracle Cloud (prod)} \\
+\midrule
+Base de données  & PostgreSQL Docker   & SQLite (LITE\_MODE=true) \\
+LLM              & Ollama Labess-7B    & Mock KB (sans GPU) \\
+YOLO             & 8 modèles .pt       & Désactivé (cloud ARM64) \\
+Frontend         & Vite dev server     & Nginx (Caddy HTTPS) \\
+Orchestration    & \code{start\_all.ps1} & Docker Compose \\
+SSL              & HTTP local          & Caddy ACME automatique \\
+\bottomrule
+\end{tabular}
+\end{table}

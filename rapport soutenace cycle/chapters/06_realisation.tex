@@ -1,0 +1,256 @@
+% ============================================================
+%  Chapitre 6 — Réalisation et Tests
+% ============================================================
+\chapter{Réalisation et Tests}
+\thispagestyle{fancy}
+
+\section{Environnement de développement}
+
+\begin{table}[H]
+\centering
+\caption{Stack technologique — Smart Farm AI v3.0}
+\label{tab:stack}
+\begin{tabular}{lll}
+\toprule
+\textbf{Composant} & \textbf{Technologie} & \textbf{Version} \\
+\midrule
+\multicolumn{3}{l}{\textbf{Backend}} \\
+Langage                  & Python            & 3.11 \\
+Framework API            & FastAPI           & 0.100+ \\
+ORM                      & SQLAlchemy        & 2.0 \\
+Base de données          & PostgreSQL        & 15 / SQLite 3 \\
+Authentification         & Python-Jose (JWT) & 3.3.0 \\
+\midrule
+\multicolumn{3}{l}{\textbf{Intelligence Artificielle}} \\
+Vision par ordinateur    & Ultralytics YOLO  & 8.1 \\
+LLM local                & Ollama            & 0.1.x \\
+LLM Darija               & Labess-7B         & 7B parameters \\
+Vecteurs RAG             & ChromaDB          & 0.4+ \\
+Embeddings               & sentence-transformers & 2.x \\
+Anomalie IoT             & scikit-learn      & 1.4 \\
+\midrule
+\multicolumn{3}{l}{\textbf{MLOps}} \\
+Versionnement données    & DVC               & 3.x \\
+Tracking expériences     & MLflow            & 2.x \\
+\midrule
+\multicolumn{3}{l}{\textbf{Frontend}} \\
+Framework UI             & React             & 18.2 \\
+Build tool               & Vite              & 5.1 \\
+Cartographie             & Leaflet           & 1.9 \\
+Graphiques               & Recharts          & 2.x \\
+Base offline             & Dexie.js          & 3.x \\
+\midrule
+\multicolumn{3}{l}{\textbf{IoT}} \\
+Microcontrôleur          & ESP32             & -- \\
+Framework firmware       & PlatformIO        & 6.x \\
+Simulateur               & Wokwi             & -- \\
+Protocole communication  & HTTP/JSON         & REST \\
+\midrule
+\multicolumn{3}{l}{\textbf{Déploiement}} \\
+Conteneurisation         & Docker            & 24.x \\
+Orchestration            & Docker Compose    & 2.x \\
+Cloud                    & Oracle Cloud OCI  & Always Free ARM64 \\
+Reverse proxy            & Caddy             & 2.x \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Endpoints API — Tableau des 20 endpoints principaux}
+
+\begin{longtable}{llp{4.5cm}cc}
+\caption{Tableau des endpoints FastAPI principaux} \label{tab:endpoints} \\
+\toprule
+\textbf{Méthode} & \textbf{URL} & \textbf{Description} & \textbf{Auth} & \textbf{Sprint} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Méthode} & \textbf{URL} & \textbf{Description} & \textbf{Auth} & \textbf{Sprint} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+POST & \api{/auth/register}         & Création compte + hash bcrypt     & Public & S1 \\
+POST & \api{/auth/login}            & Connexion JWT (access + refresh)  & Public & S1 \\
+POST & \api{/auth/otp/send}         & Envoi OTP email (6 chiffres)      & Public & S1 \\
+POST & \api{/auth/otp/verify}       & Validation OTP 10 minutes         & Public & S1 \\
+GET  & \api{/farms/}                & Liste fermes du owner             & JWT   & S1 \\
+POST & \api{/farms/}                & Création nouvelle ferme           & JWT   & S1 \\
+POST & \api{/iot/telemetry}         & Réception métrique ESP32          & Public & S2 \\
+GET  & \api{/iot/latest}            & Dernières métriques NODE\_A/B     & JWT   & S2 \\
+GET  & \api{/iot/history}           & Historique CSV avec filtre        & JWT   & S2 \\
+WS   & \api{/iot/ws/alerts}         & WebSocket alertes temps réel      & JWT   & S2 \\
+GET  & \api{/bee/yards}             & Liste apiaires                    & JWT   & S3 \\
+POST & \api{/bee/hives}             & Créer ruche + QR Code             & JWT   & S3 \\
+POST & \api{/bee/visits}            & Enregistrer visite ruche          & JWT   & S3 \\
+POST & \api{/bee/harvests}          & Enregistrer récolte miel          & JWT   & S3 \\
+GET  & \api{/bee/analytics}         & Statistiques apicoles             & JWT   & S3 \\
+POST & \api{/cv/scan}               & Inférence YOLO (upload image)     & JWT   & S4 \\
+GET  & \api{/cv/models}             & Liste des 8 modèles disponibles   & JWT   & S4 \\
+GET  & \api{/cv/history}            & Historique des scans              & JWT   & S4 \\
+POST & \api{/assistant/chat}        & Chat Labess-7B + RAG              & JWT   & S5 \\
+POST & \api{/assistant/tts}         & Text-to-Speech                    & JWT   & S5 \\
+GET  & \api{/mlops/metrics}         & Métriques MLflow dernière run     & JWT   & S6 \\
+GET  & \api{/workers/}              & Liste ouvriers farm               & JWT   & S6 \\
+\bottomrule
+\end{longtable}
+
+\section{Interfaces utilisateur}
+
+\subsection{Tableau de bord Owner (Dashboard)}
+
+Le tableau de bord principal présente en temps réel :
+
+\begin{itemize}
+  \item \textbf{Bande KPI} (4 métriques) : Humidité sol, Température ruche, Poids ruche,
+        Statut pompe d'irrigation.
+  \item \textbf{Widget météo} : Données OpenMeteo (température, précipitations, vent,
+        UV) géolocalisées par ferme.
+  \item \textbf{Panneau IoT Live} : Dernières lectures NODE\_A et NODE\_B avec
+        indicateurs de statut (vert/orange/rouge).
+  \item \textbf{6 Badges Espèces} : Accès rapide aux 6 groupes de modèles YOLO
+        (apiculture, bétail, cultures, olivier, agrumes, sécurité).
+  \item \textbf{Historique Alerts} : Flux des alertes SWARM\_RISK et THERMAL\_FAULT.
+\end{itemize}
+
+\subsection{HiveIntel — 7 onglets apiculture}
+
+Le module apiculture HiveIntel est organisé en 7 onglets fonctionnels :
+
+\begin{table}[H]
+\centering
+\caption{Sous-modules HiveIntel}
+\label{tab:hiveIntel}
+\begin{tabular}{clp{8cm}}
+\toprule
+\textbf{\#} & \textbf{Onglet} & \textbf{Fonctionnalités} \\
+\midrule
+1 & Aperçu        & KPIs rucher : nb ruches, récolte totale, température moy., dernière visite \\
+2 & Ruches        & CRUD ruches, QR Codes, état de santé (Excellente/Normale/Attention/Critique) \\
+3 & Visites       & Calendrier des visites, observations, photos, noter le comportement \\
+4 & Récoltes      & Enregistrement kilos miel, qualité, date, ruche source \\
+5 & Stock         & Gestion hausses, état des cadres, rotation du matériel \\
+6 & Dépenses      & Suivi budget : traitements Varroa, nourrissement, matériel \\
+7 & Télémétrie    & Graphiques NODE\_B : poids (24h/7j/30j), température ruche, humidité ext. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scanner Worker PWA}
+
+L'interface Scanner, accessible depuis l'application Worker PWA, propose :
+
+\begin{itemize}
+  \item \textbf{13 modèles de détection} organisés en 3 groupes :
+        \begin{itemize}
+          \item Groupe Plantes : Leaf Disease, Olive, Lemon, Orange, Insects (5 modèles)
+          \item Groupe Élevage : Bee OBB, Livestock, Sheep/Goat (3 modèles)
+          \item Groupe Sécurité : Fire/Smoke (1 modèle)
+        \end{itemize}
+  \item \textbf{Caméra live} : inférence en temps réel (streaming WebRTC).
+  \item \textbf{Upload image} : analyse d'une photo depuis la galerie.
+  \item \textbf{Expert FAB} : bouton flottant pour consulter l'assistant spécialisé
+        (profil automatiquement sélectionné selon le modèle actif).
+  \item \textbf{Mode offline} : derniers résultats mis en cache via IndexedDB (Dexie.js).
+\end{itemize}
+
+\subsection{Assistant Souverain}
+
+\begin{itemize}
+  \item Interface de chat type messenger avec historique de conversation.
+  \item \textbf{STT} (Speech-to-Text) via WebSpeech API avec prise en charge de l'arabe.
+  \item \textbf{TTS} (Text-to-Speech) avec voix arabe sélectionnable.
+  \item \textbf{Upload image} pour analyse multimodale via LLaVA.
+  \item Indicateur de mode (Local Ollama / Groq API / Lite Mode).
+\end{itemize}
+
+\subsection{Télémétrie IoT — Analyse}
+
+La page d'analyse télémétriques présente :
+\begin{itemize}
+  \item Graphiques Recharts \code{LineChart} : NODE\_A (sol, pression, débit) et
+        NODE\_B (poids, température ruche, humidité) sur fenêtres 1h/24h/7j.
+  \item Tableau des dernières métriques avec horodatage.
+  \item Indicateur de statut connexion IoT (online/offline).
+  \item Marqueurs d'anomalies détectées (points rouges sur les courbes).
+\end{itemize}
+
+\subsection{Map Center SIG}
+
+\begin{itemize}
+  \item Carte Leaflet centrée sur les fermes de l'owner.
+  \item Marqueurs personnalisés par type d'exploitation (cultures, élevage, apiculture).
+  \item Découverte des vétérinaires et fournisseurs agricoles via API Overpass/OSM.
+  \item Calcul de distance et itinéraire Google Maps intégré.
+\end{itemize}
+
+\section{Simulations IoT — Wokwi}
+
+Les deux nœuds ESP32 ont été simulés avec Wokwi, permettant de valider le firmware
+et le protocole de communication avant le déploiement sur matériel réel.
+
+\begin{lstlisting}[style=jsonstyle, caption={diagram.json NODE\_B (Wokwi)}, label={lst:wokwi}]
+{
+  "version": 1,
+  "author": "FARM AI",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-v1", "id": "esp32" },
+    { "type": "wokwi-dht22", "id": "dht1",
+      "attrs": { "pin": "14" } },
+    { "type": "wokwi-ds18b20", "id": "ds1",
+      "attrs": { "pin": "15" } },
+    { "type": "wokwi-resistor", "id": "r1",
+      "attrs": { "value": "4700" } },
+    { "type": "wokwi-led", "id": "led_alert",
+      "attrs": { "color": "red",   "pin": "2" } },
+    { "type": "wokwi-led", "id": "led_honey",
+      "attrs": { "color": "green", "pin": "4" } }
+  ]
+}
+\end{lstlisting}
+
+\section{Tests}
+
+\subsection{Tests backend (pytest)}
+
+\begin{table}[H]
+\centering
+\caption{Résultats des tests backend}
+\label{tab:tests}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Suite} & \textbf{Cas de test} & \textbf{Passed} & \textbf{Coverage} \\
+\midrule
+Auth           & Register, Login, OTP, JWT refresh    & 12/12 & 87\% \\
+Fermes         & CRUD fermes, isolation multi-tenant  & 8/8   & 92\% \\
+IoT Télémétrie & POST métrique, GET latest, anomalie  & 6/6   & 85\% \\
+Apiculture     & CRUD ruches, visites, récoltes       & 10/10 & 89\% \\
+CV Scan        & Inférence 3 modèles (mock images)    & 6/6   & 78\% \\
+\midrule
+\textbf{Total} & & \textbf{42/42} & \textbf{86\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Performance YOLO}
+
+Des tests de performance ont été conduits sur CPU Intel Core i7 :
+
+\begin{itemize}
+  \item \textbf{Latence inférence moyenne :} 167 ms (p50), 198 ms (p95)
+  \item \textbf{Objectif SLA :} $<$ 200 ms ✔
+  \item \textbf{Modèle le plus lent :} leaf\_disease (192 ms — 12 classes)
+  \item \textbf{Modèle le plus rapide :} fire\_smoke (124 ms — 2 classes)
+\end{itemize}
+
+\subsection{Tests IoT — Simulation Wokwi}
+
+La simulation Wokwi a permis de valider :
+\begin{itemize}
+  \item Envoi HTTP POST toutes les 10 secondes — \textbf{100\% des métriques reçues}
+        côté backend FastAPI.
+  \item Déclenchement des alertes \code{THERMAL\_FAULT} lorsque la température
+        simulée dépasse 38°C.
+  \item Reconnexion WiFi automatique après perte de connexion simulée.
+  \item Passage en mode \code{Serial-only} (offline) lorsque le WiFi est indisponible.
+\end{itemize}

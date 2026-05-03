@@ -1,0 +1,334 @@
+% ============================================================
+%  Chapitre 5 — MLOps et Pipeline IA
+% ============================================================
+\chapter{MLOps et Pipeline d'Intelligence Artificielle}
+\thispagestyle{fancy}
+
+\section{Introduction}
+
+Le chapitre MLOps représente le cœur de la contribution scientifique de \farmAI{} v3.0.
+Il décrit la chaîne complète de production des modèles d'IA, de l'acquisition des données
+jusqu'au déploiement en production avec surveillance continue.
+
+\section{Maturité MLOps}
+
+\cite{sculley2015hidden} ont popularisé le concept de « dette technique cachée » dans
+les systèmes ML : les modèles en production dérivent, les pipelines de données se
+fragilisent, les hyperparamètres sont oubliés. Les niveaux de maturité MLOps répondent
+à ces problèmes :
+
+\begin{table}[H]
+\centering
+\caption{Niveaux de maturité MLOps et positionnement de FARM AI}
+\label{tab:mlops_maturity}
+\begin{tabular}{clll}
+\toprule
+\textbf{Niveau} & \textbf{Description} & \textbf{Pratiques} & \textbf{FARM AI} \\
+\midrule
+0 & Manuel (scripts ad-hoc)  & Pas de versionnement     & \no \\
+1 & Pipeline automatisé      & DVC + reproductibilité   & \yes \\
+1.5 & Tracking d'expériences & MLflow + registre modèles & \yes \\
+2 & CI/CD ML complet         & GitHub Actions ML + monitoring & Partiel \\
+3 & MLOps avancé (AutoML)    & Feature store + A/B testing & Hors périmètre \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[infobox, title={Positionnement MLOps de FARM AI}]
+\farmAI{} v3.0 atteint le niveau \textbf{1.5} de maturité MLOps :
+pipeline DVC reproductible + tracking MLflow + registre de modèles.
+Le niveau 2 (CI/CD ML automatique) est identifié comme perspective d'évolution prioritaire.
+\end{tcolorbox}
+
+\section{Pipeline DVC}
+
+DVC (\textit{Data Version Control}) \cite{dvc2023} étend Git pour versionner les données
+volumineuses et définir des pipelines reproductibles.
+
+\subsection{Structure du pipeline}
+
+\begin{lstlisting}[style=pythonstyle, caption={dvc.yaml — Pipeline FARM AI}, label={lst:dvc_yaml}]
+stages:
+  build_dataset:
+    cmd: python mlops/scripts/build_dataset.py
+    deps:
+      - data/raw/telemetry_export.csv
+      - mlops/scripts/build_dataset.py
+    outs:
+      - data/processed/features.csv
+
+  train:
+    cmd: python mlops/scripts/train_anomaly.py
+    deps:
+      - data/processed/features.csv
+      - mlops/scripts/train_anomaly.py
+    params:
+      - mlops/params.yaml:
+          - n_estimators
+          - contamination
+          - random_state
+    outs:
+      - models/anomaly_detector.pkl
+    metrics:
+      - mlops/metrics.json:
+          cache: false
+\end{lstlisting}
+
+\subsection{Script d'entraînement avec logging MLflow}
+
+\begin{lstlisting}[style=pythonstyle, caption={train\_anomaly.py — Stage 2 DVC avec MLflow}, label={lst:train_anomaly}]
+import mlflow, joblib, json
+import numpy as np
+from sklearn.ensemble import IsolationForest
+from sklearn.metrics import silhouette_score
+import pandas as pd
+
+FEATURES = ["soil_humidity", "pressure", "flow", "temperature"]
+
+def main():
+    df = pd.read_csv("data/processed/features.csv")[FEATURES]
+    X  = df.dropna().values
+
+    with mlflow.start_run(run_name="IsolationForest_v3"):
+        # Hyperparamètres
+        n_est   = int(open("mlops/params.yaml").read().split("n_estimators: ")[1].split("\n")[0])
+        contam  = float(open("mlops/params.yaml").read().split("contamination: ")[1].split("\n")[0])
+
+        mlflow.log_param("n_estimators",  n_est)
+        mlflow.log_param("contamination", contam)
+        mlflow.log_param("features",      FEATURES)
+
+        # Entraînement
+        clf = IsolationForest(n_estimators=n_est, contamination=contam,
+                              random_state=42, n_jobs=-1)
+        clf.fit(X)
+
+        # Métriques
+        labels    = clf.predict(X)          # -1 anomalie, +1 inlier
+        scores    = clf.score_samples(X)
+        sil       = silhouette_score(X, labels) if len(set(labels)) > 1 else 0.0
+        n_anomaly = (labels == -1).sum()
+
+        mlflow.log_metric("silhouette_score",  round(sil, 4))
+        mlflow.log_metric("n_anomalies",       int(n_anomaly))
+        mlflow.log_metric("anomaly_rate",      round(n_anomaly / len(X), 4))
+
+        # Sauvegarde + enregistrement MLflow
+        joblib.dump(clf, "models/anomaly_detector.pkl")
+        mlflow.sklearn.log_model(clf, "model",
+            registered_model_name="TelemetryAnomalyDetector")
+
+        metrics = {"silhouette_score": sil, "n_anomalies": int(n_anomaly)}
+        json.dump(metrics, open("mlops/metrics.json", "w"), indent=2)
+        print(f"[MLflow] Silhouette={sil:.4f}, Anomalies={n_anomaly}/{len(X)}")
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+\section{Pipeline MLOps — Vue d'ensemble}
+
+La figure \ref{fig:mlops_pipeline} illustre le pipeline complet, de l'ingestion des
+données CSV jusqu'au service d'anomalies en production.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\input{figures/tikz/mlops_pipeline}
+}
+\caption{Pipeline MLOps — DVC, MLflow et déploiement de l'IsolationForest}
+\label{fig:mlops_pipeline}
+\end{figure}
+
+\textbf{Résultats obtenus :}
+\begin{itemize}
+  \item Silhouette Score : \textbf{0.73} (bonne séparation inliers/anomalies)
+  \item Taux d'anomalies détectées : \textbf{5\%} (paramètre \code{contamination=0.05})
+  \item Taille \code{mlruns.db} : \textbf{648 KB} (historique d'expériences)
+  \item Modèle enregistré : \code{TelemetryAnomalyDetector} (MLflow Registry)
+\end{itemize}
+
+\section{Vision par ordinateur — Les 8 modèles YOLO}
+
+\farmAI{} v3.0 intègre 8 modèles YOLO v11 couvrant les principales pathologies et
+espèces agricoles tunisiennes. L'architecture YOLO (\textit{You Only Look Once})
+\cite{redmon2016yolo} permet une détection d'objets en temps réel dans une seule
+passe forward du réseau.
+
+\begin{table}[H]
+\centering
+\caption{Registre des 8 modèles YOLO intégrés dans Smart Farm AI v3.0}
+\label{tab:yolo_models}
+\small
+\begin{tabular}{llllcc}
+\toprule
+\textbf{Modèle} & \textbf{Espèce/Domaine} & \textbf{Classes} &
+\textbf{Architecture} & \textbf{mAP50} & \textbf{Fichier} \\
+\midrule
+bee\_obb      & Abeilles (ruche OBB)  & 1 classe    & YOLOv11-OBB & 0.914 & bee\_obb.pt \\
+livestock     & Bétail (maladies)     & 4 classes   & YOLOv11-det & 0.891 & livestock.pt \\
+leaf\_disease & Maladies foliaires    & 12 classes  & YOLOv11-det & 0.879 & leaf\_disease.pt \\
+olive         & Maladies olivier      & 5 classes   & YOLOv11-det & 0.863 & olive.pt \\
+insects       & Insectes ravageurs    & 8 classes   & YOLOv11-det & 0.847 & insects.pt \\
+lemon         & Maladies citronnier   & 4 classes   & YOLOv11-det & 0.901 & lemon.pt \\
+orange        & Maladies oranger      & 4 classes   & YOLOv11-det & 0.895 & orange.pt \\
+fire\_smoke   & Feu / fumée (sécurité)& 2 classes   & YOLOv11-det & 0.934 & fire\_smoke.pt \\
+\midrule
+\textbf{Total} & \textbf{8 modèles}  & \textbf{40 classes} & YOLOv11 &
+\textbf{0.891} & \textit{moy.} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Registre des modèles (MODEL\_REGISTRY)}
+
+\begin{lstlisting}[style=pythonstyle, caption={MODEL\_REGISTRY — cv\_service.py}, label={lst:model_registry}]
+MODEL_REGISTRY = {
+    "bee": {
+        "path": YOLO_PATH / "bee_obb.pt",
+        "task": "obb",          # Oriented Bounding Boxes
+        "classes": ["beehive"],
+        "expert_profile": "bee"
+    },
+    "leaf_disease": {
+        "path": YOLO_PATH / "leaf_disease.pt",
+        "task": "detect",
+        "classes": [
+            "Apple__Apple_scab", "Apple__Black_rot",
+            "Corn__Common_rust", "Grape__Black_rot",
+            "Potato__Early_blight", "Tomato__Late_blight",
+            # ... 12 classes total
+        ],
+        "expert_profile": "leaves"
+    },
+    "fire_smoke": {
+        "path": YOLO_PATH / "fire_smoke.pt",
+        "task": "detect",
+        "classes": ["fire", "smoke"],
+        "expert_profile": "fire"
+    }
+    # ... 5 autres modèles
+}
+\end{lstlisting}
+
+\subsection{Inférence YOLO}
+
+\begin{lstlisting}[style=pythonstyle, caption={Inférence YOLO (cv\_service.py)}, label={lst:yolo_infer}]
+async def scan_image(model_key: str, image_bytes: bytes) -> dict:
+    config = MODEL_REGISTRY[model_key]
+    model  = YOLO(config["path"])           # chargement lazy-cached
+
+    # Décodage image
+    np_arr = np.frombuffer(image_bytes, np.uint8)
+    img    = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    # Inférence (< 200ms sur CPU)
+    results = model.predict(img, conf=0.35, iou=0.45, verbose=False)
+
+    detections = []
+    for r in results:
+        for box in (r.obb if config["task"] == "obb" else r.boxes):
+            detections.append({
+                "class":      config["classes"][int(box.cls)],
+                "confidence": float(box.conf),
+                "bbox":       box.xyxy[0].tolist()
+            })
+    return {"model": model_key, "detections": detections,
+            "count": len(detections)}
+\end{lstlisting}
+
+\section{Détection d'anomalies télémétriques}
+
+\subsection{Modèle IsolationForest}
+
+L'IsolationForest \cite{liu2008isolation} est un algorithme de détection d'anomalies
+non supervisé, particulièrement adapté aux données télémétriques IoT :
+
+\begin{itemize}
+  \item \textbf{Principe :} Isoler les anomalies par des coupes aléatoires — les
+        anomalies nécessitent moins de coupes que les données normales.
+  \item \textbf{Features :} \code{soil\_humidity}, \code{pressure}, \code{flow},
+        \code{temperature} (NODE\_A) ; \code{weight}, \code{hive\_temp},
+        \code{ext\_hum} (NODE\_B)
+  \item \textbf{Configuration :} \code{n\_estimators=150}, \code{contamination=0.05},
+        \code{random\_state=42}
+\end{itemize}
+
+\section{Assistant Souverain — IA Générative en Darija}
+
+\subsection{Architecture du service RAG}
+
+L'assistant de \farmAI{} v3.0 combine trois composants :
+
+\begin{enumerate}
+  \item \textbf{LLM Labess-7B} \cite{labess7b} — modèle de langage spécialisé en
+        dialecte arabe tunisien, exécuté localement via Ollama.
+  \item \textbf{RAG ChromaDB} \cite{chromadb2023} — base vectorielle contenant des
+        documents officiels tunisiens (UTAP, AVFA) encodés avec \code{sentence-transformers}.
+  \item \textbf{LLaVA Vision} \cite{llava2023} — modèle multimodal pour l'analyse
+        d'images ESP32-CAM.
+\end{enumerate}
+
+\begin{lstlisting}[style=pythonstyle, caption={Service RAG — rag\_service.py (extrait)}, label={lst:rag}]
+import chromadb
+from sentence_transformers import SentenceTransformer
+
+encoder    = SentenceTransformer("sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
+chroma_cli = chromadb.PersistentClient(path="./chromadb_data")
+collection = chroma_cli.get_or_create_collection(
+    name="sovereign_wisdom_v3",
+    metadata={"hnsw:space": "cosine"}
+)
+
+def query_rag(question: str, n_results: int = 5) -> list[str]:
+    embedding = encoder.encode([question]).tolist()
+    results   = collection.query(
+        query_embeddings=embedding,
+        n_results=n_results,
+        include=["documents", "metadatas"]
+    )
+    return results["documents"][0]
+\end{lstlisting}
+
+\subsection{Profils d'experts}
+
+L'assistant utilise 7 profils d'experts adaptés à l'espèce détectée par YOLO :
+
+\begin{table}[H]
+\centering
+\caption{Profils d'experts de l'Assistant Souverain}
+\label{tab:expert_profiles}
+\begin{tabular}{lll}
+\toprule
+\textbf{Profil} & \textbf{Déclencheur} & \textbf{Spécialité} \\
+\midrule
+\code{bee}      & Modèle bee\_obb      & Apiculture, Varroa, pathologies abeilles \\
+\code{cow}      & Modèle livestock (bovins) & Pathologies bovines \\
+\code{sheep}    & Modèle livestock (ovins)  & Pratiques d'élevage ovin \\
+\code{leaves}   & Modèle leaf\_disease & Maladies foliaires, fongicides \\
+\code{olive}    & Modèle olive         & Maladies de l'olivier, taille \\
+\code{fire}     & Modèle fire\_smoke   & Premiers secours incendie, alerte \\
+\code{general}  & Défaut               & Agriculture générale, Darija \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Mode Lite (Oracle Cloud sans GPU)}
+
+Pour le déploiement sur Oracle Cloud Free Tier (ARM64, sans GPU), un mode
+\code{LITE\_MODE=true} remplace l'inférence LLM par une base de connaissances
+synthétique statique :
+
+\begin{lstlisting}[style=pythonstyle, caption={Lite Mode — fallback sans LLM}, label={lst:lite_mode}]
+if settings.LITE_MODE:
+    # Pas d'Ollama disponible — réponse depuis KB statique
+    response = STATIC_KB.get(profile, {}).get(
+        "response",
+        "Veuillez consulter un vétérinaire pour ce cas."
+    )
+else:
+    # Ollama local → Groq API → static fallback
+    context  = query_rag(question)
+    prompt   = build_prompt(profile, question, context)
+    response = ollama_generate(prompt)
+\end{lstlisting}

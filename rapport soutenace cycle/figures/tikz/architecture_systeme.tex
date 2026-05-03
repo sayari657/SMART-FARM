@@ -1,0 +1,111 @@
+% ============================================================
+%  Architecture Système — Smart Farm AI v3.0 (5 couches)
+% ============================================================
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  layer/.style={
+    rectangle, rounded corners=6pt,
+    draw=#1!70!black, fill=#1!15,
+    text width=16cm, minimum height=1.6cm,
+    align=center, inner sep=6pt,
+    font=\small\bfseries
+  },
+  component/.style={
+    rectangle, rounded corners=3pt,
+    draw=#1!60!black, fill=#1!20,
+    text width=3cm, minimum height=1.1cm,
+    align=center, inner sep=4pt,
+    font=\tiny\bfseries
+  },
+  arrow/.style={->, thick, >=Stealth, #1},
+  label/.style={font=\scriptsize\bfseries\color{#1}, sloped}
+]
+
+% ─── Couche 1 : Clients ──────────────────────────────────────
+\node[draw=farmblue, fill=farmblue!8, rounded corners=6pt,
+      minimum width=16cm, minimum height=1.8cm,
+      align=center, font=\small\bfseries\color{farmblue}]
+  (clients) at (0, 0) {};
+\node[above=-0.3cm of clients, font=\tiny\bfseries\color{farmblue!60}]
+  {COUCHE CLIENTS};
+\node[component=farmblue] at (-5.5,  0) {Owner Dashboard\\React/Vite SPA};
+\node[component=farmblue] at (-1.8,  0) {Worker PWA\\Offline (Dexie)};
+\node[component=farmblue] at ( 1.8,  0) {Map Center\\Leaflet + OSM};
+\node[component=farmblue] at ( 5.5,  0) {Assistant\\Chat + STT/TTS};
+
+% ─── Flèche Clients → API ────────────────────────────────────
+\draw[arrow=farmblue] (0, -0.9) -- (0, -1.7)
+  node[midway, right, font=\tiny] {HTTPS / REST / WebSocket};
+
+% ─── Couche 2 : API Gateway ──────────────────────────────────
+\node[draw=farmgreen, fill=farmgreen!8, rounded corners=6pt,
+      minimum width=16cm, minimum height=1.8cm,
+      align=center, font=\small\bfseries\color{farmgreen}]
+  (api) at (0, -2.6) {};
+\node[above=-0.3cm of api, font=\tiny\bfseries\color{farmgreen!60}]
+  {COUCHE API GATEWAY};
+\node[component=farmgreen] at (-5.5, -2.6) {JWT Middleware\\Auth + OTP};
+\node[component=farmgreen] at (-1.8, -2.6) {FastAPI\\50+ Endpoints};
+\node[component=farmgreen] at ( 1.8, -2.6) {WebSocket\\Alertes Temps Réel};
+\node[component=farmgreen] at ( 5.5, -2.6) {CORS + Rate\\Limiting};
+
+% ─── Flèche API → Services ───────────────────────────────────
+\draw[arrow=farmgreen] (0, -3.5) -- (0, -4.3)
+  node[midway, right, font=\tiny] {Appels internes Python};
+
+% ─── Couche 3 : Services ─────────────────────────────────────
+\node[draw=farmorange, fill=farmorange!8, rounded corners=6pt,
+      minimum width=16cm, minimum height=1.8cm,
+      align=center, font=\small\bfseries\color{farmorange}]
+  (services) at (0, -5.2) {};
+\node[above=-0.3cm of services, font=\tiny\bfseries\color{farmorange!60}]
+  {COUCHE SERVICES MÉTIER};
+\node[component=farmorange] at (-6.3, -5.2) {CV Service\\YOLO ×8};
+\node[component=farmorange] at (-3.2, -5.2) {RAG Service\\ChromaDB};
+\node[component=farmorange] at ( 0,   -5.2) {LLM Agent\\Labess-7B};
+\node[component=farmorange] at ( 3.2, -5.2) {Anomaly\\IsolationForest};
+\node[component=farmorange] at ( 6.3, -5.2) {Weather\\OpenMeteo};
+
+% ─── Flèche Services → Données ───────────────────────────────
+\draw[arrow=farmorange] (0, -6.1) -- (0, -6.9)
+  node[midway, right, font=\tiny] {SQLAlchemy ORM / direct calls};
+
+% ─── Couche 4 : Données ──────────────────────────────────────
+\node[draw=farmred, fill=farmred!8, rounded corners=6pt,
+      minimum width=16cm, minimum height=1.8cm,
+      align=center, font=\small\bfseries\color{farmred}]
+  (data) at (0, -7.8) {};
+\node[above=-0.3cm of data, font=\tiny\bfseries\color{farmred!60}]
+  {COUCHE DONNÉES \& MODÈLES};
+\node[component=farmred] at (-6.3, -7.8) {PostgreSQL\\30+ Tables};
+\node[component=farmred] at (-3.2, -7.8) {ChromaDB\\HNSW cosine};
+\node[component=farmred] at ( 0,   -7.8) {MLflow\\Registry};
+\node[component=farmred] at ( 3.2, -7.8) {DVC\\Data Versions};
+\node[component=farmred] at ( 6.3, -7.8) {Ollama\\Models};
+
+% ─── Flèche Données → IoT ────────────────────────────────────
+\draw[arrow=farmred] (0, -8.7) -- (0, -9.5)
+  node[midway, right, font=\tiny] {HTTP POST /api/v1/iot/telemetry};
+
+% ─── Couche 5 : IoT ──────────────────────────────────────────
+\node[draw=farmgray, fill=farmgray!10, rounded corners=6pt,
+      minimum width=16cm, minimum height=1.8cm,
+      align=center, font=\small\bfseries\color{farmgray}]
+  (iot) at (0, -10.4) {};
+\node[above=-0.3cm of iot, font=\tiny\bfseries\color{farmgray!80}]
+  {COUCHE IOT (TERRAIN)};
+\node[component=farmgray] at (-5.5, -10.4)
+  {NODE\_A ESP32\\Irrigation\\(sol, pression, débit)};
+\node[component=farmgray] at (-1.8, -10.4)
+  {Wokwi Simulation\\WiFi Virtuel\\Wokwi-GUEST};
+\node[component=farmgray] at ( 1.8, -10.4)
+  {NODE\_B ESP32\\Rucher\\(poids, temp, hum)};
+\node[component=farmgray] at ( 5.5, -10.4)
+  {PlatformIO\\Build + Flash\\OTA};
+
+% ─── Flèche IoT ← retour alertes ─────────────────────────────
+\draw[arrow=farmblue!50, dashed, bend right=70]
+  (6, -7.8) to node[right, font=\tiny\itshape]
+  {alertes\\WebSocket} (6, -10.4);
+
+\end{tikzpicture}

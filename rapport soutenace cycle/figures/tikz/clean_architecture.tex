@@ -1,0 +1,83 @@
+% ============================================================
+%  Clean Architecture Backend — Smart Farm AI (FastAPI)
+% ============================================================
+\begin{tikzpicture}[
+  x=1cm, y=1cm,
+  layer/.style={
+    rectangle, rounded corners=5pt,
+    draw=#1!70!black, fill=#1!12,
+    minimum width=13cm, minimum height=1.5cm,
+    align=center, font=\small\bfseries\color{#1!80!black}
+  },
+  box/.style={
+    rectangle, rounded corners=3pt,
+    draw=#1!60!black, fill=#1!18,
+    text width=2.4cm, minimum height=1.1cm,
+    align=center, font=\tiny\bfseries
+  },
+  arrow/.style={->, thick, >=Stealth, #1},
+  dbarrow/.style={->, thick, >=Stealth, dashed, #1}
+]
+
+% ─── Couche Routes / Endpoints ────────────────────────────────
+\node[layer=farmblue, text width=13cm] (routes) at (0, 0) {};
+\node[font=\tiny\color{farmblue!50}, above right=0pt] at (-6.3, 0.55)
+  {Couche Présentation / API};
+\node[box=farmblue] at (-4.5, 0) {Auth Routes\\JWT / OTP};
+\node[box=farmblue] at (-1.5, 0) {CV Routes\\YOLO Scan};
+\node[box=farmblue] at ( 1.5, 0) {IoT Routes\\Telemetry};
+\node[box=farmblue] at ( 4.5, 0) {Bee Routes\\HiveIntel};
+
+% ─── Couche Services ─────────────────────────────────────────
+\draw[arrow=farmblue] (0, -0.75) -- (0, -1.55);
+\node[layer=farmgreen, text width=13cm] (serv) at (0, -2.3) {};
+\node[font=\tiny\color{farmgreen!50}, above right=0pt] at (-6.3, -1.55)
+  {Couche Services (Logique Métier)};
+\node[box=farmgreen] at (-4.5, -2.3) {Auth Service\\Hasher + OTP};
+\node[box=farmgreen] at (-1.5, -2.3) {CV Service\\Inférence YOLO};
+\node[box=farmgreen] at ( 1.5, -2.3) {IoT Service\\Anomaly + Alert};
+\node[box=farmgreen] at ( 4.5, -2.3) {Bee Service\\Calculs apicoles};
+
+% ─── Couche Repositories ─────────────────────────────────────
+\draw[arrow=farmgreen] (0, -3.05) -- (0, -3.85);
+\node[layer=farmorange, text width=13cm] (repo) at (0, -4.6) {};
+\node[font=\tiny\color{farmorange!50}, above right=0pt] at (-6.3, -3.85)
+  {Couche Repositories (Accès Données)};
+\node[box=farmorange] at (-4.5, -4.6) {User Repo\\CRUD Users};
+\node[box=farmorange] at (-1.5, -4.6) {Farm Repo\\CRUD Farms};
+\node[box=farmorange] at ( 1.5, -4.6) {IoT Repo\\Telemetry CSV};
+\node[box=farmorange] at ( 4.5, -4.6) {Bee Repo\\Hives + Visits};
+
+% ─── Couche Models ───────────────────────────────────────────
+\draw[arrow=farmorange] (0, -5.35) -- (0, -6.15);
+\node[layer=farmred, text width=13cm] (models) at (0, -6.9) {};
+\node[font=\tiny\color{farmred!50}, above right=0pt] at (-6.3, -6.15)
+  {Couche Modèles (SQLAlchemy ORM)};
+\node[box=farmred] at (-4.5, -6.9) {User\\Farm\\Worker};
+\node[box=farmred] at (-1.5, -6.9) {AnimalUnit\\CVEvent};
+\node[box=farmred] at ( 1.5, -6.9) {TelemetryRecord\\Alert};
+\node[box=farmred] at ( 4.5, -6.9) {BeeHive\\BeeVisit\\BeeHarvest};
+
+% ─── Couche Infrastructure ───────────────────────────────────
+\draw[arrow=farmred] (0, -7.65) -- (0, -8.45);
+\node[layer=farmgray, text width=13cm] (infra) at (0, -9.2) {};
+\node[font=\tiny\color{farmgray!60}, above right=0pt] at (-6.3, -8.45)
+  {Infrastructure (Bases de données \& Services externes)};
+\node[box=farmgray] at (-5.5, -9.2) {PostgreSQL\\(prod)};
+\node[box=farmgray] at (-2.8, -9.2) {SQLite\\(Oracle LITE)};
+\node[box=farmgray] at ( 0,   -9.2) {ChromaDB\\(RAG)};
+\node[box=farmgray] at ( 2.8, -9.2) {Ollama\\(LLM local)};
+\node[box=farmgray] at ( 5.5, -9.2) {YOLO Models\\(.pt files)};
+
+% ─── Annotations latérales ────────────────────────────────────
+\draw[decorate, decoration={brace, amplitude=6pt, mirror},
+      farmblue, thick] (7, -7.65) -- (7, -0.75)
+  node[midway, right=8pt, font=\tiny\itshape\color{farmblue}]
+  {Injection de dépendances\\(FastAPI Depends)};
+
+\draw[decorate, decoration={brace, amplitude=6pt},
+      farmgray, thick] (-7, -9.95) -- (-7, 0.75)
+  node[midway, left=8pt, font=\tiny\itshape\color{farmgray}]
+  {\rotatebox{90}{Indépendance des couches (DIP)}};
+
+\end{tikzpicture}

@@ -1,0 +1,146 @@
+% ============================================================
+%  Chapitre 7 — Conclusion et Perspectives
+% ============================================================
+\chapter{Conclusion et Perspectives}
+\thispagestyle{fancy}
+
+\section{Synthèse des réalisations}
+
+Ce projet de fin de cycle a abouti au développement complet de \farmAI{} v3.0,
+une plateforme agro-technologique innovante répondant aux besoins spécifiques de
+l'agriculture tunisienne. Les principaux livrables réalisés, sprint par sprint, sont :
+
+\begin{table}[H]
+\centering
+\caption{Synthèse des livrables par sprint}
+\label{tab:deliverables}
+\begin{tabular}{clll}
+\toprule
+\textbf{Sprint} & \textbf{Titre} & \textbf{Livrables réalisés} & \textbf{Statut} \\
+\midrule
+S1 & Infra \& Auth &
+  FastAPI 50+ endpoints, JWT+OTP, PostgreSQL 30+ tables,
+  React/Vite scaffold & \yes~Livré \\
+S2 & IoT \& Télémétrie &
+  NODE\_A et NODE\_B firmware (HTTP POST), simulation Wokwi,
+  dashboard télémétrie Recharts & \yes~Livré \\
+S3 & Module Apiculture &
+  HiveIntel 7 sous-modules, CRUD complet, intégration NODE\_B,
+  QR Codes & \yes~Livré \\
+S4 & Vision IA \& Scanner &
+  8 modèles YOLO v11, Scanner PWA 13 modèles, Map SIG Leaflet,
+  Expert FAB & \yes~Livré \\
+S5 & Assistant Souverain &
+  Labess-7B RAG Darija, STT/TTS, LLaVA vision, Lite Mode Oracle & \yes~Livré \\
+S6 & MLOps \& Final &
+  Pipeline DVC+MLflow, IsolationForest (Sil.=0.73),
+  Docker Compose, Oracle Cloud & \yes~Livré \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Contributions originales}
+
+\farmAI{} v3.0 apporte trois contributions originales au domaine de l'agritech tunisienne :
+
+\subsection{Souveraineté IA en Darija}
+
+La principale contribution de ce projet est la mise en œuvre d'un assistant
+conversationnel souverain en dialecte arabe tunisien (Darija). En utilisant le modèle
+Labess-7B \cite{labess7b} couplé à un système RAG enrichi de sources officielles
+tunisiennes (UTAP, AVFA), la plateforme offre aux agriculteurs un interlocuteur
+numérique dans leur langue natale — sans dépendance à des API cloud étrangères.
+Il s'agit d'une avancée significative vers la démocratisation de l'IA pour les
+populations rurales tunisiennes.
+
+\subsection{Intégration IoT-IA complète}
+
+La chaîne complète ESP32 (Wokwi simulation → matériel réel) → FastAPI → IsolationForest
+→ Dashboard → WebSocket constitue une architecture de référence pour les projets
+IoT agricoles : même code firmware en simulation et en production, détection
+d'anomalies automatique, alertes temps réel.
+
+\subsection{MLOps agricole reproductible}
+
+L'application rigoureuse des pratiques MLOps (DVC + MLflow) à un contexte agricole
+tunisien démontre la faisabilité d'une industrialisation des modèles ML pour les
+petites et moyennes exploitations, sans infrastructure GPU coûteuse.
+
+\section{Difficultés rencontrées}
+
+\begin{enumerate}
+  \item \textbf{Déséquilibre des datasets YOLO :} Certaines classes de pathologies
+        agricoles tunisiennes (maladies spécifiques à l'olivier, insectes ravageurs
+        locaux) sont sous-représentées dans les datasets publics. Solution : stratégie
+        d'augmentation aggressive (Mosaic, MixUp) et pondération des classes.
+
+  \item \textbf{Latence LLM sur CPU :} Labess-7B sur CPU génère une réponse en 15-25
+        secondes, impactant l'expérience utilisateur. Solution provisoire : Groq API
+        comme fallback, et Lite Mode (base de connaissances statique) pour Oracle.
+
+  \item \textbf{Wokwi et PlatformIO :} La simulation nécessite que le fichier ELF
+        soit compilé avant de démarrer Wokwi. Sans le rechargement de VS Code après
+        la première compilation, le bouton Play reste inactif.
+
+  \item \textbf{Oracle Cloud ARM64 sans GPU :} Les modèles YOLO et Ollama ne fonctionnent
+        pas sur l'instance ARM64 gratuite. Solution : LITE\_MODE=true désactive YOLO/LLM
+        et active la base de connaissances statique.
+
+  \item \textbf{Multi-tenancy et isolation :} Garantir l'isolation stricte des données
+        entre fermes (même utilisateur ne peut pas voir les données d'un autre owner)
+        a nécessité la propagation systématique du \code{farm\_id} dans toutes les
+        requêtes et tous les modèles SQLAlchemy.
+\end{enumerate}
+
+\section{Perspectives d'évolution}
+
+\begin{tcolorbox}[infobox, title={Feuille de route v4.0}]
+\begin{description}
+  \item[\textbf{Court terme (3-6 mois) :}]
+    \begin{itemize}
+      \item Intégration de microphones pour l'analyse audio des ruches
+            (détection des fréquences 200-300 Hz caractéristiques de l'essaimage)
+      \item Migration vers TimescaleDB pour les séries temporelles télémétriques
+      \item Application React Native pour Worker (Android/iOS natif)
+    \end{itemize}
+  \item[\textbf{Moyen terme (6-18 mois) :}]
+    \begin{itemize}
+      \item ESP32-CAM pour photos automatiques des ruches toutes les heures
+      \item Fine-tuning de Labess-7B sur un corpus agricole tunisien spécialisé
+      \item Certification ISO 27001 pour la sécurité des données agricoles
+      \item MLOps niveau 2 : CI/CD ML avec GitHub Actions
+    \end{itemize}
+  \item[\textbf{Long terme (18 mois+) :}]
+    \begin{itemize}
+      \item Réseau de fermes connectées pour l'analyse comparative régionale
+      \item Partenariat UTAP/AVFA pour validation officielle des recommandations
+      \item Dataset public tunisien de maladies agricoles (contribution open-source)
+    \end{itemize}
+\end{description}
+\end{tcolorbox}
+
+\section{Conclusion générale}
+
+\farmAI{} v3.0 démontre qu'il est possible de construire une plateforme d'IA agricole
+complète, souveraine et économiquement accessible en combinant des technologies
+open-source de pointe (YOLO v11, FastAPI, ChromaDB, DVC, MLflow) avec une architecture
+rigoureuse et des pratiques MLOps industrielles.
+
+La spécificité tunisienne — assistant en Darija, données IoT adaptées aux conditions
+climatiques locales, corpus RAG ancré dans les références officielles nationales — fait
+de \farmAI{} plus qu'un prototype académique : c'est une fondation réelle pour la
+transformation numérique de l'agriculture tunisienne.
+
+\medskip
+\begin{tcolorbox}[technote, title={Impact attendu}]
+Si 1\% des 516 000 exploitants tunisiens adoptent \farmAI{} et réduisent leurs pertes
+agricoles de 15\% grâce à la détection précoce des maladies, cela représente :
+\textbf{774 fermes bénéficiaires} et une \textbf{économie estimée à 2.3 millions TND
+par an} selon les données FAO sur les pertes moyennes par exploitation.
+\end{tcolorbox}
+
+Ce projet a été l'occasion d'appliquer l'ensemble des compétences acquises au cours
+de la formation d'ingénieur en Data Science et Intelligence Artificielle à Tek-Up :
+architecture logicielle, deep learning, MLOps, IoT, développement full-stack et
+gestion de projet agile. Il constitue une contribution modeste mais sincère à la
+transformation numérique de l'agriculture tunisienne.

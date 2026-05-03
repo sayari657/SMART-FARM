@@ -1,0 +1,160 @@
+% ============================================================
+%  Chapitre 1 — Introduction Générale
+% ============================================================
+\chapter{Introduction Générale}
+\thispagestyle{fancy}
+
+\begin{tcolorbox}[technote, title={Épigraphe}]
+\itshape
+« L'intelligence artificielle est la nouvelle électricité.\\
+Tout comme l'électricité a transformé de nombreuses industries il y a cent ans,\\
+l'IA va maintenant transformer presque toutes les industries du monde. »
+\begin{flushright}
+\upshape— \textbf{Andrew Ng}, Co-fondateur de Coursera, ex-directeur de l'IA chez Baidu
+\end{flushright}
+\end{tcolorbox}
+
+\section{Contexte général}
+
+L'agriculture demeure le pilier central de l'économie tunisienne, représentant
+\textbf{10\% du PIB} et \textbf{14\% de l'emploi national} selon les données de
+l'Institut National de la Statistique \cite{ins_tunisie_2023}. Ce secteur nourrit plus de
+11 millions de Tunisiens et génère des exportations significatives — huile d'olive,
+dattes, agrumes, poissons — vers les marchés européens et arabes.
+
+Pourtant, malgré son importance stratégique, l'agriculture tunisienne fait face à une
+convergence de défis structurels majeurs :
+
+\begin{itemize}
+  \item \textbf{Stress hydrique croissant :} Avec une pluviométrie moyenne inférieure à
+        400 mm/an dans les régions intérieures et une surexploitation des nappes
+        phréatiques, la gestion de l'eau est devenue critique.
+
+  \item \textbf{Pression des ravageurs et maladies :} Les pertes agricoles attribuées aux
+        maladies fongiques, bactériennes et aux insectes nuisibles représentent 20 à 40\%
+        des récoltes dans certaines régions, selon la FAO \cite{fao_tunisie_2022}.
+
+  \item \textbf{Déclin des pollinisateurs :} Le secteur apicole tunisien, avec ses
+        300 000 ruches environ, connaît un taux de mortalité hivernal alarmant lié au
+        Varroa destructor, aux pesticides et aux changements climatiques.
+
+  \item \textbf{Vieillissement des exploitants :} L'âge moyen des agriculteurs tunisiens
+        dépasse 50 ans, avec un déficit de transmission des savoirs et une faible adoption
+        des technologies numériques.
+
+  \item \textbf{Fragmentation des exploitations :} Plus de 70\% des fermes couvrent moins
+        de 5 hectares, limitant les économies d'échelle et l'accès aux équipements modernes.
+\end{itemize}
+
+\section{L'Agriculture 4.0 — opportunités et enjeux}
+
+Face à ces défis, l'émergence de l'\textbf{Agriculture 4.0} — convergence de l'IoT, de
+l'intelligence artificielle, des drones et de l'analyse big data — ouvre des perspectives
+transformatrices. Les projections mondiales indiquent que le marché de l'agritech basée
+sur l'IA devrait atteindre \textbf{4 milliards de dollars en 2026}, avec un taux de
+croissance annuel de 25\% \cite{kamilaris2018deep}.
+
+Les technologies clés de cette révolution agricole incluent :
+
+\begin{itemize}
+  \item \textbf{Capteurs IoT et télémétrie :} Surveillance en temps réel de l'humidité du
+        sol, de la température, du débit d'eau et de l'état des cultures.
+  \item \textbf{Vision par ordinateur :} Détection automatique des maladies foliaires par
+        analyse d'images, avec des précisions supérieures à 90\% pour les modèles YOLO
+        récents \cite{ultralytics2023yolov8}.
+  \item \textbf{Grands modèles de langage :} Assistants agricoles conversationnels capables
+        de répondre en langue locale aux questions des exploitants.
+  \item \textbf{MLOps :} Industrialisation des modèles d'IA avec suivi des expériences,
+        versionnement des données et déploiement continu \cite{mlflow2023}.
+\end{itemize}
+
+\section{Présentation du projet \farmAI}
+
+\farmAI{} v3.0 est une plateforme agro-technologique complète, conçue pour démocratiser
+l'accès aux technologies d'IA dans le milieu agricole tunisien. Le projet se distingue
+par quatre piliers fondamentaux :
+
+\begin{tcolorbox}[infobox, title={Les 4 piliers de Smart Farm AI}]
+\begin{enumerate}
+  \item \textbf{IoT Temps Réel :} Deux nœuds ESP32 (NODE\_A irrigation, NODE\_B rucher)
+        transmettant des données télémétriques toutes les 10 secondes via HTTP POST.
+  \item \textbf{Vision IA Souveraine :} Huit modèles YOLO v11 couvrant 13 espèces et
+        pathologies agricoles, avec inférence locale sans dépendance cloud.
+  \item \textbf{Assistant Darija :} LLM Labess-7B spécialisé en dialecte tunisien,
+        enrichi par RAG avec des sources officielles (UTAP, AVFA), fonctionnant
+        entièrement en local via Ollama.
+  \item \textbf{MLOps Industriel :} Pipeline DVC + MLflow avec versionnement des données,
+        entraînement reproductible et registre de modèles.
+\end{enumerate}
+\end{tcolorbox}
+
+La plateforme adopte une architecture \textbf{multi-tenant} permettant à plusieurs
+exploitations agricoles de partager la même infrastructure tout en maintenant
+l'isolation complète de leurs données. Elle est accessible depuis une interface web
+\textbf{Progressive Web App} (PWA) utilisable hors-ligne par les ouvriers agricoles,
+et depuis un tableau de bord avancé pour les propriétaires d'exploitations.
+
+\section{Problématique}
+
+La problématique centrale de ce projet peut être formulée ainsi :
+
+\begin{tcolorbox}[warningbox, title={Problématique}]
+\textit{Comment concevoir et déployer une plateforme d'intelligence artificielle
+accessible, souveraine et opérationnellement robuste pour les agriculteurs tunisiens,
+intégrant surveillance IoT en temps réel, détection automatique des pathologies agricoles
+par vision par ordinateur, et assistance conversationnelle en dialecte local — tout en
+garantissant la reproductibilité des modèles ML via des pratiques MLOps industrielles
+et la souveraineté technologique par l'exécution locale des modèles ?}
+\end{tcolorbox}
+
+\section{Objectifs du projet}
+
+Les objectifs spécifiques poursuivis sont :
+
+\begin{enumerate}
+  \item Concevoir une architecture système évolutive (FastAPI + React + PostgreSQL) supportant
+        la gestion multi-fermes et multi-utilisateurs.
+  \item Développer et déployer 8 modèles YOLO v11 pour la détection de pathologies
+        agricoles et la surveillance des ruches.
+  \item Implémenter un système IoT complet avec deux nœuds ESP32, simulés via Wokwi et
+        opérationnels sur matériel réel.
+  \item Créer un assistant conversationnel souverain en Darija tunisien, utilisant le LLM
+        Labess-7B et un système RAG avec ChromaDB.
+  \item Mettre en place une chaîne MLOps complète (DVC + MLflow) pour la reproductibilité
+        et le suivi des modèles en production.
+  \item Développer un module de gestion apicole complet (HiveIntel) avec 7 sous-modules
+        fonctionnels.
+  \item Déployer la solution sur Oracle Cloud Free Tier en mode haute disponibilité.
+\end{enumerate}
+
+\section{Plan du rapport}
+
+Ce rapport s'articule en sept chapitres, organisés comme suit :
+
+\begin{description}
+  \item[\textbf{Chapitre 1 — Introduction générale :}] Contexte, problématique et
+        objectifs du projet (présent chapitre).
+
+  \item[\textbf{Chapitre 2 — Contexte et étude préliminaire :}] Analyse du secteur
+        agricole tunisien, benchmark des solutions existantes, cahier des charges
+        fonctionnel et non-fonctionnel.
+
+  \item[\textbf{Chapitre 3 — Méthodologies :}] Présentation des méthodologies adoptées :
+        Scrum (6 sprints sur 14 semaines) et CRISP-DM pour la conduite du projet Data
+        Science.
+
+  \item[\textbf{Chapitre 4 — Architecture et conception :}] Diagrammes UML (cas
+        d'utilisation, classes, séquences), architecture système en couches et
+        architecture IoT.
+
+  \item[\textbf{Chapitre 5 — MLOps et pipeline IA :}] Détail de la chaîne MLOps,
+        présentation des 8 modèles YOLO, module IsolationForest et assistant souverain
+        RAG-Darija.
+
+  \item[\textbf{Chapitre 6 — Réalisation et tests :}] Environnement de développement,
+        présentation des interfaces utilisateur, tableau des endpoints API et résultats
+        de tests.
+
+  \item[\textbf{Chapitre 7 — Conclusion et perspectives :}] Synthèse des réalisations,
+        difficultés rencontrées et perspectives d'évolution.
+\end{description}
