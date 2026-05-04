@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Leaf, Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle, Shield, Cpu, Wifi } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
 
 export default function Login() {
@@ -21,6 +22,7 @@ export default function Login() {
   const [debugOtp, setDebugOtp] = useState(null);
 
   const { login, loading } = useAuth();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
 
@@ -101,16 +103,14 @@ export default function Login() {
             <div style={{ opacity:.65, fontSize:12, color:'#fff' }}>Enterprise Platform</div>
           </div>
         </div>
-        <h2 style={{ color:'#fff', fontSize:32, fontWeight:800, lineHeight:1.2, marginBottom:16 }}>Intelligent Farm<br />Monitoring at Scale</h2>
-        <p style={{ color:'#fff', opacity:.8, fontSize:15, lineHeight:1.7, maxWidth:360 }}>
-          Monitor bees, cows, poultry with IoT telemetry, computer vision, and AI anomaly detection.
-        </p>
+        <h2 style={{ color:'#fff', fontSize:32, fontWeight:800, lineHeight:1.2, marginBottom:16 }} dangerouslySetInnerHTML={{ __html: t("login.hero_title") }}></h2>
+        <p style={{ color:'#fff', opacity:.8, fontSize:15, lineHeight:1.7, maxWidth:360 }}>{t('login.hero_desc')}</p>
         <div className="auth-features">
           {[
-            { icon: Wifi,   label: 'Real-time IoT telemetry' },
-            { icon: Eye,    label: 'Computer vision detection' },
-            { icon: Cpu,    label: 'AI anomaly engine' },
-            { icon: Shield, label: 'Multi-species alerts' },
+            { icon: Wifi,   label: t('login.feat_iot') },
+            { icon: Eye,    label: t('login.feat_cv') },
+            { icon: Cpu,    label: t('login.feat_ai') },
+            { icon: Shield, label: t('login.feat_alerts') },
           ].map(({ icon: Icon, label }) => (
             <div className="auth-feature" key={label} style={{ color:'#fff' }}>
               <Icon size={15} style={{ opacity:.8, flexShrink:0 }} />
@@ -123,7 +123,7 @@ export default function Login() {
   );
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
       {renderLeft()}
 
       <div className="auth-right">
@@ -132,8 +132,8 @@ export default function Login() {
           {/* ── Login View ───────────────────────────────── */}
           {view === 'login' && (
             <>
-              <h1>Welcome back</h1>
-              <p>Sign in to your Smart Farm AI account</p>
+              <h1>{t('login.welcome_back')}</h1>
+              <p>{t('login.sign_in_to')}</p>
 
 
 
@@ -142,32 +142,29 @@ export default function Login() {
 
               <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 <div className="form-group">
-                  <label className="form-label">Username</label>
-                  <input className="form-input" id="login-username" placeholder="Enter your username" value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} required />
+                  <label className="form-label">{t('login.username')}</label>
+                  <input className="form-input" id="login-username" placeholder={t("login.enter_username")} value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Password</label>
+                  <label className="form-label">{t('login.password')}</label>
                   <div style={{ position:'relative' }}>
-                    <input className="form-input" id="login-password" type={showPw ? 'text' : 'password'} placeholder="Enter your password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required style={{ paddingRight:40 }} />
+                    <input className="form-input" id="login-password" type={showPw ? 'text' : 'password'} placeholder={t("login.enter_password")} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required style={{ paddingRight:40 }} />
                     <button type="button" onClick={() => setShowPw(v => !v)} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer' }}>
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   <div style={{ textAlign: 'right', marginTop: 8 }}>
-                    <button type="button" onClick={() => { setView('choose_channel'); setError(''); setMsg(''); }} style={{ background:'none', border:'none', color:'var(--color-primary)', fontSize:12, cursor:'pointer', padding:0 }}>
-                      Mot de passe oublié ?
-                    </button>
+                    <button type="button" onClick={() => { setView('choose_channel'); setError(''); setMsg(''); }} style={{ background:'none', border:'none', color:'var(--color-primary)', fontSize:12, cursor:'pointer', padding:0 }}>{t('login.forgot_password')}</button>
                   </div>
                 </div>
                 <button className="btn btn-primary" id="login-submit" type="submit" disabled={loading} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14, marginTop:4 }}>
-                  {loading ? 'Connexion...' : 'Sign In'}
+                  {loading ? t('login.connecting') : t('login.sign_in')}
                 </button>
               </form>
-              <div className="auth-footer">Don't have an account? <Link to="/register">Create one</Link></div>
+              <div className="auth-footer">{t('login.dont_have_account')} <Link to="/register">{t('login.create_one')}</Link></div>
               <div style={{ textAlign: 'center', marginTop: '16px', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
                 <Link to="/worker-login" style={{ fontSize: '14px', color: 'var(--color-primary)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <span>👷</span> Accès Ouvrier (Code PIN)
-                </Link>
+                  <span>👷</span> {t('login.worker_access')}</Link>
               </div>
             </>
           )}
@@ -178,8 +175,8 @@ export default function Login() {
               <button onClick={resetFlow} style={{ background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13, marginBottom:20, padding:0 }}>
                 <ArrowLeft size={14} /> Retour
               </button>
-              <h1 style={{ fontSize: 22, marginBottom: 8 }}>Récupérer l'accès</h1>
-              <p style={{ marginBottom: 28 }}>Choisissez comment recevoir votre code de vérification</p>
+              <h1 style={{ fontSize: 22, marginBottom: 8 }}>{t('login.recover_access')}</h1>
+              <p style={{ marginBottom: 28 }}>{t('login.choose_how_to_receive')}</p>
 
               {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
 
@@ -194,9 +191,9 @@ export default function Login() {
                     <Mail size={22} color="var(--color-info)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>📧 Par E-mail</div>
-                    <div style={{ fontSize:12, color:'var(--color-text-3)', marginTop:3 }}>Code envoyé à votre adresse email enregistrée</div>
-                    <div style={{ fontSize:11, color:'#22c55e', marginTop:4, fontWeight:600 }}>✅ 100% Gratuit — Gmail SMTP</div>
+                    <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>📧 {t('login.by_email')}</div>
+                    <div style={{ fontSize:12, color:'var(--color-text-3)', marginTop:3 }}>{t('login.email_desc')}</div>
+                    <div style={{ fontSize:11, color:'#22c55e', marginTop:4, fontWeight:600 }}>✅ {t('login.free_email')}</div>
                   </div>
                 </button>
 
@@ -210,9 +207,9 @@ export default function Login() {
                     <MessageCircle size={22} color="var(--color-whatsapp)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>💬 Via WhatsApp</div>
-                    <div style={{ fontSize:12, color:'var(--color-text-3)', marginTop:3 }}>Code OTP sur votre numéro WhatsApp enregistré</div>
-                    <div style={{ fontSize:11, color:'#22c55e', marginTop:4, fontWeight:600 }}>✅ Gratuit (Meta Cloud API)</div>
+                    <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>💬 {t('login.via_whatsapp')}</div>
+                    <div style={{ fontSize:12, color:'var(--color-text-3)', marginTop:3 }}>{t('login.whatsapp_desc')}</div>
+                    <div style={{ fontSize:11, color:'#22c55e', marginTop:4, fontWeight:600 }}>✅ {t('login.free_whatsapp')}</div>
                   </div>
                 </button>
               </div>
@@ -231,7 +228,7 @@ export default function Login() {
                 </div>
                 <div>
                   <div style={{ fontWeight:700, fontSize:16 }}>{channel === 'email' ? 'Vérification par E-mail' : 'Vérification WhatsApp'}</div>
-                  <div style={{ fontSize:12, color:'var(--color-text-3)' }}>Entrez votre {channel === 'email' ? 'adresse e-mail' : 'numéro de téléphone'} enregistré</div>
+                  <div style={{ fontSize:12, color:'var(--color-text-3)' }}>{t('login.enter_registered').replace('{channel}', channel === 'email' ? 'e-mail' : 'WhatsApp')}</div>
                 </div>
               </div>
 
@@ -239,7 +236,7 @@ export default function Login() {
 
               <form onSubmit={handleRequestOtp} style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 <div className="form-group">
-                  <label className="form-label">{channel === 'email' ? 'Adresse E-mail' : 'Numéro WhatsApp'}</label>
+                  <label className="form-label">{channel === 'email' ? t('login.by_email') : t('login.via_whatsapp')}</label>
                   <input
                     className="form-input"
                     type={channel === 'email' ? 'email' : 'tel'}
@@ -250,7 +247,7 @@ export default function Login() {
                   />
                 </div>
                 <button className="btn btn-primary" type="submit" disabled={loading2} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>
-                  {loading2 ? 'Envoi en cours...' : `Recevoir le code ${channel === 'email' ? 'par Email' : 'via WhatsApp'}`}
+                  {loading2 ? t('login.sending') : t('login.receive_code').replace('{channel}', channel === 'email' ? 'Email' : 'WhatsApp')}
                 </button>
               </form>
             </>
@@ -262,7 +259,7 @@ export default function Login() {
               <button onClick={() => setView('enter_id')} style={{ background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13, marginBottom:20, padding:0 }}>
                 <ArrowLeft size={14} /> Retour
               </button>
-              <h1 style={{ fontSize:20, marginBottom:8 }}>Entrez votre code</h1>
+              <h1 style={{ fontSize:20, marginBottom:8 }}>{t('login.enter_code')}</h1>
               {msg && <div className="alert-banner success" style={{ marginBottom:16 }}><div className="alert-banner-msg">{msg}</div></div>}
               {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
 
@@ -291,7 +288,7 @@ export default function Login() {
 
               <form onSubmit={handleResetPassword} style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 <div className="form-group">
-                  <label className="form-label">Code OTP reçu {channel === 'email' ? 'par email' : 'sur WhatsApp'}</label>
+                  <label className="form-label">{t('login.otp_received').replace('{channel}', channel === 'email' ? 'email' : 'WhatsApp')}</label>
                   <input
                     className="form-input"
                     placeholder="123456"
@@ -302,7 +299,7 @@ export default function Login() {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Nouveau mot de passe</label>
+                  <label className="form-label">{t('login.new_password')}</label>
                   <div style={{ position: 'relative' }}>
                     <input
                       className="form-input"
@@ -319,7 +316,7 @@ export default function Login() {
                   </div>
                 </div>
                 <button className="btn btn-primary" type="submit" disabled={loading2} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>
-                  {loading2 ? 'Vérification...' : '✅ Confirmer la réinitialisation'}
+                  {loading2 ? t('login.verifying') : `✅ ${t('login.confirm_reset')}`}
                 </button>
               </form>
             </>
@@ -329,11 +326,9 @@ export default function Login() {
           {view === 'success' && (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <CheckCircle size={60} color="#22c55e" style={{ marginBottom: 20 }} />
-              <h2 style={{ color: '#22c55e', marginBottom: 12 }}>Mot de passe réinitialisé !</h2>
-              <p style={{ color: 'var(--color-text-3)', marginBottom: 28 }}>Votre mot de passe a été mis à jour avec succès. Vous pouvez maintenant vous connecter.</p>
-              <button className="btn btn-primary" onClick={resetFlow} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>
-                Retour à la connexion
-              </button>
+              <h2 style={{ color: '#22c55e', marginBottom: 12 }}>{t('login.password_reset')}</h2>
+              <p style={{ color: 'var(--color-text-3)', marginBottom: 28 }}>{t('login.password_updated')}</p>
+              <button className="btn btn-primary" onClick={resetFlow} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>{t('login.back_to_login')}</button>
             </div>
           )}
 

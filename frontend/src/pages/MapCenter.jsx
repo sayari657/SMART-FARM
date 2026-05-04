@@ -11,12 +11,12 @@ const OVERPASS_MIRRORS = [
     'https://overpass.kumi.systems/api/interpreter'
 ];
 
-const CATEGORIES = [
-    { id: 'all',    label: 'Tout',        emoji: null  },
-    { id: 'hive',   label: 'Ruches',      emoji: '🐝'  },
-    { id: 'vet',    label: 'Vétérinaires',emoji: '🩺'  },
-    { id: 'farm',   label: 'Fermes',      emoji: '🚜'  },
-    { id: 'market', label: 'Marchés',     emoji: '🍯'  },
+const CATEGORIES = (t) => [
+    { id: 'all',    label: t('map_center.all'),        emoji: null  },
+    { id: 'hive',   label: t('map_center.hives'),      emoji: '🐝'  },
+    { id: 'vet',    label: t('map_center.vets'),       emoji: '🩺'  },
+    { id: 'farm',   label: t('map_center.farms'),      emoji: '🚜'  },
+    { id: 'market', label: t('map_center.markets'),    emoji: '🍯'  },
 ];
 
 const TYPE_COLOR = {
@@ -27,7 +27,7 @@ const TYPE_COLOR = {
 };
 
 const MapCenter = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [farms, setFarms] = useState([]);
     const [vets, setVets] = useState([]);
@@ -275,8 +275,8 @@ const MapCenter = () => {
         : null;
 
     return (
-        <div className="page-container">
-            <Navbar title="Agricultural Map Center" />
+        <div className="page-container" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
+            <Navbar title={t('sidebar.map_center')} />
 
             {/* ── Toolbar ─────────────────────────────────────────── */}
             <div style={{
@@ -288,7 +288,7 @@ const MapCenter = () => {
                     <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-3)', pointerEvents: 'none' }} />
                     <input
                         type="text"
-                        placeholder="Rechercher villes, fermes..."
+                        placeholder={t('map_center.search_placeholder')}
                         className="form-control"
                         style={{ paddingLeft: 36, paddingRight: isSearching ? 36 : 12, height: 36, fontSize: 13, borderRadius: 'var(--r)' }}
                         value={globalSearch}
@@ -331,7 +331,7 @@ const MapCenter = () => {
 
                 {/* Category filter pills with counts */}
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap', overflowX: 'auto' }}>
-                    {CATEGORIES.map(cat => {
+                    {CATEGORIES(t).map(cat => {
                         const count = cat.id === 'all' ? filteredData.length : countFor(cat.id);
                         const active = categoryFilter === cat.id;
                         return (
@@ -381,7 +381,7 @@ const MapCenter = () => {
                 {isFetchingInfo && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-3)' }}>
                         <div className="loader" style={{ width: 12, height: 12 }} />
-                        Détection...
+                        {t('map_center.detecting')}
                     </div>
                 )}
 
@@ -393,7 +393,7 @@ const MapCenter = () => {
                     title="Ma localisation"
                 >
                     <Navigation size={13} />
-                    <span style={{ fontSize: 12 }}>Localiser</span>
+                    <span style={{ fontSize: 12 }}>{t('map_center.locate')}</span>
                 </button>
             </div>
 
@@ -405,7 +405,7 @@ const MapCenter = () => {
                     {loading ? (
                         <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface)', gap: 12 }}>
                             <div className="loader" />
-                            <span style={{ fontSize: 13, color: 'var(--color-text-2)' }}>Chargement de la carte…</span>
+                            <span style={{ fontSize: 13, color: 'var(--color-text-2)' }}>{t('map_center.loading_map')}</span>
                         </div>
                     ) : (
                         <SovereignMap
@@ -437,16 +437,16 @@ const MapCenter = () => {
                     <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                         <div>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>
-                                {CATEGORIES.find(c => c.id === categoryFilter)?.label ?? 'Résultats'}
+                                {CATEGORIES(t).find(c => c.id === categoryFilter)?.label ?? t('map_center.results')}
                             </div>
                             <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginTop: 2 }}>
-                                {filteredData.length} résultat{filteredData.length !== 1 ? 's' : ''} · rayon 100 km
+                                {filteredData.length} {filteredData.length !== 1 ? t('map_center.results').toLowerCase() : t('map_center.results').slice(0,-1).toLowerCase()} · {t('map_center.radius_100km')}
                             </div>
                         </div>
                         {(isDiscovering || isFetchingOSMVets) && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-primary)' }}>
                                 <div className="loader" style={{ width: 12, height: 12 }} />
-                                Exploration…
+                                {t('map_center.exploration')}
                             </div>
                         )}
                     </div>
@@ -456,12 +456,12 @@ const MapCenter = () => {
                         {filteredData.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-3)' }}>
                                 <MapPin size={28} style={{ opacity: .3, margin: '0 auto 10px' }} />
-                                <div style={{ fontSize: 13 }}>Aucun résultat dans ce rayon</div>
+                                <div style={{ fontSize: 13 }}>{t('map_center.no_results')}</div>
                             </div>
                         ) : filteredData.map((item, idx) => {
                             const isActive = selectedEntity?.id === item.id && selectedEntity?.type === item.type;
                             const color = TYPE_COLOR[item.type] || 'var(--color-text-3)';
-                            const label = item.type === 'hive' ? 'Ruche' : item.type === 'vet' ? 'Vétérinaire' : item.type === 'market' ? 'Marché' : 'Ferme';
+                            const label = item.type === 'hive' ? t('map_center.hives') : item.type === 'vet' ? t('map_center.vet_clinic') : item.type === 'market' ? t('map_center.markets') : t('map_center.farm');
                             return (
                                 <div
                                     key={idx}
@@ -496,7 +496,7 @@ const MapCenter = () => {
                             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
                                 <div>
                                     <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-primary)', letterSpacing: .5 }}>
-                                        {selectedEntity.type === 'hive' ? 'Ruche sélectionnée' : selectedEntity.type === 'vet' ? 'Clinique vétérinaire' : 'Ferme'}
+                                        {selectedEntity.type === 'hive' ? t('map_center.selected_hive') : selectedEntity.type === 'vet' ? t('map_center.vet_clinic') : t('map_center.farm')}
                                     </div>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginTop: 2 }}>
                                         {selectedEntity.nom || selectedEntity.properties?.name || selectedEntity.name}
@@ -534,7 +534,7 @@ const MapCenter = () => {
                                     {selectedEntity.properties?.website && (
                                         <a href={selectedEntity.properties.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-primary)', textDecoration: 'none' }}>
                                             <Globe size={12} style={{ flexShrink: 0 }} />
-                                            Site web
+                                            {t('map_center.website')}
                                         </a>
                                     )}
                                     {selectedEntity.properties?.phone && (
@@ -554,9 +554,9 @@ const MapCenter = () => {
                             {selectedEntity.type === 'hive' && selectedEntity.metrics && (
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                                     {[
-                                        { label: 'Poids', value: `${selectedEntity.metrics.weight ?? '—'} kg` },
-                                        { label: 'Temp', value: `${selectedEntity.metrics.temperature ?? '—'}°C` },
-                                        { label: 'Humidité', value: `${selectedEntity.metrics.humidity ?? '—'}%` },
+                                        { label: t('map_center.weight'), value: `${selectedEntity.metrics.weight ?? '—'} kg` },
+                                        { label: t('map_center.temp'), value: `${selectedEntity.metrics.temperature ?? '—'}°C` },
+                                        { label: t('map_center.humidity'), value: `${selectedEntity.metrics.humidity ?? '—'}%` },
                                     ].map(m => (
                                         <div key={m.label} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--r-sm)', padding: '8px', textAlign: 'center' }}>
                                             <div style={{ fontSize: 10, color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 600 }}>{m.label}</div>

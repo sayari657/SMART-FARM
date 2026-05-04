@@ -59,6 +59,7 @@ const saveReps = (g, rs) => localStorage.setItem(`pb_${g}_reps`, JSON.stringify(
    SCANNER PANEL
 ══════════════════════════════════════════════════════════ */
 function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon, onAnalyze }) {
+  const { t } = useTranslation();
   const [img,       setImg]       = useState(null);
   const [dets,      setDets]      = useState([]);
   const [busy,      setBusy]      = useState(false);
@@ -236,7 +237,7 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
                     <Zap size={14} color={accent}/>
                   </div>
                 </div>
-                <span style={{color:accent,fontWeight:800,fontSize:10,letterSpacing:2}}>ANALYSE EN COURS</span>
+                <span style={{color:accent,fontWeight:800,fontSize:10,letterSpacing:2}}>{t('trees.analyzing')}</span>
                 <span style={{color:'#64748b',fontSize:8,marginTop:3,letterSpacing:1}}>YOLO · {category.toUpperCase()}</span>
               </div>
             )}
@@ -247,7 +248,7 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
                   <span style={{width:6,height:6,borderRadius:'50%',background:accent,boxShadow:`0 0 6px ${accent}`,flexShrink:0}}/>
                   <span style={{color:accent,fontWeight:800,fontSize:11}}>{dets.length} DÉTECTION(S)</span>
                   <span style={{fontSize:9,color:'#94a3b8'}}>conf. {avgConf}%</span>
-                  {saved&&<span style={{marginLeft:'auto',fontSize:8,background:'#16a34a22',color:'#16a34a',border:'1px solid #16a34a44',padding:'1px 7px',borderRadius:99,fontWeight:800}}>✓ SAUVEGARDÉ</span>}
+                  {saved&&<span style={{marginLeft:'auto',fontSize:8,background:'#16a34a22',color:'#16a34a',border:'1px solid #16a34a44',padding:'1px 7px',borderRadius:99,fontWeight:800}}>✓ {t('trees.saved')}</span>}
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap'}}>
                   {Object.entries(counts).slice(0,4).map(([lbl,cnt])=>(
@@ -258,9 +259,9 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
                   ))}
                   <div style={{marginLeft:'auto',display:'flex',gap:5}}>
                     <button onClick={()=>onAnalyze?.(dets,category,img)} style={{background:`linear-gradient(135deg,${accent},${accent}bb)`,border:'none',color:'#fff',borderRadius:7,padding:'4px 12px',cursor:'pointer',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',gap:4,boxShadow:`0 3px 10px ${accent}44`}}>
-                      <Bot size={10}/> Analyser
+                      <Bot size={10}/> {t('trees.analyze')}
                     </button>
-                    <button onClick={reset} style={{background:'rgba(255,255,255,0.09)',border:'1px solid rgba(255,255,255,0.14)',color:'#94a3b8',borderRadius:7,padding:'4px 8px',cursor:'pointer',fontSize:9}}>Reset</button>
+                    <button onClick={reset} style={{background:'rgba(255,255,255,0.09)',border:'1px solid rgba(255,255,255,0.14)',color:'#94a3b8',borderRadius:7,padding:'4px 8px',cursor:'pointer',fontSize:9}}>{t('trees.reset')}</button>
                   </div>
                 </div>
               </div>
@@ -271,8 +272,8 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
                 <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(22,163,74,0.15)',border:'1.5px solid rgba(22,163,74,0.4)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10}}>
                   <CheckCircle2 size={20} color="#16a34a"/>
                 </div>
-                <span style={{color:'#e2e8f0',fontWeight:700,fontSize:12}}>Aucune anomalie</span>
-                <button onClick={reset} style={{marginTop:14,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.15)',color:'#e2e8f0',borderRadius:8,padding:'5px 16px',cursor:'pointer',fontSize:10}}>Nouvelle analyse</button>
+                <span style={{color:'#e2e8f0',fontWeight:700,fontSize:12}}>{t('trees.no_anomaly')}</span>
+                <button onClick={reset} style={{marginTop:14,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.15)',color:'#e2e8f0',borderRadius:8,padding:'5px 16px',cursor:'pointer',fontSize:10}}>{t('trees.new_analysis')}</button>
               </div>
             )}
 
@@ -289,10 +290,10 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
             <div style={{width:56,height:56,borderRadius:'50%',background:`${accent}18`,border:`2px dashed ${accent}55`,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',animation:'breathe 3s ease-in-out infinite'}}>
               <Upload size={22} color={accent} style={{opacity:0.7}}/>
             </div>
-            <p style={{fontSize:12,color:'#e2e8f0',marginBottom:3,fontWeight:600}}>Importer une image</p>
+            <p style={{fontSize:12,color:'#e2e8f0',marginBottom:3,fontWeight:600}}>{t('trees.import_image')}</p>
             <p style={{fontSize:9,color:'#64748b',marginBottom:14}}>PNG · JPG · WEBP</p>
             <label style={{cursor:'pointer',background:`linear-gradient(135deg,${accent},${accent}cc)`,color:'white',border:'none',borderRadius:10,padding:'8px 22px',fontWeight:700,fontSize:11,display:'inline-flex',alignItems:'center',gap:7,boxShadow:`0 5px 16px ${accent}44`}}>
-              <Upload size={12}/> Parcourir
+              <Upload size={12}/> {t('trees.browse')}
               <input type="file" hidden accept="image/*" onChange={handleFile}/>
             </label>
           </div>
@@ -319,6 +320,7 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
    REPORT CARD
 ══════════════════════════════════════════════════════════ */
 function ReportCard({ report, onDelete, accent, accentLt }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   return (
     <div style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:14,padding:'14px 16px',boxShadow:T.shadow,borderTop:`3px solid ${accent}`}}>
@@ -327,7 +329,7 @@ function ReportCard({ report, onDelete, accent, accentLt }) {
           <FileText size={14} color={accent}/>
         </div>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:10,fontWeight:800,color:accent,textTransform:'uppercase',letterSpacing:0.7}}>Rapport IA · {report.detCount} images</div>
+          <div style={{fontSize:10,fontWeight:800,color:accent,textTransform:'uppercase',letterSpacing:0.7}}>{t('trees.ai_report')} · {report.detCount} images</div>
           <div style={{fontSize:9,color:T.textMut,marginTop:1}}>{new Date(report.timestamp).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
         </div>
         <button onClick={()=>onDelete(report.id)} style={{background:'none',border:'none',cursor:'pointer',color:T.red,opacity:0.4,padding:4,lineHeight:0}}
@@ -341,7 +343,7 @@ function ReportCard({ report, onDelete, accent, accentLt }) {
       </div>
       {report.text?.length>200 && (
         <button onClick={()=>setExpanded(e=>!e)} style={{background:accentLt,border:`1px solid ${accent}33`,color:accent,borderRadius:7,padding:'4px 12px',cursor:'pointer',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',gap:4,marginTop:8}}>
-          {expanded?<><ChevronUp size={11}/>Réduire</>:<><ChevronDown size={11}/>Lire tout</>}
+          {expanded?<><ChevronUp size={11}/>{t('trees.collapse')}</>:<><ChevronDown size={11}/>{t('trees.read_all')}</>}
         </button>
       )}
     </div>
@@ -352,6 +354,7 @@ function ReportCard({ report, onDelete, accent, accentLt }) {
    GROUP SECTION (scanners + isolated reports)
 ══════════════════════════════════════════════════════════ */
 function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners, reports, reportLoading, detCount, onDeleteReport }) {
+  const { t } = useTranslation();
   const progress = detCount % REPORT_EVERY;
   const nextIn   = REPORT_EVERY - (progress || REPORT_EVERY);
 
@@ -378,7 +381,7 @@ function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners,
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             {reportLoading&&<Loader2 size={12} color={accent} style={{animation:'spin 1s linear infinite'}}/>}
             <span style={{fontSize:10,color:T.textSec,fontWeight:600}}>
-              {reportLoading ? 'Génération…' : `${progress}/${REPORT_EVERY} · ${nextIn>0?`${nextIn} avant rapport`:'Rapport déclenché!'}`}
+              {reportLoading ? t('trees.generating') : `${progress}/${REPORT_EVERY} · ${nextIn>0?`${nextIn} ${t('trees.before_report')}`:t('trees.report_triggered')}`}
             </span>
             <span style={{fontSize:11,fontWeight:900,color:accent,background:accentLt,border:`1px solid ${accent}33`,padding:'2px 11px',borderRadius:99}}>
               {detCount} scans
@@ -406,8 +409,8 @@ function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners,
             <BarChart2 size={15} color={accent}/>
           </div>
           <div>
-            <div style={{fontSize:13,fontWeight:800,color:T.textPri}}>Rapports IA — {title}</div>
-            <div style={{fontSize:9,color:T.textMut}}>Généré automatiquement · 1 rapport / {REPORT_EVERY} images</div>
+            <div style={{fontSize:13,fontWeight:800,color:T.textPri}}>{t('trees.reports')} — {title}</div>
+            <div style={{fontSize:9,color:T.textMut}}>{t('trees.generated_auto')} · 1 rapport / {REPORT_EVERY} images</div>
           </div>
           <div style={{marginLeft:'auto',fontSize:10,color:accent,background:T.surface,padding:'3px 11px',borderRadius:99,border:`1px solid ${accent}33`,fontWeight:700}}>
             {reports.length} rapport(s)
@@ -418,7 +421,7 @@ function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners,
           <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',background:T.surface,borderRadius:11,marginBottom:12,border:`1.5px solid ${accent}33`}}>
             <Loader2 size={14} color={accent} style={{animation:'spin 1s linear infinite',flexShrink:0}}/>
             <div>
-              <div style={{fontSize:12,color:accent,fontWeight:700}}>Génération du rapport IA…</div>
+              <div style={{fontSize:12,color:accent,fontWeight:700}}>{t('trees.generating')}</div>
               <div style={{fontSize:9,color:T.textMut,marginTop:1}}>Labess-7B · Groq · Darija</div>
             </div>
           </div>
@@ -429,8 +432,8 @@ function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners,
             <div style={{width:44,height:44,borderRadius:12,background:accentLt,border:`1.5px dashed ${accent}66`,display:'flex',alignItems:'center',justifyContent:'center'}}>
               <FileText size={18} color={`${accent}88`}/>
             </div>
-            <div style={{fontSize:12,color:T.textSec,fontWeight:600}}>Aucun rapport</div>
-            <div style={{fontSize:10,color:T.textMut}}>Analysez {REPORT_EVERY} images pour générer un rapport automatique</div>
+            <div style={{fontSize:12,color:T.textSec,fontWeight:600}}>{t('trees.no_report')}</div>
+            <div style={{fontSize:10,color:T.textMut}}>{t('trees.analyze_x_images').replace('x', REPORT_EVERY)}</div>
           </div>
         ) : (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
@@ -575,11 +578,11 @@ export default function ArbresPlantations() {
   const live        = sess.scans > 0;
 
   const kpis = [
-    { label:'Détections Totales',   value:totalDets.toLocaleString(), delta:live?`+${sess.detections} session`:null,                            icon:Activity,     accent:T.green, lt:T.greenLt },
-    { label:'Alertes Maladies 7j',  value:String(totalAlerts),        delta:sess.diseases>0?`+${sess.diseases} actives`:null,                  icon:AlertCircle,  accent:T.red,   lt:T.redLt   },
-    { label:'Agronomie — Scans',    value:String(agronCnt),           delta:agronCnt>0?`${agronRem} avant rapport`:'Démarrer',                 icon:Leaf,         accent:T.green, lt:T.greenLt },
-    { label:'Phyto-Vision — Scans', value:String(phytoCnt),           delta:phytoCnt>0?`${phytoRem} avant rapport`:'Démarrer',                icon:Bug,          accent:T.amber, lt:T.amberLt },
-    { label:'Confiance IA moy.',    value:`${avgConf}%`,              delta:live?`${sess.scans} scan(s)`:null,                                  icon:Target,       accent:T.blue,  lt:T.blueLt  },
+    { label:t('trees.total_detections'),   value:totalDets.toLocaleString(), delta:live?`+${sess.detections} ${t('trees.session')}`:null,                            icon:Activity,     accent:T.green, lt:T.greenLt },
+    { label:t('trees.disease_alerts_7d'),  value:String(totalAlerts),        delta:sess.diseases>0?`+${sess.diseases} ${t('trees.active')}`:null,                  icon:AlertCircle,  accent:T.red,   lt:T.redLt   },
+    { label:t('trees.agronomy_scans'),    value:String(agronCnt),           delta:agronCnt>0?`${agronRem} ${t('trees.before_report')}`:t('trees.start'),                 icon:Leaf,         accent:T.green, lt:T.greenLt },
+    { label:t('trees.phyto_vision_scans'), value:String(phytoCnt),           delta:phytoCnt>0?`${phytoRem} ${t('trees.before_report')}`:t('trees.start'),                icon:Bug,          accent:T.amber, lt:T.amberLt },
+    { label:t('trees.avg_ai_confidence'),    value:`${avgConf}%`,              delta:live?`${sess.scans} scan(s)`:null,                                  icon:Target,       accent:T.blue,  lt:T.blueLt  },
   ];
 
   return (
@@ -617,8 +620,8 @@ export default function ArbresPlantations() {
               </div>
               <div>
                 <div style={{fontSize:10,color:T.textMut,textTransform:'uppercase',letterSpacing:2,fontWeight:700,marginBottom:3}}>Smart Farm · Phyto Intelligence</div>
-                <h1 style={{margin:0,fontSize:24,fontWeight:900,color:T.textPri,letterSpacing:-0.5}}>Agronomie & Phyto-Vision</h1>
-                <p style={{margin:'3px 0 0',fontSize:11,color:T.textMut}}>Diagnostic IA des cultures · Labess-7B · RAG · YOLO v8 — 5 modèles</p>
+                <h1 style={{margin:0,fontSize:24,fontWeight:900,color:T.textPri,letterSpacing:-0.5}}>{t('trees.agronomy_phyto_vision')}</h1>
+                <p style={{margin:'3px 0 0',fontSize:11,color:T.textMut}}>{t('trees.diagnostic_subtitle_full')}</p>
               </div>
             </div>
             <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
@@ -628,7 +631,7 @@ export default function ArbresPlantations() {
                 </div>
               ))}
               <button onClick={()=>{fetchStats();fetchHistory();}} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 16px',background:`linear-gradient(135deg,${T.green},#15803d)`,border:'none',borderRadius:99,fontSize:10,color:'#fff',fontWeight:700,cursor:'pointer',boxShadow:`0 4px 12px ${T.green}44`}}>
-                <RefreshCw size={11}/> Actualiser
+                <RefreshCw size={11}/> {t('trees.refresh')}
               </button>
             </div>
           </div>
@@ -666,22 +669,22 @@ export default function ArbresPlantations() {
 
           {/* ── AGRONOMIE (3 scanners) ────────────────────── */}
           <GroupSection
-            title="Agronomie"
-            subtitle="Maladies Feuilles · Citronnier · Oranger — 3 modèles YOLO"
+            title={t('trees.agronomy')}
+            subtitle={t('trees.agronomy_desc')}
             accent={T.green} accentLt={T.greenLt} icon={Leaf}
             detCount={agronCnt} reports={agronReps} reportLoading={repLoading.agronomie}
             onDeleteReport={id=>deleteReport('agronomie',id)}
             scanners={[
               <ScannerPanel key="leaves"
-                title="Maladies des Feuilles"   subtitle="Beans · Strawberry · Tomato"
+                title={t('trees.leaf_diseases')}   subtitle="Beans · Strawberry · Tomato"
                 category="leaves" accent={T.green} accentLt={T.greenLt} icon={Leaf}
                 onAnalyze={onAnalyze}/>,
               <ScannerPanel key="lemon"
-                title="Maladies Citronnier"      subtitle="Lemon leaf pathologies"
+                title={t('trees.lemon_diseases')}      subtitle="Lemon leaf pathologies"
                 category="lemon"  accent={T.yellow} accentLt={T.yellowLt} icon={Citrus}
                 onAnalyze={onAnalyze}/>,
               <ScannerPanel key="orange"
-                title="Maladies Oranger"         subtitle="Orange leaf pathologies"
+                title={t('trees.orange_diseases')}         subtitle="Orange leaf pathologies"
                 category="orange" accent={T.orange} accentLt={T.orangeLt} icon={Citrus}
                 onAnalyze={onAnalyze}/>,
             ]}
@@ -689,18 +692,18 @@ export default function ArbresPlantations() {
 
           {/* ── PHYTO-VISION (2 scanners) ─────────────────── */}
           <GroupSection
-            title="Phyto-Vision"
-            subtitle="Olivier · Insectes & Ravageurs — 2 modèles YOLO"
+            title={t('trees.phyto_vision')}
+            subtitle={t('trees.phyto_vision_desc')}
             accent={T.amber} accentLt={T.amberLt} icon={Flower2}
             detCount={phytoCnt} reports={phytoReps} reportLoading={repLoading.phyto}
             onDeleteReport={id=>deleteReport('phyto',id)}
             scanners={[
               <ScannerPanel key="olive"
-                title="Maladies de l'Olivier"    subtitle="Peacock spot · Anthracnose · Psyllid"
+                title={t('trees.olive_diseases')}    subtitle="Peacock spot · Anthracnose · Psyllid"
                 category="olive"   accent={T.amber} accentLt={T.amberLt} icon={Flower2}
                 onAnalyze={onAnalyze}/>,
               <ScannerPanel key="insects"
-                title="Insectes & Ravageurs"     subtitle="Army worm · Legume beetle · Rice pest"
+                title={t('trees.insects_pests')}     subtitle="Army worm · Legume beetle · Rice pest"
                 category="insects" accent={T.red}   accentLt={T.redLt}   icon={Bug}
                 onAnalyze={onAnalyze}/>,
             ]}
@@ -714,16 +717,16 @@ export default function ArbresPlantations() {
                   <Activity size={15} color={T.blue}/>
                 </div>
                 <div>
-                  <div style={{fontSize:14,fontWeight:800,color:T.textPri}}>Journal des Détections</div>
-                  <div style={{fontSize:9,color:T.textMut}}>Flux phyto-sanitaire temps réel</div>
+                  <div style={{fontSize:14,fontWeight:800,color:T.textPri}}>{t('trees.detection_log')}</div>
+                  <div style={{fontSize:9,color:T.textMut}}>{t('trees.detection_log_desc')}</div>
                 </div>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:8}}>
                 <div style={{display:'flex',alignItems:'center',gap:5,fontSize:9,color:T.green,fontWeight:800,background:T.greenLt,padding:'3px 11px',borderRadius:99,border:`1px solid ${T.green}33`}}>
-                  <span style={{width:5,height:5,borderRadius:'50%',background:T.green,animation:'pulse 2s infinite'}}/>LIVE
+                  <span style={{width:5,height:5,borderRadius:'50%',background:T.green,animation:'pulse 2s infinite'}}/>{t('trees.live')}
                 </div>
                 <button onClick={fetchStats} style={{display:'flex',alignItems:'center',gap:5,background:T.surface,border:`1.5px solid ${T.border}`,color:T.textSec,borderRadius:9,padding:'5px 12px',cursor:'pointer',fontSize:10,fontWeight:600,boxShadow:T.shadow}}>
-                  <RefreshCw size={11}/> Rafraîchir
+                  <RefreshCw size={11}/> {t('trees.refresh_btn')}
                 </button>
               </div>
             </div>
@@ -731,7 +734,7 @@ export default function ArbresPlantations() {
             <div className="arb-scroll" style={{padding:14,display:'flex',flexDirection:'column',gap:7,maxHeight:320,overflowY:'auto'}}>
               {recentEvents.length===0 ? (
                 <div style={{padding:'32px 0',textAlign:'center',color:T.textMut,fontSize:11,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
-                  <Eye size={28} color={T.textMut} style={{opacity:0.25}}/> Aucun évènement — lancez un scan.
+                  <Eye size={28} color={T.textMut} style={{opacity:0.25}}/> {t('trees.no_events')}
                 </div>
               ) : recentEvents.map((d,idx)=>{
                 const sev=d.severity;
@@ -747,7 +750,7 @@ export default function ArbresPlantations() {
                       <div style={{fontSize:9,color:T.textMut,marginTop:1}}>{d.confidence?(d.confidence*100).toFixed(0)+'% conf.':''} · {d.camera_id} · {d.timestamp?new Date(d.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''}</div>
                     </div>
                     <span style={{fontSize:8,padding:'2px 10px',borderRadius:99,background:sc,color:'#fff',fontWeight:800,textTransform:'uppercase',letterSpacing:0.7,flexShrink:0}}>
-                      {sev==='info'?'Sain':sev==='warning'?'Alerte':'Critique'}
+                      {sev==='info'?t('trees.healthy'):sev==='warning'?t('trees.alert'):t('trees.critical')}
                     </span>
                   </div>
                 );
@@ -762,14 +765,14 @@ export default function ArbresPlantations() {
                 <History size={17} color={T.blue}/>
               </div>
               <div>
-                <div style={{fontSize:17,fontWeight:900,color:T.textPri}}>Historique des Analyses</div>
+                <div style={{fontSize:17,fontWeight:900,color:T.textPri}}>{t('trees.analysis_history')}</div>
                 <div style={{fontSize:10,color:T.textMut}}>{history.length} analyse(s) sauvegardée(s)</div>
               </div>
             </div>
 
             {history.length===0 ? (
               <div style={{padding:'40px 0',textAlign:'center',background:T.surface,borderRadius:18,border:`2px dashed ${T.border}`,color:T.textMut,fontSize:11,display:'flex',flexDirection:'column',alignItems:'center',gap:10}}>
-                <ImageIcon size={32} color={T.textMut} style={{opacity:0.25}}/> Aucune analyse sauvegardée.
+                <ImageIcon size={32} color={T.textMut} style={{opacity:0.25}}/> {t('trees.no_analysis')}
               </div>
             ) : (
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16}}>

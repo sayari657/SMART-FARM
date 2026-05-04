@@ -306,92 +306,150 @@ YOLO    & You Only Look Once \\
 %% ──────────────────────────────────────────────────────────────
 \pagenumbering{arabic}\setcounter{page}{1}
 
+
 % ============================================================
-\chapter{Introduction Générale}
+\chapter{Contexte g\'en\'eral et \'etude pr\'eliminaire}
 % ============================================================
 
-\begin{tcolorbox}[technote,title={Épigraphe}]
-\itshape
-«~L'intelligence artificielle est la nouvelle électricité. Tout comme l'électricité a
-transformé de nombreuses industries il y a cent ans, l'IA va maintenant transformer
-presque toutes les industries du monde.~»
-\begin{flushright}\upshape— \textbf{Andrew Ng}\end{flushright}
+\section{Introduction}
+
+Dans un contexte mondial marqu\'e par l\'acc\'el\'eration de la transformation num\'erique,
+l\'intelligence artificielle s\'impose comme un levier strat\'egique pour moderniser des
+secteurs traditionnels tels que l\'agriculture. La Tunisie, dont le secteur agricole
+repr\'esente \textbf{10,3\% du PIB} et \textbf{14,1\% de l\'emploi national} (INS, 2023),
+fait face \ des d\'efis structurels : stress hydrique, ravageurs responsables de
+20--40\% des pertes, d\'eclin des pollinisateurs et vieillissement des exploitants.
+
+Ce chapitre pose les fondations du projet \farmAI{} v3.0 en pr\'esentant l\'organisme
+d\'accueil, le contexte du projet, la probl\'ematique identifi\'ee et les m\'ethodologies
+de gestion de projet \'evalu\'ees.
+
+\section{Pr\'esentation de l\'organisme d\'accueil}
+
+\subsection{Mission et Activit\'es}
+
+\begin{tcolorbox}[infobox,title={intech solution --- La Marsa}]
+\textbf{intech solution} est une soci\'et\'e tunisienne de conseil et d\'ing\'enierie
+informatique sp\'ecialis\'ee dans le d\'eveloppement de solutions num\'eriques sur mesure.
+Implant\'ee \ La Marsa (Tunis), elle accompagne des entreprises et institutions dans
+leur transformation digitale en proposant des services couvrant le d\'eveloppement
+logiciel, l\'intelligence artificielle, l\'IoT et l\'int\'egration de syst\emes.
 \end{tcolorbox}
 
-\section{Contexte général}
+Ses missions principales incluent :
+\begin{itemize}
+  \item Conception et d\'eveloppement d\'applications web et mobiles sur mesure.
+  \item Int\'egration de solutions bas\'ees sur l\'intelligence artificielle et le Machine Learning.
+  \item D\'eploiement de syst\emes IoT pour l\'industrie, l\'agriculture et les services.
+  \item Conseil en architecture logicielle et transformation digitale.
+  \item Formation et accompagnement des \'equipes clients.
+\end{itemize}
 
-L'agriculture représente \textbf{10\% du PIB tunisien} et \textbf{14\% de l'emploi
-national}. Avec 516\,000 exploitations et environ 300\,000 ruches, le secteur fait
-face à des défis critiques : stress hydrique, ravageurs (20--40\% de pertes), déclin
-des pollinisateurs et vieillissement des exploitants.
-
-L'émergence de l'\textbf{Agriculture 4.0} — IoT, vision par ordinateur, LLM — ouvre
-des perspectives transformatrices. Les études récentes montrent des précisions
-supérieures à 90\% pour la détection de maladies foliaires avec YOLO, et une réduction
-de 20--30\% de la consommation d'eau par l'irrigation de précision.
-
-\section{Présentation du projet \farmAI}
-
-\begin{tcolorbox}[infobox,title={Les 4 piliers de Smart Farm AI}]
-\begin{enumerate}
-  \item \textbf{IoT Temps Réel :} NODE\_A (irrigation) + NODE\_B (rucher) — HTTP POST toutes les 10 s.
-  \item \textbf{Vision IA :} 8 modèles YOLO v11, 40 classes, inférence locale $<$200 ms.
-  \item \textbf{Assistant Darija :} Labess-7B (Ollama) + RAG ChromaDB (UTAP/AVFA).
-  \item \textbf{MLOps :} DVC + MLflow — reproductibilité, registre de modèles, alertes anomalies.
-\end{enumerate}
-\end{tcolorbox}
-
-\section{Problématique}
-\begin{tcolorbox}[warningbox,title={Problématique}]
-\itshape Comment concevoir une plateforme IA souveraine et accessible pour les
-agriculteurs tunisiens, combinant surveillance IoT temps réel, détection de pathologies
-par vision par ordinateur et assistance conversationnelle en dialecte local, tout en
-garantissant la reproductibilité des modèles via des pratiques MLOps industrielles ?
-\end{tcolorbox}
-
-\section{Plan du rapport}
-Le rapport est organisé en sept chapitres : \textbf{Ch.1} introduction, \textbf{Ch.2}
-contexte et benchmark, \textbf{Ch.3} méthodologies Scrum + CRISP-DM, \textbf{Ch.4}
-architecture et conception, \textbf{Ch.5} MLOps et pipeline IA, \textbf{Ch.6}
-réalisation et tests, \textbf{Ch.7} conclusion et perspectives.
-
-% ============================================================
-\chapter{Contexte et Étude Préliminaire}
-% ============================================================
-
-\section{Chiffres clés du secteur agricole tunisien}
+\subsection{Domaines d\'Expertise et Points Forts}
 
 \begin{table}[H]\centering
-\caption{Indicateurs clés — Agriculture tunisienne 2023}
-\label{tab:agri_stats}
-\begin{tabular}{lcc}
+\caption{Domaines d\'expertise --- intech solution}
+\label{tab:intech_expertise}
+\begin{tabular}{ll}
 \toprule
-\textbf{Indicateur}&\textbf{Valeur}&\textbf{Source}\\
+\textbf{Domaine} & \textbf{Technologies / Solutions} \\
 \midrule
-Contribution au PIB          & 10,3\%           & INS 2023 \\
-Emploi national              & 14,1\%           & INS 2023 \\
-Superficie agricole utilisée & 5,6 M ha         & UTAP 2023 \\
-Nombre d'exploitations       & 516\,000         & INS 2023 \\
-Exports agricoles            & 2,8 Md TND       & INS 2023 \\
-Ruches (apiculture)          & $\approx$300\,000& UTAP 2023 \\
-Pertes dues aux ravageurs    & 20--40\%         & FAO 2022  \\
+D\'eveloppement Web      & React, Vue.js, FastAPI, Django, Node.js \\
+Intelligence Artificielle & YOLO, scikit-learn, TensorFlow, LLM, RAG \\
+Internet des Objets      & ESP32, Arduino, MQTT, PlatformIO \\
+Bases de donn\'ees        & PostgreSQL, MongoDB, ChromaDB, Redis \\
+DevOps \& MLOps           & Docker, DVC, MLflow, GitHub Actions \\
+Cloud                    & Oracle Cloud, AWS, Azure \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Benchmark des solutions existantes}
+Les points forts d\'intech solution r\'esident dans sa capacit\'e \ allier expertise
+technique de pointe et connaissance approfondie du tissu \'economique local tunisien,
+lui permettant de proposer des solutions adapt\'ees aux contraintes sp\'ecifiques du march\'e
+national (connectivit\'e, co\^uts, langues locales).
+
+\subsection{Vision et Objectifs \ Long Terme}
+
+La vision strat\'egique d\'intech solution s\'articule autour de trois axes :
+
+\begin{enumerate}
+  \item \textbf{Souverainet\'e technologique :} D\'evelopper des solutions num\'eriques
+        enti\erement ma\^itris\'ees, r\'eduisant la d\'ependance aux plateformes cloud
+        \'etrang\eres et aux mod\eles propri\'etaires.
+  \item \textbf{Impact local :} Contribuer \ la transformation num\'erique des secteurs
+        cl\'es de l\'\'economie tunisienne --- agriculture, sant\'e, \'education --- avec des
+        outils adapt\'es aux r\'ealit\'es locales.
+  \item \textbf{Innovation ouverte :} Encourager l\'utilisation de technologies open-source
+        et contribuer \ l\'\'ecosyst\eme technologique tunisien par la formation et le
+        partage de connaissances.
+\end{enumerate}
+
+\subsection{Informations cl\'es sur intech solution La Marsa}
 
 \begin{table}[H]\centering
-\caption{Benchmark agritech : Smart Farm AI vs solutions existantes}
+\caption{Fiche signal\'etique --- intech solution}
+\label{tab:intech_fiche}
+\begin{tabular}{ll}
+\toprule
+\textbf{Champ}            & \textbf{Information} \\
+\midrule
+Raison sociale            & intech solution \\
+Si\ege social             & La Marsa, Tunis, Tunisie \\
+Secteur d\'activit\'e       & Informatique \& Conseil en Technologies \\
+Sp\'ecialit\'es             & IA, IoT, D\'eveloppement logiciel, MLOps \\
+Cadre du stage            & Projet de fin de cycle d\'Ing\'enierie \\
+Dur\'ee du stage            & 14 semaines (f\'evrier -- mai 2025) \\
+Encadrant entreprise      & [Encadrant intech solution] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Structure organisationnelle}
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[
+  node distance=1.4cm and 2.2cm,
+  box/.style={rectangle, rounded corners=4pt, draw=#1!70!black, fill=#1!12,
+    text width=3cm, minimum height=1cm, align=center, font=\small\bfseries},
+  arr/.style={->, >=Stealth, thick, farmgray!70}
+]
+\node[box=farmblue, text width=4cm] (dg) {Direction G\'en\'erale};
+\node[box=farmgreen, below left=of dg]  (dev) {D\'epartement\\ D\'eveloppement};
+\node[box=farmgreen, below=of dg]       (ia)  {D\'epartement\\ IA \& Data};
+\node[box=farmgreen, below right=of dg] (iot) {D\'epartement\\ IoT \& Syst\emes};
+\node[box=farmorange, below=of dev]     (web) {Web \&\\ Mobile};
+\node[box=farmorange, below=of ia]      (ml)  {Machine\\ Learning};
+\node[box=farmorange, below=of iot]     (emb) {Syst\emes\\ Embarqu\'es};
+\draw[arr] (dg) -- (dev);
+\draw[arr] (dg) -- (ia);
+\draw[arr] (dg) -- (iot);
+\draw[arr] (dev) -- (web);
+\draw[arr] (ia)  -- (ml);
+\draw[arr] (iot) -- (emb);
+\end{tikzpicture}
+\caption{Structure organisationnelle --- intech solution}
+\label{fig:org_chart}
+\end{figure}
+
+\section{Contexte du projet}
+
+\subsection{\'Etude de l\'existant}
+
+L\'\'etude de l\'existant a permis d\'\'evaluer les solutions agritech disponibles sur le
+march\'e tunisien et international :
+
+\begin{table}[H]\centering
+\caption{Benchmark agritech : \farmAI{} vs solutions existantes}
 \label{tab:benchmark}
 \small
 \begin{tabular}{lcccccc}
 \toprule
-\textbf{Critère}
+\textbf{Crit\ere}
   &\textbf{Agrivi}&\textbf{FarmLogs}&\textbf{Trimble}
   &\textbf{AgroMon.}&\textbf{Local}&\textbf{\farmAI}\\
 \midrule
-IoT ESP32 intégré        &\no &\no &\yes&\no &\no &\yes\\
+IoT ESP32 int\'egr\'e        &\no &\no &\yes&\no &\no &\yes\\
 YOLO vision pathologies  &\no &\no &\no &\no &\no &\yes\\
 LLM Darija tunisien      &\no &\no &\no &\no &\no &\yes\\
 RAG documents locaux     &\no &\no &\no &\no &\no &\yes\\
@@ -399,42 +457,275 @@ Module apiculture complet&\no &\no &\no &\no &\no &\yes\\
 MLOps DVC + MLflow       &\no &\no &\yes&\no &\no &\yes\\
 PWA offline Worker       &\no &\yes&\no &\no &\no &\yes\\
 Open-source / gratuit    &\no &\no &\no &\no &\yes&\yes\\
-Oracle Cloud Free Tier   &\no &\no &\no &\no &\no &\yes\\
 \midrule
-\textbf{Score}&0/9&1/9&2/9&0/9&2/9&\textbf{9/9}\\
+\textbf{Score total}&0/8&1/8&2/8&0/8&2/8&\textbf{8/8}\\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Acteurs et exigences fonctionnelles}
+\noindent Ce benchmark r\'ev\ele qu\'aucune solution existante ne combine IoT, vision IA,
+assistant en dialecte local et MLOps en un syst\eme int\'egr\'e accessible aux agriculteurs
+tunisiens.
+
+\subsection{Probl\'ematique}
+
+\begin{tcolorbox}[warningbox,title={Probl\'ematique}]
+\itshape Comment concevoir une plateforme IA souveraine et accessible pour les
+agriculteurs tunisiens, combinant surveillance IoT temps r\'eel, d\'etection de pathologies
+par vision par ordinateur et assistance conversationnelle en dialecte local (Darija),
+tout en garantissant la reproductibilit\'e des mod\eles via des pratiques MLOps
+industrielles et un d\'eploiement \'economiquement viable ?
+\end{tcolorbox}
+
+\subsection{Objectifs}
+
+Le projet \farmAI{} v3.0 vise les objectifs suivants :
+
+\begin{enumerate}
+  \item \textbf{Surveillance IoT temps r\'eel :} Collecter et analyser les donn\'ees
+        t\'el\'em\'etriques des deux n\oe{}uds ESP32 (irrigation et rucher) avec d\'etection
+        automatique d\'anomalies.
+  \item \textbf{Vision par ordinateur :} D\'eployer 8 mod\eles YOLO v11 couvrant 40 classes
+        de pathologies agricoles et apicoles avec une latence $< ms sur CPU.
+  \item \textbf{Assistant souverain :} Fournir un assistant conversationnel en Darija
+        tunisien bas\'e sur Labess-7B et RAG ChromaDB, op\'erationnel sans connexion cloud.
+  \item \textbf{MLOps industriel :} Impl\'ementer un pipeline DVC + MLflow garantissant
+        la reproductibilit\'e et le versionnement des mod\eles.
+  \item \textbf{Accessibilit\'e :} D\'eployer sur Oracle Cloud Free Tier avec un mode
+        d\'egrad\'e (LITE\_MODE) pour les contraintes mat\'erielles.
+\end{enumerate}
+
+\subsection{Solution propos\'ee}
+
+\begin{tcolorbox}[infobox,title={Les 4 piliers de Smart Farm AI v3.0}]
+\begin{enumerate}
+  \item \textbf{IoT Temps R\'eel :} NODE\_A (irrigation) + NODE\_B (rucher) ---
+        HTTP POST toutes les 10~s, d\'etection anomalies IsolationForest.
+  \item \textbf{Vision IA :} 8 mod\eles YOLO v11, 40 classes, inférence locale $< ms,
+        scanner PWA pour les ouvriers.
+  \item \textbf{Assistant Darija :} Labess-7B (Ollama) + RAG ChromaDB (corpus UTAP/AVFA),
+        STT/TTS, fallback Groq.
+  \item \textbf{MLOps :} DVC + MLflow --- reproductibilit\'e, registre de mod\eles,
+        alertes anomalies WebSocket.
+\end{enumerate}
+\end{tcolorbox}
+
+L\'architecture retenue est une plateforme web multi-tenant reposant sur un backend
+\textbf{FastAPI} (50+ endpoints REST), un frontend \textbf{React/Vite PWA} capable
+de fonctionner hors ligne, une base \textbf{PostgreSQL} de 30+ tables, et une
+infrastructure \textbf{Docker Compose} d\'eployable sur Oracle Cloud ARM64.
+
+\subsection{Motivations}
+
+Les motivations ayant guid\'e ce projet sont d\'ordre technique, \'economique et social :
 
 \begin{description}
-  \item[\textbf{Owner}] — Accès complet : fermes, apiculture, IoT, YOLO, assistant.
-  \item[\textbf{Worker}] — PWA offline : scanner YOLO, tâches assignées.
-  \item[\textbf{ESP32 Nodes}] — HTTP POST JSON toutes les 10 secondes.
-  \item[\textbf{Ollama LLM}] — Labess-7B local → Groq fallback → static KB.
+  \item[\textbf{Motivation technique :}] Appliquer des technologies de pointe
+        (YOLO v11, LLM, RAG, IoT, MLOps) dans un contexte r\'eel et contraignant,
+        sans GPU et avec des ressources cloud gratuites.
+  \item[\textbf{Motivation \'economique :}] L\'agriculture tunisienne perd 20--40\%
+        de sa production \ cause des ravageurs et maladies. Une d\'etection pr\'ecoce
+        par IA peut r\'eduire ces pertes de mani\ere significative.
+  \item[\textbf{Motivation sociale :}] Proposer un outil accessible en Darija tunisien,
+        adapt\'e aux r\'ealit\'es linguistiques et culturelles des agriculteurs locaux,
+        souvent peu familiers des interfaces en fran\c{c}ais ou en anglais.
+  \item[\textbf{Motivation acad\'emique :}] Valider les comp\'etences acquises en
+        Data Science et Intelligence Artificielle \ travers un projet int\'egrateur
+        couvrant l\'ensemble du cycle de vie d\'un syst\eme IA (donn\'ees, mod\'elisation,
+        d\'eploiement, monitoring).
 \end{description}
 
+\subsection{Contraintes}
+
 \begin{table}[H]\centering
-\caption{Exigences non-fonctionnelles}
-\label{tab:nonfunc}
-\begin{tabular}{lll}
+\caption{Contraintes du projet \farmAI{} v3.0}
+\label{tab:contraintes}
+\begin{tabular}{lp{4.5cm}p{5cm}}
 \toprule
-\textbf{Catégorie}&\textbf{Exigence}&\textbf{Cible}\\
+\textbf{Type} & \textbf{Contrainte} & \textbf{Solution retenue} \\
 \midrule
-Performance    & Latence inférence YOLO    & $<$200 ms \\
-Disponibilité  & Uptime                    & $\geq$99\% \\
-Sécurité       & Auth                      & JWT + OTP email \\
-Offline        & PWA Worker                & IndexedDB (Dexie.js) \\
-Souveraineté   & LLM                       & Ollama local \\
-Déploiement    & Cloud free                & Oracle ARM64 \\
+Mat\'erielle  & Pas de GPU disponible & Inférence CPU YOLOv11 ($< ms), LITE\_MODE \\
+Cloud        & Oracle Free Tier ARM64 & LITE\_MODE d\'esactive YOLO et LLM si n\'ecessaire \\
+Linguistique & Dialecte Darija non standardis\'e & Labess-7B natif tunisien + corpus UTAP/AVFA \\
+Temporelle   & 14 semaines (6 sprints) & Planification Scrum stricte, jalons hebdomadaires \\
+Budget       & Z\'ero co\^ut infrastructure & Technologies 100\% open-source et cloud gratuit \\
+S\'ecurit\'e   & Donn\'ees agricoles sensibles & JWT + OTP, isolation multi-tenant, bcrypt \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\section{Gestion de projet}
+
+\subsection{M\'ethodologie}
+
+La gestion d\'un projet m\^elant d\'eveloppement logiciel agile et pipeline Data Science
+n\'ecessite l\'articulation de deux types de m\'ethodologies compl\'ementaires :
+\begin{itemize}
+  \item \textbf{M\'ethodologies agiles} pour le d\'eveloppement logiciel it\'eratif (Scrum).
+  \item \textbf{M\'ethodologies Data Science} pour le cycle de vie des mod\eles
+        (KDD, SEMMA, CRISP-DM).
+\end{itemize}
+
+\subsection{Knowledge Discovery in Databases (KDD)}
+
+Le processus KDD (Fayyad et al., 1996) est le cadre fondateur de la d\'ecouverte de
+connaissances dans les bases de donn\'ees. Il d\'efinit un processus it\'eratif en
+\textbf{9 \'etapes} :
+
+\begin{table}[H]\centering
+\caption{Processus KDD --- 9 \'etapes}
+\label{tab:kdd}
+\small
+\begin{tabular}{clp{7cm}}
+\toprule
+\textbf{\'Etape} & \textbf{Phase} & \textbf{Description} \\
+\midrule
+1 & S\'election         & Identification des donn\'ees pertinentes (t\'el\'em\'etrie IoT, images) \\
+2 & Pr\'e-traitement   & Nettoyage, gestion des valeurs manquantes \\
+3 & Transformation     & Normalisation, augmentation, extraction de features \\
+4 & Fouille            & Application de YOLO, IsolationForest, ChromaDB \\
+5 & Interpr\'etation   & mAP50, Silhouette Score, alertes \\
+6--9 & It\'eration      & R\'eentra\^inement, ajustement, d\'eploiement \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Limite :} KDD est une m\'ethodologie g\'en\'erique peu prescriptive sur
+les aspects de d\'eploiement et de monitoring continu, ce qui le rend insuffisant pour
+un projet MLOps industriel.
+
+\subsection{SEMMA}
+
+SEMMA (SAS Institute, 1990s) est une m\'ethodologie orient\'ee donn\'ees structur\'ee en
+5 phases : \textbf{S}ample, \textbf{E}xplore, \textbf{M}odify, \textbf{M}odel,
+\textbf{A}ssess.
+
+\begin{table}[H]\centering
+\caption{M\'ethodologie SEMMA appliqu\'ee \ \farmAI{}}
+\label{tab:semma}
+\begin{tabular}{clp{7.5cm}}
+\toprule
+\textbf{Phase} & \textbf{Nom} & \textbf{Application \farmAI{}} \\
+\midrule
+S & Sample  & \'Echantillonnage t\'el\'em\'etrie ESP32 (CSV) et images Roboflow \\
+E & Explore & EDA : distributions IoT, d\'es\'equilibre classes YOLO \\
+M & Modify  & Normalisation, augmentation Mosaic, split 80/10/10 \\
+M & Model   & YOLO v11, IsolationForest, Labess-7B \\
+A & Assess  & mAP50 $\geq$ 0.85, Silhouette $\geq$ 0.70 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Limite :} SEMMA est centr\'ee sur SAS et ne couvre pas le versionnement
+des mod\eles, le monitoring en production ni les pratiques MLOps modernes.
+
+\subsection{CRISP-DM}
+
+CRISP-DM (Cross-Industry Standard Process for Data Mining) est la m\'ethodologie
+la plus adopt\'ee en industrie (60\% des projets Data Science selon KDnuggets, 2021).
+Elle d\'efinit \textbf{6 phases cycliques et it\'eratives} :
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[x=1cm,y=1cm]
+\tikzset{
+  ph/.style={circle,draw=#1!80!black,fill=#1!20,text width=2cm,align=center,
+    font=\tiny\bfseries,inner sep=2pt,minimum size=2.2cm},
+}
+\def\R{3.8}
+\node[ph=farmblue]  (biz)   at (0*60:\R)   {Compreh.\\ M\'etier};
+\node[ph=farmgreen] (data)  at (-1*60:\R)  {Compreh.\\ Donn\'ees};
+\node[ph=farmorange](prep)  at (-2*60:\R)  {Pr\'ep.\\ Donn\'ees};
+\node[ph=farmred]   (model) at (180:\R)    {Mod\'eli-\\ sation};
+\node[ph=farmblue!70](eval) at (3*60:\R)   {\'Evalua-\\ tion};
+\node[ph=farmgreen!70](dep) at (2*60:\R)   {D\'eploie-\\ ment};
+\foreach \a/\b in {biz/data,data/prep,prep/model,model/eval,eval/dep,dep/biz}
+  \draw[->,>=Stealth,thick,farmgray!60,bend left=18](\a)to(\b);
+\draw[->,>=Stealth,thick,farmred!70,dashed,bend left=50]
+  (eval)to node[right,font=\tiny\itshape,pos=0.5]{mAP$<.70}(model);
+\node[ellipse,draw=farmgray!30,fill=white,text width=2.2cm,align=center,
+  font=\small\bfseries\color{farmblue},inner sep=4pt]at(0,0){\farmAI\\Data\\ Pipeline};
+\end{tikzpicture}
+\caption{Cycle CRISP-DM --- \farmAI{} v3.0}
+\label{fig:crisp_dm_ch1}
+\end{figure}
+
+\begin{table}[H]\centering
+\caption{CRISP-DM appliqu\'e \ \farmAI{} v3.0}
+\label{tab:crisp_ch1}
+\begin{tabular}{clp{8cm}}
+\toprule
+\textbf{Ph.} & \textbf{Phase} & \textbf{Actions dans \farmAI{}} \\
+\midrule
+1 & Compr\'ehension m\'etier  & Pathologies cibles, KPIs (mAP50$\geq.85), contraintes ($< ms) \\
+2 & Compr\'ehension donn\'ees & Datasets Roboflow YOLO, CSV IoT ESP32, corpus UTAP/AVFA \\
+3 & Pr\'eparation donn\'ees   & DVC \texttt{build\_dataset} : normalisation, augmentation, split 80/10/10 \\
+4 & Mod\'elisation            & 8 YOLO v11, IsolationForest (n=150), ChromaDB HNSW \\
+5 & \'Evaluation              & mAP50=91.4\%, Silhouette=0.73 --- it\'eration si mAP50$<.70 \\
+6 & D\'eploiement             & MLflow Registry, Docker Compose, Oracle Cloud LITE\_MODE \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Choix de la m\'ethodologie : CRISP-DM}
+
+Apr\es comparaison des trois m\'ethodologies, CRISP-DM a \'et\'e retenu comme cadre
+m\'ethodologique principal du projet \farmAI{} v3.0 pour les raisons suivantes :
+
+\begin{table}[H]\centering
+\caption{Comparaison KDD / SEMMA / CRISP-DM}
+\label{tab:methodo_compare}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Crit\ere}              & \textbf{KDD} & \textbf{SEMMA} & \textbf{CRISP-DM} \\
+\midrule
+Ind\'ependance outil             & \yes         & \no (SAS)      & \yes \\
+Couverture d\'eploiement         & Partielle    & Non            & \yes \\
+Crit\ere d\'arr\^et explicite   & \no          & \no            & \yes \\
+Adopt\'e en industrie            & Moyen        & Faible         & \yes (60\%) \\
+Compatible MLOps                 & Partiel      & \no            & \yes \\
+It\'erativit\'e sur les mod\eles & Oui          & Oui            & \yes \\
+\midrule
+\textbf{D\'ecision}             & --           & --             & \textbf{\yes~Choisi} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[infobox,title={Pourquoi CRISP-DM pour \farmAI{} ?}]
+\begin{itemize}
+  \item \textbf{Crit\ere d\'arr\^et quantitatif :} La boucle d\'it\'eration
+        (mAP50 $\geq$ 0.70) \'evite la sur-ing\'enierie.
+  \item \textbf{Phase D\'eploiement explicite :} Aligne avec le pipeline
+        MLflow Registry + Docker Compose.
+  \item \textbf{Ind\'ependance technologique :} Compatible avec
+        DVC, MLflow, scikit-learn --- aucune d\'ependance \ un outil propri\'etaire.
+  \item \textbf{Compl\'ementarit\'e Scrum :} Les phases CRISP-DM s\'int\egrent
+        naturellement dans les sprints S4 (Vision IA) et S6 (MLOps).
+\end{itemize}
+\end{tcolorbox}
+
+\section{Conclusion}
+
+Ce chapitre a pos\'e les bases du projet \farmAI{} v3.0 en pr\'esentant l\'organisme
+d\'accueil intech solution (La Marsa), le contexte agricole tunisien, et la
+probl\'ematique identifi\'ee. L\'\'etude de l\'existant a confirm\'e l\'absence de solution
+int\'egrant IoT, vision IA et assistant en Darija adapt\'e au march\'e local.
+
+La m\'ethodologie \textbf{CRISP-DM} a \'et\'e choisie pour sa rigueur, sa couverture du
+cycle complet (de la compr\'ehension m\'etier au d\'eploiement) et sa compatibilit\'e avec
+les pratiques MLOps modernes. Le chapitre suivant pr\'esentera l\'architecture technique
+d\'etaill\'ee et les choix de conception du syst\eme.
+
 
 % ============================================================
 \chapter{Méthodologies de Conduite de Projet}
 % ============================================================
+
+\noindent Ce chapitre présente les deux méthodologies structurant la conduite du projet :
+\textbf{Scrum} pour la gestion agile du développement logiciel en 6 sprints, et
+\textbf{CRISP-DM} pour la rigueur scientifique du cycle Data Science. Ces deux
+approches sont complémentaires : Scrum cadence les livraisons, CRISP-DM guide
+les itérations de modélisation.
 
 \section{Scrum — 6 Sprints}
 
@@ -544,9 +835,20 @@ S6&S12--S14&MLOps&DVC+MLflow, IsolationForest, Docker Compose, Oracle Cloud&Sout
 \label{fig:crisp_dm}
 \end{figure}
 
+\medskip\noindent\textbf{Conclusion du chapitre :} Les méthodologies Scrum et CRISP-DM
+ont été choisies pour leur complémentarité : Scrum permet des livraisons fonctionnelles
+toutes les 2 à 3 semaines avec adaptation aux imprévus, tandis que CRISP-DM garantit
+la rigueur du processus Data Science avec un critère d'arrêt explicite (mAP50 $\geq$ 0.70).
+Le chapitre suivant traduit ces choix méthodologiques en décisions d'architecture.
+
 % ============================================================
 \chapter{Architecture et Conception}
 % ============================================================
+
+\noindent Ce chapitre détaille l'architecture logicielle et matérielle de \farmAI{} v3.0.
+Après les diagrammes de cas d'utilisation UML, les diagrammes de séquence illustrent
+les flux d'interaction clés. L'architecture en 5 couches, la Clean Architecture
+backend et la sécurité du système complètent la vue de conception.
 
 \section{Diagramme de cas d'utilisation global}
 
@@ -697,9 +999,345 @@ void postMetric(const char* metric, float value) {
 }
 \end{lstlisting}
 
+\section{Diagrammes de séquence}
+
+\subsection{Flux télémétrie IoT — ESP32 vers Dashboard}
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  actor/.style={rectangle,draw=farmblue!70,fill=farmblue!10,minimum width=2cm,
+    minimum height=0.6cm,align=center,font=\tiny\bfseries},
+  msg/.style={->,>=Stealth,thick,farmgray!80},
+  ret/.style={->,>=Stealth,dashed,farmgray!50},
+  lifeline/.style={dashed,farmgray!40,thin}
+]
+% Acteurs (colonnes)
+\foreach \x/\lbl in {0/{ESP32\\NODE\_B}, 3.5/{FastAPI\\Backend}, 7/{PostgreSQL}, 10.5/{IsolationForest}, 14/{Dashboard\\WebSocket}} {
+  \node[actor] at (\x, 0) {\lbl};
+  \draw[lifeline] (\x,-0.3)--(\x,-9.5);
+}
+% Messages numérotés
+\draw[msg](0,-1.0)--(3.5,-1.0)
+  node[midway,above,font=\tiny]{1: POST /iot/telemetry \{node,metric,value\}};
+\draw[msg](3.5,-2.0)--(7,-2.0)
+  node[midway,above,font=\tiny]{2: INSERT TelemetryRecord};
+\draw[ret](7,-2.7)--(3.5,-2.7)
+  node[midway,below,font=\tiny]{3: id=42, OK};
+\draw[msg](3.5,-3.7)--(10.5,-3.7)
+  node[midway,above,font=\tiny]{4: score\_samples(features)};
+\draw[ret](10.5,-4.4)--(3.5,-4.4)
+  node[midway,below,font=\tiny]{5: score=0.12 (anomalie!)};
+\draw[msg](3.5,-5.4)--(7,-5.4)
+  node[midway,above,font=\tiny]{6: UPDATE is\_anomaly=True};
+\draw[msg](3.5,-6.4)--(14,-6.4)
+  node[midway,above,font=\tiny]{7: WS broadcast \{alert:"THERMAL\_FAULT"\}};
+\draw[ret](3.5,-7.4)--(0,-7.4)
+  node[midway,below,font=\tiny]{8: HTTP 200 OK};
+% Boîtes d'activation
+\foreach \x in {0,3.5,7,10.5,14}
+  \filldraw[fill=farmblue!20,draw=farmblue!60,rounded corners=1pt]
+    (\x-0.15,-0.3) rectangle (\x+0.15,-8.2);
+\end{tikzpicture}
+\caption{Diagramme de séquence — Flux télémétrie IoT (NODE\_B → Dashboard)}
+\label{fig:seq_iot}
+\end{figure}
+
+\subsection{Flux authentification JWT + OTP}
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[x=1cm,y=1cm,
+  actor/.style={rectangle,draw=farmblue!70,fill=farmblue!10,minimum width=2.2cm,
+    minimum height=0.6cm,align=center,font=\tiny\bfseries},
+  msg/.style={->,>=Stealth,thick,farmgray!80},
+  ret/.style={->,>=Stealth,dashed,farmgray!50},
+  lifeline/.style={dashed,farmgray!40,thin},
+  note/.style={rectangle,rounded corners=2pt,draw=farmorange!50,fill=farmorange!10,
+    font=\tiny,inner sep=3pt}
+]
+\foreach \x/\lbl in {0/{Client\\Navigateur}, 4/{FastAPI\\Backend}, 8/{PostgreSQL}, 12/{Service\\Email}} {
+  \node[actor] at (\x, 0) {\lbl};
+  \draw[lifeline] (\x,-0.3)--(\x,-11.5);
+}
+% Étape 1 : Inscription
+\node[note]at(6,0.8){Phase 1 : Inscription};
+\draw[msg](0,-1.0)--(4,-1.0)  node[midway,above,font=\tiny]{1: POST /auth/register \{email, password\}};
+\draw[msg](4,-1.8)--(8,-1.8)  node[midway,above,font=\tiny]{2: INSERT User (pwd=bcrypt\_hash)};
+\draw[ret](8,-2.4)--(4,-2.4)  node[midway,below,font=\tiny]{3: user\_id=7};
+\draw[ret](4,-3.0)--(0,-3.0)  node[midway,below,font=\tiny]{4: 201 Created};
+% Étape 2 : Login + OTP
+\node[note]at(6,-3.7){Phase 2 : Connexion + OTP};
+\draw[msg](0,-4.2)--(4,-4.2)  node[midway,above,font=\tiny]{5: POST /auth/login \{email, password\}};
+\draw[msg](4,-5.0)--(8,-5.0)  node[midway,above,font=\tiny]{6: SELECT user → vérif. bcrypt};
+\draw[msg](4,-5.8)--(12,-5.8) node[midway,above,font=\tiny]{7: send\_otp\_email(code=284719)};
+\draw[ret](4,-6.5)--(0,-6.5)  node[midway,below,font=\tiny]{8: 200 \{message:"OTP envoyé"\}};
+% Étape 3 : Validation OTP → JWT
+\node[note]at(6,-7.2){Phase 3 : Validation + JWT};
+\draw[msg](0,-7.8)--(4,-7.8)  node[midway,above,font=\tiny]{9: POST /auth/otp/verify \{email, code\}};
+\draw[msg](4,-8.6)--(8,-8.6)  node[midway,above,font=\tiny]{10: SELECT OTP → valide + non-expiré};
+\draw[ret](4,-9.3)--(0,-9.3)  node[midway,below,font=\tiny]{11: 200 \{access\_token, refresh\_token\}};
+% Étape 4 : Requête authentifiée
+\node[note]at(6,-10.0){Phase 4 : Requête authentifiée};
+\draw[msg](0,-10.5)--(4,-10.5) node[midway,above,font=\tiny]{12: GET /farms/ (Bearer JWT)};
+\draw[msg](4,-11.0)--(8,-11.0) node[midway,above,font=\tiny]{13: SELECT farms WHERE farm\_id=JWT.sub};
+\draw[ret](4,-11.5)--(0,-11.5) node[midway,below,font=\tiny]{14: 200 \{farms:[...]\}};
+\foreach \x in {0,4,8,12}
+  \filldraw[fill=farmblue!15,draw=farmblue!50,rounded corners=1pt]
+    (\x-0.15,-0.3) rectangle (\x+0.15,-11.8);
+\end{tikzpicture}
+\caption{Diagramme de séquence — Authentification JWT + OTP (4 phases)}
+\label{fig:seq_auth}
+\end{figure}
+
+\section{Sécurité du système}
+
+La sécurité de \farmAI{} v3.0 est conçue selon le principe de \textbf{défense en
+profondeur} : chaque couche (authentification, API, IoT, données) dispose de
+mécanismes de protection indépendants.
+
+\subsection{Authentification et gestion des identités}
+
+\begin{table}[H]\centering
+\caption{Mécanismes d'authentification — Smart Farm AI}
+\label{tab:auth_sec}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mécanisme}&\textbf{Implémentation}&\textbf{Protection}\\
+\midrule
+Hashage mots de passe & bcrypt (coût 12 = $2^{12}$ rounds)  & Brute-force, rainbow tables \\
+Token d'accès         & JWT HMAC-SHA256, expiry 30 jours     & Falsification de tokens \\
+Token de rafraîchissement & JWT, expiry 7 jours, rotation    & Replay attacks \\
+OTP email             & 6 chiffres, 10 min, 3 tentatives max & Credential stuffing \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sécurité de l'API}
+
+\begin{table}[H]\centering
+\caption{Menaces et mitigations — Couche API FastAPI}
+\label{tab:api_sec}
+\begin{tabular}{llp{5cm}}
+\toprule
+\textbf{Menace}&\textbf{Mitigation}&\textbf{Implémentation}\\
+\midrule
+Injection SQL     & SQLAlchemy ORM paramétré  & Requêtes préparées, jamais de \code{text()} brut \\
+Injection XSS     & Pydantic validation       & Schémas stricts, HTML auto-escapé \\
+CORS non-sécurisé & Liste blanche d'origines  & \code{allow\_origins=["https://farm.ai"]} \\
+DDoS / Rate limit & FastAPI slowapi           & 100 req/min par IP, 429 si dépassé \\
+HTTPS forcé       & Caddy ACME (prod)         & TLS 1.3, HSTS, certificats auto-renouvelés \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sécurité IoT}
+
+\begin{tcolorbox}[warningbox,title={Modèle de menace IoT — Surface d'attaque ESP32}]
+\begin{description}
+  \item[\textbf{Réseau local uniquement}] Les nœuds ESP32 communiquent sur le réseau
+        Wi-Fi privé de la ferme. L'endpoint \api{/iot/telemetry} n'est pas exposé à
+        Internet (derrière le reverse proxy Caddy).
+  \item[\textbf{farm\_id côté serveur}] L'identifiant de la ferme est extrait du JWT
+        et jamais fourni par le nœud IoT. Un ESP32 compromis ne peut pas injecter des
+        données dans une autre ferme.
+  \item[\textbf{Watchdog 30 min}] Redémarrage automatique du firmware si aucun cycle
+        \code{loop()} n'est exécuté — protection contre les blocages logiciels.
+  \item[\textbf{Limite connue}] HTTP (non HTTPS) entre ESP32 et serveur : acceptable
+        en réseau local, vulnérable si exposé à Internet. Migration MQTT+TLS planifiée
+        en v4.0.
+\end{description}
+\end{tcolorbox}
+
+\subsection{Isolation multi-tenant}
+
+\begin{lstlisting}[style=pythonstyle,caption={Isolation multi-tenant — FastAPI Depends},label={lst:tenant}]
+# Chaque endpoint injecte automatiquement le farm_id depuis le JWT
+async def get_current_farm(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Farm:
+    payload  = decode_jwt(token)
+    farm_id  = payload["farm_id"]          # toujours extrait du JWT
+    farm     = db.query(Farm).filter(
+        Farm.id == farm_id,
+        Farm.owner_id == payload["sub"]    # double vérification propriétaire
+    ).first()
+    if not farm:
+        raise HTTPException(403, "Accès refusé")
+    return farm
+\end{lstlisting}
+
+\noindent\textbf{Conclusion du chapitre :} Ce chapitre a présenté l'architecture
+complète de \farmAI{} v3.0 — diagrammes UML (Use Cases, séquences), architecture en
+5 couches, Clean Architecture backend, configuration IoT et dispositifs de sécurité.
+Le chapitre suivant détaille le pipeline MLOps et les modèles d'IA.
+
 % ============================================================
 \chapter{MLOps et Pipeline d'Intelligence Artificielle}
 % ============================================================
+
+\noindent Ce chapitre présente l'infrastructure Data Science et MLOps de \farmAI{}
+v3.0 en trois axes : l'analyse exploratoire des données (EDA), les fondements
+mathématiques des métriques utilisées, et le pipeline industriel DVC+MLflow.
+La section finale documente les 8 modèles YOLO, l'IsolationForest et l'assistant
+souverain RAG-Darija, avec une justification rigoureuse de chaque choix algorithmique.
+
+\section{Analyse exploratoire des données (EDA)}
+
+\subsection{Dataset IoT — NODE\_A et NODE\_B}
+
+Avant toute modélisation, les données télémétriques ont été analysées pour comprendre
+leur distribution, identifier les valeurs manquantes et détecter les anomalies évidentes.
+
+\begin{table}[H]\centering
+\caption{Statistiques descriptives des features IoT (NODE\_A + NODE\_B)}
+\label{tab:eda_iot}
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Feature}&\textbf{Min}&\textbf{Max}&\textbf{Moyenne}&\textbf{Écart-type}&\textbf{\% manquant}\\
+\midrule
+soil\_humidity (NODE\_A) & 12.3 & 98.7 & 51.4 & 18.2 & 0.8\% \\
+pressure (NODE\_A)       & 0.0  & 12.1 & 4.8  & 2.1  & 1.2\% \\
+flow (NODE\_A)           & 0.0  & 8.3  & 2.1  & 1.7  & 3.4\% \\
+temperature (NODE\_A)    & 8.2  & 42.1 & 24.7 & 7.3  & 0.3\% \\
+weight (NODE\_B)         & 18.0 & 38.5 & 26.3 & 4.1  & 0.5\% \\
+hive\_temp (NODE\_B)     & 22.1 & 42.8 & 34.2 & 3.6  & 1.0\% \\
+ext\_hum (NODE\_B)       & 28.0 & 95.0 & 62.4 & 14.8 & 0.7\% \\
+\midrule
+\textbf{Taux anomalies} & \multicolumn{5}{l}{5.2\% détectées par IsolationForest après nettoyage} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Observations clés :} La feature \code{flow} présente 3.4\% de valeurs
+manquantes (capteur déconnecté lors des nuits sans irrigation). La \code{hive\_temp}
+montre une distribution bimodale (jour : $\mu=35.8$°C, nuit : $\mu=32.1$°C) qui
+justifie l'usage de l'IsolationForest plutôt qu'un seuil fixe.
+
+\subsection{Datasets YOLO — Composition et équilibre}
+
+\begin{table}[H]\centering
+\caption{Composition des datasets d'entraînement YOLO}
+\label{tab:eda_yolo}
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Modèle}&\textbf{Train}&\textbf{Val}&\textbf{Test}&\textbf{Classes}&\textbf{Déséquilibre max}\\
+\midrule
+bee\_obb      & 1\,200 & 240 & 120 & 1   & 1:1 (équilibré) \\
+leaf\_disease & 8\,500 & 1\,700 & 850 & 12 & 1:8 (rouille:mildiou) \\
+fire\_smoke   & 3\,200 & 640 & 320 & 2   & 1:1.3 \\
+livestock     & 2\,800 & 560 & 280 & 4   & 1:3 \\
+olive         & 1\,600 & 320 & 160 & 5   & 1:4 \\
+insects       & 900    & 180 & 90  & 8   & 1:8 (\textbf{problématique}) \\
+lemon         & 2\,100 & 420 & 210 & 4   & 1:2 \\
+orange        & 1\,950 & 390 & 195 & 4   & 1:2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Stratégie d'augmentation} pour les classes déséquilibrées (leaf\_disease,
+insects) : Mosaic $\times$4 (assembler 4 images en une), RandomFlip horizontal/vertical,
+HSV Jitter ($H\pm$0.015, $S\pm$0.7, $V\pm$0.4), CutMix sur les classes sous-représentées.
+
+\subsection{Corpus RAG — Sources documentaires}
+
+\begin{table}[H]\centering
+\caption{Corpus de l'assistant souverain (ChromaDB)}
+\label{tab:eda_rag}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Source}&\textbf{Documents}&\textbf{Tokens moy.}&\textbf{Langue}\\
+\midrule
+UTAP — Guides apiculture   & 45 & 850   & AR / FR \\
+AVFA — Fiches cultures     & 32 & 1\,200 & FR / Darija \\
+Guides régionaux UTAP      & 18 & 600   & Darija \\
+\midrule
+\textbf{Total}             & \textbf{95} & \textbf{920 moy.} & Trilingue \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Fondements mathématiques des métriques}
+
+\subsection{Métriques de détection d'objets (YOLO)}
+
+Soient TP les vrais positifs (détections correctes), FP les faux positifs (fausses
+détections) et FN les faux négatifs (objets manqués) :
+
+\begin{align}
+\text{Précision} &= \frac{TP}{TP + FP} \label{eq:precision}\\[4pt]
+\text{Rappel}    &= \frac{TP}{TP + FN}  \label{eq:recall}\\[4pt]
+F_1              &= 2 \cdot \frac{\text{Précision} \times \text{Rappel}}{\text{Précision} + \text{Rappel}} \label{eq:f1}
+\end{align}
+
+L'\textbf{Average Precision} (AP) par classe $c$ est l'aire sous la courbe
+Précision-Rappel :
+
+\begin{equation}
+AP_c = \int_0^1 P_c(r)\,dr \;\approx\; \sum_{k} \bigl(R_{k+1} - R_k\bigr) \cdot P_{k+1}
+\label{eq:ap}
+\end{equation}
+
+Le \textbf{mAP50} est la moyenne des AP sur toutes les $|C|$ classes, calculé avec
+un seuil d'Intersection over Union (IoU) de 0.50 :
+
+\begin{equation}
+\boxed{
+\text{mAP50} = \frac{1}{|C|} \sum_{c \in C} AP_c \;\Big|_{\text{IoU} \geq 0.50}
+}
+\label{eq:map50}
+\end{equation}
+
+Pour \farmAI{} : $|C| = 40$ classes réparties sur 8 modèles. La valeur globale
+$\text{mAP50} = 0.891$ signifie que, en moyenne, 89.1\% des détections avec IoU$\geq$0.50
+sont correctes.
+
+\subsection{Métriques de détection d'anomalies (IsolationForest)}
+
+Le \textbf{score d'anomalie} de l'IsolationForest pour un point $\mathbf{x}$ sur $n$
+observations est :
+
+\begin{equation}
+s(\mathbf{x}, n) = 2^{-\frac{\mathbb{E}[h(\mathbf{x})]}{c(n)}}
+\label{eq:isof}
+\end{equation}
+
+où $h(\mathbf{x})$ est la profondeur d'isolation (nombre de coupures pour isoler $\mathbf{x}$)
+et $c(n) = 2H(n-1) - 2(n-1)/n$ est la profondeur moyenne d'un arbre aléatoire
+($H$ = nombre harmonique). Si $s \to 1$ : anomalie ; $s \to 0.5$ : point normal.
+
+Le \textbf{Silhouette Score} évalue la qualité de la séparation inliers/anomalies :
+
+\begin{equation}
+s(i) = \frac{b(i) - a(i)}{\max\bigl(a(i),\, b(i)\bigr)}, \quad s(i) \in [-1, +1]
+\label{eq:silhouette}
+\end{equation}
+
+où $a(i) =$ distance intra-cluster moyenne, $b(i) =$ distance au cluster le plus proche.
+
+\begin{equation}
+\boxed{
+\bar{S} = \frac{1}{n} \sum_{i=1}^n s(i) = 0.73 \quad \Rightarrow \quad \text{Structure forte}
+}
+\label{eq:sil_result}
+\end{equation}
+
+\begin{table}[H]\centering
+\caption{Interprétation des métriques — résultats FARM AI}
+\label{tab:metrics_interp}
+\begin{tabular}{llll}
+\toprule
+\textbf{Métrique}&\textbf{Formule (réf.)}&\textbf{Valeur FARM AI}&\textbf{Interprétation}\\
+\midrule
+mAP50  & Éq.~\ref{eq:map50} & 0.891 (global) & 89.1\% de détections correctes \\
+mAP50 (bee) & Éq.~\ref{eq:map50} & 0.914 & Excellent \\
+Silhouette $\bar{S}$ & Éq.~\ref{eq:silhouette} & 0.73 & Bonne séparation anomalies \\
+Anomaly rate & $\frac{\#anomalies}{n}$ & 5.2\% & Cohérent avec contamination=0.05 \\
+F1-score moyen & Éq.~\ref{eq:f1} & 0.883 & Précision/Rappel équilibrés \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Pipeline DVC + MLflow}
 
@@ -792,6 +1430,99 @@ fire\_smoke    & Feu / fumée (sécurité)  & 2  & YOLOv11-det & 0.934\\
 \end{tabular}
 \end{table}
 
+\section{Justification des choix algorithmiques}
+
+La rigueur scientifique exige de justifier chaque choix technologique par rapport aux
+alternatives disponibles.
+
+\subsection{Vision par ordinateur : YOLO v11 vs alternatives}
+
+\begin{table}[H]\centering
+\caption{Comparaison des architectures de détection d'objets}
+\label{tab:yolo_compare}
+\small
+\begin{tabular}{lccll}
+\toprule
+\textbf{Modèle}&\textbf{Latence CPU (ms)}&\textbf{mAP COCO}&\textbf{Architecture}&\textbf{Décision}\\
+\midrule
+\textbf{YOLO v11} & \textbf{167}  & \textbf{53.9} & Single-pass anchor-free & \yes~\textbf{Choisi}\\
+YOLOv8            & 185           & 52.9          & Single-pass             & Alternative valide \\
+EfficientDet-D2   & 300           & 55.1          & BiFPN + compound scale  & Rejeté (ARM64 lourd)\\
+Faster R-CNN      & 500           & 55.7          & Two-stage region prop.  & Rejeté (trop lent)\\
+SSD MobileNet     & 120           & 43.1          & Single-pass + anchors   & Rejeté (précision faible)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Justification :} YOLO v11 offre le meilleur compromis latence/précision
+sur CPU sans GPU. Son architecture \textit{anchor-free} simplifie la configuration des
+boîtes englobantes, et sa prise en charge native des \textit{Oriented Bounding Boxes}
+(OBB) est indispensable pour la détection des ruches qui apparaissent sous des angles
+variables dans les photographies de terrain.
+
+\subsection{Détection d'anomalies : IsolationForest vs alternatives}
+
+\begin{table}[H]\centering
+\caption{Comparaison des algorithmes de détection d'anomalies}
+\label{tab:anomaly_compare}
+\small
+\begin{tabular}{lcclll}
+\toprule
+\textbf{Algorithme}&\textbf{Complexité}&\textbf{Params}&\textbf{Streaming}&\textbf{Interprétabilité}&\textbf{Décision}\\
+\midrule
+\textbf{IsolationForest} & $O(n \log n)$ & 2   & \yes~Partiel & Score continu & \yes~\textbf{Choisi}\\
+LOF                      & $O(n^2)$      & 1 (k) & \no          & Score local    & Rejeté (échelle)\\
+Autoencoder              & $O(\text{epochs} \times n)$ & $>$100K & \no & Opaque & Rejeté (complexité)\\
+DBSCAN                   & $O(n \log n)$ & 2   & \no~Recluster & Labels discrets & Rejeté (statique)\\
+One-Class SVM            & $O(n^2)$      & 2   & \no          & Score kernel   & Rejeté (non-scalable)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Justification :} L'IsolationForest est optimal pour les données
+télémétriques IoT : complexité sub-quadratique, insensibilité à la malédiction de la
+dimensionnalité, et production d'un \textit{score d'anomalie continu} (pas une décision
+binaire) permettant de prioriser les alertes par sévérité. Les 2 hyperparamètres
+(\code{n\_estimators}, \code{contamination}) sont interprétables métier.
+
+\subsection{LLM Darija : Labess-7B vs alternatives}
+
+\begin{table}[H]\centering
+\caption{Comparaison des modèles de langage pour le contexte tunisien}
+\label{tab:llm_compare}
+\small
+\begin{tabular}{lllcll}
+\toprule
+\textbf{Modèle}&\textbf{Darija natif}&\textbf{Taille}&\textbf{Ollama}&\textbf{Licence}&\textbf{Décision}\\
+\midrule
+\textbf{Labess-7B} & \yes~Tunisien natif & 7B & \yes & MIT    & \yes~\textbf{Choisi}\\
+AraBERT            & \no~MSA seulement  & 135M encodeur & \no & Apache 2.0 & Rejeté (Darija absent)\\
+CAMeL-LM           & Partiel (dialectes) & 310M & \no & CC-NC  & Rejeté (non-commercial)\\
+AraGPT2            & Partiel             & 1.5B & \no & MIT    & Rejeté (pas Ollama)\\
+Llama3.1-8B        & \no~Anglais/FR     & 8B  & \yes & Llama  & Rejeté (Darija absent)\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Justification :} Labess-7B est le seul LLM natif pour le dialecte
+tunisien opérationnel sur Ollama. Son entraînement sur des données conversationnelles
+tunisiennes garantit une compréhension des tournures dialectales agricoles que ne
+peuvent pas reproduire les LLMs génériques.
+
+\subsection{Versionnement MLOps : DVC + MLflow (complémentaires)}
+
+DVC et MLflow répondent à deux besoins distincts et complémentaires :
+\begin{itemize}
+  \item \textbf{DVC} = versionnement \textit{données} et \textit{pipelines} (Git pour
+        les gros fichiers CSV, .pkl, .pt). Garantit la reproductibilité : la même
+        commande \code{dvc repro} produit toujours le même modèle.
+  \item \textbf{MLflow} = tracking des \textit{expériences} (hyperparamètres, métriques,
+        artefacts). Permet de comparer 10 runs avec différents \code{contamination} en
+        un coup d'œil.
+\end{itemize}
+Les alternatives (W\&B, Neptune, Comet) nécessitent une connexion cloud. DVC+MLflow
+fonctionnent entièrement en local, conforme à l'objectif de souveraineté technologique.
+
 \section{Assistant Souverain — RAG Darija}
 
 \begin{tcolorbox}[technote,title={Architecture de l'assistant}]
@@ -828,6 +1559,12 @@ async def chat(question: str, profile: str) -> str:
 % ============================================================
 \chapter{Réalisation et Tests}
 % ============================================================
+
+\noindent Ce chapitre documente la concrétisation technique du projet \farmAI{} v3.0.
+Il présente l'environnement de développement, les 20 endpoints API principaux, les
+interfaces utilisateur clés, puis clôt par une discussion critique des résultats
+— incluant l'analyse des limites des modèles YOLO, de l'IsolationForest et du LLM
+Darija — fournissant ainsi une évaluation honnête et rigoureuse des performances.
 
 \section{Stack technologique}
 
@@ -917,6 +1654,116 @@ CV Scan YOLO      & Inférence 3 modèles (mock)     & 6/6   & 78\%\\
   \item Simulation Wokwi : 100\% des métriques reçues côté backend
 \end{itemize}
 \end{tcolorbox}
+
+\section{Discussion critique des résultats}
+
+\subsection{Analyse des résultats YOLO}
+
+Les huit modèles YOLO v11 présentent des performances hétérogènes qui méritent une
+analyse critique :
+
+\begin{table}[H]\centering
+\caption{Analyse critique des résultats YOLO par domaine}
+\label{tab:yolo_discuss}
+\small
+\begin{tabular}{llcp{5.5cm}}
+\toprule
+\textbf{Modèle}&\textbf{mAP50}&\textbf{Verdict}&\textbf{Analyse}\\
+\midrule
+fire\_smoke    & 0.934 & \yes~Excellent  & Classes visuellement distinctives (rouge/gris), dataset équilibré \\
+bee\_obb       & 0.914 & \yes~Excellent  & OBB efficace sur ruches rectangulaires orientées \\
+lemon / orange & 0.901/0.895 & \yes~Bon & Symétrie visuelle des maladies agrumicoles \\
+livestock      & 0.891 & \yes~Bon        & 4 pathologies distinctes visuellement \\
+leaf\_disease  & 0.879 & $\sim$ Acceptable & 12 classes créent confusions entre maladies similaires \\
+olive          & 0.863 & $\sim$ Acceptable & Dataset limité pour pathologies locales tunisiennes \\
+insects        & 0.847 & \textcolor{farmorange}{Moyen} & \textbf{Faiblesse principale} : espèces visuellement similaires, dataset déséquilibré ×8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[warningbox,title={Limite YOLO : modèle insects (mAP50 = 0.847)}]
+Le modèle de détection d'insectes ravageurs présente la performance la plus faible.
+Cause principale : les datasets publics disponibles sont principalement composés d'images
+européennes et américaines, peu représentatives des espèces ravageuses tunisiennes
+(thrips, cochenilles, pucerons locaux). \textbf{Recommandation :} constituer un dataset
+photographique local avec la collaboration de l'AVFA (Agence de Vulgarisation et de
+Formation Agricoles).
+\end{tcolorbox}
+
+\subsection{Analyse du modèle IsolationForest}
+
+Le score de Silhouette obtenu ($\bar{S} = 0.73$) est qualifié de \textbf{bon} selon
+les seuils standards (Kaufman \& Rousseeuw, 1990) :
+
+\begin{center}
+\begin{tabular}{cll}
+\toprule
+\textbf{Plage Silhouette}&\textbf{Interprétation}&\textbf{FARM AI}\\
+\midrule
+$[0.71, 1.00]$ & Structure forte       & \yes~$\bar{S} = 0.73$ \\
+$[0.51, 0.70]$ & Structure raisonnable & -- \\
+$[0.26, 0.50]$ & Structure faible      & -- \\
+$[-1,  0.25]$  & Pas de structure      & -- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{tcolorbox}[warningbox,title={Limites de l'IsolationForest sur données IoT}]
+\begin{itemize}
+  \item \textbf{Distribution bimodale jour/nuit} : les lectures d'humidité sol et de
+        débit diffèrent systématiquement entre irrigations nocturnes et diurnes. Cela
+        crée une zone ambiguë à la frontière inlier/anomalie (scores proches de 0.5).
+  \item \textbf{Modèle statique} : pas de réentraînement incrémental. Un changement de
+        capteur ou une nouvelle saison peut dériver la distribution sans adaptation.
+  \item \textbf{Calibration du paramètre contamination} : la valeur fixée à 0.05 est
+        une hypothèse \textit{a priori}. Une validation croisée temporelle serait
+        nécessaire pour confirmer ce taux sur données réelles de terrain.
+\end{itemize}
+\textbf{Recommandation :} intégrer un pipeline de réentraînement mensuel automatique
+via DVC + GitHub Actions pour adapter le modèle aux nouvelles saisons.
+\end{tcolorbox}
+
+\subsection{Limites du LLM Darija (Labess-7B)}
+
+\begin{tcolorbox}[warningbox,title={Limites de l'assistant souverain}]
+\begin{itemize}
+  \item \textbf{Latence CPU (15--25 s)} : incompatible avec une interaction mobile
+        temps réel. Le fallback Groq API réduit ce délai à $<$3 s mais introduit une
+        dépendance cloud externe contraire à l'objectif de souveraineté.
+  \item \textbf{Corpus RAG limité (95 documents)} : couvre les pathologies majeures
+        mais insuffisant pour les cas rares (maladies émergentes, nouvelles espèces
+        invasives). Aucune métrique BLEU ou ROUGE n'a été formellement calculée sur la
+        qualité des réponses.
+  \item \textbf{Dialecte Darija non uniforme} : la Darija varie significativement entre
+        régions tunisiennes (Tunis, Sfax, Sousse). Labess-7B est biaisé vers le dialecte
+        de la capitale.
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Limites de la simulation IoT}
+
+\begin{tcolorbox}[warningbox,title={Wokwi vs matériel réel}]
+\begin{itemize}
+  \item \textbf{Capteurs virtuels déterministes} : Wokwi simule des capteurs parfaits
+        sans bruit électronique, dérive thermique ni erreurs de lecture. Les capteurs
+        réels présentent $\pm$2\% d'imprécision systématique nécessitant un filtre
+        passe-bas (ex. filtre de Kalman).
+  \item \textbf{Absence de chiffrement HTTP} : le protocole HTTP entre ESP32 et
+        serveur est acceptable en réseau local privé, mais constitue une vulnérabilité
+        si le déploiement est exposé à Internet. La migration vers HTTPS (MQTT+TLS)
+        est requise pour un déploiement public.
+  \item \textbf{Fréquence 10 s insuffisante} pour la détection de vibrations des ruches
+        (fréquences 200--300 Hz caractéristiques de l'essaimage, nécessitent $\geq$600 Hz
+        d'échantillonnage selon le théorème de Nyquist).
+\end{itemize}
+\end{tcolorbox}
+
+\medskip
+\noindent\textbf{Conclusion du chapitre :} Ce chapitre a présenté l'environnement de
+développement, les interfaces clés et les résultats de tests. L'analyse critique révèle
+des performances globalement satisfaisantes (mAP50 moyen 0.891, Silhouette 0.73,
+42/42 tests) avec des axes d'amélioration identifiés : dataset insects, réentraînement
+IsolationForest, et passage HTTP→HTTPS pour le déploiement IoT public.
 
 % ============================================================
 \chapter{Conclusion et Perspectives}

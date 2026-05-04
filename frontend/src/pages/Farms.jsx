@@ -51,11 +51,11 @@ export default function Farms() {
       if (res.data && res.data.length > 0) {
         setForm(p => ({ ...p, latitude: res.data[0].lat, longitude: res.data[0].lon }));
       } else {
-        alert("Location not found via Nominatim.");
+        alert(t('farms.location_not_found'));
       }
     } catch(err) {
       console.error(err);
-      alert("Geocoding failed.");
+      alert(t('farms.geocoding_failed'));
     } finally {
       setGeocoding(false);
     }
@@ -74,12 +74,12 @@ export default function Farms() {
           setGeocoding(false);
         },
         (error) => {
-          alert("Error getting location: " + error.message);
+          alert(t('farms.error_location') + error.message);
           setGeocoding(false);
         }
       );
     } else {
-      alert("Geolocation is not supported by your browser.");
+      alert(t('farms.geolocation_unsupported'));
     }
   };
 
@@ -91,11 +91,11 @@ export default function Farms() {
       if (res.data && res.data.display_name) {
         setForm(p => ({ ...p, location: res.data.display_name }));
       } else {
-        alert("Reverse Geocoding failed to find an address.");
+        alert(t('farms.reverse_geocode_failed'));
       }
     } catch(err) {
       console.error(err);
-      alert("Reverse Geocoding failed.");
+      alert(t('farms.reverse_geocode_error'));
     } finally {
       setGeocoding(false);
     }
@@ -124,33 +124,33 @@ export default function Farms() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">{t('farms.farm_name')} *</label>
-                  <input className="form-input" placeholder="Oasis Apiary" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} required />
+                  <input className="form-input" placeholder={t('farms.name_placeholder')} value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     {t('farms.location')}
                     <button type="button" onClick={geocodeAddress} disabled={geocoding} style={{ background:'none', border:'none', color:'var(--color-primary)', cursor:'pointer', fontSize: 12 }}>
-                      {geocoding ? 'Locating...' : 'Get GPS (Nominatim)'}
+                      {geocoding ? t('farms.locating') : t('farms.get_gps')}
                     </button>
                   </label>
-                  <input className="form-input" placeholder="City, Country" value={form.location} onChange={e=>setForm(p=>({...p,location:e.target.value}))} />
+                  <input className="form-input" placeholder={t('farms.city_country')} value={form.location} onChange={e=>setForm(p=>({...p,location:e.target.value}))} />
                 </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    Latitude
+                    {t('farms.latitude')}
                     <button type="button" onClick={getMyLocation} disabled={geocoding} style={{ background:'none', border:'none', color:'var(--color-primary)', cursor:'pointer', fontSize: 12 }}>
-                      {geocoding ? 'Locating...' : '🎯 My Location'}
+                      {geocoding ? t('farms.locating') : t('farms.my_location')}
                     </button>
                   </label>
                   <input className="form-input" type="number" step="any" placeholder="35.777" value={form.latitude} onChange={e=>setForm(p=>({...p,latitude:e.target.value}))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    Longitude
+                    {t('farms.longitude')}
                     <button type="button" onClick={reverseGeocode} disabled={geocoding} style={{ background:'none', border:'none', color:'var(--color-primary)', cursor:'pointer', fontSize: 12 }}>
-                      {geocoding ? 'Locating...' : 'Generate Address (Reverse)'}
+                      {geocoding ? t('farms.locating') : t('farms.generate_address')}
                     </button>
                   </label>
                   <input className="form-input" type="number" step="any" placeholder="10.826" value={form.longitude} onChange={e=>setForm(p=>({...p,longitude:e.target.value}))} />
@@ -158,24 +158,24 @@ export default function Farms() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Total Area (ha)</label>
+                  <label className="form-label">{t('farms.total_area')}</label>
                   <input className="form-input" type="number" min="0" step="0.1" placeholder="12.5" value={form.total_area_ha} onChange={e=>setForm(p=>({...p,total_area_ha:e.target.value}))} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('common.status')}</label>
                   <select className="form-select" value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))}>
                     <option value="active">{t('farms.active')}</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="inactive">{t('farms.inactive')}</option>
                     <option value="maintenance">{t('farms.maintenance')}</option>
                   </select>
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Description</label>
-                <input className="form-input" placeholder="Brief description..." value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} />
+                <label className="form-label">{t('common.description')}</label>
+                <input className="form-input" placeholder={t('common.description_placeholder')} value={form.description} onChange={e=>setForm(p=>({...p,description:e.target.value}))} />
               </div>
               <div style={{ display:'flex', gap:10 }}>
-                <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : t('common.save')}</button>
+                <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? t('common.saving') : t('common.save')}</button>
                 <button className="btn btn-secondary" type="button" onClick={() => setShowForm(false)}>{t('common.cancel')}</button>
               </div>
             </form>
@@ -206,19 +206,19 @@ export default function Farms() {
       {farmToDelete && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="card" style={{ width: 400, maxWidth: '90%', background: 'var(--color-bg)', padding: 24 }}>
-            <h3 style={{ marginTop: 0, color: 'var(--color-critical)', fontSize: 18, marginBottom: 12 }}>Are you sure?</h3>
-            <p style={{ color: 'var(--color-text)', fontSize: 14 }}>Êtes-vous sûr de vouloir supprimer la ferme <strong>{farmToDelete.name}</strong> ? Cette action est irréversible.</p>
+            <h3 style={{ marginTop: 0, color: 'var(--color-critical)', fontSize: 18, marginBottom: 12 }}>{t('common.are_you_sure')}</h3>
+            <p style={{ color: 'var(--color-text)', fontSize: 14 }}>{t('farms.delete_confirm')} <strong>{farmToDelete.name}</strong> ?</p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 24 }}>
-              <button className="btn btn-secondary" onClick={() => setFarmToDelete(null)}>Non</button>
+              <button className="btn btn-secondary" onClick={() => setFarmToDelete(null)}>{t('common.no')}</button>
               <button className="btn btn-danger" style={{ background: 'var(--color-critical)', color: 'white', border: 'none' }} onClick={() => {
                 farmsAPI.delete(farmToDelete.id).then(() => {
                   setFarmToDelete(null);
                   load();
                 }).catch(e => {
-                  alert("Erreur lors de la suppression.");
+                  alert(t('common.delete_error'));
                   setFarmToDelete(null);
                 });
-              }}>Oui, supprimer</button>
+              }}>{t('common.yes_delete')}</button>
             </div>
           </div>
         </div>

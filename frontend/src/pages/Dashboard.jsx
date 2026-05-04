@@ -173,13 +173,13 @@ export default function Dashboard() {
                 <div style={{ background: 'var(--color-info)', padding: 8, borderRadius: 8 }}>
                   <Zap size={20} color="white" />
                 </div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Sovereign AI (Tunisian Derja)</h3>
-                <span className="badge badge-info" style={{ background: 'rgba(59,130,246,.2)', color: '#93c5fd', border: '1px solid rgba(59,130,246,.3)' }}>Local MLLM Active</span>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('dashboard.sovereign_ai')}</h3>
+                <span className="badge badge-info" style={{ background: 'rgba(59,130,246,.2)', color: '#93c5fd', border: '1px solid rgba(59,130,246,.3)' }}>{t('dashboard.local_mllm_active')}</span>
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p style={{ fontSize: 18, fontWeight: 600, margin: 0, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                  {loading ? "جاري تحليل البيانات..." : "يا فلاح، البيوت متاع النحل سخنت برشة، وصلت لـ 39 درجة. حسب دليل تربية النحل في تونس، لازمك تظلل عليهم وتوفر الماء باش ما تخسرش العسل."}
+                  {loading ? t('dashboard.analyzing_data') : t('dashboard.derja_message')}
                 </p>
               </div>
               <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sidebar-text)', display: 'flex', gap: 12 }}>
@@ -219,16 +219,16 @@ export default function Dashboard() {
           {/* Sovereign Emergency Monitor */}
           <AIScanner 
             category="fire" 
-            title="Sovereign Emergency Monitor" 
+            title={t('dashboard.sovereign_emergency_monitor')} 
             color="#ef4444" 
           />
           
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div className="card-header"><div className="card-title">Safety Protocol</div></div>
+            <div className="card-header"><div className="card-title">{t('dashboard.safety_protocol')}</div></div>
             <div style={{ padding: 20 }}>
                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: '#ef4444' }}><AlertTriangle size={16} /> Fire Risk: LOW</div>
-                 <div style={{ padding: 12, borderRadius: 8, background: '#f8fafc', fontSize: 11, border: '1px solid #e2e8f0' }}>Use this scanner to verify smoke plumes or heat signatures across fields.</div>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: '#ef4444' }}><AlertTriangle size={16} /> {t('dashboard.fire_risk_low')}</div>
+                 <div style={{ padding: 12, borderRadius: 8, background: '#f8fafc', fontSize: 11, border: '1px solid #e2e8f0' }}>{t('dashboard.scanner_desc')}</div>
                </div>
             </div>
           </div>
@@ -239,15 +239,15 @@ export default function Dashboard() {
           <div className="card">
             <div className="card-header">
               <div>
-                <div className="card-title">Recent CV Detections</div>
-                <div className="card-subtitle">Latest computer vision events</div>
+                <div className="card-title">{t('dashboard.recent_cv_detections')}</div>
+                <div className="card-subtitle">{t('dashboard.latest_cv_events')}</div>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cv')}>View all</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => navigate('/cv')}>{t('dashboard.view_all')}</button>
             </div>
             {cvEvents.length > 0 ? (
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Unit</th><th>Class</th><th>Confidence</th><th>Severity</th></tr></thead>
+                  <thead><tr><th>{t('dashboard.unit')}</th><th>{t('dashboard.class')}</th><th>{t('dashboard.confidence')}</th><th>{t('dashboard.severity')}</th></tr></thead>
                   <tbody>
                     {cvEvents.map(ev => (
                       <tr key={ev.id}>
@@ -260,7 +260,7 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-            ) : <div className="empty-state" style={{ padding:'20px 0' }}><Eye size={28} /><p>No CV events yet</p></div>}
+            ) : <div className="empty-state" style={{ padding:'20px 0' }}><Eye size={28} /><p>{t('dashboard.no_cv_events')}</p></div>}
           </div>
         </div>
 
@@ -268,58 +268,58 @@ export default function Dashboard() {
         <div className="card" style={{ marginBottom: 28 }}>
           <div className="card-header">
             <div>
-              <div className="card-title">Tendance Télémesure IoT (En Temps Réel)</div>
-              <div className="card-subtitle">Données des capteurs de la Ferme Connectée (Actualisé toutes les 10s)</div>
+              <div className="card-title">{t('dashboard.iot_trend')}</div>
+              <div className="card-subtitle">{t('dashboard.iot_subtitle')}</div>
             </div>
             <span className="badge badge-success" style={{ padding: '6px 12px', fontSize: 12 }}>LIVE</span>
           </div>
           
           <div style={{ padding: 20 }}>
-            <h4 style={{ color: 'var(--color-accent)', marginBottom: 12, fontWeight: 700 }}>Nœud A — Local Pompe & Sol</h4>
+            <h4 style={{ color: 'var(--color-accent)', marginBottom: 12, fontWeight: 700 }}>{t('dashboard.node_a')}</h4>
             <div className="kpi-grid" style={{ marginBottom: 24 }}>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Humidité Sol</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.soil_humidity')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-accent)', margin: '8px 0' }}>{iotData.nodeA.soil} %</div>
-                <div style={{ fontSize: 11, color: iotData.nodeA.soil < 35 ? 'var(--color-critical)' : 'var(--color-success)' }}>{iotData.nodeA.soil < 35 ? 'Trop Sec' : 'Normal'}</div>
+                <div style={{ fontSize: 11, color: iotData.nodeA.soil < 35 ? 'var(--color-critical)' : 'var(--color-success)' }}>{iotData.nodeA.soil < 35 ? t('dashboard.too_dry') : t('dashboard.normal')}</div>
               </div>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Pression Réseau</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.network_pressure')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-accent)', margin: '8px 0' }}>{iotData.nodeA.pressure} MPa</div>
-                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>Nominal</div>
+                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{t('dashboard.nominal')}</div>
               </div>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Débit Actuel</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.current_flow')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-accent)', margin: '8px 0' }}>{iotData.nodeA.flow} L/min</div>
-                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{iotData.nodeA.flow > 0 ? 'Irrigation OK' : 'En Veille'}</div>
+                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{iotData.nodeA.flow > 0 ? t('dashboard.irrigation_ok') : t('dashboard.standby')}</div>
               </div>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Température Sol</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.soil_temp')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-accent)', margin: '8px 0' }}>{iotData.nodeA.temp} °C</div>
-                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>Idéal Racines</div>
+                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{t('dashboard.ideal_roots')}</div>
               </div>
             </div>
 
-            <h4 style={{ color: 'var(--color-warning)', marginBottom: 12, fontWeight: 700 }}>Nœud B — Rucher & Extérieur</h4>
+            <h4 style={{ color: 'var(--color-warning)', marginBottom: 12, fontWeight: 700 }}>{t('dashboard.node_b')}</h4>
             <div className="kpi-grid">
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Poids Ruche</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.hive_weight')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-warning)', margin: '8px 0' }}>{iotData.nodeB.weight} kg</div>
-                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>Stable</div>
+                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{t('dashboard.stable')}</div>
               </div>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Temp Couvain</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.brood_temp')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-warning)', margin: '8px 0' }}>{iotData.nodeB.broodTemp} °C</div>
-                <div style={{ fontSize: 11, color: (iotData.nodeB.broodTemp < 34 || iotData.nodeB.broodTemp > 36) ? 'var(--color-critical)' : 'var(--color-success)' }}>{ (iotData.nodeB.broodTemp < 34 || iotData.nodeB.broodTemp > 36) ? 'Dérégulation' : 'Optimal'}</div>
+                <div style={{ fontSize: 11, color: (iotData.nodeB.broodTemp < 34 || iotData.nodeB.broodTemp > 36) ? 'var(--color-critical)' : 'var(--color-success)' }}>{ (iotData.nodeB.broodTemp < 34 || iotData.nodeB.broodTemp > 36) ? t('dashboard.deregulation') : t('dashboard.optimal')}</div>
               </div>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Temp Extérieure</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.ext_temp')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-warning)', margin: '8px 0' }}>{iotData.nodeB.extTemp} °C</div>
-                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>Météo locale</div>
+                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{t('dashboard.local_weather')}</div>
               </div>
               <div style={{ background: 'var(--color-surface-2)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border-light)', textAlign: 'center' }}>
-                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>Humidité Ext</div>
+                <div style={{ color: 'var(--color-text-3)', fontSize: 13, fontWeight: 600 }}>{t('dashboard.ext_hum')}</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-warning)', margin: '8px 0' }}>{iotData.nodeB.extHum} %</div>
-                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>Optimal</div>
+                <div style={{ fontSize: 11, color: 'var(--color-success)' }}>{t('dashboard.optimal')}</div>
               </div>
             </div>
           </div>
@@ -343,14 +343,14 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <div>
-              <div className="card-title">Active Alerts</div>
-              <div className="card-subtitle">{alerts.filter(a => !a.is_resolved).length} requiring attention</div>
+              <div className="card-title">{t('dashboard.active_alerts_title')}</div>
+              <div className="card-subtitle">{alerts.filter(a => !a.is_resolved).length} {t('dashboard.requiring_attention')}</div>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/alerts')}>View all</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/alerts')}>{t('dashboard.view_all')}</button>
           </div>
           {alerts.filter(a => !a.is_resolved).length > 0
             ? alerts.filter(a => !a.is_resolved).map(a => <AlertCard key={a.id} alert={a} />)
-            : <div className="empty-state" style={{ padding:'20px 0' }}><span style={{ fontSize:32 }}>✅</span><h3>No active alerts</h3><p>All clear — farm health is nominal.</p></div>
+            : <div className="empty-state" style={{ padding:'20px 0' }}><span style={{ fontSize:32 }}>✅</span><h3>{t('dashboard.no_active_alerts')}</h3><p>{t('dashboard.all_clear')}</p></div>
           }
         </div>
       </div>

@@ -38,7 +38,7 @@ export default function CVMonitoring() {
             { label: t('cv.events'),    value: events.length,         color:'green' },
             { label: t('dashboard.active_alerts'), value: counts.critical,       color:'red'   },
             { label: t('telemetry.activity'),  value: counts.warning,        color:'yellow' },
-            { label: 'System',     value: counts.info,           color:'blue'  },
+            { label: t('common.system'),     value: counts.info,           color:'blue'  },
           ].map(k => (
             <div key={k.label} className="kpi-box">
               <div className={`kpi-icon ${k.color}`}><Eye size={20} /></div>
@@ -85,7 +85,7 @@ export default function CVMonitoring() {
                   {filtered.map(ev => (
                     <tr key={ev.id}>
                       <td style={{ whiteSpace:'nowrap', fontSize:12 }}>{new Date(ev.timestamp).toLocaleString()}</td>
-                      <td style={{ fontWeight:600 }}>{ev.unit_name || `Unit ${ev.unit_id}`}</td>
+                      <td style={{ fontWeight:600 }}>{ev.unit_name || `${t('common.unit')} ${ev.unit_id}`}</td>
                       <td>
                         <span style={{ display:'flex', alignItems:'center', gap:6 }}>
                           <span style={{ width:32, height:32, background:'var(--color-bg)', borderRadius:6, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:16, flexShrink:0 }}>

@@ -112,21 +112,21 @@ export default function Reports() {
   return (
     <>
       <Navbar
-        title="Centre de Rapports Stratégiques"
-        subtitle="Analyse souveraine multi-tenant · Smart Farm v3.0"
+        title={t('reports_page.title')}
+        subtitle={t('reports_page.subtitle')}
         actions={
           <div style={{ display: 'flex', gap: 10 }}>
              <button 
               className={`btn ${view === 'live' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setView('live')}
             >
-              <Zap size={14} /> Rapport Live
+              <Zap size={14} /> {t('reports_page.live_report')}
             </button>
             <button 
               className={`btn ${view === 'archive' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setView('archive')}
             >
-              <Database size={14} /> Archives
+              <Database size={14} /> {t('reports_page.archives')}
             </button>
           </div>
         }
@@ -147,8 +147,8 @@ export default function Reports() {
               <BrainCircuit size={20} color="#16a34a" />
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800 }}>Intelligence Artificielle (Ollama)</div>
-              <div style={{ fontSize: 11, opacity: 0.6 }}>Rapports stratégiques basés sur les données du {new Date().toLocaleDateString()}</div>
+              <div style={{ fontSize: 14, fontWeight: 800 }}>{t('reports_page.ai_ollama')}</div>
+              <div style={{ fontSize: 11, opacity: 0.6 }}>{t('reports_page.strategic_reports_based_on')} {new Date().toLocaleDateString()}</div>
             </div>
           </div>
           
@@ -158,7 +158,7 @@ export default function Reports() {
             disabled={generating}
             style={{ gap: 8 }}
           >
-            <Activity size={14} /> Rapport Animaux
+            <Activity size={14} /> {t('reports_page.animal_report')}
           </button>
           <button 
             className="btn btn-secondary btn-sm" 
@@ -166,7 +166,7 @@ export default function Reports() {
             disabled={generating}
             style={{ gap: 8 }}
           >
-            <Leaf size={14} /> Rapport Plantes
+            <Leaf size={14} /> {t('reports_page.plant_report')}
           </button>
           <button 
             className="btn btn-primary btn-sm" 
@@ -175,7 +175,7 @@ export default function Reports() {
             style={{ gap: 8, background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
           >
             {generating ? <Zap size={14} className="spin" /> : <Sparkles size={14} />} 
-            Rapport Global IA
+            {t('reports_page.global_ai_report')}
           </button>
           
           <div style={{ width: 1, height: 30, background: '#e2e8f0', margin: '0 10px' }} />
@@ -185,7 +185,7 @@ export default function Reports() {
             onClick={downloadPDF}
             style={{ gap: 8, borderColor: '#16a34a', color: '#16a34a' }}
           >
-            <Printer size={14} /> Télécharger PDF
+            <Printer size={14} /> {t('reports_page.download_pdf')}
           </button>
         </div>
 
@@ -212,6 +212,7 @@ export default function Reports() {
 }
 
 function LiveReport({ stats }) {
+  const { t } = useTranslation();
   return (
     <div className="fade-in">
       {/* Header Banner */}
@@ -223,39 +224,39 @@ function LiveReport({ stats }) {
         <div style={{ 
           position: 'absolute', bottom: 30, left: 40, color: 'white', zIndex: 10 
         }}>
-          <h1 style={{ fontSize: 36, fontWeight: 900, marginBottom: 8 }}>Rapport Intégré de l'Exploitation</h1>
-          <p style={{ opacity: 0.8, fontSize: 16 }}>Génération en temps réel basée sur les capteurs IoT et l'Intelligence Souveraine</p>
+          <h1 style={{ fontSize: 36, fontWeight: 900, marginBottom: 8 }}>{t('reports_page.integrated_report_title')}</h1>
+          <p style={{ opacity: 0.8, fontSize: 16 }}>{t('reports_page.integrated_report_subtitle')}</p>
         </div>
         <div style={{ 
           position: 'absolute', top: 30, right: 40, background: 'rgba(0,0,0,0.4)', 
           backdropFilter: 'blur(10px)', padding: '10px 20px', borderRadius: 100,
           border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', gap: 10
         }}>
-          <Activity size={16} color="#10b981" /> Système Opérationnel
+          <Activity size={16} color="#10b981" /> {t('reports_page.system_operational')}
         </div>
       </div>
 
       {/* KPI Overview */}
       <div className="kpi-row">
         <div className="kpi-item" style={{ '--p': '#10b981' }}>
-          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>Score de Santé Global</div>
+          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>{t('reports_page.global_health_score')}</div>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#10b981' }}>{stats.health}%</div>
-          <div style={{ fontSize: 11, color: '#10b981', marginTop: 4 }}>↑ 2.4% vs semaine dernière</div>
+          <div style={{ fontSize: 11, color: '#10b981', marginTop: 4 }}>↑ 2.4% {t('reports_page.vs_last_week')}</div>
         </div>
         <div className="kpi-item" style={{ '--p': '#D97706' }}>
-          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>Biomasse Animale</div>
-          <div style={{ fontSize: 28, fontWeight: 900 }}>{stats.animals} Unités</div>
-          <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 4 }}>Suivi GPS actif</div>
+          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>{t('reports_page.animal_biomass')}</div>
+          <div style={{ fontSize: 28, fontWeight: 900 }}>{stats.animals} {t('reports_page.units')}</div>
+          <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 4 }}>{t('reports_page.gps_tracking_active')}</div>
         </div>
         <div className="kpi-item" style={{ '--p': '#166534' }}>
-          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>Cultures Végétales</div>
-          <div style={{ fontSize: 28, fontWeight: 900 }}>{stats.plants} Espèces</div>
-          <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 4 }}>Irrigation optimisée</div>
+          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>{t('reports_page.plant_crops')}</div>
+          <div style={{ fontSize: 28, fontWeight: 900 }}>{stats.plants} {t('reports_page.species')}</div>
+          <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 4 }}>{t('reports_page.optimized_irrigation')}</div>
         </div>
         <div className="kpi-item" style={{ '--p': '#0369A1' }}>
-          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>Alertes Critiques</div>
+          <div style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600 }}>{t('reports_page.critical_alerts')}</div>
           <div style={{ fontSize: 28, fontWeight: 900, color: stats.alerts > 0 ? '#ef4444' : '#10b981' }}>{stats.alerts}</div>
-          <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>{stats.alerts > 0 ? 'Action requise' : 'Système stable'}</div>
+          <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>{stats.alerts > 0 ? t('reports_page.action_required') : t('reports_page.system_stable')}</div>
         </div>
       </div>
 
@@ -264,19 +265,19 @@ function LiveReport({ stats }) {
         <div className="stat-card">
           <div className="section-header">
             <Activity color={COLORS.primary} size={24} />
-            <h2 style={{ fontSize: 20, fontWeight: 800 }}>Rapport Zootechnique</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800 }}>{t('reports_page.zootechnical_report')}</h2>
           </div>
           <img src={IMG_ANIMALS} className="premium-img" alt="Animals" />
           <p style={{ color: COLORS.textMuted, fontSize: 14, marginBottom: 20 }}>
-            L'analyse biométrique montre une croissance stable. Le cycle de pâturage est optimisé selon la disponibilité fourragère actuelle.
+            {t('reports_page.zootechnical_desc')}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <MetricRow label="Taux de reproduction" value="88%" color="#10b981" />
-            <MetricRow label="Consommation eau / jour" value="420L" color="#0369A1" />
-            <MetricRow label="Vaccination à jour" value="95%" color="#10b981" />
+            <MetricRow label={t('reports_page.reproduction_rate')} value="88%" color="#10b981" />
+            <MetricRow label={t('reports_page.water_consumption')} value="420L" color="#0369A1" />
+            <MetricRow label={t('reports_page.vaccination_up_to_date')} value="95%" color="#10b981" />
           </div>
           <button className="btn btn-secondary" style={{ width: '100%', marginTop: 24 }}>
-            <Download size={14} /> Télécharger PDF Détaillé
+            <Download size={14} /> {t('reports_page.download_detailed_pdf')}
           </button>
         </div>
 
@@ -284,19 +285,19 @@ function LiveReport({ stats }) {
         <div className="stat-card">
           <div className="section-header">
             <Sprout color={COLORS.secondary} size={24} />
-            <h2 style={{ fontSize: 20, fontWeight: 800 }}>Rapport Agronomique</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800 }}>{t('reports_page.agronomic_report')}</h2>
           </div>
           <img src={IMG_PLANTS} className="premium-img" alt="Plants" />
           <p style={{ color: COLORS.textMuted, fontSize: 14, marginBottom: 20 }}>
-            Indice NDVI en hausse sur le secteur Nord. La maturité des olives est estimée à 75%. Récolte prévue dans 3 semaines.
+            {t('reports_page.agronomic_desc')}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <MetricRow label="Stress hydrique" value="Bas" color="#10b981" />
-            <MetricRow label="Rendement estimé" value="12.5t" color="#D97706" />
-            <MetricRow label="Usage engrais" value="-15%" color="#10b981" />
+            <MetricRow label={t('reports_page.water_stress')} value="Bas" color="#10b981" />
+            <MetricRow label={t('reports_page.estimated_yield')} value="12.5t" color="#D97706" />
+            <MetricRow label={t('reports_page.fertilizer_usage')} value="-15%" color="#10b981" />
           </div>
           <button className="btn btn-secondary" style={{ width: '100%', marginTop: 24 }}>
-            <Download size={14} /> Analyse Sols & Rendement
+            <Download size={14} /> {t('reports_page.soil_yield_analysis')}
           </button>
         </div>
 
@@ -304,21 +305,21 @@ function LiveReport({ stats }) {
         <div className="stat-card" style={{ background: '#111827', color: 'white' }}>
           <div className="section-header">
             <Shield color="#fbbf24" size={24} />
-            <h2 style={{ fontSize: 20, fontWeight: 800 }}>Sûreté & Infrastructure</h2>
+            <h2 style={{ fontSize: 20, fontWeight: 800 }}>{t('reports_page.safety_infrastructure')}</h2>
           </div>
           <div style={{ padding: '20px 0' }}>
             <div style={{ fontSize: 40, fontWeight: 900, marginBottom: 10 }}>100%</div>
-            <div style={{ opacity: 0.6, fontSize: 13 }}>Intégrité de la périphérie sécurisée par IA</div>
+            <div style={{ opacity: 0.6, fontSize: 13 }}>{t('reports_page.perimeter_integrity')}</div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-            <span className="badge-pro" style={{ background: 'rgba(251,191,36,0.2)', color: '#fbbf24' }}>Barrière Virtuelle OK</span>
-            <span className="badge-pro" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>Capteurs IoT Actifs</span>
-            <span className="badge-pro" style={{ background: 'rgba(59,130,246,0.2)', color: '#3b82f6' }}>Caméras Thermal ON</span>
+            <span className="badge-pro" style={{ background: 'rgba(251,191,36,0.2)', color: '#fbbf24' }}>{t('reports_page.virtual_barrier_ok')}</span>
+            <span className="badge-pro" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>{t('reports_page.active_iot_sensors')}</span>
+            <span className="badge-pro" style={{ background: 'rgba(59,130,246,0.2)', color: '#3b82f6' }}>{t('reports_page.thermal_cameras_on')}</span>
           </div>
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
               <BarChart3 size={16} color="#fbbf24" />
-              <span>Dernière analyse d'anomalie : <b>Nulle</b></span>
+              <span>{t('reports_page.last_anomaly_analysis')} <b>{t('reports_page.none')}</b></span>
             </div>
           </div>
         </div>
@@ -337,25 +338,26 @@ function MetricRow({ label, value, color }) {
 }
 
 function ArchiveView({ reports, loading }) {
+  const { t } = useTranslation();
   const TYPE_COLOR = { daily:'badge-info', weekly:'badge-warning', monthly:'badge-success' };
 
   return (
     <div className="fade-in card">
       <div className="card-header">
-        <div className="card-title">Historique des Rapports Générés</div>
+        <div className="card-title">{t('reports_page.generated_reports_history')}</div>
       </div>
       {loading ? <div className="spinner" /> : reports.length === 0 ? (
-        <div className="empty-state"><FileText size={40} /><h3>Aucun rapport archivé</h3></div>
+        <div className="empty-state"><FileText size={40} /><h3>{t('reports_page.no_archived_reports')}</h3></div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Titre du Rapport</th>
-                <th>Type</th>
-                <th>Période</th>
-                <th>Score Moyen</th>
-                <th>Action</th>
+                <th>{t('reports_page.report_title')}</th>
+                <th>{t('reports_page.type')}</th>
+                <th>{t('reports_page.period')}</th>
+                <th>{t('reports_page.avg_score')}</th>
+                <th>{t('reports_page.action')}</th>
               </tr>
             </thead>
             <tbody>
@@ -386,7 +388,7 @@ function ArchiveView({ reports, loading }) {
                           fontSize: 13, color: '#475569', borderLeft: '3px solid #16a34a', 
                           paddingLeft: 15, fontStyle: 'italic'
                         }}>
-                          <b>Analyse IA Stratégique :</b><br/>
+                          <b>{t('reports_page.strategic_ai_analysis')}</b><br/>
                           {r.summary.ai_insight}
                         </div>
                       </td>

@@ -14,7 +14,12 @@ const DEFAULT_SETTINGS = [
   { key:'alert_check_interval_sec', value:60, description:'Worker anomaly check interval (sec)' },
 ];
 
-const SECTION_MAP = {
+const SECTION_MAP = (t) => ({
+  [t('settings.bee_thresholds')]: ['bee_temp_max','bee_humidity_min','bee_weight_drop_alert'],
+  [t('settings.cow_thresholds')]: ['cow_temp_max'],
+  [t('settings.poultry_thresholds')]: ['poultry_ammonia_max','poultry_temp_max'],
+  [t('common.system')]: ['alert_check_interval_sec'],
+});
   'Bee Thresholds': ['bee_temp_max','bee_humidity_min','bee_weight_drop_alert'],
   'Cow Thresholds': ['cow_temp_max'],
   'Poultry Thresholds': ['poultry_ammonia_max','poultry_temp_max'],
@@ -66,14 +71,14 @@ export default function Settings() {
         subtitle={t('settings.notifications')}
         actions={
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            <Save size={14} /> {saving ? '...' : t('common.save')}
+            <Save size={14} /> {saving ? '...' : t('common.saved_success') || 'Saved'}
           </button>
         }
       />
       <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
         {saved && <div className="alert-banner success" style={{ marginBottom:20 }}><div className="alert-banner-msg">✓ {t('common.save')}</div></div>}
 
-        {Object.entries(SECTION_MAP).map(([section, keys]) => (
+        {Object.entries(SECTION_MAP(t)).map(([section, keys]) => (
           <div key={section} className="card" style={{ marginBottom:20 }}>
             <div className="card-title" style={{ marginBottom:18, textAlign: i18n.language === 'ar' ? 'right' : 'left' }}>{section}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>

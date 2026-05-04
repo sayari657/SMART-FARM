@@ -1,211 +1,355 @@
 % ============================================================
-%  Chapitre 2 — Contexte et Étude Préliminaire
+%  Chapitre 2 — Étude Préliminaire
 % ============================================================
-\chapter{Contexte et Étude Préliminaire}
+\chapter{Étude Préliminaire}
 \thispagestyle{fancy}
 
-\section{Le secteur agricole tunisien}
+% ─────────────────────────────────────────────────────────────
+\section{Introduction}
+% ─────────────────────────────────────────────────────────────
 
-\subsection{Portrait économique et défis structurels}
+Ce chapitre constitue la phase d'analyse préalable au développement de \farmAI{} v3.0.
+Il commence par l'identification précise des besoins fonctionnels et non-fonctionnels
+du système, puis dresse une revue des travaux académiques récents dans les domaines
+de la vision par ordinateur agricole, de l'IoT et des LLM. L'architecture globale
+et les choix technologiques sont ensuite présentés et justifiés, avant de détailler
+la planification du projet par sprints Scrum.
 
-La Tunisie dispose d'un patrimoine agricole riche et diversifié. Avec environ
-\textbf{9,9 millions d'hectares de surface agricole utile} (SAU) dont 5,6 millions
-effectivement exploités, le pays est l'un des premiers exportateurs mondiaux d'huile
-d'olive et de dattes \cite{ins_tunisie_2023}.
+% ─────────────────────────────────────────────────────────────
+\section{Identification des besoins}
+% ─────────────────────────────────────────────────────────────
 
-\begin{table}[H]
-\centering
-\caption{Chiffres clés du secteur agricole tunisien (2023)}
-\label{tab:agri_stats}
-\begin{tabular}{lcc}
+\subsection{Les besoins fonctionnels}
+
+Les besoins fonctionnels décrivent ce que le système \textbf{doit faire} — les
+services rendus aux utilisateurs et aux acteurs externes. Ils sont issus de
+l'analyse des cas d'utilisation identifiés au chapitre 1.
+
+\begin{table}[H]\centering
+\caption{Besoins fonctionnels — Smart Farm AI v3.0}
+\label{tab:bf_all}
+\small
+\begin{tabular}{cp{4.5cm}p{6.5cm}l}
 \toprule
-\textbf{Indicateur} & \textbf{Valeur} & \textbf{Source} \\
+\textbf{ID} & \textbf{Module} & \textbf{Description} & \textbf{Priorité} \\
 \midrule
-Contribution au PIB              & 10,3\%           & INS 2023 \\
-Part de l'emploi national        & 14,1\%           & INS 2023 \\
-Superficie agricole utilisée     & 5,6 M ha         & UTAP 2023 \\
-Nombre d'exploitations           & 516 000          & INS 2023 \\
-Exports agricoles                & 2,8 Md TND       & INS 2023 \\
-Nombre de ruches (apiculture)    & $\approx$ 300 000 & UTAP 2023 \\
-Pertes estimées (ravageurs)      & 20-40\% récoltes  & FAO 2022 \\
+BF01 & Authentification & Inscription/connexion par email + mdp hashé (bcrypt) & Must \\
+BF02 & Authentification & Double facteur OTP email (6 chiffres, 10 min) & Must \\
+BF03 & Authentification & JWT access token (30j) + refresh token (7j) & Must \\
+BF04 & Gestion Fermes   & CRUD complet fermes avec coordonnées GPS & Must \\
+BF05 & Gestion Fermes   & Tableau de bord KPIs temps réel multi-fermes & Must \\
+BF06 & IoT Télémétrie   & Réception métriques ESP32 via HTTP POST & Must \\
+BF07 & IoT Télémétrie   & Visualisation courbes historiques (1h/24h/7j) & Must \\
+BF08 & IoT Alertes      & Détection anomalies IsolationForest en temps réel & Must \\
+BF09 & IoT Alertes      & Notifications WebSocket (SWARM\_RISK, THERMAL) & Must \\
+BF10 & Vision IA        & Inférence YOLO sur image uploadée ou caméra live & Must \\
+BF11 & Vision IA        & Choix parmi 8 modèles et 40 classes agricoles & Must \\
+BF12 & Vision IA        & Historique des scans avec résultats & Should \\
+BF13 & Apiculture       & CRUD ruchers, ruches avec QR Code & Must \\
+BF14 & Apiculture       & Enregistrement visites et observations & Must \\
+BF15 & Apiculture       & Suivi récoltes, stocks, dépenses & Should \\
+BF16 & Apiculture       & Planning de traitement et rappels & Should \\
+BF17 & Apiculture       & Télémétrie NODE\_B (poids, temp. ruche) & Must \\
+BF18 & Assistant IA     & Conversation en Darija (texte + voix) & Must \\
+BF19 & Assistant IA     & RAG sur corpus UTAP/AVFA & Must \\
+BF20 & Assistant IA     & Analyse d'image multimodale (LLaVA) & Should \\
+BF21 & Ouvriers         & CRUD ouvriers et assignation de tâches & Should \\
+BF22 & PWA Worker       & Interface mobile offline (Dexie.js) & Must \\
+BF23 & Cartographie     & Carte SIG Leaflet avec fermes et vétérinaires & Should \\
+BF24 & MLOps            & Dashboard métriques MLflow (Silhouette, anomalie) & Could \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Apiculture tunisienne — enjeux spécifiques}
-
-L'apiculture représente un maillon essentiel de l'agro-système tunisien, assurant la
-pollinisation de cultures majeures (amandiers, fruitiers, courges) et produisant environ
-\textbf{4 000 tonnes de miel par an} \cite{utap2023}. Cependant, le secteur fait face à :
-
+\noindent Les priorités suivent la classification \textbf{MoSCoW} :
 \begin{itemize}
-  \item Mortalité hivernale des colonies atteignant 30-40\% dans certaines régions
-  \item Infestation par \textit{Varroa destructor} non contrôlée
-  \item Manque d'outils de monitoring de l'état des ruches
-  \item Faible traçabilité de la production (récoltes, stocks, dépenses)
+  \item \textbf{Must} (Obligatoire) : fonctionnalités indispensables à la valeur
+        minimale du produit.
+  \item \textbf{Should} (Important) : fortement souhaitées mais non bloquantes.
+  \item \textbf{Could} (Optionnel) : ajoutées si le temps le permet.
 \end{itemize}
 
-\section{Agriculture de précision — opportunités technologiques}
+\subsection{Les besoins non fonctionnels}
 
-L'agriculture de précision est définie par la FAO comme «\,l'application de technologies
-modernes de l'information pour adapter la gestion des ressources selon la variabilité
-spatiale et temporelle des conditions agricoles\,». Elle repose sur trois piliers :
+Les besoins non fonctionnels définissent les qualités que le système doit exhiber
+— performance, sécurité, disponibilité, maintenabilité — indépendamment des
+fonctionnalités métier.
 
-\begin{description}
-  \item[\textbf{Observation :}] Capteurs IoT, drones, images satellitaires.
-  \item[\textbf{Analyse :}] Modèles ML pour la détection de pathologies, prédiction de
-        rendements, détection d'anomalies.
-  \item[\textbf{Action :}] Irrigation automatique, alertes en temps réel, recommandations
-        personnalisées.
-\end{description}
-
-Des études récentes confirment l'efficacité des modèles deep learning en agriculture :
-\cite{kamilaris2018deep} rapportent des précisions supérieures à 95\% pour la détection
-de maladies foliaires avec des CNN, tandis que \cite{liakos2018machine} montrent que
-l'IA réduit de 20-30\% la consommation d'eau en irrigation de précision.
-
-\section{Organisme d'accueil}
-
-\textbf{Sayari Smart Solutions} est une startup agritech fondée en 2024, dont la mission est
-de démocratiser l'accès aux technologies d'intelligence artificielle pour les agriculteurs
-tunisiens. La vision de l'entreprise : \textit{«\,Chaque agriculteur tunisien, quelle que soit
-la taille de son exploitation, mérite les mêmes outils d'analyse que les grandes entreprises
-agricoles mondiales.\,»}
-
-\section{Présentation détaillée de \farmAI}
-
-\subsection{Périmètre fonctionnel}
-
-\farmAI{} v3.0 est une plateforme SaaS (Software as a Service) multi-tenant couvrant :
-
-\begin{enumerate}
-  \item \textbf{Tableau de bord propriétaire (Owner Dashboard)} — KPIs en temps réel,
-        gestion multi-fermes, alertes IoT, intégration météo.
-  \item \textbf{Scanner Worker PWA} — application mobile progressive pour ouvriers,
-        utilisable hors-ligne, avec caméra live pour inférence YOLO (13 modèles).
-  \item \textbf{HiveIntel — Module Apiculture} — gestion complète de ruchers, ruches,
-        visites, récoltes, stocks, dépenses et planning avec télémétrie NODE\_B.
-  \item \textbf{Map Center SIG} — cartographie Leaflet des fermes, découverte OSM des
-        vétérinaires et fournisseurs à proximité.
-  \item \textbf{Assistant Souverain} — chatbot multimodal Darija avec STT/TTS et vision.
-  \item \textbf{Télémétrie IoT} — analyse historique et temps réel (NODE\_A + NODE\_B).
-  \item \textbf{Gestion des ouvriers} — assignation de tâches, suivi GPS, planning.
-  \item \textbf{MLOps Dashboard} — visualisation des expériences MLflow, métriques
-        d'anomalies.
-\end{enumerate}
-
-\subsection{Objectifs non-fonctionnels}
-
-\begin{table}[H]
-\centering
-\caption{Exigences non-fonctionnelles de Smart Farm AI}
-\label{tab:nonfunctional}
-\begin{tabular}{lll}
+\begin{table}[H]\centering
+\caption{Besoins non fonctionnels — Smart Farm AI v3.0}
+\label{tab:bnf}
+\begin{tabular}{llll}
 \toprule
-\textbf{Catégorie} & \textbf{Exigence} & \textbf{Cible} \\
+\textbf{Catégorie} & \textbf{Besoin} & \textbf{Cible} & \textbf{Vérifié par} \\
 \midrule
-Performance   & Latence inférence YOLO     & $<$ 200 ms \\
-Performance   & Temps de réponse API       & $<$ 500 ms (p95) \\
-Disponibilité & Uptime plateforme          & $\geq$ 99\% \\
-Sécurité      & Authentification           & JWT + OTP email \\
-Offline       & PWA Worker hors-ligne      & IndexedDB (Dexie.js) \\
-Multi-langue  & Interfaces                 & FR / AR / Darija \\
-IoT           & Fréquence télémétrie       & 10 secondes (configurable) \\
-Scalabilité   & Multi-tenant               & Isolation par farm\_id \\
-Souveraineté  & LLM local                  & Ollama (pas de cloud API) \\
-Déploiement   & Cloud free-tier            & Oracle Cloud ARM64 \\
+Performance   & Latence inférence YOLO      & $<$ 200 ms (p95)   & Benchmark pytest \\
+Performance   & Temps réponse API (p95)     & $<$ 500 ms         & locust load test \\
+Disponibilité & Uptime service backend      & $\geq$ 99\%        & Oracle monitoring \\
+Sécurité      & Hashage mots de passe       & bcrypt cost=12     & Revue de code \\
+Sécurité      & Expiration tokens           & Access 30j / OTP 10min & Tests unitaires \\
+Sécurité      & Isolation multi-tenant      & farm\_id dans chaque requête & Tests pytest \\
+Offline       & PWA Worker hors-ligne       & IndexedDB Dexie.js & Test réseau coupé \\
+Souveraineté  & LLM exécuté localement      & Ollama local (no cloud) & Revue archi \\
+Scalabilité   & Multi-fermes par user       & Illimité (FK isolée) & Tests DB \\
+Maintenabilité & Couverture tests backend   & $\geq$ 80\%        & pytest --cov \\
+Déploiement   & Cloud gratuit               & Oracle Free ARM64  & Déploiement effectif \\
+IoT           & Fréquence télémétrie        & 10 secondes (configurable) & Firmware \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Étude de l'existant — Benchmark des solutions}
+% ─────────────────────────────────────────────────────────────
+\section{Revue des travaux récents}
+% ─────────────────────────────────────────────────────────────
 
-Un état de l'art des solutions agritech existantes a été conduit pour situer
-\farmAI{} dans le paysage concurrentiel. Le tableau \ref{tab:benchmark} compare les
-principales plateformes selon 9 critères pertinents pour le contexte tunisien.
+Cette section dresse un état de l'art ciblé sur les trois axes technologiques de
+\farmAI{} : la détection de pathologies agricoles par vision par ordinateur,
+la surveillance IoT agricole, et les assistants conversationnels en langue locale.
 
-\begin{table}[H]
-\centering
-\caption{Benchmark des solutions agritech existantes vs Smart Farm AI v3.0}
-\label{tab:benchmark}
+\begin{table}[H]\centering
+\caption{Tableau comparatif des travaux récents — Vision IA agricole}
+\label{tab:art_vision}
 \small
-\begin{tabular}{lcccccc}
+\begin{tabular}{p{3.5cm}p{2cm}p{2.5cm}p{3cm}p{2.5cm}}
 \toprule
-\textbf{Critère}
-  & \textbf{Agrivi}
-  & \textbf{FarmLogs}
-  & \textbf{Trimble}
-  & \textbf{AgroMonitor}
-  & \textbf{Sol. locales}
-  & \textbf{\farmAI{}} \\
+\textbf{Auteurs} & \textbf{Année} & \textbf{Modèle} & \textbf{Application} & \textbf{Résultat} \\
 \midrule
-IoT ESP32 intégré        & \no  & \no  & \yes & \no  & \no  & \yes \\
-YOLO vision pathologies  & \no  & \no  & \no  & \no  & \no  & \yes \\
-LLM Darija tunisien      & \no  & \no  & \no  & \no  & \no  & \yes \\
-RAG documents locaux     & \no  & \no  & \no  & \no  & \no  & \yes \\
-Module apiculture complet& \no  & \no  & \no  & \no  & \no  & \yes \\
-MLOps DVC + MLflow       & \no  & \no  & \yes & \no  & \no  & \yes \\
-PWA offline Worker       & \no  & \yes & \no  & \no  & \no  & \yes \\
-Open-source / gratuit    & \no  & \no  & \no  & \no  & \yes & \yes \\
-Déployable Oracle Free   & \no  & \no  & \no  & \no  & \no  & \yes \\
-\midrule
-\textbf{Score total}     & 0/9  & 1/9  & 2/9  & 0/9  & 2/9  & \textbf{9/9} \\
+Kamilaris \& Prenafeta-Boldú \cite{kamilaris2018deep} & 2018 & CNN (AlexNet/VGG) & Détection maladies feuilles & mAP 95\% \\
+Liakos et al. \cite{liakos2018machine} & 2018 & Random Forest / SVM & Prédiction rendements & R²=0.87 \\
+Ultralytics \cite{ultralytics2023yolov8} & 2023 & YOLOv8 & Détection multi-classe & mAP50=89.2\% \\
+\textbf{\farmAI{} v3.0} & \textbf{2025} & \textbf{YOLOv11 (8 modèles)} & \textbf{Pathologies multi-espèces} & \textbf{mAP50=0.891} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{tcolorbox}[infobox, title={Conclusion du benchmark}]
-Aucune solution existante — commerciale ou locale — ne combine simultanément la
-détection de pathologies par vision IA, l'assistant conversationnel en Darija tunisien,
-la gestion apicole complète et les pratiques MLOps industrielles. \farmAI{} v3.0 répond
-à un vide réel dans l'écosystème agritech tunisien.
+\begin{table}[H]\centering
+\caption{Tableau comparatif des travaux récents — IoT et détection d'anomalies}
+\label{tab:art_iot}
+\small
+\begin{tabular}{p{3.5cm}p{2cm}p{2.5cm}p{3cm}p{2.5cm}}
+\toprule
+\textbf{Auteurs} & \textbf{Année} & \textbf{Algorithme} & \textbf{Données} & \textbf{Résultat} \\
+\midrule
+Liu et al. \cite{liu2008isolation} & 2008 & IsolationForest & Séries temporelles & AUC=0.92 \\
+Sculley et al. \cite{sculley2015hidden} & 2015 & Systèmes ML prod & Pipelines données & Dette tech ML \\
+\textbf{\farmAI{} v3.0} & \textbf{2025} & \textbf{IsolationForest} & \textbf{IoT ESP32 (7 features)} & \textbf{Silhouette=0.73} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]\centering
+\caption{Tableau comparatif des travaux récents — LLM et NLP en langue arabe}
+\label{tab:art_llm}
+\small
+\begin{tabular}{p{3.5cm}p{2cm}p{2.5cm}p{3cm}p{2.5cm}}
+\toprule
+\textbf{Modèle/Travail} & \textbf{Année} & \textbf{Langue} & \textbf{Tâche} & \textbf{Limite} \\
+\midrule
+AraBERT & 2020 & Arabe MSA & Classification & Pas de Darija \\
+CAMeL-LM & 2022 & Arabe dialectal & NLP & Licence NC \\
+Lewis et al. \cite{lewis2020rag} & 2020 & Anglais & RAG Knowledge & Pas multilingue \\
+Ghezaiel \cite{labess7b} & 2024 & \textbf{Darija tunisien} & \textbf{Chat local} & Latence CPU \\
+\textbf{\farmAI{} v3.0} & \textbf{2025} & \textbf{Darija + FR + AR} & \textbf{RAG agricole} & \textbf{15-25s CPU} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{tcolorbox}[infobox, title={Positionnement de \farmAI{} dans la littérature}]
+\farmAI{} v3.0 se distingue par \textbf{trois contributions originales} non couverts
+par les travaux existants :
+\begin{enumerate}
+  \item Combinaison simultanée de 8 modèles YOLO v11, IoT ESP32 et RAG Darija dans
+        un même système intégré.
+  \item Premier assistant agricole souverain en dialecte tunisien, exécuté localement
+        sans dépendance cloud externe.
+  \item Application des pratiques MLOps industrielles (DVC + MLflow) au contexte
+        agritech tunisien sur matériel accessible (CPU, Oracle Free Tier).
+\end{enumerate}
 \end{tcolorbox}
 
-\section{Spécifications et acteurs du système}
+% ─────────────────────────────────────────────────────────────
+\section{Architecture du projet}
+% ─────────────────────────────────────────────────────────────
 
-\subsection{Identification des acteurs}
+\farmAI{} v3.0 adopte une architecture en \textbf{5 couches} inspirée du modèle
+N-tiers, garantissant la séparation des responsabilités et la testabilité indépendante
+de chaque composant.
 
-Le système implique cinq catégories d'acteurs :
+\begin{figure}[H]\centering
+\begin{tikzpicture}[x=1cm, y=1cm,
+  layer/.style={rectangle, rounded corners=5pt, draw=#1!70!black, fill=#1!10,
+    minimum width=14cm, minimum height=1.3cm, align=center,
+    font=\small\bfseries\color{#1!80!black}}]
 
-\begin{description}
-  \item[\textbf{Owner (Propriétaire) :}] Exploitant agricole principal. Accès complet à
-        toutes les fonctionnalités : gestion des fermes, apiculture, ouvriers, analytics,
-        configuration IoT, assistant.
-  \item[\textbf{Worker (Ouvrier) :}] Employé agricole. Accès limité via PWA mobile :
-        scanner YOLO, consultation de tâches assignées, reporting terrain.
-  \item[\textbf{ESP32 Nodes :}] Acteurs matériels (NODE\_A, NODE\_B) envoyant des données
-        télémétriques toutes les 10 secondes via HTTP POST.
-  \item[\textbf{Ollama/Groq LLM :}] Service IA répondant aux requêtes de l'assistant.
-        Priorité : Ollama local → Groq API fallback → base de connaissances statique.
-  \item[\textbf{Admin :}] Superutilisateur pour la gestion des tenants et la supervision
-        du système.
-\end{description}
+\node[layer=farmblue]   at (0, 0)   {\textbf{Couche 1 — Clients} \quad
+  Owner Dashboard (React SPA) \quad Worker PWA \quad Map Center \quad Assistant};
 
-\subsection{Exigences fonctionnelles principales}
+\node[layer=farmgreen]  at (0,-2)   {\textbf{Couche 2 — API Gateway} \quad
+  FastAPI 50+ Endpoints \quad JWT Middleware \quad WebSocket \quad CORS};
 
-\begin{table}[H]
-\centering
-\caption{Catalogue des exigences fonctionnelles principales}
-\label{tab:requirements}
-\begin{tabular}{llp{7.5cm}}
+\node[layer=farmorange] at (0,-4)   {\textbf{Couche 3 — Services Métier} \quad
+  CV/YOLO Service \quad RAG/LLM Agent \quad Anomaly Service \quad Weather};
+
+\node[layer=farmred]    at (0,-6)   {\textbf{Couche 4 — Données} \quad
+  PostgreSQL \quad ChromaDB \quad MLflow Registry \quad DVC \quad Ollama};
+
+\node[layer=farmgray]   at (0,-8)   {\textbf{Couche 5 — IoT} \quad
+  NODE\_A (Irrigation ESP32) \quad NODE\_B (Rucher ESP32) \quad Wokwi Sim.};
+
+\foreach \y/\lbl in {-0.65/HTTPS REST, -2.65/Appels Python, -4.65/SQLAlchemy, -6.65/HTTP POST}
+  \draw[->, >=Stealth, thick, farmgray!70] (0,\y) -- node[right,font=\tiny\itshape,text=farmgray]{\lbl} (0,\y-0.7);
+
+\end{tikzpicture}
+\caption{Architecture système en 5 couches — Smart Farm AI v3.0}
+\label{fig:arch_couches}
+\end{figure}
+
+\begin{tcolorbox}[infobox, title={Zone capture d'écran — Architecture déployée}]
+\begin{center}
+\begin{tikzpicture}
+  \draw[dashed, farmgray, rounded corners=4pt, line width=1pt]
+    (0,0) rectangle (14,4);
+  \node[font=\large\bfseries\color{farmgray}] at (7,2.2)
+    {[CAPTURE D'ÉCRAN]};
+  \node[font=\small\color{farmgray}, align=center] at (7,1.3)
+    {Diagramme Docker Compose — services backend, frontend,\\
+     PostgreSQL, ChromaDB, Ollama et Caddy en production};
+\end{tikzpicture}
+\end{center}
+\textit{Description :} Vue \code{docker ps} montrant les conteneurs actifs sur Oracle
+Cloud ARM64. Insérer ici une capture du terminal avec les 6 services en statut
+\code{Up}.
+\end{tcolorbox}
+
+\subsection{Composants de l'architecture}
+
+\begin{table}[H]\centering
+\caption{Description des composants principaux}
+\label{tab:composants}
+\begin{tabular}{lp{4cm}p{6cm}}
 \toprule
-\textbf{ID} & \textbf{Acteur} & \textbf{Exigence} \\
+\textbf{Composant} & \textbf{Technologie} & \textbf{Rôle} \\
 \midrule
-EF01 & Owner   & Inscription, connexion JWT, OTP email, 2FA \\
-EF02 & Owner   & Création et gestion de fermes multi-tenant \\
-EF03 & Owner   & Tableau de bord KPIs en temps réel (IoT + météo) \\
-EF04 & Owner   & Visualisation télémétrie IoT (courbes historiques) \\
-EF05 & Owner   & Réception d'alertes IoT (SWARM\_RISK, THERMAL\_FAULT) \\
-EF06 & Owner   & Gestion complète du rucher (CRUD ruches, visites, récoltes) \\
-EF07 & Owner   & Génération de rapports apicoles (stock, dépenses, planning) \\
-EF08 & Owner/Worker & Inférence YOLO en temps réel (caméra ou upload) \\
-EF09 & Owner   & Consultation de la carte SIG (fermes, vétérinaires OSM) \\
-EF10 & Owner   & Conversation avec assistant Darija (texte + voix + image) \\
-EF11 & Worker  & Accès PWA hors-ligne avec synchronisation différée \\
-EF12 & Worker  & Scanner les 13 modèles YOLO depuis l'interface mobile \\
-EF13 & ESP32   & Envoi de métriques télémétriques via HTTP POST \\
-EF14 & System  & Détection d'anomalies IoT (IsolationForest) et alerte \\
-EF15 & Admin   & Gestion multi-tenant, supervision des modèles MLflow \\
+Owner Dashboard   & React 18 + Vite 5       & SPA principale : KPIs, télémétrie, apiculture, analytics \\
+Worker PWA        & React + Dexie.js        & App mobile offline : scanner YOLO, tâches \\
+FastAPI Backend   & Python 3.11 + FastAPI   & 50+ endpoints REST, WebSocket, JWT middleware \\
+PostgreSQL        & PostgreSQL 15           & Base de données relationnelle (30+ tables) \\
+ChromaDB          & ChromaDB 0.4+           & Base vectorielle pour RAG (cosine HNSW) \\
+Ollama + Labess-7B & Ollama 0.1.x            & LLM local Darija tunisien \\
+YOLO Models       & Ultralytics 8.1         & 8 modèles .pt en mémoire (lazy-cached) \\
+IsolationForest   & scikit-learn 1.4        & Détection anomalies IoT (n=150, contam.=0.05) \\
+DVC               & DVC 3.x                 & Versionnement données + pipeline reproductible \\
+MLflow            & MLflow 2.x              & Tracking expériences, registre modèles \\
+NODE\_A (ESP32)   & PlatformIO + C++        & Capteurs irrigation (sol, pression, débit) \\
+NODE\_B (ESP32)   & PlatformIO + C++        & Capteurs rucher (poids, temp., humidité) \\
+Docker Compose    & Docker 24               & Orchestration multi-services en production \\
+Oracle Cloud      & ARM64 Free Tier         & Hébergement gratuit (LITE\_MODE sans GPU) \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+% ─────────────────────────────────────────────────────────────
+\section{Les besoins technologiques}
+% ─────────────────────────────────────────────────────────────
+
+\begin{table}[H]\centering
+\caption{Besoins technologiques — Justification des choix}
+\label{tab:tech_needs}
+\small
+\begin{tabular}{lp{3.5cm}p{4cm}l}
+\toprule
+\textbf{Besoin} & \textbf{Technologie retenue} & \textbf{Justification} & \textbf{Licence} \\
+\midrule
+API REST scalable    & FastAPI + Python 3.11   & Async natif, validation Pydantic, 50k req/s & MIT \\
+Base relationnelle   & PostgreSQL 15           & ACID, multi-tenant, JSON natif & Open \\
+Vision IA temps réel & YOLO v11 (Ultralytics)  & Meilleur compromis latence/mAP sur CPU & AGPL-3 \\
+LLM dialecte local   & Labess-7B via Ollama    & Seul LLM Darija natif opérationnel & MIT \\
+Base vectorielle     & ChromaDB (cosine HNSW)  & Simple à déployer, API Python, local & Apache 2 \\
+Anomalie IoT         & IsolationForest (sklearn)& $O(n \log n)$, pas GPU requis & BSD \\
+Versionnement ML     & DVC + MLflow            & Git-like pour données + tracking métriques & Apache 2 \\
+Frontend SPA         & React 18 + Vite         & Écosystème riche, PWA, Recharts & MIT \\
+Firmware IoT         & PlatformIO (C++)        & Compatible ESP32, multi-OS & Apache 2 \\
+Simulation IoT       & Wokwi                   & Simulation ESP32 en ligne, HTTPS & Freemium \\
+Déploiement          & Docker Compose + Oracle & Gratuit, ARM64, Caddy ACME auto & Gratuit \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────
+\section{Planification du projet}
+% ─────────────────────────────────────────────────────────────
+
+La planification du projet \farmAI{} v3.0 repose sur 6 sprints Scrum de 2 à 3
+semaines chacun, couvrant 14 semaines au total. Chaque sprint cible un ensemble
+cohérent de fonctionnalités avec un jalon de validation clair.
+
+\begin{table}[H]\centering
+\caption{Backlog de planification des 6 sprints}
+\label{tab:planning}
+\small
+\begin{tabular}{ccp{2.2cm}p{5.5cm}p{2.3cm}}
+\toprule
+\textbf{Spr.} & \textbf{Durée} & \textbf{Focus} & \textbf{Livrables} & \textbf{Jalon} \\
+\midrule
+S1 & S0--S2 & Infra \& Auth & FastAPI (30+ routes), JWT+OTP, PostgreSQL 30+ tables, React scaffold & Auth OK \\
+S2 & S2--S4 & IoT \& Télémétrie & NODE\_A/B firmware, \api{/iot/telemetry}, dashboard Recharts, Wokwi & IoT Live \\
+S3 & S4--S7 & Apiculture & HiveIntel 7 sous-modules, CRUD, QR Codes, télémétrie NODE\_B & HiveIntel v1.0 \\
+S4 & S7--S10 & Vision IA & 8 YOLO v11 intégrés, Scanner PWA (13 modèles), Map SIG Leaflet & YOLO Prod \\
+S5 & S10--S12 & Assistant & Labess-7B RAG Darija, STT/TTS, LLaVA, Lite Mode Oracle & RAG Darija \\
+S6 & S12--S14 & MLOps \& Final & DVC+MLflow, IsolationForest, Docker Compose, Oracle Cloud & Soutenance \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[x=0.87cm, y=1cm]
+\tikzset{
+  sprint/.style={fill=#1, draw=#1!60!black, rounded corners=2pt, opacity=0.87},
+  ms/.style={diamond, draw=farmgreen!80!black, fill=farmgreen!30,
+    minimum size=0.5cm, inner sep=0pt},
+  sout/.style={diamond, draw=red!70!black, fill=red!25,
+    minimum size=0.6cm, inner sep=0pt}
+}
+\draw[->, thick, gray](-0.3,0)--(15.2,0) node[right, font=\small]{Semaines};
+\foreach \w in {0,...,14}{
+  \draw[gray!40,thin](\w,0.05)--(\w,-0.15);
+  \node[below, font=\tiny\color{gray}] at (\w,-0.18){S\w};
+}
+\filldraw[sprint=farmblue!50]  (0,0.15)  rectangle (2,0.75);
+\node[font=\tiny\bfseries\color{white}] at (1,0.45)   {S1 Infra};
+\filldraw[sprint=farmblue!65]  (2,0.15)  rectangle (4,0.75);
+\node[font=\tiny\bfseries\color{white}] at (3,0.45)   {S2 IoT};
+\filldraw[sprint=farmblue!75]  (4,0.15)  rectangle (7,0.75);
+\node[font=\tiny\bfseries\color{white}] at (5.5,0.45) {S3 Apiculture};
+\filldraw[sprint=farmblue!85]  (7,0.15)  rectangle (10,0.75);
+\node[font=\tiny\bfseries\color{white}] at (8.5,0.45) {S4 Vision IA};
+\filldraw[sprint=farmblue!90]  (10,0.15) rectangle (12,0.75);
+\node[font=\tiny\bfseries\color{white}] at (11,0.45)  {S5 Assistant};
+\filldraw[sprint=farmblue!95]  (12,0.15) rectangle (14,0.75);
+\node[font=\tiny\bfseries\color{white}] at (13,0.45)  {S6 MLOps};
+\foreach \x/\lbl in {2/{Auth\\JWT}, 4/{IoT\\Live}, 7/{HiveIntel\\v1.0},
+                      10/{YOLO\\Prod}, 12/{RAG\\Darija}}{
+  \node[ms](m) at (\x,-0.7) {};
+  \node[below=0.03cm of m, font=\tiny, align=center]{\lbl};
+  \draw[dashed, gray!50, thin](\x,0)--(\x,-0.6);
+}
+\node[sout](ms) at (14,-0.7) {};
+\node[below=0.03cm of ms, font=\tiny\bfseries, text=red!70!black, align=center]
+  {Souten.\\v3.0};
+\draw[dashed, red!50, thin](14,0)--(14,-0.6);
+\end{tikzpicture}
+\caption{Diagramme Gantt — 6 Sprints Scrum sur 14 semaines}
+\label{fig:gantt_ch2}
+\end{figure}
+
+% ─────────────────────────────────────────────────────────────
+\section{Conclusion}
+% ─────────────────────────────────────────────────────────────
+
+Ce chapitre a établi les fondements analytiques du projet. L'identification des
+24 besoins fonctionnels et 12 besoins non-fonctionnels permet de définir un périmètre
+précis et mesurable. La revue des travaux académiques confirme que \farmAI{} v3.0
+répond à un manque réel dans la littérature agritech, en combinant vision par ordinateur,
+IoT et LLM en Darija dans un seul système souverain. L'architecture en 5 couches et
+la planification en 6 sprints constituent le cadre structurant du développement
+présenté dans les chapitres suivants.

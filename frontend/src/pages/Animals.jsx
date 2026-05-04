@@ -121,11 +121,11 @@ export default function Animals() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">{t('farms.farm_name')} *</label>
-                  <input className="form-input" placeholder="e.g. Hive 14A" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
+                  <input className="form-input" placeholder={t('animals.name_placeholder')} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">ID</label>
-                  <input className="form-input" placeholder="e.g. SN-99A" value={form.identifier} onChange={e => setForm(p => ({ ...p, identifier: e.target.value }))} />
+                  <label className="form-label">{t('common.id')}</label>
+                  <input className="form-input" placeholder={t('animals.id_placeholder')} value={form.identifier} onChange={e => setForm(p => ({ ...p, identifier: e.target.value }))} />
                 </div>
               </div>
               <div className="form-row">
@@ -145,8 +145,8 @@ export default function Animals() {
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Notes</label>
-                <input className="form-input" placeholder="Health status, age, etc." value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
+                <label className="form-label">{t('common.notes')}</label>
+                <input className="form-input" placeholder={t('animals.notes_placeholder')} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} />
               </div>
               <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                 <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? '...' : t('common.save')}</button>
@@ -163,7 +163,7 @@ export default function Animals() {
           </div>
           {speciesFilter !== 'all' && (
             <button onClick={() => setSp('all')} style={{ fontSize: 12, background: 'none', border: 'none', color: 'var(--color-primary)', fontWeight: 700, cursor: 'pointer' }}>
-              Clear
+              {t('common.clear')}
             </button>
           )}
         </div>

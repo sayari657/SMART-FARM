@@ -10,6 +10,7 @@ import {
 import Navbar from '../components/Navbar';
 import TelemetryChart from '../components/TelemetryChart';
 import { animalsAPI, telemetryAPI, externalAPI } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const IOT_LATEST  = '/api/v1/iot/latest';
 const IOT_HISTORY = '/api/v1/iot/history?limit=60';
@@ -117,6 +118,7 @@ function NodeCard({ title, emoji, accentColor, children, statusBadges, status })
 
 // ─── IoT Nodes Tab ────────────────────────────────────────────────────────────
 function IoTTab() {
+  const { t } = useTranslation();
   const [live, setLive]         = useState(null);
   const [histA, setHistA]       = useState([]);
   const [histB, setHistB]       = useState([]);
@@ -188,17 +190,17 @@ function IoTTab() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {online === null ? (
-            <span style={{ color: '#94a3b8', fontSize: 13 }}>Connexion...</span>
+            <span style={{ color: '#94a3b8', fontSize: 13 }}>{t('telemetry.connecting')}</span>
           ) : online ? (
             <><Wifi size={14} color="#16a34a" />
-              <span style={{ color: '#15803d', fontSize: 13, fontWeight: 600 }}>Serveur IoT connecté</span></>
+              <span style={{ color: '#15803d', fontSize: 13, fontWeight: 600 }}>{t('telemetry.connected')}</span></>
           ) : (
             <><WifiOff size={14} color="#94a3b8" />
-              <span style={{ color: '#94a3b8', fontSize: 13 }}>Backend IoT hors-ligne (démonstration)</span></>
+              <span style={{ color: '#94a3b8', fontSize: 13 }}>{t('telemetry.offline')}</span></>
           )}
           {lastTs && (
             <span style={{ fontSize: 11, color: '#cbd5e1', marginLeft: 6 }}>
-              Màj {lastTs}
+              {t('telemetry.updated')} {lastTs}
             </span>
           )}
         </div>
@@ -211,7 +213,7 @@ function IoTTab() {
           }}
         >
           <RefreshCw size={13} style={{ animation: spinning ? 'spin 1s linear infinite' : 'none' }} />
-          Actualiser
+          {t('telemetry.refresh')}
         </button>
       </div>
 
@@ -220,20 +222,20 @@ function IoTTab() {
 
         {/* NODE A */}
         <NodeCard
-          title="Node A — Irrigation"
+          title={t("telemetry.node_a_title")}
           emoji="🌱"
           accentColor="#16a34a"
           status={nodeA.mode || 'OFFLINE'}
           statusBadges={[
-            <Badge key="pump"  label="Pompe"  on={!!nodeA.pump}  onColor="#16a34a" />,
-            <Badge key="valve" label="Vanne"  on={!!nodeA.valve} onColor="#2563eb" />,
-            <Badge key="fault" label="Défaut" on={!!nodeA.fault} onColor="#ef4444" />,
+            <Badge key="pump"  label={t("telemetry.pump")}  on={!!nodeA.pump}  onColor="#16a34a" />,
+            <Badge key="valve" label={t("telemetry.valve")}  on={!!nodeA.valve} onColor="#2563eb" />,
+            <Badge key="fault" label={t("telemetry.fault")} on={!!nodeA.fault} onColor="#ef4444" />,
           ]}
         >
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             <KpiTile
               icon={<Droplets size={14} />}
-              label="Humidité Sol"
+              label={t("telemetry.soil_humidity")}
               value={fmt(nodeA.soil)}
               unit="%"
               max={100}
@@ -242,7 +244,7 @@ function IoTTab() {
             />
             <KpiTile
               icon={<Gauge size={14} />}
-              label="Pression"
+              label={t("telemetry.pressure")}
               value={fmt(nodeA.pressure, 2)}
               unit="bar"
               max={12}
@@ -253,7 +255,7 @@ function IoTTab() {
           <div style={{ display: 'flex', gap: 10 }}>
             <KpiTile
               icon={<Wind size={14} />}
-              label="Débit"
+              label={t("telemetry.flow")}
               value={fmt(nodeA.flow)}
               unit="L/min"
               max={30}
@@ -262,7 +264,7 @@ function IoTTab() {
             />
             <KpiTile
               icon={<Thermometer size={14} />}
-              label="Temp Sol"
+              label={t("telemetry.soil_temp")}
               value={fmt(nodeA.temp)}
               unit="°C"
               max={60}
@@ -274,15 +276,15 @@ function IoTTab() {
 
         {/* NODE B */}
         <NodeCard
-          title="Node B — Ruche Connectée"
+          title={t("telemetry.node_b_title")}
           emoji="🐝"
           accentColor="#f59e0b"
           status="ONLINE"
           statusBadges={[
-            <Badge key="therm" label="Température OK"
+            <Badge key="therm" label={t("telemetry.temp_ok")}
               on={nodeB.hive_temp >= 30 && nodeB.hive_temp <= 38}
               onColor="#16a34a" />,
-            <Badge key="hum" label="Humidité OK"
+            <Badge key="hum" label={t("telemetry.hum_ok")}
               on={nodeB.ext_hum < 85}
               onColor="#2563eb" />,
           ]}
@@ -290,7 +292,7 @@ function IoTTab() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             <KpiTile
               icon={<Weight size={14} />}
-              label="Poids Ruche"
+              label={t("telemetry.hive_weight")}
               value={fmt(nodeB.weight)}
               unit="kg"
               max={60}
@@ -299,7 +301,7 @@ function IoTTab() {
             />
             <KpiTile
               icon={<Thermometer size={14} />}
-              label="Temp Interne"
+              label={t("telemetry.internal_temp")}
               value={fmt(nodeB.hive_temp ?? nodeB.broodTemp)}
               unit="°C"
               max={50}
@@ -313,7 +315,7 @@ function IoTTab() {
           <div style={{ display: 'flex', gap: 10 }}>
             <KpiTile
               icon={<Thermometer size={14} />}
-              label="Temp Externe"
+              label={t("telemetry.external_temp")}
               value={fmt(nodeB.ext_temp ?? nodeB.extTemp)}
               unit="°C"
               max={50}
@@ -322,7 +324,7 @@ function IoTTab() {
             />
             <KpiTile
               icon={<Droplets size={14} />}
-              label="Humidité Ext"
+              label={t("telemetry.external_hum")}
               value={fmt(nodeB.ext_hum ?? nodeB.extHum)}
               unit="%"
               max={100}
@@ -343,8 +345,8 @@ function IoTTab() {
         }}>
           <div style={{ padding: '14px 18px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={15} color="#16a34a" />
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Node A — Historique live</span>
-            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 4 }}>{chartDataA.length} pts</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{t('telemetry.live_history')}</span>
+            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 4 }}>{chartDataA.length} {t('telemetry.pts')}</span>
           </div>
           <div style={{ padding: '12px 8px 16px' }}>
             {chartDataA.length > 1 ? (
@@ -363,7 +365,7 @@ function IoTTab() {
             ) : (
               <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
                 <Cpu size={32} color="#e2e8f0" />
-                <span style={{ color: '#cbd5e1', fontSize: 13 }}>En attente des données Wokwi…</span>
+                <span style={{ color: '#cbd5e1', fontSize: 13 }}>{t('telemetry.waiting_wokwi')}</span>
               </div>
             )}
           </div>
@@ -376,8 +378,8 @@ function IoTTab() {
         }}>
           <div style={{ padding: '14px 18px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={15} color="#f59e0b" />
-            <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Node B — Historique live</span>
-            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 4 }}>{chartDataB.length} pts</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{t('telemetry.live_history')}</span>
+            <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 4 }}>{chartDataB.length} {t('telemetry.pts')}</span>
           </div>
           <div style={{ padding: '12px 8px 16px' }}>
             {chartDataB.length > 1 ? (
@@ -396,7 +398,7 @@ function IoTTab() {
             ) : (
               <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
                 <Cpu size={32} color="#e2e8f0" />
-                <span style={{ color: '#cbd5e1', fontSize: 13 }}>En attente des données Wokwi…</span>
+                <span style={{ color: '#cbd5e1', fontSize: 13 }}>{t('telemetry.waiting_wokwi')}</span>
               </div>
             )}
           </div>
@@ -411,7 +413,7 @@ function IoTTab() {
       }}>
         <CheckCircle size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: 1 }} />
         <div style={{ fontSize: 12, color: '#15803d', lineHeight: 1.6 }}>
-          <strong>Simulation Wokwi :</strong> ouvrez <code style={{ background: '#dcfce7', padding: '1px 5px', borderRadius: 4 }}>iot/node_a_pompe</code> et <code style={{ background: '#dcfce7', padding: '1px 5px', borderRadius: 4 }}>iot/node_b_rucher</code> dans VS Code avec l'extension Wokwi.
+          <strong>{t('telemetry.wokwi_sim')}</strong> {t('telemetry.wokwi_desc')}
           Lancez aussi <code style={{ background: '#dcfce7', padding: '1px 5px', borderRadius: 4 }}>python iot/log_telemetry.py</code> pour collecter les données Serial → CSV → cette page.
         </div>
       </div>
@@ -423,6 +425,7 @@ function IoTTab() {
 
 // ─── Unit Analysis Tab (existing logic) ───────────────────────────────────────
 function UnitTab() {
+  const { t } = useTranslation();
   const [units, setUnits]      = useState([]);
   const [selectedId, setSelId] = useState('');
   const [records, setRecords]  = useState([]);
@@ -472,7 +475,7 @@ function UnitTab() {
     <div>
       {/* Unit selector */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24 }}>
-        <label style={{ color: '#64748b', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>Unité :</label>
+        <label style={{ color: '#64748b', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>{t('telemetry.unit_select')}</label>
         <select
           value={selectedId}
           onChange={e => setSelId(e.target.value)}
@@ -498,19 +501,19 @@ function UnitTab() {
         }}>
           <div>
             <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>
-              🌡 IoT interne
+              🌡 {t('telemetry.internal_iot')}
             </div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a' }}>{iotTemp.toFixed(1)}°C</div>
           </div>
           <div>
             <div style={{ fontSize: 11, color: '#0284c7', fontWeight: 600, marginBottom: 4 }}>
-              ☁ Open-Meteo extérieur
+              ☁ {t('telemetry.external_meteo')}
             </div>
             <div style={{ fontSize: 28, fontWeight: 800, color: '#0369a1' }}>{extTemp}°C</div>
           </div>
           {isAnomalous && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#dc2626', fontSize: 13, fontWeight: 600 }}>
-              <AlertTriangle size={15} /> Écart anormal détecté
+              <AlertTriangle size={15} /> {t('telemetry.abnormal_gap')}
             </div>
           )}
         </div>
@@ -530,7 +533,7 @@ function UnitTab() {
               <div style={{ fontWeight: 800, fontSize: 22, color: '#0f172a' }}>
                 {typeof v === 'number' ? v.toFixed(1) : v}
               </div>
-              <div style={{ fontSize: 10, color: '#cbd5e1', marginTop: 2 }}>Temps réel</div>
+              <div style={{ fontSize: 10, color: '#cbd5e1', marginTop: 2 }}>{t('telemetry.real_time')}</div>
             </div>
           ))}
         </div>
@@ -540,8 +543,8 @@ function UnitTab() {
       <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, marginBottom: 20, overflow: 'hidden' }}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Historique 200 derniers relevés</div>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{records.length} enregistrements</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{t('telemetry.history_200')}</div>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{records.length} {t('telemetry.records')}</div>
           </div>
         </div>
         <div style={{ padding: '8px 0 4px' }}>
@@ -558,13 +561,13 @@ function UnitTab() {
       {records.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Tableau de données</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{t('telemetry.data_table')}</div>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', color: '#64748b', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>Horodatage</th>
+                  <th style={{ padding: '10px 16px', textAlign: 'left', color: '#64748b', fontWeight: 600, borderBottom: '1px solid #e2e8f0' }}>{t('telemetry.timestamp')}</th>
                   {Object.keys(records[0]?.metrics || {}).map(k => (
                     <th key={k} style={{ padding: '10px 14px', textAlign: 'right', color: '#64748b', fontWeight: 600, borderBottom: '1px solid #e2e8f0', textTransform: 'capitalize' }}>
                       {k.replace(/_/g, ' ')}
@@ -600,22 +603,23 @@ function UnitTab() {
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
-const TABS = [
-  { id: 'iot',   label: '📡 Noeuds IoT',    sub: 'Node A · Node B · Wokwi' },
-  { id: 'units', label: '🐾 Analyse Unités', sub: 'Capteurs par unité animale' },
+const TABS = (t) => [
+  { id: 'iot',   label: t('telemetry.tab_iot'),    sub: t('telemetry.tab_iot_sub') },
+  { id: 'units', label: t('telemetry.tab_units'), sub: t('telemetry.tab_units_sub') },
 ];
 
 export default function TelemetryAnalysis() {
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('iot');
 
   return (
     <>
-      <Navbar title="Télémétrie IoT" subtitle="Supervision temps réel — Wokwi ESP32 · Noeuds A & B" />
+      <Navbar title={t("telemetry.page_title")} subtitle={t("telemetry.page_subtitle")} />
 
-      <div className="page-content">
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
-          {TABS.map(tab => {
+          {TABS(t).map(tab => {
             const active = activeTab === tab.id;
             return (
               <button
