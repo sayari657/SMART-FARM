@@ -2,7 +2,7 @@ import logging
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
-from typing import List, Dict, Any
+from typing import List, Dict
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ class RAGService:
     def _ensure_collection(self):
         if not self.is_active:
             return
-            
+
         try:
             self.collection = self.chroma_client.get_or_create_collection(
                 name=self.collection_name,
@@ -48,6 +48,7 @@ class RAGService:
             )
         except Exception as e:
             logger.error(f"Error initializing ChromaDB Collection: {str(e)}")
+            self.is_active = False  # fall back to expert_kb mode
             self.is_active = False
 
     async def add_knowledge_pack(self, documents: List[str], metadatas: List[Dict], ids: List[str]):

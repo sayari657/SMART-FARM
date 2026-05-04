@@ -7,9 +7,9 @@ import AnimalCard from '../components/AnimalCard';
 import ThreeSpeciesCard from '../components/ThreeSpeciesCard';
 import { animalsAPI, farmsAPI } from '../services/api';
 
-const SPECIES = ['all', 'bee', 'cow', 'poultry', 'sheep', 'goat'];
-const SPECIES_EMOJI = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐' };
-const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626' };
+const SPECIES = ['all', 'bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'];
+const SPECIES_EMOJI = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
+const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
 
 export default function Animals() {
   const { t, i18n } = useTranslation();
@@ -85,7 +85,7 @@ export default function Animals() {
 
         {/* 2. Advanced 3D Category Summary Grid */}
         <div className="summary-grid">
-          {['bee', 'cow', 'poultry', 'sheep', 'goat'].map(sp => (
+          {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => (
             <ThreeSpeciesCard
               key={sp}
               sp={sp}
@@ -93,20 +93,14 @@ export default function Animals() {
               emoji={SPECIES_EMOJI[sp]}
               color={SPECIES_COLORS[sp]}
               isActive={speciesFilter === sp}
-              onClick={() => {
-                const routeMap = {
-                  bee: '/aboutbee',
-                  cow: '/aboutcow',
-                  poultry: '/aboutpoultry',
-                  sheep: '/aboutsheep',
-                  goat: '/aboutgoat'
-                };
-                if (routeMap[sp]) {
-                  navigate(routeMap[sp]);
-                } else {
-                  setSp(speciesFilter === sp ? 'all' : sp);
-                }
-              }}
+              onClick={() => navigate({
+                bee:     '/aboutbee',
+                cow:     '/aboutcow',
+                poultry: '/aboutpoultry',
+                sheep:   '/aboutsheep',
+                goat:    '/aboutgoat',
+                rabbit:  '/aboutrabbit',
+              }[sp])}
             />
           ))}
         </div>

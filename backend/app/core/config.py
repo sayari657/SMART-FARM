@@ -1,13 +1,17 @@
 from pydantic_settings import BaseSettings
+from pathlib import Path
 import os
+
+# Project root: backend/app/core/config.py → ../../.. → project root
+_BASE_DIR = Path(__file__).parent.parent.parent.parent
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Smart Farm AI"
     VERSION: str = "3.0.0-Enterprise"
     API_V1_STR: str = "/api/v1"
 
-    # JWT
-    SECRET_KEY: str = "dev_secret_key_change_in_production_use_32_chars"
+    # JWT — must be set in .env (no insecure default)
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
 
@@ -45,53 +49,46 @@ class Settings(BaseSettings):
     WEATHER_API_URL: str = os.getenv("WEATHER_API_URL", "https://api.open-meteo.com/v1/forecast")
 
     # ── YOLO Model Paths ──────────────────────────────────────────
-    # Modèle Abeilles (entraîné sur dataset Kaggle)
+    # Defaults are relative to the project root; override via .env on any machine.
     YOLO_BEE_PATH: str = os.getenv(
         "YOLO_BEE_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\bee\final_export\best.pt"
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "bee" / "final_export" / "best.pt")
     )
-    # Modèle Chèvre / Vache / Mouton (modèle partagé multi-espèces)
     YOLO_GOAT_PATH: str = os.getenv(
         "YOLO_GOAT_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\model goat cow\best.pt"
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "model goat cow" / "best.pt")
     )
     YOLO_COW_PATH: str = os.getenv(
         "YOLO_COW_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\model goat cow\best.pt"
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "model goat cow" / "best.pt")
     )
     YOLO_SHEEP_PATH: str = os.getenv(
         "YOLO_SHEEP_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\animal_weights\model goat cow\best.pt"
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "model goat cow" / "best.pt")
     )
-    # Modele Maladies des Feuilles (12 classes: Beans, Strawberry, Tomato)
     YOLO_LEAVES_PATH: str = os.getenv(
         "YOLO_LEAVES_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Detection diseases Leaves\best.pt"
+        str(_BASE_DIR / "ai_assets" / "plantations" / "Detection diseases Leaves" / "best.pt")
     )
-    # Modele Maladies Olivier (5 classes: Anthracnose, BlackScale, OlivePeacockSpot, Psyllid, Tuberculosis)
     YOLO_OLIVE_PATH: str = os.getenv(
         "YOLO_OLIVE_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model olive-tree-diseases\best.pt"
+        str(_BASE_DIR / "ai_assets" / "plantations" / "model olive-tree-diseases" / "best.pt")
     )
-    # Modele Insects (10 classes: Army worm, Legume beetle, Rice pests...)
     YOLO_INSECTS_PATH: str = os.getenv(
         "YOLO_INSECTS_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model insects_final\best.pt"
+        str(_BASE_DIR / "ai_assets" / "plantations" / "model insects_final" / "best.pt")
     )
-    # Modele Lemon Disease (Placeholder)
     YOLO_LEMON_PATH: str = os.getenv(
         "YOLO_LEMON_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\model lemon-leaf\best.pt"
+        str(_BASE_DIR / "ai_assets" / "plantations" / "model lemon-leaf" / "best.pt")
     )
-    # Modele Orange Disease (Placeholder)
     YOLO_ORANGE_PATH: str = os.getenv(
         "YOLO_ORANGE_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\plantations\Model orange-leaf\best.pt"
+        str(_BASE_DIR / "ai_assets" / "plantations" / "Model orange-leaf" / "best.pt")
     )
-    # Modele Feu & Fumée
     YOLO_FIRE_PATH: str = os.getenv(
         "YOLO_FIRE_PATH",
-        r"C:\Users\Mohamed\Desktop\FARM AI\ai_assets\Alert\model-fire-detection-and-smoke\best.pt"
+        str(_BASE_DIR / "ai_assets" / "Alert" / "model-fire-detection-and-smoke" / "best.pt")
     )
 
 
@@ -107,6 +104,7 @@ class Settings(BaseSettings):
     # WhatsApp Business Cloud API (Meta)
     WHATSAPP_TOKEN: str = os.getenv("WHATSAPP_TOKEN", "")
     WHATSAPP_PHONE_ID: str = os.getenv("WHATSAPP_PHONE_ID", "")
+    WHATSAPP_API_VERSION: str = os.getenv("WHATSAPP_API_VERSION", "v25.0")
 
     class Config:
         env_file = ".env"

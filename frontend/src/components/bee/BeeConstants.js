@@ -12,10 +12,10 @@
  */
 export const COLORS = {
   /* ── Fonds — crème de miel matinal ── */
-  bg:         '#FEFCF7',                       // ivoire chaud — lumière matinale
-  bg2:        '#FFF8E7',                       // crème miel légère
+  bg:         '#FFFFFF',                       // blanc pur
+  bg2:        '#F8FAFC',                       // blanc légèrement gris
   surface:    '#FFFFFF',                       // carte blanche pure
-  surface2:   'rgba(255, 248, 231, 0.92)',     // panneau crème doux
+  surface2:   'rgba(248, 250, 252, 0.95)',     // panneau blanc doux
   glass:      'rgba(245, 158, 11, 0.05)',      // reflet doré subtil
 
   /* ── Bordures — cire claire ── */

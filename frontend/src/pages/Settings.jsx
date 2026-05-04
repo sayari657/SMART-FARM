@@ -20,11 +20,6 @@ const SECTION_MAP = (t) => ({
   [t('settings.poultry_thresholds')]: ['poultry_ammonia_max','poultry_temp_max'],
   [t('common.system')]: ['alert_check_interval_sec'],
 });
-  'Bee Thresholds': ['bee_temp_max','bee_humidity_min','bee_weight_drop_alert'],
-  'Cow Thresholds': ['cow_temp_max'],
-  'Poultry Thresholds': ['poultry_ammonia_max','poultry_temp_max'],
-  'System': ['alert_check_interval_sec'],
-};
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
@@ -137,3 +132,4 @@ export default function Settings() {
     </>
   );
 }
+

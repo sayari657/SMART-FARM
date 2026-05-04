@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CloudRain, Sun, Wind, Cloud, Building2, PawPrint, AlertTriangle, AlertOctagon, Heart, Eye, Cpu, Zap } from 'lucide-react';
+import { CloudRain, Sun, Wind, Cloud, Building2, PawPrint, AlertTriangle, AlertOctagon, Heart, Eye, Cpu, Zap, Flame, ShieldAlert, ShieldCheck, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import KPIBox from '../components/KPIBox';
@@ -9,6 +9,15 @@ import TelemetryChart from '../components/TelemetryChart';
 import { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
 import AIScanner from '../components/AIScanner';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
+
+const SPECIES_ROUTES = {
+  bee:     '/aboutbee',
+  cow:     '/aboutcow',
+  poultry: '/aboutpoultry',
+  sheep:   '/aboutsheep',
+  goat:    '/aboutgoat',
+  rabbit:  '/aboutrabbit',
+};
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
@@ -22,11 +31,29 @@ export default function Dashboard() {
     nodeA: { soil: 45.2, pressure: 0.5, flow: 12.8, temp: 23.4 },
     nodeB: { weight: 46.5, broodTemp: 34.8, extTemp: 28.2, extHum: 58.9 }
   });
+  const [fireAlert, setFireAlert] = useState(null);
   const navigate = useNavigate();
+
+  const handleFireDetection = useCallback(({ detections, imageUrl }) => {
+    if (!detections?.length) return;
+    const fireLabels = detections.filter(d =>
+      d.label?.toLowerCase().includes('fire') || d.label?.toLowerCase().includes('smoke')
+    );
+    if (!fireLabels.length) return;
+
+    const isFire  = fireLabels.some(d => d.label?.toLowerCase().includes('fire'));
+    const isSmoke = fireLabels.some(d => d.label?.toLowerCase().includes('smoke'));
+    const maxConf = Math.round(Math.max(...fireLabels.map(d => d.confidence)) * 100);
+
+    setFireAlert({ isFire, isSmoke, imageUrl, confidence: maxConf, timestamp: new Date() });
+
+    alertsAPI.list().catch(() => {});
+    navigate('/alerts');
+  }, [navigate]);
 
   useEffect(() => {
     const fetchIot = () => {
-      fetch('http://127.0.0.1:8002/api/v1/iot/latest')
+      fetch('/api/v1/iot/latest')
         .then(res => res.json())
         .then(data => {
           if (data && data.nodeA && data.nodeB) {
@@ -76,8 +103,8 @@ export default function Dashboard() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const SPECIES_COLORS = { bee:'#d97706', cow:'#7c3aed', poultry:'#0891b2', sheep:'#059669', goat:'#dc2626' };
-  const SPECIES_EMOJI  = { bee:'🐝', cow:'🐄', poultry:'🐔', sheep:'🐑', goat:'🐐' };
+  const SPECIES_COLORS = { bee:'#d97706', cow:'#7c3aed', poultry:'#0891b2', sheep:'#059669', goat:'#dc2626', rabbit:'#16a34a' };
+  const SPECIES_EMOJI  = { bee:'🐝', cow:'🐄', poultry:'🐔', sheep:'🐑', goat:'🐐', rabbit:'🐰' };
 
   if (loading) return <div className="page-content"><div className="spinner" /></div>;
 
@@ -114,9 +141,15 @@ export default function Dashboard() {
                 </div>
                 <div style={{ textAlign: 'center', paddingLeft: 16, borderLeft: '1px solid rgba(14,165,233,.25)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-accent)', textTransform: 'uppercase' }}>{t('dashboard.risk_score', 'Risk Score')}</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: (weather.risks?.heat_stress || weather.risks?.storm_risk) ? 'var(--color-critical)' : 'var(--color-accent)' }}>
-                    {(weather.risks?.heat_stress || weather.risks?.storm_risk) ? '85/100' : '15/100'}
-                  </div>
+                  {(() => {
+                    const activeRisks = [weather.risks?.heat_stress, weather.risks?.storm_risk, weather.risks?.drought_risk, weather.risks?.frost_risk].filter(Boolean).length;
+                    const score = activeRisks === 0 ? 12 : activeRisks === 1 ? 52 : activeRisks === 2 ? 74 : 90;
+                    return (
+                      <div style={{ fontSize: 20, fontWeight: 800, color: score > 50 ? 'var(--color-critical)' : 'var(--color-accent)' }}>
+                        {score}/100
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -199,14 +232,14 @@ export default function Dashboard() {
           </div>
           <div className="species-grid">
             {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => {
-              const count = stats?.units_by_species?.[sp] || (sp === 'rabbit' ? 12 : 0);
-              const accentColor = SPECIES_COLORS[sp] || (sp === 'rabbit' ? '#16a34a' : 'var(--color-primary)');
-              const emoji = SPECIES_EMOJI[sp] || (sp === 'rabbit' ? '🐰' : '🐾');
+              const count = stats?.units_by_species?.[sp] || 0;
+              const accentColor = SPECIES_COLORS[sp] || 'var(--color-primary)';
+              const emoji = SPECIES_EMOJI[sp] || '🐾';
               return (
-                <div className="species-card" key={sp} onClick={() => navigate(sp === 'rabbit' ? '/aboutrabbit' : '/aboutbee')} style={{ cursor:'pointer', height:'100%', borderLeft: `3px solid ${accentColor}` }}>
+                <div className="species-card" key={sp} onClick={() => navigate(SPECIES_ROUTES[sp])} style={{ cursor:'pointer', height:'100%', borderLeft: `3px solid ${accentColor}` }}>
                   <div className="species-card-emoji">{emoji}</div>
                   <div className="species-card-label">{sp.charAt(0).toUpperCase() + sp.slice(1)}s</div>
-                  <div className="species-card-count">{count} {sp === 'rabbit' ? 'Active' : 'Units'}</div>
+                  <div className="species-card-count">{count} Units</div>
                   <div className="species-card-accent" style={{ background: accentColor }} />
                   <div className="species-card-trend" style={{ background: `${accentColor}22`, color: accentColor }}>ONLINE</div>
                 </div>
@@ -217,19 +250,85 @@ export default function Dashboard() {
 
         <div className="grid-2-1" style={{ marginBottom: 28, gap: 24 }}>
           {/* Sovereign Emergency Monitor */}
-          <AIScanner 
-            category="fire" 
-            title={t('dashboard.sovereign_emergency_monitor')} 
-            color="#ef4444" 
+          <AIScanner
+            category="fire"
+            title={t('dashboard.sovereign_emergency_monitor')}
+            color="#ef4444"
+            onAnalysisComplete={handleFireDetection}
           />
-          
+
+          {/* Safety Protocol — Emergency status panel */}
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div className="card-header"><div className="card-title">{t('dashboard.safety_protocol')}</div></div>
-            <div style={{ padding: 20 }}>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: '#ef4444' }}><AlertTriangle size={16} /> {t('dashboard.fire_risk_low')}</div>
-                 <div style={{ padding: 12, borderRadius: 8, background: '#f8fafc', fontSize: 11, border: '1px solid #e2e8f0' }}>{t('dashboard.scanner_desc')}</div>
-               </div>
+            <div className="card-header" style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShieldAlert size={16} color="#ef4444" />
+                <div className="card-title">{t('dashboard.safety_protocol', 'Protocole de Sécurité')}</div>
+              </div>
+              {fireAlert && (
+                <button
+                  onClick={() => setFireAlert(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)', padding: 4 }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {fireAlert ? (
+                <>
+                  {/* Alert banner */}
+                  <div style={{
+                    padding: '12px 16px', borderRadius: 10,
+                    background: fireAlert.isFire ? 'rgba(239,68,68,0.12)' : 'rgba(234,179,8,0.12)',
+                    border: `1px solid ${fireAlert.isFire ? '#ef4444' : '#eab308'}`,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                  }}>
+                    <Flame size={20} color={fireAlert.isFire ? '#ef4444' : '#eab308'} style={{ flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: fireAlert.isFire ? '#ef4444' : '#ca8a04' }}>
+                        {fireAlert.isFire ? '🔥 Risque d\'incendie détecté' : '💨 Présence de fumée détectée'}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginTop: 2 }}>
+                        Confiance: {fireAlert.confidence}% · {fireAlert.timestamp.toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Captured image */}
+                  {fireAlert.imageUrl && (
+                    <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-3)', padding: '6px 10px', background: 'var(--color-surface-2)' }}>
+                        Image capturée — validation visuelle
+                      </div>
+                      <img
+                        src={fireAlert.imageUrl}
+                        alt="Détection feu/fumée"
+                        style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }}
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => navigate('/alerts')}
+                    style={{ background: '#ef4444', color: 'white', fontWeight: 700, fontSize: 12 }}
+                  >
+                    <AlertTriangle size={13} style={{ marginRight: 6 }} />
+                    Voir le Centre d'Alertes
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, color: 'var(--color-success)' }}>
+                    <ShieldCheck size={16} />
+                    {t('dashboard.fire_risk_low', 'Aucune menace détectée')}
+                  </div>
+                  <div style={{ padding: 12, borderRadius: 8, background: 'var(--color-surface-2)', fontSize: 11, color: 'var(--color-text-3)', border: '1px solid var(--color-border-light)', lineHeight: 1.6 }}>
+                    {t('dashboard.scanner_desc', 'Analysez une image via le scanner à gauche. En cas de détection de feu ou de fumée, une alerte s\'affichera ici avec l\'image capturée.')}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

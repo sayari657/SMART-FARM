@@ -48,9 +48,10 @@ function OwnerRoute({ children }) {
 }
 
 function WorkerRoute({ children }) {
+  const { user } = useAuth();
   const token = localStorage.getItem('token');
   if (!token) return <Navigate to="/worker-login" replace />;
-  // Both workers and owners can use the mobile interface (owners log in via phone OTP)
+  if (user && user.role !== 'worker' && user.role !== 'owner') return <Navigate to="/worker-login" replace />;
   return children;
 }
 

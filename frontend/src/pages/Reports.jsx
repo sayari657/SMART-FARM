@@ -21,7 +21,7 @@ const COLORS = {
   primary: '#D97706',
   secondary: '#166534',
   accent: '#0369A1',
-  bg: '#FFFBF2',
+  bg: '#FFFFFF',
   card: '#FFFFFF',
   text: '#1C0A00',
   textMuted: '#6B7280'
@@ -82,21 +82,21 @@ export default function Reports() {
     const loadAll = async () => {
       setLoading(true);
       try {
-        const [rRes, fRes, aRes, pRes] = await Promise.all([
+        const [rRes, fRes, aRes] = await Promise.all([
           reportsAPI.list(),
           farmsAPI.list(),
           animalsAPI.list(),
-          plantsAPI.list()
         ]);
         
         setReports(rRes.data);
         setFarms(fRes.data);
         
+        // plantsAPI n’est pas appelé ici (endpoint /plants/search exige q non vide)
         setStats({
           farms: fRes.data.length,
           animals: aRes.data.length,
-          plants: pRes.data.length,
-          hives: 12, // Mocked or fetched from bee API if needed
+          plants: 0,
+          hives: 12,
           health: 94,
           alerts: 3
         });
@@ -132,7 +132,7 @@ export default function Reports() {
         }
       />
 
-      <div className="page-content" style={{ padding: '24px 40px', background: COLORS.bg }} id="report-content">
+      <div className="page-content" style={{ padding: '24px 40px', background: '#ffffff' }} id="report-content">
         
         {/* Strategic Actions Header */}
         <div style={{ 

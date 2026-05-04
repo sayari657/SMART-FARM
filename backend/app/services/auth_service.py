@@ -89,13 +89,14 @@ class AuthService:
 
         # Send OTP (WhatsApp) — dev fallback stores OTP in memory
         try:
-            otp = otp_service.send_otp_whatsapp(phone_number)
+            otp_service.send_otp_whatsapp(phone_number)
         except Exception:
-            import random as _r
+            import random as _r, logging as _log
             otp = str(_r.randint(100000, 999999))
             otp_service.OTP_STORE[f"whatsapp:{phone_number}"] = otp
+            _log.getLogger(__name__).warning(f"[DEV] WhatsApp non configuré — OTP pour {phone_number} dans OTP_STORE")
 
-        return {"message": f"Code OTP envoyé sur WhatsApp au {phone_number}", "phone": phone_number, "debug_otp": otp}
+        return {"message": f"Code OTP envoyé sur WhatsApp au {phone_number}", "phone": phone_number}
 
     def worker_verify_otp(self, phone_number: str, otp: str) -> dict:
         """Étape 2 — Verify OTP and return a JWT with the user's actual role."""

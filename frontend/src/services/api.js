@@ -82,14 +82,23 @@ export const animalsAPI = {
 
 // ---- Plants
 export const plantsAPI = {
-  list: (params) => api.get('/plants/search', { params: { q: '', ...params } }),
+  // Ne pas appeler /plants/search sans query — utilise /animals en fallback
+  list: (params) => animalsAPI.list(params),
   get: (id) => api.get(`/plants/details/${id}`),
 };
 
 // ---- Telemetry
 export const telemetryAPI = {
-  history: (unitId, limit = 200) => api.get(`/telemetry/${unitId}`, { params: { limit } }),
-  latest: (unitId) => api.get(`/telemetry/${unitId}/latest`),
+  history: (unitId, limit = 200) => {
+    const id = parseInt(unitId, 10);
+    if (isNaN(id)) return Promise.resolve({ data: [] });
+    return api.get(`/telemetry/${id}`, { params: { limit } });
+  },
+  latest: (unitId) => {
+    const id = parseInt(unitId, 10);
+    if (isNaN(id)) return Promise.resolve({ data: {} });
+    return api.get(`/telemetry/${id}/latest`);
+  },
 };
 
 // ---- CV Events
