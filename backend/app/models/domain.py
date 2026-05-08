@@ -156,7 +156,9 @@ class WorkerTask(Base):
     id = Column(Integer, primary_key=True, index=True)
     farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
     worker_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    animal_id = Column(Integer, ForeignKey("animal_units.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(200), nullable=False)
+    category = Column(String(50), default="other") # feeding, health, milking, cleaning
     description = Column(Text)
     due_date = Column(DateTime)
     status = Column(String(50), default="pending") # pending, done, blocked
@@ -263,10 +265,13 @@ class AnimalUnit(Base):
     farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
     type_id = Column(Integer, ForeignKey("animal_types.id", ondelete="RESTRICT"), nullable=False)
     name = Column(String(100), nullable=False)           # e.g. hive_01, cow_05
-    identifier = Column(String(50), nullable=True)       # external device/tag ID
-    status = Column(String(50), default="healthy")
+    identifier = Column(String(50), nullable=True)       # Tag ID / Ear Tag
+    tag_id = Column(String(50), unique=True, nullable=True) # Official ear tag
+    status = Column(String(50), default="healthy")       # health status: healthy, warning, critical
+    lifecycle_status = Column(String(50), default="production") # production, rest, care, gestation
     health_score = Column(Float, default=100.0)
     notes = Column(Text)
+    entry_date = Column(DateTime, default=datetime.utcnow) # Arrivée dans la ferme
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -721,3 +726,187 @@ class BeePlanningTask(Base):
     created_at  = Column(DateTime, default=datetime.utcnow)
 
     planning = relationship("BeePlanning", back_populates="tasks")
+
+
+# ---------------------------------------------------------------------------
+# Animal Logs (FMIS Data)
+# ---------------------------------------------------------------------------
+
+class AnimalLog(Base):
+    """Registre historique pour les animaux (production, santé, alimentation)."""
+    __tablename__ = "animal_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    animal_id = Column(Integer, ForeignKey("animal_units.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(50), nullable=False) # milk_yield, health_event, feed_consumed
+    value = Column(Float, nullable=True)
+    unit = Column(String(20), nullable=True) # L, kg, etc.
+    notes = Column(Text, nullable=True)
+    recorded_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    animal = relationship("AnimalUnit")
+    recorder = relationship("User")
+
+    __table_args__ = (
+        Index("ix_animal_logs_animal_time", "animal_id", "timestamp"),
+    )
+
+class FarmFinance(Base):
+    """Registre des revenus et dépenses globaux de la ferme."""
+    __tablename__ = "farm_finances"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(50), nullable=False) # expense, revenue
+    category = Column(String(100), nullable=False) # food, vet, sales, maintenance
+    amount = Column(Float, nullable=False)
+    notes = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+
+    farm = relationship("Farm")
+
+
+# ---------------------------------------------------------------------------
+# Poultry ERP — Enterprise Management (Non-IoT)
+# ---------------------------------------------------------------------------
+
+class PoultryBatch(Base):
+    """Gestion des lots (Broilers, Layers, Breeders)."""
+    __tablename__ = "poultry_batches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(100), nullable=False)           # ex: Lot-A-2026
+    batch_type = Column(String(50), nullable=False)      # broiler, layer, breeder
+    breed = Column(String(100))                          # ex: Ross 308
+    supplier = Column(String(100))
+    arrival_date = Column(DateTime, default=datetime.utcnow)
+    initial_quantity = Column(Integer, nullable=False)
+    current_quantity = Column(Integer)
+    status = Column(String(50), default="active")        # active, sold, vacuum, archived
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    farm = relationship("Farm")
+    feed_logs = relationship("PoultryFeedLog", back_populates="batch", cascade="all, delete-orphan")
+    egg_logs = relationship("PoultryEggLog", back_populates="batch", cascade="all, delete-orphan")
+    health_logs = relationship("PoultryHealthLog", back_populates="batch", cascade="all, delete-orphan")
+    sales = relationship("PoultrySale", back_populates="batch", cascade="all, delete-orphan")
+
+
+class PoultryFeedLog(Base):
+    """Journal de consommation d'aliments et calcul FCR."""
+    __tablename__ = "poultry_feed_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("poultry_batches.id", ondelete="CASCADE"), nullable=False)
+    date = Column(DateTime, default=datetime.utcnow)
+    feed_type = Column(String(100))                      # Démarrage, Croissance, Finition
+    quantity_kg = Column(Float, nullable=False)
+    average_weight_g = Column(Float)                      # Poids moyen observé pour FCR
+    fcr_calculated = Column(Float)                        # Indice de Consommation
+    cost_per_kg = Column(Float)
+    notes = Column(Text)
+
+    # --- Data Contract ---
+    status = Column(String(20), default="pending")       # pending, validated, rejected
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validation_timestamp = Column(DateTime, nullable=True)
+    admin_notes = Column(Text, nullable=True)
+
+    batch = relationship("PoultryBatch", back_populates="feed_logs")
+
+
+class PoultryEggLog(Base):
+    """Production journalière d'œufs (pour pondeuses)."""
+    __tablename__ = "poultry_egg_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("poultry_batches.id", ondelete="CASCADE"), nullable=False)
+    date = Column(DateTime, default=datetime.utcnow)
+    total_eggs = Column(Integer, nullable=False)
+    broken_eggs = Column(Integer, default=0)
+    grade_a_count = Column(Integer, default=0)
+    grade_b_count = Column(Integer, default=0)
+    production_rate = Column(Float)                       # % ponte
+    notes = Column(Text)
+
+    # --- Data Contract ---
+    status = Column(String(20), default="pending")
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validation_timestamp = Column(DateTime, nullable=True)
+    admin_notes = Column(Text, nullable=True)
+
+    batch = relationship("PoultryBatch", back_populates="egg_logs")
+
+
+class PoultryHealthLog(Base):
+    """Registre de santé (vaccination, traitements)."""
+    __tablename__ = "poultry_health_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("poultry_batches.id", ondelete="CASCADE"), nullable=False)
+    date = Column(DateTime, default=datetime.utcnow)
+    event_type = Column(String(50))                      # vaccination, treatment, surgery, inspection
+    description = Column(String(255), nullable=False)
+    deaths_today = Column(Integer, default=0)            # mortalité du jour
+    medicine_used = Column(String(200))
+    dosage = Column(String(100))
+    vet_name = Column(String(100))
+    cost = Column(Float, default=0.0)
+    notes = Column(Text)
+
+    # --- Data Contract ---
+    status = Column(String(20), default="pending")
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validation_timestamp = Column(DateTime, nullable=True)
+    admin_notes = Column(Text, nullable=True)
+
+    batch = relationship("PoultryBatch", back_populates="health_logs")
+
+
+class PoultrySale(Base):
+    """Ventes et Revenus par lot."""
+    __tablename__ = "poultry_sales"
+
+    id = Column(Integer, primary_key=True, index=True)
+    batch_id = Column(Integer, ForeignKey("poultry_batches.id", ondelete="CASCADE"), nullable=False)
+    date = Column(DateTime, default=datetime.utcnow)
+    product_type = Column(String(100))                   # Volailles vives, œufs, viande
+    quantity = Column(Integer, nullable=False)
+    unit_price = Column(Float, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    customer_name = Column(String(150))
+    invoice_number = Column(String(50))
+    notes = Column(Text)
+
+    # --- Data Contract ---
+    status = Column(String(20), default="pending")
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validation_timestamp = Column(DateTime, nullable=True)
+    admin_notes = Column(Text, nullable=True)
+
+    batch = relationship("PoultryBatch", back_populates="sales")
+
+
+class PoultryInventory(Base):
+    """Gestion des stocks (Aliments, Médicaments, Matériel)."""
+    __tablename__ = "poultry_inventory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=False)
+    item_name = Column(String(100), nullable=False)
+    category = Column(String(50))                        # feed, medicine, equipment
+    quantity = Column(Float, nullable=False)
+    unit = Column(String(20))                             # kg, bags, doses, units
+    unit_price = Column(Float)
+    min_threshold = Column(Float)                        # Seuil pour alertes stock bas
+    supplier = Column(String(100))
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    farm = relationship("Farm")

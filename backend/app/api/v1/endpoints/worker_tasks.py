@@ -10,9 +10,9 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.domain import WorkerTask, User
+from app.models.domain import WorkerTask, WorkerAssignment, User
 
-router = APIRouter(prefix="/worker/tasks", tags=["Worker Tasks"])
+router = APIRouter(prefix="/worker-tasks", tags=["Worker Tasks"])
 
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────
@@ -20,7 +20,9 @@ router = APIRouter(prefix="/worker/tasks", tags=["Worker Tasks"])
 class TaskCreate(BaseModel):
     farm_id: int
     worker_id: Optional[int] = None
+    animal_id: Optional[int] = None
     title: str
+    category: str = "other" # feeding, health, milking, cleaning
     description: Optional[str] = None
     due_date: Optional[datetime] = None
     priority: str = "normal"
@@ -32,13 +34,25 @@ class TaskStatusUpdate(BaseModel):
 class TaskOut(BaseModel):
     id: int
     farm_id: int
-    worker_id: Optional[int]
+    worker_id: Optional[int] = None
+    animal_id: Optional[int] = None
     title: str
-    description: Optional[str]
-    due_date: Optional[datetime]
+    category: str
+    description: Optional[str] = None
+    due_date: Optional[datetime] = None
     status: str
     priority: str
-    created_at: Optional[datetime]
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class WorkerOut(BaseModel):
+    id: int
+    full_name: Optional[str] = None
+    username: str
+    phone_number: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -67,6 +81,17 @@ def list_farm_tasks(
 ):
     """List all tasks for a specific farm (owner access)."""
     return db.query(WorkerTask).filter(WorkerTask.farm_id == farm_id).all()
+
+
+@router.get("/workers", response_model=List[WorkerOut])
+def list_farm_workers(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List all workers assigned to a farm."""
+    assignments = db.query(WorkerAssignment).filter(WorkerAssignment.farm_id == farm_id).all()
+    return [a.worker for a in assignments]
 
 
 @router.post("", response_model=TaskOut, status_code=201)

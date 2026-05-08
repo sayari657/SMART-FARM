@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Download, Bell, Camera, CheckSquare, AlertTriangle, ChevronRight, Wifi, WifiOff } from 'lucide-react';
+import { Download, Bell, Camera, CheckSquare, AlertTriangle, ChevronRight, Wifi, WifiOff, BookOpen } from 'lucide-react';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
@@ -154,6 +154,33 @@ function WorkerHome() {
               </div>
             </button>
           </div>
+        </div>
+
+        {/* ── Resources ── */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
+            Ressources
+          </div>
+          <button
+            onClick={() => navigate('/worker/instructions')}
+            style={{
+              width: '100%', background: 'linear-gradient(135deg, #0891b2, #0369a1)',
+              border: 'none', borderRadius: 14, padding: '16px 18px',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
+              boxShadow: '0 4px 16px #0891b230', transition: 'transform 0.15s',
+            }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BookOpen size={20} color="white" />
+            </div>
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ color: 'white', fontWeight: 800, fontSize: 14 }}>Protocoles & Consignes</div>
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>Guides de travail · Alimentation · Santé · Urgences</div>
+            </div>
+            <ChevronRight size={16} color="rgba(255,255,255,0.6)" />
+          </button>
         </div>
 
         {/* ── Install PWA ── */}

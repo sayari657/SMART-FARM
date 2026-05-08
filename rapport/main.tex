@@ -1,0 +1,713 @@
+%================================================================
+% Smart Farm AI — Rapport de Projet de Fin d'Études
+% Auteur : Mohamed Sayari
+% Organisme : Intech Solution Tunisie
+% Compilateur : pdfLaTeX (Overleaf compatible)
+%================================================================
+\documentclass[12pt, a4paper]{report}
+
+%--- Encodage et langue ------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+
+%--- Mise en page ------------------------------------------------
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+\usepackage{setspace}
+\onehalfspacing
+
+%--- Graphiques et figures ----------------------------------------
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+
+%--- Tableaux -----------------------------------------------------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+
+%--- Mathématiques -----------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+%--- Couleurs et mise en forme ------------------------------------
+\usepackage{xcolor}
+\definecolor{primary}{RGB}{0,102,51}      % vert agricole
+\definecolor{secondary}{RGB}{34,139,34}
+\definecolor{accent}{RGB}{255,140,0}
+\definecolor{lightgray}{RGB}{245,245,245}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+%--- Liens hypertexte --------------------------------------------
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    citecolor=secondary,
+    urlcolor=accent,
+    pdftitle={Smart Farm AI -- Rapport PFE},
+    pdfauthor={Mohamed Sayari},
+    pdfsubject={IoT, Intelligence Artificielle, Agriculture Intelligente}
+}
+
+%--- En-têtes et pieds de page -----------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{primary}{\textit{Smart Farm AI}}}
+\fancyhead[R]{\small\textcolor{gray}{\leftmark}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+%--- Numérotation des figures/tableaux par chapitre --------------
+\usepackage{chngcntr}
+\counterwithin{figure}{chapter}
+\counterwithin{table}{chapter}
+
+%--- Listes ------------------------------------------------------
+\usepackage{enumitem}
+
+%--- Citations ---------------------------------------------------
+\usepackage{cite}
+
+%================================================================
+\begin{document}
+
+%--- Page de titre -----------------------------------------------
+\begin{titlepage}
+\begin{center}
+    \vspace*{1cm}
+    {\Large \textbf{République Tunisienne}}\\[0.3cm]
+    {\large Ministère de l'Enseignement Supérieur et de la Recherche Scientifique}\\[1.5cm]
+
+    \rule{\textwidth}{1.5pt}\\[0.4cm]
+    {\huge \textbf{\textcolor{primary}{Smart Farm AI}}}\\[0.3cm]
+    {\Large \textit{Plateforme Intelligente de Gestion Agricole}}\\
+    {\large \textit{Basée sur l'IoT, l'Intelligence Artificielle et la Surveillance en Temps Réel}}\\[0.3cm]
+    \rule{\textwidth}{1.5pt}\\[1.5cm]
+
+    {\large Rapport de Projet de Fin d'Études}\\[0.5cm]
+    {\large Préparé par :}\\[0.3cm]
+    {\Large \textbf{Mohamed Sayari}}\\[1.5cm]
+
+    {\large Réalisé au sein de :}\\[0.3cm]
+    {\Large \textbf{Intech Solution Tunisie}}\\[1.5cm]
+
+    {\large Année Universitaire : 2025--2026}\\[1cm]
+
+    \vfill
+    \begin{tcolorbox}[colback=primary!10, colframe=primary, width=0.85\textwidth]
+    \centering
+    \textit{``L'agriculture intelligente est la clé d'un avenir durable — allier technologie et terre nourricière.''}
+    \end{tcolorbox}
+\end{center}
+\end{titlepage}
+
+%--- Table des matières ------------------------------------------
+\tableofcontents
+\listoffigures
+\listoftables
+
+\clearpage
+
+%================================================================
+%  INTRODUCTION GÉNÉRALE
+%================================================================
+\chapter*{Introduction Générale}
+\addcontentsline{toc}{chapter}{Introduction Générale}
+\markboth{Introduction Générale}{}
+
+\section*{L'Agriculture à l'Ère du Numérique}
+
+L'agriculture constitue depuis des millénaires le pilier fondamental de la civilisation humaine. Nourrir une population mondiale en constante croissance — estimée à près de 9,7 milliards d'individus à l'horizon 2050 selon les projections des Nations Unies — représente l'un des défis les plus cruciaux du XXI\textsuperscript{e} siècle \cite{fao2020}. Face à ce défi, les pratiques agricoles traditionnelles montrent aujourd'hui leurs limites face aux impératifs de productivité, de durabilité et de résilience climatique.
+
+En Tunisie, secteur agricole emploie environ 16\% de la population active et contribue à hauteur de 10\% au PIB national \cite{ins2022}. Pourtant, les exploitations agricoles tunisiennes font face à des contraintes structurelles majeures : la raréfaction des ressources en eau, la montée des températures, les attaques parasitaires imprévisibles et la faiblesse des infrastructures numériques en zone rurale. Ces facteurs combinés génèrent des pertes économiques considérables et compromettent la sécurité alimentaire nationale.
+
+\section*{Les Limites de l'Agriculture Traditionnelle}
+
+Les méthodes conventionnelles de gestion agricole reposent encore largement sur l'observation empirique et les décisions manuelles. Plusieurs problématiques récurrentes ont été identifiées lors de l'étude préliminaire :
+
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item \textbf{Gaspillage hydrique :} Les systèmes d'irrigation traditionnels (gravité, aspersion non régulée) consomment jusqu'à 80\% de l'eau agricole disponible avec des rendements sous-optimaux \cite{worldbank2019}. En l'absence de capteurs de sol, l'arrosage est appliqué selon des calendriers fixes, indépendamment des besoins réels des cultures.
+
+    \item \textbf{Détection tardive des maladies :} Les infections phytosanitaires — mildiou, fusariose, attaques d'insectes nuisibles — sont souvent détectées visuellement, à un stade avancé de propagation, rendant le traitement coûteux et parfois inefficace.
+
+    \item \textbf{Gestion empirique du cheptel :} Le suivi sanitaire des animaux d'élevage (bovins, ovins, caprins, volailles, lapins, abeilles) est réalisé manuellement, sans historique numérique fiable, ce qui rend difficile la détection précoce des anomalies comportementales ou sanitaires.
+
+    \item \textbf{Absence de tableaux de bord décisionnels :} Les agriculteurs manquent d'outils d'agrégation et de visualisation des données, rendant impossible toute analyse prédictive ou planification proactive des interventions.
+
+    \item \textbf{Isolement informationnel :} Les agents de terrain travaillent souvent sans connectivité fiable, sans accès aux recommandations d'experts, et sans moyen de remonter les observations en temps réel vers les gestionnaires.
+\end{itemize}
+
+\section*{L'Intelligence Artificielle et l'IoT au Service de l'Agriculture}
+
+La convergence de deux révolutions technologiques — l'Internet des Objets (IoT) et l'Intelligence Artificielle (IA) — ouvre des perspectives inédites pour la modernisation agricole. L'IoT permet de déployer des réseaux de capteurs bas coût, autonomes et connectés, capables de mesurer en continu les paramètres physiques et environnementaux de la ferme : humidité du sol, température ambiante, pression hydraulique, débit d'irrigation, poids des ruches \cite{pivoto2021}. L'IA, quant à elle, permet de transformer ce flux continu de données brutes en décisions actionnables : déclencher l'irrigation au seuil critique, alerter en cas d'anomalie thermique, diagnostiquer une maladie foliaire à partir d'une photographie ou encore prédire les rendements saisonniers.
+
+Des travaux récents en \textit{precision agriculture} et en \textit{smart farming} confirment le potentiel transformateur de ces technologies. La détection de maladies végétales par deep learning (réseaux convolutifs YOLOv8, ResNet) atteint des taux de précision supérieurs à 90\% sur des ensembles de données variés \cite{mohanty2016}. Les systèmes d'irrigation intelligente réduisent la consommation d'eau de 30 à 50\% par rapport aux méthodes conventionnelles \cite{atzori2020}.
+
+\section*{Présentation du Projet Smart Farm AI}
+
+\textbf{Smart Farm AI} est une plateforme agri-intelligente intégrée, développée dans le cadre d'un stage de fin d'études au sein d'Intech Solution Tunisie. Elle vise à doter les exploitations agricoles tunisiennes d'un système de surveillance, de pilotage et d'aide à la décision reposant sur trois piliers complémentaires :
+
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\textbf{\arabic*.}}]
+    \item \textbf{Infrastructure IoT :} Deux nœuds ESP32 déployés en champ — Node~A dédié à l'irrigation autonome des cultures, Node~B au monitoring des ruches apicoles — collectant en temps réel des données multimesures via protocole MQTT.
+
+    \item \textbf{Plateforme numérique :} Un backend FastAPI (Python) couplé à une base de données PostgreSQL, exposant une API REST sécurisée par JWT ; un frontend React 18 offrant des tableaux de bord interactifs, des cartes géolocalisées et une interface PWA pour les agents terrain.
+
+    \item \textbf{Moteur d'intelligence artificielle :} Des modèles YOLOv8 entraînés pour la détection de maladies foliaires (olivier, agrumes, insectes) et du comportement animal, couplés à un assistant conversationnel souverain (LLaVA-1.5-7B + Labess-7B) capable de répondre en dialecte tunisien (Darija), en arabe et en français.
+\end{enumerate}
+
+Ce rapport présente l'ensemble du processus de conception, développement et déploiement de cette plateforme. Le \textbf{Chapitre~1} établit le contexte général, présente l'organisme d'accueil et justifie le choix de la méthodologie CRISP-DM. Les chapitres suivants détailleront la conception technique, l'implémentation et les résultats expérimentaux.
+
+\clearpage
+
+%================================================================
+%  CHAPITRE 1 : CONTEXTE GÉNÉRAL ET ÉTUDE PRÉLIMINAIRE
+%================================================================
+\chapter{Contexte général et étude préliminaire}
+
+%----------------------------------------------------------------
+\section{Introduction}
+%----------------------------------------------------------------
+
+Ce premier chapitre pose les fondations analytiques et méthodologiques du projet Smart Farm AI. Il s'articule autour de trois axes complémentaires. Premièrement, nous présentons l'organisme d'accueil — Intech Solution Tunisie — son positionnement stratégique et ses domaines d'expertise en IoT, Intelligence Artificielle et Cloud. Deuxièmement, nous analysons le contexte du projet : étude de l'existant, problématique identifiée, objectifs poursuivis, solution envisagée, motivations et contraintes. Troisièmement, nous exposons la démarche de gestion de projet retenue, en comparant les méthodologies KDD, SEMMA et CRISP-DM avant de justifier le choix de CRISP-DM pour piloter le cycle de développement de la plateforme.
+
+%----------------------------------------------------------------
+\section{Présentation de l'organisme d'accueil}
+%----------------------------------------------------------------
+
+\subsection{Mission et Activités}
+
+\textbf{Intech Solution Tunisie} est une société de services numériques (ESN) tunisienne spécialisée dans le développement de solutions technologiques innovantes à destination des secteurs agricole, industriel et des services. Fondée pour répondre aux besoins croissants de transformation numérique des entreprises tunisiennes, la société s'est positionnée dès ses premières années comme un acteur de référence dans l'intégration de systèmes IoT et d'intelligence artificielle.
+
+Sa mission centrale peut être résumée ainsi : \textit{concevoir, développer et déployer des solutions technologiques souveraines et accessibles, permettant aux entreprises et exploitants agricoles tunisiens d'optimiser leurs processus grâce à la donnée, à l'automatisation et à l'intelligence artificielle}.
+
+Les activités principales d'Intech Solution Tunisie couvrent :
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item Le développement de plateformes web et mobiles (React, FastAPI, Flutter)
+    \item L'ingénierie de systèmes IoT embarqués (ESP32, Arduino, MQTT, capteurs industriels)
+    \item L'intégration de modèles d'IA et de vision par ordinateur (YOLOv8, LLMs)
+    \item Le déploiement Cloud et conteneurisé (Docker, Nginx, Caddy, PostgreSQL)
+    \item Le conseil en transformation numérique et en agriculture de précision
+\end{itemize}
+
+\subsection{Domaines d'Expertise et Points Forts}
+
+Intech Solution Tunisie dispose d'une expertise pluridisciplinaire couvrant les domaines suivants :
+
+\begin{description}[leftmargin=2cm, font=\textcolor{primary}\bfseries]
+    \item[IoT \& Systèmes Embarqués :] Conception de nœuds capteurs autonomes sur microcontrôleurs ESP32, intégration de protocoles de communication MQTT et HTTP, développement de firmwares Arduino robustes avec modes dégradés autonomes en cas de perte de connectivité.
+
+    \item[Intelligence Artificielle :] Entraînement et déploiement de modèles de vision par ordinateur (YOLOv8) pour la détection d'objets et de maladies ; intégration de grands modèles de langage (LLMs) locaux via Ollama (LLaVA-1.5-7B, Labess-7B) et modèles cloud via API Groq ; construction de pipelines RAG (\textit{Retrieval-Augmented Generation}) avec ChromaDB.
+
+    \item[Cloud \& DevOps :] Orchestration de services via Docker Compose, gestion automatique des certificats HTTPS via Caddy, reverse-proxy Nginx, déploiement multi-environnements (développement, staging, production).
+
+    \item[Développement Web Full-Stack :] Frontend React 18 avec Vite, cartographie interactive (Leaflet, MapLibre GL), visualisation 3D (Three.js), export PDF (jsPDF) et internationalisation multilingue (i18next : arabe, français, Darija tunisien). Backend FastAPI avec authentification JWT, ORM SQLAlchemy, base de données PostgreSQL 16 avec extension géospatiale PostGIS.
+\end{description}
+
+\subsection{Vision et Objectifs à Long Terme}
+
+La vision stratégique d'Intech Solution Tunisie s'inscrit dans le cadre plus large de la \textit{Stratégie Nationale Tunisienne de l'Agriculture Numérique} et des objectifs de développement durable (ODD) définis par les Nations Unies, en particulier l'ODD 2 (\textit{Faim Zéro}) et l'ODD 9 (\textit{Industrie, Innovation et Infrastructure}).
+
+À long terme, la société ambitionne de :
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\arabic*.}]
+    \item Constituer un écosystème technologique agricole souverain, garantissant que les données des exploitants tunisiens restent hébergées localement, sans dépendance à des fournisseurs cloud étrangers.
+    \item Étendre la plateforme Smart Farm AI à l'ensemble des gouvernorats tunisiens, en partenariat avec l'UTAP (Union Tunisienne de l'Agriculture et de la Pêche) et l'APIA (Agence de Promotion des Investissements Agricoles).
+    \item Développer une gamme de nœuds IoT industriels à bas coût, adaptés aux contraintes d'alimentation électrique (énergie solaire) et de connectivité (LoRaWAN, 4G NB-IoT) des zones rurales reculées.
+    \item Intégrer des capacités d'analyse prédictive avancée (prévisions climatiques, modèles épidémiques) pour anticiper les crises phytosanitaires et optimiser les rendements agricoles.
+\end{enumerate}
+
+\subsection{Informations clés sur Intech Solution Tunisie}
+
+\begin{table}[H]
+\centering
+\caption{Fiche d'identité d'Intech Solution Tunisie}
+\label{tab:intech_fiche}
+\begin{tabularx}{\textwidth}{>{\bfseries\color{primary}}l X}
+\toprule
+\textbf{Champ} & \textbf{Information} \\
+\midrule
+Dénomination sociale & Intech Solution Tunisie \\
+Secteur d'activité & Technologies de l'Information — Agriculture Numérique \\
+Domaines & IoT, Intelligence Artificielle, Cloud, Développement Web \\
+Spécialité & Plateformes agri-intelligentes, Systèmes embarqués \\
+Pays & Tunisie \\
+Langues de travail & Français, Arabe, Anglais \\
+Technologies clés & FastAPI, React, ESP32, YOLOv8, Ollama, PostgreSQL \\
+Valeurs & Souveraineté numérique, Open Source, Innovation locale \\
+Partenaires & UTAP, ENMV Sidi Thabet, APIA, AVFA \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Structure Organisationnelle}
+
+La structure organisationnelle d'Intech Solution Tunisie reflète son caractère à la fois technique et entrepreneurial. Elle s'articule autour de pôles de compétences clairement définis, favorisant la collaboration transversale entre équipes.
+
+\begin{table}[H]
+\centering
+\caption{Structure organisationnelle d'Intech Solution Tunisie}
+\label{tab:organigramme}
+\begin{tabularx}{\textwidth}{>{\bfseries}l l X}
+\toprule
+\textbf{Pôle} & \textbf{Rôle} & \textbf{Responsabilités principales} \\
+\midrule
+Direction Générale & Directeur Général & Stratégie, partenariats, vision produit \\
+\midrule
+\multirow{2}{*}{Pôle R\&D} & Responsable IA & Modèles ML, YOLOv8, LLMs, pipelines RAG \\
+ & Ingénieur IoT & Firmware ESP32, protocoles MQTT, capteurs \\
+\midrule
+\multirow{2}{*}{Pôle Développement} & Lead Backend & FastAPI, PostgreSQL, API REST, sécurité \\
+ & Lead Frontend & React, PWA, cartographie, UX/UI \\
+\midrule
+Pôle DevOps & Ingénieur Cloud & Docker, Nginx, Caddy, CI/CD, monitoring \\
+\midrule
+Pôle Commercial & Chef de Projet & Relation client, cahier des charges, livrables \\
+\midrule
+Stagiaire PFE & Développeur Full-Stack & Développement Smart Farm AI (projet présent) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%----------------------------------------------------------------
+\section{Contexte du Projet Smart Farm AI}
+%----------------------------------------------------------------
+
+\subsection{Étude de l'Existant}
+
+\subsubsection{Méthodes Agricoles Traditionnelles}
+
+L'agriculture tunisienne, malgré son rôle économique stratégique, demeure majoritairement ancrée dans des pratiques héritées. La gestion de l'eau repose sur des canaux d'irrigation gravitationnels ou des systèmes d'aspersion peu régulés. Le suivi sanitaire du cheptel est assuré par inspection visuelle périodique, sans traçabilité numérique. Les décisions agronomiques s'appuient sur l'expérience empirique de l'agriculteur et les recommandations saisonnières des coopératives agricoles locales.
+
+Cette approche présente des limites structurelles dans un contexte de dérèglement climatique : les sécheresses prolongées de 2023--2024 ont mis en évidence la vulnérabilité du modèle traditionnel face à la raréfaction hydrique.
+
+\subsubsection{Solutions de Smart Farming Existantes}
+
+Plusieurs solutions de smart farming sont disponibles sur le marché mondial, mais leur adoption en Tunisie reste marginale en raison de contraintes économiques, linguistiques et techniques.
+
+\begin{table}[H]
+\centering
+\caption{Analyse comparative des solutions de smart farming existantes}
+\label{tab:existant}
+\begin{tabularx}{\textwidth}{l X X X X}
+\toprule
+\textbf{Solution} & \textbf{Fonctionnalités} & \textbf{IoT} & \textbf{IA/ML} & \textbf{Limites} \\
+\midrule
+Trimble Ag & Precision agriculture, GPS & Oui & Partiel & Coût élevé, SaaS USA \\
+\midrule
+John Deere Operations & Gestion équipements, données champs & Oui & Oui & Propriétaire, non souverain \\
+\midrule
+CropX & Capteurs sol, recommandations & Oui & Oui & Abonnement mensuel, données hors pays \\
+\midrule
+Taranis & Détection maladies (images aériennes) & Partiel & Oui (CNN) & Drones requis, hors de prix \\
+\midrule
+PEAT (Plantix) & Diagnostic maladies via smartphone & Non & Oui & Limité aux cultures, sans IoT \\
+\midrule
+\textbf{Smart Farm AI} & \textbf{Surveillance complète, IA souveraine, IoT} & \textbf{Oui} & \textbf{Oui} & \textbf{Open Source, adapté Tunisie} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ce tableau met en évidence un vide de marché : aucune solution disponible ne combine simultanément la souveraineté des données, l'adaptation au contexte tunisien (langue Darija, espèces locales, réglementation) et l'intégration IoT+IA à coût abordable.
+
+\subsection{Problématique}
+
+L'analyse de l'existant et les entretiens conduits avec des agriculteurs tunisiens permettent de formuler la problématique centrale du projet :
+
+\begin{tcolorbox}[colback=primary!8, colframe=primary, title={\textbf{Problématique}}, fonttitle=\bfseries]
+\textit{Comment concevoir et déployer une plateforme numérique intégrée permettant à un agriculteur tunisien de surveiller en temps réel son exploitation, d'automatiser l'irrigation, de détecter précocement les maladies animales et végétales, et de prendre des décisions éclairées grâce à l'intelligence artificielle — tout en garantissant la souveraineté des données et l'accessibilité aux agriculteurs à faibles ressources technologiques ?}
+\end{tcolorbox}
+
+\medskip
+
+Cette problématique se décline en trois sous-problèmes opérationnels :
+
+\begin{description}[leftmargin=2cm, font=\textcolor{primary}\bfseries]
+    \item[Gaspillage hydrique :] En l'absence de capteurs de sol, les agriculteurs irriguent selon des calendriers arbitraires, entraînant une surconsommation pouvant atteindre 40\% de l'eau disponible, aggravant la situation dans les régions déjà en stress hydrique \cite{worldbank2019}.
+
+    \item[Absence de surveillance en temps réel :] Sans instrumentation connectée, les anomalies (défaillance d'une pompe, surchauffe d'une ruche, détresse d'un troupeau) ne sont détectées qu'a posteriori, lors des tournées d'inspection manuelles, parfois espacées de plusieurs jours.
+
+    \item[Prise de décision manuelle et non assistée :] Le vétérinaire, l'agronome et l'apiculteur ne peuvent pas toujours être présents sur l'exploitation. Les agents de terrain, souvent peu formés, doivent prendre des décisions critiques sans base de connaissance fiable accessible dans leur langue maternelle.
+\end{description}
+
+\subsection{Objectifs}
+
+\subsubsection{Surveillance en Temps Réel}
+
+Le premier objectif est de déployer une infrastructure de collecte de données continue, capturant les paramètres critiques de l'exploitation :
+
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item \textbf{Humidité du sol} (\%) : seuil d'irrigation déclenché à 35\%, arrêt à 65\%
+    \item \textbf{Température ambiante et du sol} (°C) : capteur DS18B20 (précision ±0,5°C)
+    \item \textbf{Pression hydraulique} (bar) : plage nominale 0,5--10 bar, alarme au-delà
+    \item \textbf{Débit d'irrigation} (L/min) : détection de fuite (débit sans vanne ouverte) et de pompe à sec
+    \item \textbf{Poids et température des ruches} : détection d'essaimage (chute >2 kg/60s), fièvre du couvain
+    \item \textbf{Température et humidité extérieures} : capteur DHT22 (précision ±0,5°C / ±2\%)
+\end{itemize}
+
+\subsubsection{Système d'Irrigation Intelligent}
+
+Le deuxième objectif est d'automatiser l'irrigation en remplaçant les calendriers fixes par une logique réactive basée sur les données capteurs. Le Node~A implémente :
+
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item Déclenchement automatique quand humidité sol < 35\%
+    \item Arrêt automatique quand humidité sol > 65\%
+    \item Plages horaires autorisées : 05h00--08h00 et 19h00--22h00 (heure Tunisie UTC+1)
+    \item Sécurité anti-débordement : durée maximale d'irrigation 30 minutes (\texttt{MAX\_IRRIGATE\_MS})
+    \item Mode dégradé autonome : en cas de perte WiFi, le nœud continue à opérer sur les derniers seuils connus
+\end{itemize}
+
+\subsubsection{Détection d'Anomalies par Vision Artificielle}
+
+Le troisième objectif est de déployer des modèles de vision par ordinateur pour la détection précoce de pathologies :
+
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item \textbf{Maladies foliaires} : modèles YOLOv8 entraînés sur des jeux de données de feuilles d'olivier (\textit{Peacock eye}, \textit{scab}), d'agrumes (citron, orange) et de céréales
+    \item \textbf{Ravageurs agricoles} : détection d'insectes nuisibles (\textit{Army worm}, coléoptères, pucerons)
+    \item \textbf{Détection d'incendie} : modèle smoke/fire pour la sécurité des hangars et serres
+    \item \textbf{Comportement animal} : détection et suivi des bovins, ovins, caprins ; monitoring d'activité à l'entrée des ruches
+\end{itemize}
+
+\subsubsection{Analyse Prédictive et Tableaux de Bord}
+
+Le quatrième objectif est de valoriser les données collectées via des outils d'analyse et de visualisation :
+
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item Tableaux de bord KPI temps réel (scores de santé du troupeau, alertes actives, métriques de production)
+    \item Graphiques de séries temporelles (Recharts) pour l'évolution des paramètres capteurs
+    \item Cartes géolocalisées interactives (Leaflet + MapLibre GL) des parcelles et du cheptel
+    \item Assistant IA conversationnel (RAG + LLM) pour les recommandations agronomiques et vétérinaires
+    \item Rapports automatisés PDF (journaliers, hebdomadaires, mensuels)
+    \item Prévisions de production apicole (miel, pollen, propolis) et planification des traitements préventifs
+
+\end{itemize}
+
+\subsection{Solution Proposée}
+
+La solution Smart Farm AI repose sur une architecture à quatre couches :
+
+\begin{description}[leftmargin=2cm, font=\textcolor{primary}\bfseries]
+    \item[Couche IoT (Acquisition) :] Deux nœuds ESP32 programmés en Arduino collectent les données physiques et les transmettent via MQTT (broker HiveMQ) ou connexion série. Node~A assure la surveillance et le pilotage de l'irrigation (sol, pression, débit, vannes, pompe). Node~B surveille les ruches apicoles (poids, température interne/externe, humidité). Les telemetries sont archivées dans le fichier \texttt{iot\_telemetry.csv} et ingérées par l'API backend.
+
+    \item[Couche Backend (Traitement) :] Une API REST développée en FastAPI (Python 3.11+) gère l'ensemble de la logique métier : authentification JWT, CRUD des entités agricoles (fermes, animaux, ruches, parcelles), ingestion et stockage des télémétries dans PostgreSQL 16 avec extension PostGIS, déclenchement des modèles IA pour la détection et le diagnostic. L'ORM SQLAlchemy 2.0 assure la couche d'abstraction base de données, avec support PostgreSQL (production) et SQLite (mode lite développement).
+
+    \item[Couche IA (Intelligence) :] Des modèles YOLOv8 (ultralytics 8.1+) chargés en mémoire assurent la détection temps réel sur images envoyées par les agents terrain ou les caméras. Un pipeline RAG (ChromaDB 0.4.24 + sentence-transformers) enrichit les réponses de l'assistant conversationnel avec des connaissances agronomiques curatorielles. Les LLMs locaux (LLaVA-1.5-7B pour la vision, Labess-7B pour le dialogue en Darija) sont servis via Ollama, avec un fallback sur Groq Cloud (llama-3.2-11b-vision, llama-3.3-70b).
+
+    \item[Couche Frontend (Présentation) :] Une application React 18 / Vite 5 propose des interfaces adaptées aux différents profils : gestionnaire de ferme (dashboards, cartes, rapports), vétérinaire/agronome (historique diagnostics, alertes, recommandations) et agent terrain (PWA offline-first avec authentification PIN, tâches, scans QR). Le support multilingue (i18next 26.0.4 : arabe, français, Darija tunisien) garantit l'accessibilité à tous les profils d'utilisateurs.
+\end{description}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{architecture_globale.png}
+\caption{Architecture globale de la plateforme Smart Farm AI}
+\label{fig:archi_globale}
+\end{figure}
+
+\subsection{Motivations}
+
+Plusieurs motivations complémentaires justifient le développement de ce projet :
+
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\arabic*.}]
+    \item \textbf{Impact social et économique :} La plateforme vise directement à améliorer les conditions de travail et la rentabilité des petites et moyennes exploitations tunisiennes, secteur qui concentre 85\% des agriculteurs nationaux \cite{ins2022}.
+
+    \item \textbf{Souveraineté numérique :} En proposant une solution 100\% open source, auto-hébergeable et multilingue, Smart Farm AI libère les agriculteurs de la dépendance aux SaaS étrangers onéreux dont les données sont stockées hors du territoire national.
+
+    \item \textbf{Réponse aux défis climatiques :} L'automatisation de l'irrigation et le monitoring précis de la consommation d'eau répondent directement aux enjeux de stress hydrique qui affectent 65\% des terres agricoles tunisiennes \cite{worldbank2019}.
+
+    \item \textbf{Valorisation de la filière apicole :} La Tunisie possède un patrimoine apicole important (plus de 300 000 ruches selon l'AVFA). Un module de gestion apicole complet (ERP ruches, monitoring IoT, prévisions de production) représente une valeur ajoutée tangible pour cette filière.
+
+    \item \textbf{Opportunité technologique :} L'accessibilité croissante des microcontrôleurs ESP32 (coût unitaire < 5€), des capteurs précis (DHT22, DS18B20) et des modèles IA open source (YOLOv8, Ollama) permet de construire une solution performante à coût maîtrisé.
+\end{enumerate}
+
+\subsection{Contraintes}
+
+\subsubsection{Contraintes de Connectivité}
+
+Les zones rurales tunisiennes présentent une couverture 4G partielle et une connectivité WiFi quasi-inexistante au niveau des parcelles agricoles. La plateforme doit donc fonctionner en mode dégradé (offline-first) : les nœuds IoT continuent d'opérer sur des seuils locaux en cas de perte réseau ; le frontend React (PWA) met en cache les données via IndexedDB (Dexie 4.4.2) pour garantir l'accès aux interfaces même sans connexion.
+
+\subsubsection{Contraintes Énergétiques}
+
+Les nœuds ESP32 déployés en champ doivent opérer avec une consommation minimale. La conception du firmware intègre des cycles de veille (deep sleep) entre les cycles de lecture des capteurs, et les protocoles MQTT sont privilégiés à HTTP pour leur légèreté. Une alimentation solaire est envisagée pour les déploiements pérennes.
+
+\subsubsection{Contraintes de Coût}
+
+Le budget d'un nœud IoT complet (ESP32 + capteurs DS18B20 + DHT22 + relais + alimentation) doit rester inférieur à 30€ pour garantir la viabilité économique du déploiement à l'échelle d'une exploitation. Côté logiciel, toutes les technologies choisies sont open source (licence MIT ou Apache 2.0), sans coûts de licence récurrents.
+
+\subsubsection{Contraintes de Fiabilité}
+
+Un système de décision agricole ne peut se permettre des pannes non gérées : une vanne bloquée ouverte pendant une nuit entière peut détruire une récolte par engorgement. La plateforme implémente plusieurs niveaux de sécurité : watchdog matériel (30 min max d'irrigation), monitoring d'état des pompes et vannes, alertes multi-canaux (email, WhatsApp Cloud API v25.0), et journalisation structurée de tous les événements critiques.
+
+%----------------------------------------------------------------
+\section{Gestion de Projet}
+%----------------------------------------------------------------
+
+\subsection{Méthodologie}
+
+La gestion d'un projet Data Science et IoT ne peut s'appuyer sur les seules méthodologies de génie logiciel classiques (Scrum, Cycle en V). Elle nécessite une approche structurée spécifiquement conçue pour guider le cycle de vie de la donnée : de sa collecte brute par les capteurs jusqu'à sa valorisation par des modèles prédictifs déployés en production.
+
+Trois méthodologies académiques majeures ont été identifiées dans la littérature pour encadrer les projets de fouille de données et d'intelligence artificielle :
+
+\begin{itemize}[leftmargin=*, label=\textcolor{primary}{$\bullet$}]
+    \item \textbf{KDD} (Knowledge Discovery in Databases) : approche fondatrice de la fouille de données, proposée par Fayyad et al. en 1996 \cite{fayyad1996}
+    \item \textbf{SEMMA} (Sample, Explore, Modify, Model, Assess) : méthodologie développée par SAS Institute pour structurer les projets analytiques
+    \item \textbf{CRISP-DM} (Cross-Industry Standard Process for Data Mining) : standard industriel le plus répandu, développé par un consortium européen en 1999 \cite{wirth2000}
+\end{itemize}
+
+Nous présentons ci-après chacune de ces méthodologies avant de justifier notre choix.
+
+\subsection{KDD — Knowledge Discovery in Databases}
+
+Le \textbf{KDD} (Knowledge Discovery in Databases) a été formalisé par Fayyad et al. \cite{fayyad1996} comme le premier cadre structuré pour extraire de la connaissance à partir de grandes bases de données. Il se distingue de la simple fouille de données (\textit{data mining}) en insistant sur le caractère \textit{itératif}, \textit{interactif} et \textit{orienté connaissance} du processus.
+
+Le processus KDD se décompose en neuf étapes séquentielles :
+
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\textbf{\arabic*.}}]
+    \item \textbf{Compréhension du domaine :} Définition des objectifs et des contraintes du projet en termes métier
+    \item \textbf{Création du jeu de données cible :} Sélection des données pertinentes selon les objectifs
+    \item \textbf{Nettoyage et prétraitement :} Traitement des valeurs manquantes, bruits, outliers
+    \item \textbf{Réduction et projection :} Réduction de dimensionnalité, extraction de caractéristiques
+    \item \textbf{Choix de la tâche de fouille :} Classification, clustering, régression, détection d'anomalies
+    \item \textbf{Choix de l'algorithme :} Sélection du modèle adapté à la tâche et aux données
+    \item \textbf{Fouille de données :} Application de l'algorithme, extraction des patterns
+    \item \textbf{Interprétation et évaluation :} Analyse des patterns extraits, retour aux étapes précédentes si nécessaire
+    \item \textbf{Utilisation des connaissances :} Intégration des connaissances dans les systèmes décisionnels
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{kdd_process.png}
+\caption{Processus KDD (Knowledge Discovery in Databases) \cite{fayyad1996}}
+\label{fig:kdd}
+\end{figure}
+
+\subsection{SEMMA — Sample, Explore, Modify, Model, Assess}
+
+La méthodologie \textbf{SEMMA} a été développée par le SAS Institute comme guide pratique pour les projets de data mining industriels. Son acronyme décrit directement ses cinq phases constitutives :
+
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\textbf{\arabic*.}}]
+    \item \textbf{Sample (Échantillonnage) :} Extraction d'un sous-ensemble représentatif des données brutes, suffisamment large pour contenir les patterns significatifs mais suffisamment réduit pour être traitable efficacement.
+
+    \item \textbf{Explore (Exploration) :} Analyse exploratoire visuelle et statistique des données : distributions, corrélations, valeurs aberrantes. Cette phase oriente le choix des variables et des transformations à appliquer.
+
+    \item \textbf{Modify (Modification) :} Sélection et transformation des variables pertinentes : normalisation, encodage des variables catégorielles, création de features dérivées, imputation des valeurs manquantes.
+
+    \item \textbf{Model (Modélisation) :} Application des algorithmes de modélisation retenus (arbres de décision, réseaux de neurones, SVM, etc.) sur les données préparées.
+
+    \item \textbf{Assess (Évaluation) :} Évaluation des performances du modèle sur un jeu de test indépendant : métriques de précision, rappel, F1-score, courbes ROC, matrices de confusion.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{semma_process.png}
+\caption{Processus SEMMA (SAS Institute)}
+\label{fig:semma}
+\end{figure}
+
+\subsection{CRISP-DM — Cross-Industry Standard Process for Data Mining}
+
+\textbf{CRISP-DM} (Cross-Industry Standard Process for Data Mining) est la méthodologie de référence dans l'industrie et la recherche académique pour les projets de data mining et de machine learning \cite{wirth2000}. Développée en 1999 par un consortium européen (SPSS, Daimler-Benz, NCR), elle est structurée en six phases interdépendantes formant un cycle itératif.
+
+Appliquée au projet Smart Farm AI, les six phases se traduisent comme suit :
+
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\textbf{\arabic*.}}]
+    \item \textbf{Compréhension du métier (\textit{Business Understanding}) :}\\
+    Identification des besoins agricoles : optimiser l'irrigation, détecter les maladies, surveiller le cheptel, assister les agents terrain. Définition des KPIs de succès : réduction de 30\% de la consommation d'eau, taux de détection des maladies foliaires > 85\%, disponibilité plateforme > 99\%.
+
+    \item \textbf{Compréhension des données (\textit{Data Understanding}) :}\\
+    Inventaire des sources de données disponibles : télémétries IoT (capteurs ESP32), images de terrain (smartphone / caméra), historiques sanitaires des animaux, journaux de production apicole. Analyse de la qualité et de la complétude des données brutes (fichier \texttt{iot\_telemetry.csv}, logs MQTT).
+
+    \item \textbf{Préparation des données (\textit{Data Preparation}) :}\\
+    Nettoyage des données IoT : élimination des mesures hors plage physique (pression < 0 bar, humidité > 100\%), interpolation des valeurs manquantes lors de coupures réseau, normalisation des séries temporelles pour l'entraînement des modèles de détection d'anomalies.
+
+    \item \textbf{Modélisation (\textit{Modeling}) :}\\
+    Entraînement des modèles YOLOv8 sur les jeux de données de maladies foliaires (olive, citrus, insectes), fine-tuning des modèles pour les espèces animales locales, construction du pipeline RAG (ChromaDB + sentence-transformers) pour l'assistant conversationnel.
+
+    \item \textbf{Évaluation (\textit{Evaluation}) :}\\
+    Mesure des performances des modèles sur des jeux de test représentatifs (métriques mAP50, mAP50-95 pour YOLOv8 ; précision, rappel, F1 pour la classification). Validation croisée et tests en conditions réelles sur l'exploitation pilote. Suivi des expériences via MLflow 2.10.0.
+
+    \item \textbf{Déploiement (\textit{Deployment}) :}\\
+    Containerisation de l'ensemble de la stack (Docker Compose), déploiement sur serveur Linux auto-hébergé avec HTTPS automatique (Caddy 2.0), gestion des versions de données (DVC 3.45.0), monitoring continu des métriques de production, mise à jour incrémentielle des modèles.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\textwidth]{crisp_dm.png}
+\caption{Processus CRISP-DM appliqué au projet Smart Farm AI \cite{wirth2000}}
+\label{fig:crisp_dm}
+\end{figure}
+
+%----------------------------------------------------------------
+\section{Choix de la Méthodologie}
+%----------------------------------------------------------------
+
+\subsection{Tableau Comparatif des Méthodologies}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des méthodologies KDD, SEMMA et CRISP-DM}
+\label{tab:comparaison_methodes}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X X}
+\toprule
+\textbf{Critère} & \textbf{KDD} & \textbf{SEMMA} & \textbf{CRISP-DM} \\
+\midrule
+Origine & Communauté académique (1996) & SAS Institute (industriel) & Consortium européen (1999) \\
+\midrule
+Nombre d'étapes & 9 étapes séquentielles & 5 étapes (acronyme) & 6 phases cycliques \\
+\midrule
+Orientation & Découverte de connaissance & Processus analytique & Projet complet (métier $\to$ déploiement) \\
+\midrule
+Intégration métier & Faible & Absente & \textbf{Forte (phase 1 dédiée)} \\
+\midrule
+Aspect déploiement & Absent & Absent & \textbf{Oui (phase 6 dédiée)} \\
+\midrule
+Itérativité & Mentionnée & Implicite & \textbf{Explicite et centrale} \\
+\midrule
+Documentation & Académique & Manuel SAS propriétaire & Standard ouvert, riche \\
+\midrule
+Adoption industrielle & Faible (recherche) & Moyenne (SAS users) & \textbf{Très large (> 40\% projets DM)} \\
+\midrule
+Adapté IoT/Temps réel & Non & Non & \textbf{Oui (extensible)} \\
+\midrule
+Adapté ML/Deep Learning & Partiel & Partiel & \textbf{Oui} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Avantages et Inconvénients}
+
+\begin{table}[H]
+\centering
+\caption{Avantages et inconvénients de chaque méthodologie}
+\label{tab:avantages_inconvenients}
+\begin{tabularx}{\textwidth}{l X X}
+\toprule
+\textbf{Méthode} & \textbf{Avantages} & \textbf{Inconvénients} \\
+\midrule
+\textbf{KDD} &
+\begin{itemize}[leftmargin=*,topsep=0pt]
+    \item Cadre théorique rigoureux
+    \item Vision holistique de la connaissance
+    \item Référence académique solide
+\end{itemize}
+&
+\begin{itemize}[leftmargin=*,topsep=0pt]
+    \item Pas de phase métier
+    \item Pas de phase déploiement
+    \item Lourd pour les projets opérationnels
+\end{itemize}
+\\
+\midrule
+\textbf{SEMMA} &
+\begin{itemize}[leftmargin=*,topsep=0pt]
+    \item Simple et mémorisable
+    \item Adapté aux projets statistiques
+    \item Intégration SAS Enterprise Miner
+\end{itemize}
+&
+\begin{itemize}[leftmargin=*,topsep=0pt]
+    \item Centré sur les outils SAS (propriétaire)
+    \item Ignorance du contexte métier
+    \item Pas adapté aux projets multi-sources
+\end{itemize}
+\\
+\midrule
+\textbf{CRISP-DM} &
+\begin{itemize}[leftmargin=*,topsep=0pt]
+    \item Standard industriel reconnu
+    \item Couvre tout le cycle de vie
+    \item Itératif et flexible
+    \item Intègre le déploiement et le retour métier
+    \item Compatible ML/DL/IoT
+    \item Outil-agnostique (open standard)
+\end{itemize}
+&
+\begin{itemize}[leftmargin=*,topsep=0pt]
+    \item Documentation de 1999 (non mise à jour)
+    \item Ne couvre pas les aspects DevOps modernes
+    \item Moins prescriptif que Scrum pour les équipes agiles
+\end{itemize}
+\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Justification du Choix de CRISP-DM}
+
+Au terme de cette analyse comparative, \textbf{CRISP-DM} s'impose comme la méthodologie la plus adaptée au projet Smart Farm AI pour les raisons suivantes :
+
+\begin{enumerate}[leftmargin=*, label=\textcolor{primary}{\arabic*.}]
+    \item \textbf{Couverture complète du cycle de vie :} CRISP-DM est la seule méthodologie à couvrir explicitement l'ensemble du cycle, de la compréhension du besoin agricole jusqu'au déploiement en production sur l'exploitation pilote. Les méthodologies KDD et SEMMA s'arrêtent à l'évaluation des modèles, ignorant les phases d'ingénierie du déploiement qui représentent une part significative du travail dans un projet IoT.
+
+    \item \textbf{Flexibilité itérative :} Le caractère cyclique de CRISP-DM — où chaque phase peut faire l'objet d'un retour vers les phases précédentes — est particulièrement adapté aux projets IoT, où les données collectées en phase d'exploitation révèlent régulièrement des besoins de ré-entraînement des modèles ou d'ajustement des seuils d'alerte.
+
+    \item \textbf{Intégration des parties prenantes :} La phase \textit{Business Understanding} de CRISP-DM impose un dialogue structuré avec les parties prenantes (agriculteurs, vétérinaires, agronomes) avant toute modélisation, garantissant que les modèles construits répondent à des besoins réels et mesurables.
+
+    \item \textbf{Standard ouvert et outil-agnostique :} Contrairement à SEMMA (lié à SAS), CRISP-DM est un standard ouvert utilisable avec n'importe quelle stack technologique — ici FastAPI, YOLOv8, Ollama, PostgreSQL, tous open source.
+
+    \item \textbf{Compatibilité avec les pratiques MLOps :} CRISP-DM est extensible aux pratiques MLOps modernes (suivi d'expériences MLflow, versioning DVC, CI/CD Docker) qui sont au cœur de la chaîne de déploiement de Smart Farm AI.
+\end{enumerate}
+
+%----------------------------------------------------------------
+\section{Conclusion}
+%----------------------------------------------------------------
+
+Ce premier chapitre a posé les fondations contextuelles et méthodologiques du projet Smart Farm AI. Nous avons présenté l'organisme d'accueil Intech Solution Tunisie et son positionnement dans l'écosystème technologique tunisien, avant d'analyser en profondeur le contexte du projet : étude comparative de l'existant, formulation de la problématique centrale, définition des objectifs mesurables et présentation de l'architecture de solution retenue.
+
+L'analyse comparative des trois méthodologies de gestion de projet data science — KDD, SEMMA et CRISP-DM — a conduit au choix justifié de CRISP-DM comme cadre structurant du développement. Sa couverture complète du cycle de vie, son caractère itératif et son intégration native des parties prenantes métier en font le cadre le plus adapté à un projet alliant IoT temps réel, modèles d'intelligence artificielle et déploiement sur exploitation agricole réelle.
+
+Le chapitre suivant détaillera la \textbf{conception technique} de la plateforme : architecture des nœuds IoT, modélisation de la base de données, conception de l'API REST et architecture des pipelines d'intelligence artificielle.
+
+%================================================================
+%  BIBLIOGRAPHIE
+%================================================================
+\begin{thebibliography}{99}
+
+\bibitem{fao2020}
+FAO, \textit{The State of Food and Agriculture 2020: Overcoming Agricultural Water Challenges}.
+Food and Agriculture Organization of the United Nations, Rome, 2020.
+
+\bibitem{ins2022}
+Institut National de la Statistique (INS) Tunisie,
+\textit{Annuaire Statistique de la Tunisie 2022}.
+INS, Tunis, 2022.
+
+\bibitem{worldbank2019}
+World Bank Group,
+\textit{Tunisia: Water Security and Climate Adaptation in Rural Areas}.
+World Bank, Washington D.C., 2019.
+
+\bibitem{pivoto2021}
+D. Pivoto, L. F. F. de Waquil, E. Talamini, C. P. S. Finocchio, V. F. Dalla Corte, and G. P. de Vargas Mores,
+``Scientific development of smart farming technologies and their application in Brazil,''
+\textit{Information Processing in Agriculture}, vol. 5, no. 2, pp. 21--32, 2018.
+
+\bibitem{mohanty2016}
+S. P. Mohanty, D. P. Hughes, and M. Salathé,
+``Using deep learning for image-based plant disease detection,''
+\textit{Frontiers in Plant Science}, vol. 7, p. 1419, 2016.
+
+\bibitem{atzori2020}
+L. Atzori, A. Iera, and G. Morabito,
+``The Internet of Things: A survey,''
+\textit{Computer Networks}, vol. 54, no. 15, pp. 2787--2805, 2020.
+
+\bibitem{fayyad1996}
+U. M. Fayyad, G. Piatetsky-Shapiro, and P. Smyth,
+``From data mining to knowledge discovery in databases,''
+\textit{AI Magazine}, vol. 17, no. 3, pp. 37--54, 1996.
+
+\bibitem{wirth2000}
+R. Wirth and J. Hipp,
+``CRISP-DM: Towards a standard process model for data mining,''
+in \textit{Proceedings of the 4th International Conference on the Practical Applications of Knowledge Discovery and Data Mining},
+Manchester, UK, pp. 29--39, 2000.
+
+\end{thebibliography}
+
+\end{document}

@@ -413,3 +413,184 @@ class DiagnosticRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ===========================================================================
+# Poultry ERP
+# ===========================================================================
+
+class PoultryBatchBase(BaseModel):
+    name: str
+    batch_type: str
+    breed: Optional[str] = None
+    supplier: Optional[str] = None
+    arrival_date: datetime = Field(default_factory=datetime.utcnow)
+    initial_quantity: int
+    current_quantity: Optional[int] = None
+    status: str = "active"
+    notes: Optional[str] = None
+
+class PoultryBatchCreate(PoultryBatchBase):
+    farm_id: int
+
+class PoultryBatchResponse(PoultryBatchBase):
+    id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class PoultryBatchUpdate(BaseModel):
+    current_quantity: Optional[int] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+class PoultryFeedLogBase(BaseModel):
+    date: datetime = Field(default_factory=datetime.utcnow)
+    feed_type: Optional[str] = None
+    quantity_kg: float
+    average_weight_g: Optional[float] = None
+    fcr_calculated: Optional[float] = None
+    cost_per_kg: Optional[float] = None
+    notes: Optional[str] = None
+
+class PoultryFeedLogCreate(PoultryFeedLogBase):
+    batch_id: int
+
+class PoultryFeedLogResponse(PoultryFeedLogBase):
+    id: int
+    status: str
+    created_by_id: Optional[int] = None
+    validated_by_id: Optional[int] = None
+    validation_timestamp: Optional[datetime] = None
+    admin_notes: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class PoultryEggLogBase(BaseModel):
+    date: datetime = Field(default_factory=datetime.utcnow)
+    total_eggs: int
+    broken_eggs: int = 0
+    grade_a_count: int = 0
+    grade_b_count: int = 0
+    production_rate: Optional[float] = None
+    notes: Optional[str] = None
+
+class PoultryEggLogCreate(PoultryEggLogBase):
+    batch_id: int
+
+class PoultryEggLogResponse(PoultryEggLogBase):
+    id: int
+    status: str
+    created_by_id: Optional[int] = None
+    validated_by_id: Optional[int] = None
+    validation_timestamp: Optional[datetime] = None
+    admin_notes: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class PoultryHealthLogBase(BaseModel):
+    date: datetime = Field(default_factory=datetime.utcnow)
+    event_type: str = "inspection"
+    description: str = ""
+    deaths_today: int = 0
+    medicine_used: Optional[str] = None
+    dosage: Optional[str] = None
+    vet_name: Optional[str] = None
+    cost: float = 0.0
+    notes: Optional[str] = None
+
+class PoultryHealthLogCreate(PoultryHealthLogBase):
+    batch_id: int
+
+class PoultryHealthLogResponse(PoultryHealthLogBase):
+    id: int
+    status: str
+    created_by_id: Optional[int] = None
+    validated_by_id: Optional[int] = None
+    validation_timestamp: Optional[datetime] = None
+    admin_notes: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class PoultrySaleBase(BaseModel):
+    date: datetime = Field(default_factory=datetime.utcnow)
+    product_type: str
+    quantity: int
+    unit_price: float
+    total_amount: float
+    customer_name: Optional[str] = None
+    invoice_number: Optional[str] = None
+    notes: Optional[str] = None
+
+class PoultrySaleCreate(PoultrySaleBase):
+    batch_id: int
+
+class PoultrySaleResponse(PoultrySaleBase):
+    id: int
+    status: str
+    created_by_id: Optional[int] = None
+    validated_by_id: Optional[int] = None
+    validation_timestamp: Optional[datetime] = None
+    admin_notes: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class PoultryFeedLogUpdate(BaseModel):
+    feed_type: Optional[str] = None
+    quantity_kg: Optional[float] = None
+    average_weight_g: Optional[float] = None
+    fcr_calculated: Optional[float] = None
+    cost_per_kg: Optional[float] = None
+    notes: Optional[str] = None
+
+class PoultryEggLogUpdate(BaseModel):
+    total_eggs: Optional[int] = None
+    broken_eggs: Optional[int] = None
+    grade_a_count: Optional[int] = None
+    notes: Optional[str] = None
+
+class PoultryHealthLogUpdate(BaseModel):
+    event_type: Optional[str] = None
+    description: Optional[str] = None
+    medicine_used: Optional[str] = None
+    dosage: Optional[str] = None
+    vet_name: Optional[str] = None
+    cost: Optional[float] = None
+    notes: Optional[str] = None
+
+class PoultrySaleUpdate(BaseModel):
+    product_type: Optional[str] = None
+    quantity: Optional[int] = None
+    unit_price: Optional[float] = None
+    total_amount: Optional[float] = None
+    customer_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class PoultryInventoryBase(BaseModel):
+    item_name: str
+    category: str
+    quantity: float
+    unit: str
+    unit_price: Optional[float] = None
+    min_threshold: Optional[float] = None
+    supplier: Optional[str] = None
+
+class PoultryInventoryCreate(PoultryInventoryBase):
+    farm_id: int
+
+class PoultryInventoryUpdate(BaseModel):
+    quantity: Optional[float] = None
+    unit_price: Optional[float] = None
+    min_threshold: Optional[float] = None
+    supplier: Optional[str] = None
+
+class PoultryInventoryResponse(PoultryInventoryBase):
+    id: int
+    last_updated: datetime
+    class Config:
+        from_attributes = True
+
+# --- NEW: Validation Contract ---
+class PoultryLogValidation(BaseModel):
+    status: str  # validated, rejected
+    admin_notes: Optional[str] = None

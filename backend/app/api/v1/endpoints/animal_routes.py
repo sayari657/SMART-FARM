@@ -6,17 +6,29 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.farm_service import AnimalService
 from app.schemas.domain import AnimalUnitCreate, AnimalUnitUpdate
+from app.models.domain import AnimalUnit, AnimalLog, User
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
+
+class AnimalLogCreate(BaseModel):
+    type: str
+    value: Optional[float] = None
+    unit: Optional[str] = None
+    notes: Optional[str] = None
+
 
 def _serialize_unit(u):
     return {
         "id": u.id, "name": u.name, "farm_id": u.farm_id, "type_id": u.type_id,
-        "identifier": u.identifier, "status": u.status, "health_score": u.health_score,
+        "identifier": u.identifier, "tag_id": u.tag_id, 
+        "status": u.status, "lifecycle_status": u.lifecycle_status,
+        "health_score": u.health_score,
         "notes": u.notes,
         "species": u.animal_type.species if u.animal_type else None,
         "species_display": u.animal_type.display_name if u.animal_type else None,
         "farm_name": u.farm.name if u.farm else None,
+        "entry_date": u.entry_date.isoformat() if u.entry_date else None,
         "created_at": u.created_at.isoformat() if u.created_at else None,
     }
 
@@ -88,3 +100,46 @@ def update_animal(unit_id: int, data: AnimalUnitUpdate, db: Session = Depends(ge
 @router.delete("/{unit_id}", status_code=204)
 def delete_animal(unit_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     AnimalService(db).delete_animal(unit_id)
+
+# --- Animal Logs (FMIS) ---
+
+@router.get("/{unit_id}/logs")
+def list_animal_logs(
+    unit_id: int,
+    type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    query = db.query(AnimalLog).filter(AnimalLog.animal_id == unit_id)
+    if type:
+        query = query.filter(AnimalLog.type == type)
+    logs = query.order_by(AnimalLog.timestamp.desc()).all()
+    return [{
+        "id": l.id, "type": l.type, "value": l.value, "unit": l.unit,
+        "notes": l.notes, "timestamp": l.timestamp.isoformat(),
+        "recorded_by": l.recorded_by
+    } for l in logs]
+
+@router.post("/{unit_id}/logs", status_code=201)
+def create_animal_log(
+    unit_id: int,
+    log_in: AnimalLogCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    log = AnimalLog(
+        animal_id=unit_id,
+        type=log_in.type,
+        value=log_in.value,
+        unit=log_in.unit,
+        notes=log_in.notes,
+        recorded_by=current_user.id
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return {
+        "id": log.id, "type": log.type, "value": log.value, "unit": log.unit,
+        "notes": log.notes, "timestamp": log.timestamp.isoformat()
+    }
+

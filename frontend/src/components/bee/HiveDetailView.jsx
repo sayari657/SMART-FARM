@@ -1088,8 +1088,6 @@ function FinanceTab({ hive, toast }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
           {[
             { label: 'DÉPENSES', value: `${summary.total_expenses.toFixed(0)} TND`, color: COLORS.error },
-            { label: 'CHIFFRE D\'AFF.', value: `${summary.total_revenue_tnd.toFixed(0)} TND`, color: COLORS.success },
-            { label: 'PROFIT', value: `${summary.profit_tnd.toFixed(0)} TND`, color: summary.profit_tnd >= 0 ? COLORS.success : COLORS.error },
             { label: 'MIEL PRODUIT', value: `${summary.total_honey_kg.toFixed(1)} kg`, color: COLORS.accent },
           ].map(k => (
             <div key={k.label} style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, padding: '14px 16px' }}>

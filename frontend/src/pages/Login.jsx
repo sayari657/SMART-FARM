@@ -80,40 +80,40 @@ export default function Login() {
   const renderLeft = () => (
     <div className="auth-left" style={{ position: 'relative', overflow: 'hidden' }}>
       {/* Decorative SVG pattern */}
-      <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', opacity:.08 }} xmlns="http://www.w3.org/2000/svg">
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: .08 }} xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1"/>
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
       </svg>
       {/* Decorative circles */}
-      <div style={{ position:'absolute', top:-60, right:-60, width:240, height:240, borderRadius:'50%', border:'1px solid rgba(255,255,255,.12)' }} />
-      <div style={{ position:'absolute', top:-30, right:-30, width:160, height:160, borderRadius:'50%', border:'1px solid rgba(255,255,255,.08)' }} />
-      <div style={{ position:'absolute', bottom:-80, left:-40, width:280, height:280, borderRadius:'50%', border:'1px solid rgba(255,255,255,.08)' }} />
+      <div style={{ position: 'absolute', top: -60, right: -60, width: 240, height: 240, borderRadius: '50%', border: '1px solid rgba(255,255,255,.12)' }} />
+      <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', border: '1px solid rgba(255,255,255,.08)' }} />
+      <div style={{ position: 'absolute', bottom: -80, left: -40, width: 280, height: 280, borderRadius: '50%', border: '1px solid rgba(255,255,255,.08)' }} />
 
-      <div style={{ position:'relative', zIndex:2 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:40 }}>
-          <div style={{ width:48, height:48, background:'rgba(255,255,255,.15)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,.2)' }}>
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
+          <div style={{ width: 48, height: 48, background: 'rgba(255,255,255,.15)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,.2)' }}>
             <Leaf size={24} />
           </div>
           <div>
-            <div style={{ fontWeight:800, fontSize:20, color:'#fff' }}>Smart Farm AI</div>
-            <div style={{ opacity:.65, fontSize:12, color:'#fff' }}>Enterprise Platform</div>
+            <div style={{ fontWeight: 800, fontSize: 20, color: '#fff' }}>Smart Farm AI</div>
+            <div style={{ opacity: .65, fontSize: 12, color: '#fff' }}>Enterprise Platform</div>
           </div>
         </div>
-        <h2 style={{ color:'#fff', fontSize:32, fontWeight:800, lineHeight:1.2, marginBottom:16 }} dangerouslySetInnerHTML={{ __html: t("login.hero_title") }}></h2>
-        <p style={{ color:'#fff', opacity:.8, fontSize:15, lineHeight:1.7, maxWidth:360 }}>{t('login.hero_desc')}</p>
+        <h2 style={{ color: '#fff', fontSize: 32, fontWeight: 800, lineHeight: 1.2, marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: t("login.hero_title") }}></h2>
+        <p style={{ color: '#fff', opacity: .8, fontSize: 15, lineHeight: 1.7, maxWidth: 360 }}>{t('login.hero_desc')}</p>
         <div className="auth-features">
           {[
-            { icon: Wifi,   label: t('login.feat_iot') },
-            { icon: Eye,    label: t('login.feat_cv') },
-            { icon: Cpu,    label: t('login.feat_ai') },
+            { icon: Wifi, label: t('login.feat_iot') },
+            { icon: Eye, label: t('login.feat_cv') },
+            { icon: Cpu, label: t('login.feat_ai') },
             { icon: Shield, label: t('login.feat_alerts') },
           ].map(({ icon: Icon, label }) => (
-            <div className="auth-feature" key={label} style={{ color:'#fff' }}>
-              <Icon size={15} style={{ opacity:.8, flexShrink:0 }} />
+            <div className="auth-feature" key={label} style={{ color: '#fff' }}>
+              <Icon size={15} style={{ opacity: .8, flexShrink: 0 }} />
               <span>{label}</span>
             </div>
           ))}
@@ -137,27 +137,27 @@ export default function Login() {
 
 
 
-              {msg && <div className="alert-banner success" style={{ marginBottom:16 }}><div className="alert-banner-msg">{msg}</div></div>}
-              {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
+              {msg && <div className="alert-banner success" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{msg}</div></div>}
+              {error && <div className="alert-banner warning" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{error}</div></div>}
 
-              <form onSubmit={handleLogin} style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="form-group">
                   <label className="form-label">{t('login.username')}</label>
                   <input className="form-input" id="login-username" placeholder={t("login.enter_username")} value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('login.password')}</label>
-                  <div style={{ position:'relative' }}>
-                    <input className="form-input" id="login-password" type={showPw ? 'text' : 'password'} placeholder={t("login.enter_password")} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required style={{ paddingRight:40 }} />
-                    <button type="button" onClick={() => setShowPw(v => !v)} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer' }}>
+                  <div style={{ position: 'relative' }}>
+                    <input className="form-input" id="login-password" type={showPw ? 'text' : 'password'} placeholder={t("login.enter_password")} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required style={{ paddingRight: 40 }} />
+                    <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer' }}>
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   <div style={{ textAlign: 'right', marginTop: 8 }}>
-                    <button type="button" onClick={() => { setView('choose_channel'); setError(''); setMsg(''); }} style={{ background:'none', border:'none', color:'var(--color-primary)', fontSize:12, cursor:'pointer', padding:0 }}>{t('login.forgot_password')}</button>
+                    <button type="button" onClick={() => { setView('choose_channel'); setError(''); setMsg(''); }} style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: 12, cursor: 'pointer', padding: 0 }}>{t('login.forgot_password')}</button>
                   </div>
                 </div>
-                <button className="btn btn-primary" id="login-submit" type="submit" disabled={loading} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14, marginTop:4 }}>
+                <button className="btn btn-primary" id="login-submit" type="submit" disabled={loading} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', fontSize: 14, marginTop: 4 }}>
                   {loading ? t('login.connecting') : t('login.sign_in')}
                 </button>
               </form>
@@ -172,44 +172,44 @@ export default function Login() {
           {/* ── Choose Channel ────────────────────────────── */}
           {view === 'choose_channel' && (
             <>
-              <button onClick={resetFlow} style={{ background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13, marginBottom:20, padding:0 }}>
+              <button onClick={resetFlow} style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 20, padding: 0 }}>
                 <ArrowLeft size={14} /> Retour
               </button>
               <h1 style={{ fontSize: 22, marginBottom: 8 }}>{t('login.recover_access')}</h1>
               <p style={{ marginBottom: 28 }}>{t('login.choose_how_to_receive')}</p>
 
-              {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
+              {error && <div className="alert-banner warning" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{error}</div></div>}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <button
                   onClick={() => { setChannel('email'); setIdentifier(''); setView('enter_id'); setError(''); }}
-                  style={{ display:'flex', alignItems:'center', gap:16, padding:'20px 24px', background:'var(--color-bg-2)', border:'2px solid var(--color-border)', borderRadius:12, cursor:'pointer', textAlign:'left', transition:'all .2s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 24px', background: 'var(--color-bg-2)', border: '2px solid var(--color-border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all .2s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                 >
-                  <div style={{ width:48, height:48, background:'rgba(59,130,246,0.15)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <div style={{ width: 48, height: 48, background: 'rgba(59,130,246,0.15)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Mail size={22} color="var(--color-info)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>📧 {t('login.by_email')}</div>
-                    <div style={{ fontSize:12, color:'var(--color-text-3)', marginTop:3 }}>{t('login.email_desc')}</div>
-                    <div style={{ fontSize:11, color:'#22c55e', marginTop:4, fontWeight:600 }}>✅ {t('login.free_email')}</div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text)' }}>📧 {t('login.by_email')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 3 }}>{t('login.email_desc')}</div>
+                    <div style={{ fontSize: 11, color: '#22c55e', marginTop: 4, fontWeight: 600 }}>✅ {t('login.free_email')}</div>
                   </div>
                 </button>
 
                 <button
                   onClick={() => { setChannel('whatsapp'); setIdentifier('+216'); setView('enter_id'); setError(''); }}
-                  style={{ display:'flex', alignItems:'center', gap:16, padding:'20px 24px', background:'var(--color-bg-2)', border:'2px solid var(--color-border)', borderRadius:12, cursor:'pointer', textAlign:'left', transition:'all .2s' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 24px', background: 'var(--color-bg-2)', border: '2px solid var(--color-border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all .2s' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-whatsapp)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                 >
-                  <div style={{ width:48, height:48, background:'rgba(37,211,102,.12)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <div style={{ width: 48, height: 48, background: 'rgba(37,211,102,.12)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <MessageCircle size={22} color="var(--color-whatsapp)" />
                   </div>
                   <div>
-                    <div style={{ fontWeight:700, fontSize:15, color:'var(--color-text)' }}>💬 {t('login.via_whatsapp')}</div>
-                    <div style={{ fontSize:12, color:'var(--color-text-3)', marginTop:3 }}>{t('login.whatsapp_desc')}</div>
-                    <div style={{ fontSize:11, color:'#22c55e', marginTop:4, fontWeight:600 }}>✅ {t('login.free_whatsapp')}</div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--color-text)' }}>💬 {t('login.via_whatsapp')}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 3 }}>{t('login.whatsapp_desc')}</div>
+                    <div style={{ fontSize: 11, color: '#22c55e', marginTop: 4, fontWeight: 600 }}>✅ {t('login.free_whatsapp')}</div>
                   </div>
                 </button>
               </div>
@@ -219,22 +219,22 @@ export default function Login() {
           {/* ── Enter Identifier (email or phone) ────────── */}
           {view === 'enter_id' && (
             <>
-              <button onClick={() => setView('choose_channel')} style={{ background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13, marginBottom:20, padding:0 }}>
+              <button onClick={() => setView('choose_channel')} style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 20, padding: 0 }}>
                 <ArrowLeft size={14} /> Retour
               </button>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24 }}>
-                <div style={{ width:44, height:44, background: channel==='email' ? 'rgba(59,130,246,0.15)' : 'rgba(37,211,102,0.15)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+                <div style={{ width: 44, height: 44, background: channel === 'email' ? 'rgba(59,130,246,0.15)' : 'rgba(37,211,102,0.15)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {channel === 'email' ? <Mail size={20} color="var(--color-info)" /> : <MessageCircle size={20} color="var(--color-whatsapp)" />}
                 </div>
                 <div>
-                  <div style={{ fontWeight:700, fontSize:16 }}>{channel === 'email' ? 'Vérification par E-mail' : 'Vérification WhatsApp'}</div>
-                  <div style={{ fontSize:12, color:'var(--color-text-3)' }}>{t('login.enter_registered').replace('{channel}', channel === 'email' ? 'e-mail' : 'WhatsApp')}</div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{channel === 'email' ? 'Vérification par E-mail' : 'Vérification WhatsApp'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--color-text-3)' }}>{t('login.enter_registered').replace('{channel}', channel === 'email' ? 'e-mail' : 'WhatsApp')}</div>
                 </div>
               </div>
 
-              {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
+              {error && <div className="alert-banner warning" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{error}</div></div>}
 
-              <form onSubmit={handleRequestOtp} style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <form onSubmit={handleRequestOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="form-group">
                   <label className="form-label">{channel === 'email' ? t('login.by_email') : t('login.via_whatsapp')}</label>
                   <input
@@ -246,7 +246,7 @@ export default function Login() {
                     required
                   />
                 </div>
-                <button className="btn btn-primary" type="submit" disabled={loading2} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>
+                <button className="btn btn-primary" type="submit" disabled={loading2} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', fontSize: 14 }}>
                   {loading2 ? t('login.sending') : t('login.receive_code').replace('{channel}', channel === 'email' ? 'Email' : 'WhatsApp')}
                 </button>
               </form>
@@ -256,37 +256,39 @@ export default function Login() {
           {/* ── Enter OTP + New Password ──────────────────── */}
           {view === 'enter_otp' && (
             <>
-              <button onClick={() => setView('enter_id')} style={{ background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontSize:13, marginBottom:20, padding:0 }}>
+              <button onClick={() => setView('enter_id')} style={{ background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, marginBottom: 20, padding: 0 }}>
                 <ArrowLeft size={14} /> Retour
               </button>
-              <h1 style={{ fontSize:20, marginBottom:8 }}>{t('login.enter_code')}</h1>
-              {msg && <div className="alert-banner success" style={{ marginBottom:16 }}><div className="alert-banner-msg">{msg}</div></div>}
-              {error && <div className="alert-banner warning" style={{ marginBottom:16 }}><div className="alert-banner-msg">{error}</div></div>}
+              <h1 style={{ fontSize: 20, marginBottom: 8 }}>{t('login.enter_code')}</h1>
+              {msg && <div className="alert-banner success" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{msg}</div></div>}
+              {error && <div className="alert-banner warning" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{error}</div></div>}
 
               {/* Dev OTP helper */}
               {import.meta.env.DEV && debugOtp && (
                 <div style={{
-                  background:'rgba(234,179,8,0.1)', border:'1.5px dashed rgba(234,179,8,0.4)',
-                  borderRadius:10, padding:'10px 16px', marginBottom:12,
-                  display:'flex', alignItems:'center', justifyContent:'space-between', gap:12
+                  background: 'rgba(234,179,8,0.1)', border: '1.5px dashed rgba(234,179,8,0.4)',
+                  borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12
                 }}>
                   <div>
-                    <div style={{ color:'#fbbf24', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:2 }}>
+                    <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
                       DEV — Code OTP
                     </div>
-                    <div style={{ color:'#fef08a', fontSize:24, fontWeight:800, fontFamily:'monospace', letterSpacing:'5px' }}>
+                    <div style={{ color: '#fef08a', fontSize: 24, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '5px' }}>
                       {debugOtp}
                     </div>
                   </div>
                   <button type="button" onClick={() => setOtpCode(debugOtp)}
-                    style={{ padding:'6px 12px', background:'rgba(234,179,8,0.15)', border:'1px solid rgba(234,179,8,0.3)',
-                      borderRadius:8, color:'#fbbf24', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+                    style={{
+                      padding: '6px 12px', background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)',
+                      borderRadius: 8, color: '#fbbf24', fontSize: 12, fontWeight: 600, cursor: 'pointer'
+                    }}>
                     Remplir
                   </button>
                 </div>
               )}
 
-              <form onSubmit={handleResetPassword} style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="form-group">
                   <label className="form-label">{t('login.otp_received').replace('{channel}', channel === 'email' ? 'email' : 'WhatsApp')}</label>
                   <input
@@ -310,12 +312,12 @@ export default function Login() {
                       required minLength={6}
                       style={{ paddingRight: 40 }}
                     />
-                    <button type="button" onClick={() => setShowNewPw(v => !v)} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer' }}>
+                    <button type="button" onClick={() => setShowNewPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer' }}>
                       {showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
-                <button className="btn btn-primary" type="submit" disabled={loading2} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>
+                <button className="btn btn-primary" type="submit" disabled={loading2} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', fontSize: 14 }}>
                   {loading2 ? t('login.verifying') : `✅ ${t('login.confirm_reset')}`}
                 </button>
               </form>
@@ -328,7 +330,7 @@ export default function Login() {
               <CheckCircle size={60} color="#22c55e" style={{ marginBottom: 20 }} />
               <h2 style={{ color: '#22c55e', marginBottom: 12 }}>{t('login.password_reset')}</h2>
               <p style={{ color: 'var(--color-text-3)', marginBottom: 28 }}>{t('login.password_updated')}</p>
-              <button className="btn btn-primary" onClick={resetFlow} style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14 }}>{t('login.back_to_login')}</button>
+              <button className="btn btn-primary" onClick={resetFlow} style={{ width: '100%', justifyContent: 'center', padding: '11px 0', fontSize: 14 }}>{t('login.back_to_login')}</button>
             </div>
           )}
 

@@ -9,6 +9,8 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.farm_service import FarmService
 from app.schemas.domain import FarmCreate, FarmUpdate
+from app.models.domain import Farm, FarmOwner, FarmFinance, User
+
 
 router = APIRouter(prefix="/farms", tags=["Farms"])
 
@@ -24,6 +26,13 @@ class WorkerUpdateRequest(BaseModel):
 
 class OwnerAddRequest(BaseModel):
     identifier: str  # username OR phone number of the owner to add
+
+class FinanceCreate(BaseModel):
+    type: str # expense, revenue
+    category: str
+    amount: float
+    notes: Optional[str] = None
+
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -358,3 +367,54 @@ def remove_farm_worker(
             db.delete(user)
 
     db.commit()
+
+# ── Farm Finance (FMIS) ─────────────────────────────────────────────────────────
+
+@router.get("/{farm_id}/finance")
+def list_farm_finance(
+    farm_id: int,
+    type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    query = db.query(FarmFinance).filter(FarmFinance.farm_id == farm_id)
+    if type:
+        query = query.filter(FarmFinance.type == type)
+    finances = query.order_by(FarmFinance.timestamp.desc()).all()
+    
+    # Calculate summary
+    expenses = sum(f.amount for f in finances if f.type == "expense")
+    revenues = sum(f.amount for f in finances if f.type == "revenue")
+    
+    return {
+        "items": [{
+            "id": f.id, "type": f.type, "category": f.category,
+            "amount": f.amount, "notes": f.notes, 
+            "timestamp": f.timestamp.isoformat()
+        } for f in finances],
+        "summary": {
+            "total_expenses": expenses,
+            "total_revenues": revenues,
+            "net_profit": revenues - expenses
+        }
+    }
+
+@router.post("/{farm_id}/finance", status_code=201)
+def add_farm_finance(
+    farm_id: int,
+    data: FinanceCreate,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    entry = FarmFinance(
+        farm_id=farm_id,
+        type=data.type,
+        category=data.category,
+        amount=data.amount,
+        notes=data.notes
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return entry
+

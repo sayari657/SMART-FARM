@@ -39,6 +39,34 @@ async def app_lifespan(app_instance: FastAPI):
 
         # Incremental migrations (safe: each wrapped in try/except)
         _migrations = [
+            # Poultry feed logs
+            "ALTER TABLE poultry_feed_logs ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
+            "ALTER TABLE poultry_feed_logs ADD COLUMN created_by_id INTEGER",
+            "ALTER TABLE poultry_feed_logs ADD COLUMN validated_by_id INTEGER",
+            "ALTER TABLE poultry_feed_logs ADD COLUMN validation_timestamp DATETIME",
+            "ALTER TABLE poultry_feed_logs ADD COLUMN admin_notes TEXT",
+            # Poultry egg logs
+            "ALTER TABLE poultry_egg_logs ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
+            "ALTER TABLE poultry_egg_logs ADD COLUMN created_by_id INTEGER",
+            "ALTER TABLE poultry_egg_logs ADD COLUMN validated_by_id INTEGER",
+            "ALTER TABLE poultry_egg_logs ADD COLUMN validation_timestamp DATETIME",
+            "ALTER TABLE poultry_egg_logs ADD COLUMN admin_notes TEXT",
+            # Poultry health logs
+            "ALTER TABLE poultry_health_logs ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
+            "ALTER TABLE poultry_health_logs ADD COLUMN created_by_id INTEGER",
+            "ALTER TABLE poultry_health_logs ADD COLUMN validated_by_id INTEGER",
+            "ALTER TABLE poultry_health_logs ADD COLUMN validation_timestamp DATETIME",
+            "ALTER TABLE poultry_health_logs ADD COLUMN admin_notes TEXT",
+            # Poultry sales
+            "ALTER TABLE poultry_sales ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
+            "ALTER TABLE poultry_sales ADD COLUMN created_by_id INTEGER",
+            "ALTER TABLE poultry_sales ADD COLUMN validated_by_id INTEGER",
+            "ALTER TABLE poultry_sales ADD COLUMN validation_timestamp DATETIME",
+            "ALTER TABLE poultry_sales ADD COLUMN admin_notes TEXT",
+            # Poultry batches
+            "ALTER TABLE poultry_batches ADD COLUMN created_at DATETIME",
+            # Poultry health logs — mortalité persistée
+            "ALTER TABLE poultry_health_logs ADD COLUMN deaths_today INTEGER DEFAULT 0",
             # Bee Hives
             "ALTER TABLE bee_hives ADD COLUMN has_queen BOOLEAN DEFAULT 1",
             "ALTER TABLE bee_hives ADD COLUMN queen_count INTEGER DEFAULT 0",

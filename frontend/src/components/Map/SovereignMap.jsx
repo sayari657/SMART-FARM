@@ -17,52 +17,43 @@ const SovereignMap = ({
 }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
+    const markersRef = useRef([]);
     const [isStyleLoaded, setIsStyleLoaded] = React.useState(false);
-    const [mapStyle, setMapStyle] = React.useState(null);
+
+    // Default Style (Carto Voyager) - Better compatibility with ngrok/HTTPS
+    const DEFAULT_MAP_STYLE = {
+        version: 8,
+        sources: {
+            'osm': {
+                type: 'raster',
+                tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'],
+                tileSize: 256,
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
+            }
+        },
+        layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }]
+    };
+
+    const [mapStyle, setMapStyle] = React.useState(DEFAULT_MAP_STYLE);
 
     useEffect(() => {
         const checkStyleAvailability = async () => {
-            const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const hostname = window.location.hostname;
 
-            // LITE MODE / DEV: Skip 503-inducing checks and use OSM directly
-            if (isLocalDev) {
-                setMapStyle({
-                    version: 8,
-                    sources: {
-                        'osm': {
-                            type: 'raster',
-                            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                            tileSize: 256,
-                            attribution: '&copy; OpenStreetMap'
-                        }
-                    },
-                    layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }]
-                });
+            // If we are on localhost, we can try the local tile server
+            // But for ngrok or others, we keep the default OSM and force "ready"
+            if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+                setIsStyleLoaded(true); 
                 return;
             }
 
             try {
-                // Enterprise / Docker Mode: Attempt local GIS tiles
                 const response = await fetch('/map-tiles/styles/basic/style.json', { method: 'HEAD' });
                 if (response.ok) {
                     setMapStyle('/map-tiles/styles/basic/style.json');
-                } else {
-                    throw new Error('Local tiles offline');
                 }
             } catch (err) {
-                // Background Fallback
-                setMapStyle({
-                    version: 8,
-                    sources: {
-                        'osm': {
-                            type: 'raster',
-                            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                            tileSize: 256,
-                            attribution: '&copy; OpenStreetMap'
-                        }
-                    },
-                    layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }]
-                });
+                // Keep default OSM
             }
         };
         checkStyleAvailability();
@@ -125,7 +116,8 @@ const SovereignMap = ({
 
     // Camera Sync Logic: Fly-to when center/zoom props change
     useEffect(() => {
-        if (!map.current || !isStyleLoaded) return;
+        const isNgrok = window.location.hostname.includes('ngrok');
+        if (!map.current || (!isStyleLoaded && !isNgrok)) return;
         const [lon, lat] = center;
         map.current.flyTo({
             center: [lon, lat],
@@ -138,11 +130,12 @@ const SovereignMap = ({
 
     // Update markers when data changes
     useEffect(() => {
-        if (!map.current || !isStyleLoaded) return;
+        const isNgrok = window.location.hostname.includes('ngrok');
+        if (!map.current || (!isStyleLoaded && !isNgrok)) return;
 
-        // Clear existing markers (Basic implementation)
-        const existingMarkers = document.querySelectorAll('.mapboxgl-marker');
-        existingMarkers.forEach(m => m.remove());
+        // 1. Clear existing markers properly
+        markersRef.current.forEach(m => m.remove());
+        markersRef.current = [];
 
         // Process Hives (Yellow Hexagons)
         hives.forEach(h => {
@@ -164,6 +157,7 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
+            markersRef.current.push(marker);
             el.addEventListener('click', () => onMarkerClick(h));
         });
 
@@ -180,6 +174,7 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
+            markersRef.current.push(marker);
             el.addEventListener('click', () => onMarkerClick(v));
         });
 
@@ -196,6 +191,7 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
+            markersRef.current.push(marker);
             el.addEventListener('click', () => onMarkerClick(f));
         });
 
@@ -213,13 +209,14 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
+            markersRef.current.push(marker);
             el.addEventListener('click', () => onMarkerClick(m));
         });
 
         // User Position (Pulsating Blue Navigation)
         if (userPos) {
             const el = createMarkerElement('user');
-            new maplibregl.Marker({ element: el })
+            const marker = new maplibregl.Marker({ element: el })
                 .setLngLat([userPos[1], userPos[0]])
                 .setPopup(new maplibregl.Popup({ offset: 10 }).setHTML(`
                     <div style="background: #3b82f6; color: white; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 11px;">
@@ -227,12 +224,14 @@ const SovereignMap = ({
                     </div>
                 `))
                 .addTo(map.current);
+            markersRef.current.push(marker);
 
             // Open popup by default so user sees clearly where they are
             const startPopup = new maplibregl.Popup({ offset: 15, closeButton: false })
                 .setLngLat([userPos[1], userPos[0]])
                 .setHTML('<div style="color: #3b82f6; font-weight: 900; font-size: 10px; text-transform: uppercase;">Moi</div>')
                 .addTo(map.current);
+            markersRef.current.push(startPopup);
 
             // Dynamic 100km circle simulation (using a GeoJSON source in MapLibre for better performance)
             if (map.current.getSource('proximity')) {
@@ -265,7 +264,8 @@ const SovereignMap = ({
         }
 
         // --- HIVE-MARKET CONNECTIVITY LINKS ---
-        if (isStyleLoaded && map.current) {
+        const isNgrokActive = window.location.hostname.includes('ngrok');
+        if ((isStyleLoaded || isNgrokActive) && map.current) {
             const updateConnectivity = () => {
                 const sourceId = 'hive-market-links';
                 const layerId = 'hive-market-links-layer';

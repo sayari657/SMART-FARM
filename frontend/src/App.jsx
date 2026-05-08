@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import MainLayout from './layouts/MainLayout';
 
@@ -38,6 +39,7 @@ import WorkerTasks from './pages/worker/WorkerTasks';
 import WorkerScan from './pages/worker/WorkerScan';
 import WorkerReport from './pages/worker/WorkerReport';
 import WorkerSettings from './pages/worker/WorkerSettings';
+import WorkerInstructions from './pages/worker/WorkerInstructions';
 
 function OwnerRoute({ children }) {
   const { user } = useAuth();
@@ -84,6 +86,7 @@ function AppRoutes() {
         <Route path="aboutbee" element={<AboutBee />} />
         <Route path="aboutcow" element={<AboutCows />} />
         <Route path="aboutpoultry" element={<AboutPoultry />} />
+        <Route path="poultry" element={<AboutPoultry />} />
         <Route path="aboutsheep" element={<AboutSheep />} />
         <Route path="aboutgoat" element={<AboutGoats />} />
         <Route path="aboutrabbit" element={<AboutRabbit />} />
@@ -104,6 +107,7 @@ function AppRoutes() {
         <Route path="scan" element={<WorkerScan />} />
         <Route path="report" element={<WorkerReport />} />
         <Route path="settings" element={<WorkerSettings />} />
+        <Route path="instructions" element={<WorkerInstructions />} />
       </Route>
 
       {/* 404 */}
@@ -118,6 +122,10 @@ export default function App() {
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppRoutes />
       </Router>
+      <Toaster
+        position="top-right"
+        toastOptions={{ duration: 4000, style: { fontSize: 13, fontWeight: 700, maxWidth: 420 } }}
+      />
     </AuthProvider>
   );
 }

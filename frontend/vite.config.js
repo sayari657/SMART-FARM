@@ -28,9 +28,9 @@ export default defineConfig({
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
         ],
         shortcuts: [
-          { name: "Scanner IA", url: "/worker/scan", icons: [{src: "/icons/scan.png", sizes: "96x96"}] },
-          { name: "Mes Tâches", url: "/worker/tasks", icons: [{src: "/icons/tasks.png", sizes: "96x96"}] },
-          { name: "Dashboard", url: "/dashboard", icons: [{src: "/icons/dash.png", sizes: "96x96"}] }
+          { name: "Scanner IA", url: "/worker/scan", icons: [{ src: "/icons/scan.png", sizes: "96x96" }] },
+          { name: "Mes Tâches", url: "/worker/tasks", icons: [{ src: "/icons/tasks.png", sizes: "96x96" }] },
+          { name: "Dashboard", url: "/dashboard", icons: [{ src: "/icons/dash.png", sizes: "96x96" }] }
         ]
       },
       workbox: {
@@ -59,14 +59,16 @@ export default defineConfig({
   preview: {
     port: 4173,
     host: true,
+    allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
     proxy: {
       '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
-      '/ws':  { target: 'ws://127.0.0.1:8000', ws: true, changeOrigin: true },
+      '/ws': { target: 'ws://127.0.0.1:8000', ws: true, changeOrigin: true },
     },
   },
   server: {
     port: 5173,
     host: true,
+    allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
     proxy: {
       // REST API — all /api calls go through backend. No CORS needed.
       '/api': {

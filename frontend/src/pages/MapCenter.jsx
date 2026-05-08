@@ -12,17 +12,17 @@ const OVERPASS_MIRRORS = [
 ];
 
 const CATEGORIES = (t) => [
-    { id: 'all',    label: t('map_center.all'),        emoji: null  },
-    { id: 'hive',   label: t('map_center.hives'),      emoji: '🐝'  },
-    { id: 'vet',    label: t('map_center.vets'),       emoji: '🩺'  },
-    { id: 'farm',   label: t('map_center.farms'),      emoji: '🚜'  },
-    { id: 'market', label: t('map_center.markets'),    emoji: '🍯'  },
+    { id: 'all', label: t('map_center.all'), emoji: null },
+    { id: 'hive', label: t('map_center.hives'), emoji: '🐝' },
+    { id: 'vet', label: t('map_center.vets'), emoji: '🩺' },
+    { id: 'farm', label: t('map_center.farms'), emoji: '🚜' },
+    { id: 'market', label: t('map_center.markets'), emoji: '🍯' },
 ];
 
 const TYPE_COLOR = {
-    hive:   'var(--color-warning)',
-    vet:    '#ef4444',
-    farm:   'var(--color-primary)',
+    hive: 'var(--color-warning)',
+    vet: '#ef4444',
+    farm: 'var(--color-primary)',
     market: 'var(--color-accent)',
 };
 
@@ -440,7 +440,7 @@ const MapCenter = () => {
                                 {CATEGORIES(t).find(c => c.id === categoryFilter)?.label ?? t('map_center.results')}
                             </div>
                             <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginTop: 2 }}>
-                                {filteredData.length} {filteredData.length !== 1 ? t('map_center.results').toLowerCase() : t('map_center.results').slice(0,-1).toLowerCase()} · {t('map_center.radius_100km')}
+                                {filteredData.length} {filteredData.length !== 1 ? t('map_center.results').toLowerCase() : t('map_center.results').slice(0, -1).toLowerCase()} · {t('map_center.radius_100km')}
                             </div>
                         </div>
                         {(isDiscovering || isFetchingOSMVets) && (

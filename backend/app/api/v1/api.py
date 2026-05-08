@@ -24,6 +24,7 @@ from app.api.v1.endpoints.geo_routes import router as geo_router
 from app.api.v1.endpoints.diagnostic_routes import router as diagnostic_router
 from app.api.v1.endpoints.worker_tasks import router as worker_tasks_router
 from app.api.v1.endpoints.worker_reports import router as worker_reports_router
+from app.api.v1.endpoints.poultry_erp import router as poultry_erp_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -39,6 +40,7 @@ api_router.include_router(settings_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(agent_router, prefix="/agent", tags=["Sovereign Agent"])
 api_router.include_router(bee_router, prefix="/bee", tags=["Bee Management"])
+api_router.include_router(poultry_erp_router, prefix="/poultry", tags=["Poultry Management ERP"])
 api_router.include_router(bee_history_router)
 api_router.include_router(bee_analytics_router)
 api_router.include_router(bee_expenses_router)

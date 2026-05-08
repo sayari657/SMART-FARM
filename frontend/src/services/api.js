@@ -53,6 +53,9 @@ export const farmsAPI = {
   create: (data) => api.post('/farms', data),
   update: (id, data) => api.put(`/farms/${id}`, data),
   delete: (id) => api.delete(`/farms/${id}`),
+  // Finance
+  getFinance: (farmId) => api.get(`/farms/${farmId}/finance`),
+  addFinance: (farmId, data) => api.post(`/farms/${farmId}/finance`, data),
 };
 
 // ---- Farm Workers
@@ -78,6 +81,20 @@ export const animalsAPI = {
   create: (data) => api.post('/animals', data),
   update: (id, data) => api.put(`/animals/${id}`, data),
   delete: (id) => api.delete(`/animals/${id}`),
+  // Logs
+  getLogs: (animalId, type = null) => api.get(`/animals/${animalId}/logs`, { params: { type } }),
+  addLog: (animalId, data) => api.post(`/animals/${animalId}/logs`, data),
+};
+
+// ---- Worker Tasks
+export const workerTasksAPI = {
+  list:          (params) => api.get('/worker-tasks', { params }),
+  get:           (id) => api.get(`/worker-tasks/${id}`),
+  create:        (data) => api.post('/worker-tasks', data),
+  update:        (id, data) => api.put(`/worker-tasks/${id}`, data),
+  delete:        (id) => api.delete(`/worker-tasks/${id}`),
+  updateStatus:  (id, status) => api.put(`/worker-tasks/${id}`, { status }),
+  listWorkers:   (farmId) => api.get('/worker-tasks/workers', { params: { farm_id: farmId } }),
 };
 
 // ---- Plants
@@ -195,6 +212,49 @@ export const diagnosticAPI = {
   list: () => api.get('/diagnostics/'),
   save: (data) => api.post('/diagnostics/', data),
   delete: (id) => api.delete(`/diagnostics/${id}`),
+};
+
+
+// ---- Poultry ERP
+export const poultryAPI = {
+  batches: {
+    list:   (farmId = 1) => api.get('/poultry/batches', { params: { farm_id: farmId } }),
+    create: (data)       => api.post('/poultry/batches', data),
+    update: (id, data)   => api.patch(`/poultry/batches/${id}`, data),
+    delete: (id)         => api.delete(`/poultry/batches/${id}`),
+    pnl:    (id)         => api.get(`/poultry/batches/${id}/pnl`),
+  },
+  feed: {
+    list:   (batchId)      => api.get(`/poultry/batches/${batchId}/feed-logs`),
+    create: (data)         => api.post('/poultry/feed-logs', data),
+    update: (id, data)     => api.patch(`/poultry/feed-logs/${id}`, data),
+    delete: (id)           => api.delete(`/poultry/feed-logs/${id}`),
+  },
+  eggs: {
+    list:   (batchId)      => api.get(`/poultry/batches/${batchId}/egg-logs`),
+    create: (data)         => api.post('/poultry/egg-logs', data),
+    update: (id, data)     => api.patch(`/poultry/egg-logs/${id}`, data),
+    delete: (id)           => api.delete(`/poultry/egg-logs/${id}`),
+  },
+  health: {
+    list:   (batchId)      => api.get(`/poultry/batches/${batchId}/health-logs`),
+    create: (data)         => api.post('/poultry/health-logs', data),
+    update: (id, data)     => api.patch(`/poultry/health-logs/${id}`, data),
+    delete: (id)           => api.delete(`/poultry/health-logs/${id}`),
+  },
+  sales: {
+    list:   (batchId)      => api.get(`/poultry/batches/${batchId}/sales`),
+    create: (data)         => api.post('/poultry/sales', data),
+    update: (id, data)     => api.patch(`/poultry/sales/${id}`, data),
+    delete: (id)           => api.delete(`/poultry/sales/${id}`),
+  },
+  inventory: {
+    list:   (farmId = 1)   => api.get('/poultry/inventory', { params: { farm_id: farmId } }),
+    create: (data)         => api.post('/poultry/inventory', data),
+    update: (id, data)     => api.patch(`/poultry/inventory/${id}`, data),
+    delete: (id)           => api.delete(`/poultry/inventory/${id}`),
+  },
+  stats: (farmId) => api.get(`/poultry/stats/farm/${farmId}`),
 };
 
 

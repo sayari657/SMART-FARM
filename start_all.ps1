@@ -43,25 +43,16 @@ Write-Host "   [1] Backend  API      : " -NoNewline -ForegroundColor Gray
 Write-Host "http://localhost:8000/docs" -ForegroundColor Cyan
 Write-Host "   [2] Owner Dashboard   : " -NoNewline -ForegroundColor Gray
 Write-Host "http://localhost:5173" -ForegroundColor Cyan
-Write-Host "   [3] Worker PWA        : " -NoNewline -ForegroundColor Gray
-Write-Host "http://${LocalIP}:4173/worker-login" -ForegroundColor Magenta
+Write-Host "   [3] Worker PWA (HTTPS) : " -NoNewline -ForegroundColor Gray
+Write-Host "https://${LocalIP}:4173/worker-login" -ForegroundColor Magenta
 Write-Host ""
 Write-Host "   IOT SIMULATION" -ForegroundColor DarkGray
-Write-Host "   [4] Telemetry CSV     : " -NoNewline -ForegroundColor Gray
-Write-Host "iot/iot_telemetry.csv  (TCP 4000 + 4001)" -ForegroundColor Yellow
-Write-Host "   [5] Wokwi Node A      : " -NoNewline -ForegroundColor Gray
-Write-Host "iot/node_a_pompe/diagram.json  (VS Code)" -ForegroundColor Yellow
-Write-Host "   [5] Wokwi Node B      : " -NoNewline -ForegroundColor Gray
-Write-Host "iot/node_b_rucher/diagram.json (VS Code)" -ForegroundColor Yellow
-Write-Host ""
 Write-Host "   Telemetry dashboard   : " -NoNewline -ForegroundColor Gray
 Write-Host "http://localhost:5173/telemetry" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  ================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  NOTE: Worker PWA builds first (~30 s) before opening." -ForegroundColor DarkGray
-Write-Host "        After VS Code opens, press [[>]] on each diagram tab" -ForegroundColor DarkGray
-Write-Host "        to start the Wokwi simulation for that node." -ForegroundColor DarkGray
 Write-Host ""
 
 # ---------------------------------------------------------------------------
@@ -86,14 +77,6 @@ if ($Fail.Count -gt 0) {
     Write-Host ""
     Read-Host "Press Enter to exit"
     exit 1
-}
-
-# Soft check for VS Code CLI
-$codeCmd = Get-Command code -ErrorAction SilentlyContinue
-if (-not $codeCmd) {
-    Write-Host "  [WARN] 'code' not in PATH - Wokwi diagrams will not auto-open." -ForegroundColor DarkYellow
-    Write-Host "         Add VS Code to PATH or open diagram.json files manually." -ForegroundColor DarkGray
-    Write-Host ""
 }
 
 Write-Host "  Pre-flight OK - launching all components..." -ForegroundColor Green
@@ -175,80 +158,23 @@ Start-Server `
 Start-Sleep -Milliseconds 300
 
 # ---------------------------------------------------------------------------
-# [5/5] Compile firmware with PlatformIO then open Wokwi diagrams
-# ---------------------------------------------------------------------------
-
-# Check if PlatformIO CLI is available
-$pioCmd = Get-Command pio -ErrorAction SilentlyContinue
-if (-not $pioCmd) {
-    # PlatformIO also installs as 'platformio'
-    $pioCmd = Get-Command platformio -ErrorAction SilentlyContinue
-}
-
-if ($pioCmd) {
-    $pioExe = $pioCmd.Source
-    Write-Host "  [5/5] Compiling Node A firmware (PlatformIO) ..." -ForegroundColor Yellow
-    & $pioExe run --project-dir "$Iot\node_a_pompe" --environment esp32dev
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  [!] Node A build FAILED - check PlatformIO output above." -ForegroundColor Red
-    } else {
-        Write-Host "  [5/5] Node A firmware compiled OK." -ForegroundColor Green
-    }
-
-    Write-Host "  [5/5] Compiling Node B firmware (PlatformIO) ..." -ForegroundColor Yellow
-    & $pioExe run --project-dir "$Iot\node_b_rucher" --environment esp32dev
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  [!] Node B build FAILED - check PlatformIO output above." -ForegroundColor Red
-    } else {
-        Write-Host "  [5/5] Node B firmware compiled OK." -ForegroundColor Green
-    }
-} else {
-    Write-Host "  [WARN] PlatformIO CLI not found." -ForegroundColor DarkYellow
-    Write-Host "         Install: pip install platformio  OR  use PlatformIO VS Code extension." -ForegroundColor DarkGray
-    Write-Host "         Then build each node manually before clicking Wokwi play." -ForegroundColor DarkGray
-}
-
-Write-Host ""
-
-if ($codeCmd) {
-    Write-Host "  [5/5] Opening Wokwi Node A in current VS Code window ..." -ForegroundColor Cyan
-    & code --reuse-window "$Iot\node_a_pompe\diagram.json"
-    Start-Sleep -Seconds 4
-
-    & code --command wokwi-vscode.start 2>$null
-    Start-Sleep -Seconds 1
-
-    Write-Host "  [5/5] Opening Wokwi Node B in current VS Code window ..." -ForegroundColor Cyan
-    & code --reuse-window "$Iot\node_b_rucher\diagram.json"
-    Start-Sleep -Seconds 4
-
-    & code --command wokwi-vscode.start 2>$null
-
-    Write-Host "  [5/5] Wokwi diagrams opened." -ForegroundColor Green
-} else {
-    Write-Host "  [5/5] VS Code not in PATH - open these files manually:" -ForegroundColor Yellow
-    Write-Host "        $Iot\node_a_pompe\diagram.json" -ForegroundColor Gray
-    Write-Host "        $Iot\node_b_rucher\diagram.json" -ForegroundColor Gray
-}
-
-# ---------------------------------------------------------------------------
 # Final summary
 # ---------------------------------------------------------------------------
 Write-Host ""
 Write-Host "  ================================================================" -ForegroundColor Green
-Write-Host "  All components launched." -ForegroundColor Green
+Write-Host "  All components launched.
+  ================================================================
+
+   Backend         http://localhost:8000/docs
+   Owner Dashboard http://localhost:5173
+   Worker PWA      http://${LocalIP}:4173/worker-login
+   Telemetry page  http://localhost:5173/telemetry
+
+  ================================================================
+  IoT Telemetry window connects automatically on TCP 4000+4001.
+" -ForegroundColor Green
 Write-Host "  ================================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "   Backend         http://localhost:8000/docs" -ForegroundColor Cyan
-Write-Host "   Owner Dashboard http://localhost:5173" -ForegroundColor Cyan
-Write-Host "   Worker PWA      http://${LocalIP}:4173/worker-login" -ForegroundColor Magenta
-Write-Host "   Telemetry page  http://localhost:5173/telemetry" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "  ================================================================" -ForegroundColor Green
-Write-Host "  Wokwi simulations are running in your VS Code window." -ForegroundColor Green
-Write-Host "  IoT Telemetry window connects automatically on TCP 4000+4001." -ForegroundColor Green
-Write-Host "  ================================================================" -ForegroundColor Green
-Write-Host ""
-Write-Host "  To stop: close the 4 server windows + the VS Code simulations." -ForegroundColor DarkGray
+Write-Host "  To stop: close the 4 server windows." -ForegroundColor DarkGray
 Write-Host ""
 Read-Host "Press Enter to close this launcher"

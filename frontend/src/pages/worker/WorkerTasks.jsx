@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, Circle, Clock, ChevronRight, RefreshCw, WifiOff } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, ChevronRight, RefreshCw, WifiOff, Milk, Utensils, Stethoscope, Eraser, AlertTriangle } from 'lucide-react';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import offlineDB from '../../db/offlineDB';
 import api from '../../services/api';
 
-const PRIORITY_COLOR = { high: '#ef4444', urgent: '#ef4444', normal: '#f59e0b', low: '#94a3b8' };
+const CATEGORY_ICONS = {
+  milking: { icon: Milk, color: '#3b82f6', bg: '#eff6ff', label: '🥛 Traite' },
+  feeding: { icon: Utensils, color: '#10b981', bg: '#ecfdf5', label: '🌾 Alimentation' },
+  health: { icon: Stethoscope, color: '#ef4444', bg: '#fef2f2', label: '💉 Soins' },
+  cleaning: { icon: Eraser, color: '#f59e0b', bg: '#fffbeb', label: '🧹 Nettoyage' },
+  other: { icon: Clock, color: '#6b7280', bg: '#f9fafb', label: '📋 Autre' }
+};
 
 function WorkerTasks() {
   const { isOnline } = useNetworkSync();
@@ -17,17 +23,14 @@ function WorkerTasks() {
     setError(null);
     try {
       if (isOnline) {
-        const { data } = await api.get('/worker/tasks');
-        const pending = await offlineDB.pendingTasks.where('synced').equals(0).toArray();
-        const pendingMap = {};
-        pending.forEach(p => { pendingMap[p.task_id] = p.status; });
-        setTasks(data.map(t => pendingMap[t.id] ? { ...t, status: pendingMap[t.id], _pending: true } : t));
+        const { data } = await api.get('/worker-tasks');
+        setTasks(data);
       } else {
         const local = await offlineDB.pendingTasks.toArray();
-        setTasks(local.map(t => ({ id: t.task_id, title: `Tâche #${t.task_id}`, status: t.status, _pending: true })));
+        setTasks(local.map(t => ({ id: t.task_id, title: t.title || `Tâche #${t.task_id}`, status: t.status, category: t.category || 'other' })));
       }
     } catch {
-      setError('Impossible de charger les tâches. Vérifiez votre connexion.');
+      setError('Impossible de charger les tâches.');
     } finally {
       setLoading(false);
     }
@@ -36,197 +39,113 @@ function WorkerTasks() {
   useEffect(() => { loadTasks(); }, [loadTasks]);
 
   const toggleTask = async (task) => {
-    const newStatus = task.status === 'pending' ? 'done' : 'pending';
-    const doneAt    = newStatus === 'done' ? new Date().toISOString() : null;
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus, _pending: !isOnline } : t));
-    if (isOnline) {
-      try {
-        await api.put(`/worker/tasks/${task.id}`, { status: newStatus, done_at: doneAt });
-      } catch {
+    if (task.status === 'done') return; // Once done, it's locked in this simple view
+    
+    const newStatus = 'done';
+    const doneAt    = new Date().toISOString();
+    
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    
+    try {
+      if (isOnline) {
+        await api.put(`/worker-tasks/${task.id}`, { status: newStatus, done_at: doneAt });
+      } else {
         await offlineDB.pendingTasks.put({ task_id: task.id, status: newStatus, done_at: doneAt, synced: 0 });
-        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, _pending: true } : t));
       }
-    } else {
-      await offlineDB.pendingTasks.put({ task_id: task.id, status: newStatus, done_at: doneAt, synced: 0 });
+    } catch (err) {
+      console.error(err);
+      // Rollback or handle error
     }
   };
 
-  const pending = tasks.filter(t => t.status === 'pending').length;
-  const done    = tasks.filter(t => t.status === 'done').length;
-
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
-
-      {/* ── Header ── */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '14px 18px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div style={{ background: '#f3f4f6', minHeight: '100vh', paddingBottom: 100 }}>
+      {/* Header */}
+      <header style={{ background: '#2563eb', padding: '24px 20px', color: 'white', borderRadius: '0 0 24px 24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: 0 }}>Mes Tâches</h1>
-            <p style={{ color: '#94a3b8', fontSize: 12, margin: '2px 0 0' }}>
-              {loading ? 'Chargement…' : `${pending} à faire · ${done} terminée${done !== 1 ? 's' : ''}`}
-            </p>
+            <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Mes Tâches</h1>
+            <p style={{ fontSize: 13, opacity: 0.8, margin: '4px 0 0' }}>Ferme AI · Ouvrier : Ali</p>
           </div>
-          <button
-            onClick={loadTasks}
-            disabled={loading}
-            style={{
-              background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10,
-              padding: '8px 12px', cursor: 'pointer', color: '#64748b',
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600,
-            }}
-          >
-            <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-            Actualiser
+          <button onClick={loadTasks} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <RefreshCw size={18} />
           </button>
         </div>
+      </header>
 
-        {/* Progress bar */}
-        {!loading && tasks.length > 0 && (
-          <div style={{ marginTop: 10 }}>
-            <div style={{ height: 4, background: '#e2e8f0', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', borderRadius: 99,
-                background: 'linear-gradient(90deg, #16a34a, #22c55e)',
-                width: `${tasks.length ? (done / tasks.length) * 100 : 0}%`,
-                transition: 'width .4s ease',
-              }} />
-            </div>
-            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, textAlign: 'right' }}>
-              {tasks.length ? Math.round((done / tasks.length) * 100) : 0}% complété
-            </div>
+      <div style={{ padding: '20px' }}>
+        {!isOnline && (
+          <div style={{ background: '#fffbeb', color: '#92400e', padding: '12px', borderRadius: '12px', marginBottom: '16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #fde68a' }}>
+            <WifiOff size={16} /> Mode hors-ligne actif
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {tasks.map(task => {
+            const isDone = task.status === 'done';
+            const cat = CATEGORY_ICONS[task.category] || CATEGORY_ICONS.other;
+            const Icon = cat.icon;
+
+            return (
+              <div 
+                key={task.id} 
+                onClick={() => !isDone && toggleTask(task)}
+                style={{
+                  background: isDone ? 'rgba(255,255,255,0.6)' : 'white',
+                  borderRadius: 20, padding: 18, border: `1px solid ${isDone ? '#e5e7eb' : '#fff'}`,
+                  boxShadow: isDone ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.05)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  transition: 'transform 0.1s', cursor: isDone ? 'default' : 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 50, height: 50, borderRadius: 14, background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cat.color }}>
+                    <Icon size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: isDone ? '#9ca3af' : '#1f2937' }}>{task.title}</h3>
+                    <p style={{ margin: '2px 0 0', fontSize: 12, color: isDone ? '#d1d5db' : '#6b7280' }}>
+                      {cat.label} {task.due_date && '· ' + new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+                
+                {isDone ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 800, fontSize: 14 }}>
+                    <CheckCircle2 size={20} /> <span>✓ FAIT</span>
+                  </div>
+                ) : (
+                  <button style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 12, fontWeight: 800, fontSize: 13 }}>
+                    Valider
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {tasks.length === 0 && !loading && (
+          <div style={{ textAlign: 'center', marginTop: 60 }}>
+            <div style={{ fontSize: 60, marginBottom: 20 }}>🎉</div>
+            <h2 style={{ color: '#1f2937', fontWeight: 900 }}>Bravo !</h2>
+            <p style={{ color: '#6b7280' }}>Toutes les tâches sont terminées.</p>
           </div>
         )}
       </div>
 
-      <div style={{ padding: '12px 14px 0' }}>
-
-        {/* Offline notice */}
-        {!isOnline && (
-          <div style={{
-            background: '#fefce8', border: '1px solid #fef08a', borderRadius: 12,
-            padding: '10px 14px', marginBottom: 12,
-            display: 'flex', alignItems: 'center', gap: 8,
-            color: '#854d0e', fontSize: 12, fontWeight: 600,
-          }}>
-            <WifiOff size={14} color="#ca8a04" />
-            Hors-ligne — changements synchronisés au retour du réseau
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div style={{
-            background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
-            padding: '10px 14px', marginBottom: 12, color: '#b91c1c', fontSize: 13,
-          }}>
-            {error}
-          </div>
-        )}
-
-        {/* Skeleton loaders */}
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[1, 2, 3].map(i => (
-              <div key={i} style={{
-                height: 72, borderRadius: 14,
-                background: '#e2e8f0',
-                animation: 'pulse 1.5s ease-in-out infinite',
-              }} />
-            ))}
-          </div>
-        )}
-
-        {/* Task list */}
-        {!loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {tasks.map(task => {
-              const isDone = task.status === 'done';
-              return (
-                <div
-                  key={task.id}
-                  onClick={() => toggleTask(task)}
-                  style={{
-                    padding: '14px 14px',
-                    borderRadius: 14,
-                    background: isDone ? '#f0fdf4' : '#fff',
-                    border: `1px solid ${isDone ? '#bbf7d0' : '#e2e8f0'}`,
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    cursor: 'pointer', transition: 'all 0.18s',
-                    opacity: isDone ? 0.75 : 1,
-                    boxShadow: isDone ? 'none' : '0 1px 3px rgba(0,0,0,.04)',
-                  }}
-                >
-                  <div style={{ color: isDone ? '#16a34a' : '#cbd5e1', flexShrink: 0 }}>
-                    {isDone ? <CheckCircle2 size={24} /> : <Circle size={24} />}
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      color: isDone ? '#94a3b8' : '#0f172a',
-                      fontWeight: 600, fontSize: 14, margin: 0,
-                      textDecoration: isDone ? 'line-through' : 'none',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {task.title}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
-                      {task.due_date && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#94a3b8', fontSize: 11 }}>
-                          <Clock size={10} />
-                          {typeof task.due_date === 'string' && task.due_date.includes('T')
-                            ? new Date(task.due_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                            : task.due_date}
-                        </div>
-                      )}
-                      {task.priority && task.priority !== 'normal' && !isDone && (
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                          color: PRIORITY_COLOR[task.priority] || '#94a3b8', letterSpacing: '.03em',
-                        }}>
-                          {task.priority === 'high' || task.priority === 'urgent' ? '⚡ Urgent' : task.priority}
-                        </span>
-                      )}
-                      {task._pending && (
-                        <span style={{
-                          fontSize: 10, color: '#d97706', fontWeight: 600,
-                          background: '#fef9c3', padding: '1px 6px', borderRadius: 99,
-                        }}>
-                          ● non sync.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <ChevronRight size={16} color="#cbd5e1" style={{ flexShrink: 0 }} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && tasks.length === 0 && !error && (
-          <div style={{ textAlign: 'center', marginTop: 60, padding: '0 20px' }}>
-            <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: '#dcfce7', border: '1px solid #bbf7d0',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
-            }}>
-              <CheckCircle2 size={36} color="#16a34a" />
-            </div>
-            <p style={{ color: '#0f172a', fontSize: 16, fontWeight: 700, margin: '0 0 6px' }}>
-              Toutes les tâches terminées !
-            </p>
-            <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>
-              Le propriétaire vous assignera bientôt de nouvelles tâches.
-            </p>
-          </div>
-        )}
+      {/* Floating Action Button for Anomalies */}
+      <div style={{ position: 'fixed', bottom: 30, left: 20, right: 20 }}>
+        <button 
+          onClick={() => window.location.href = '/worker/report'}
+          style={{ width: '100%', background: '#f59e0b', color: 'white', padding: '18px', borderRadius: 20, border: 'none', fontWeight: 900, fontSize: 16, boxShadow: '0 10px 15px -3px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+        >
+          <AlertTriangle size={20} /> + SIGNALER ANOMALIE
+        </button>
       </div>
 
       <style>{`
-        @keyframes spin  { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
       `}</style>
     </div>
   );
