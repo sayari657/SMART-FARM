@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.farm_service import AnimalService
-from app.schemas.domain import AnimalUnitCreate, AnimalUnitUpdate
+from app.schemas.domain import AnimalUnitCreate, AnimalUnitUpdate, AnimalTypeCreate
 from app.models.domain import AnimalUnit, AnimalLog, User
 from pydantic import BaseModel
 
@@ -73,6 +73,11 @@ def list_types(db: Session = Depends(get_db), _=Depends(get_current_user)):
     return [{"id": t.id, "species": t.species, "display_name": t.display_name,
              "description": t.description, "cv_classes": t.cv_classes,
              "telemetry_schema": t.telemetry_schema} for t in types]
+
+@router.post("/types", status_code=201)
+def create_type(data: AnimalTypeCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    t = AnimalService(db).create_type(data)
+    return {"id": t.id, "species": t.species, "display_name": t.display_name}
 
 @router.get("/{unit_id}")
 def get_animal(unit_id: str, db: Session = Depends(get_db), _=Depends(get_current_user)):

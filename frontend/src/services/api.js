@@ -78,6 +78,7 @@ export const animalsAPI = {
   list: (params) => api.get('/animals', { params }),
   get: (id) => api.get(`/animals/${id}`),
   types: () => api.get('/animals/types'),
+  createType: (data) => api.post('/animals/types', data),
   create: (data) => api.post('/animals', data),
   update: (id, data) => api.put(`/animals/${id}`, data),
   delete: (id) => api.delete(`/animals/${id}`),

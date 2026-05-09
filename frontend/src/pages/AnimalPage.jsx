@@ -10,8 +10,10 @@ import Navbar from '../components/Navbar';
 import AIScanner from '../components/AIScanner';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
 import { animalsAPI, workerTasksAPI, farmWorkersAPI, farmsAPI } from '../services/api';
+import LivestockERP from '../components/LivestockERP';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import SpeciesIntelligenceWidget from '../components/SpeciesIntelligenceWidget';
 
 const ANIM_CSS = `
   @keyframes ap-fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
@@ -399,6 +401,9 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
           </div>
         ))}
       </div>
+
+      {/* Specialized AI Dashboard Widget */}
+      <SpeciesIntelligenceWidget species={cfg.apiSpecies} color={C} />
 
       {/* Features */}
       <div className="ap-f3">
@@ -1488,7 +1493,7 @@ function ProtocolsTab({ cfg, farmId, workers }) {
 const TABS = [
   {id:'apercu',       label:'Aperçu',         icon:Activity },
   {id:'today',        label:"Aujourd'hui",    icon:CheckCircle},
-  {id:'animaux',      label:'Animaux & ERP',  icon:Package  },
+  {id:'animaux',      label:'ERP Système',    icon:Package  },
   {id:'surveillance', label:'Surveillance IA',icon:Eye      },
   {id:'protocols',    label:'Protocoles',     icon:Calendar },
 ];
@@ -1548,7 +1553,7 @@ export default function AnimalPage({ species }) {
           <>
             {activeTab==='apercu'       && <AperçuTab       cfg={cfg} animals={animals} onGoToAnimaux={()=>setActiveTab('animaux')} />}
             {activeTab==='today'        && <TodayWorkspace  cfg={cfg} animals={animals} farmId={farmId} workers={workers} />}
-            {activeTab==='animaux'      && <AnimauxTab      cfg={cfg} animals={animals} farmId={farmId} onRefresh={loadData} />}
+            {activeTab==='animaux'      && <LivestockERP    species={cfg.apiSpecies} color={cfg.color} farmId={farmId} />}
             {activeTab==='surveillance' && <SurveillanceTab cfg={cfg} />}
             {activeTab==='protocols'    && <ProtocolsTab    cfg={cfg} farmId={farmId} workers={workers} />}
           </>

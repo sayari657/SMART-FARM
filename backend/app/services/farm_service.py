@@ -43,7 +43,9 @@ class AnimalService:
         self.type_repo = AnimalTypeRepository(db)
 
     def list_animals(self, farm_id: Optional[int] = None, species: Optional[str] = None):
-        if farm_id:
+        if farm_id and species:
+            units = self.repo.get_by_farm_and_species(farm_id, species)
+        elif farm_id:
             units = self.repo.get_by_farm(farm_id)
         elif species:
             units = self.repo.get_by_species(species)
@@ -76,3 +78,7 @@ class AnimalService:
 
     def list_types(self):
         return self.type_repo.get_all()
+
+    def create_type(self, data):
+        from app.schemas.domain import AnimalTypeCreate
+        return self.type_repo.create(data.model_dump())

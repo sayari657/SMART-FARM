@@ -66,6 +66,15 @@ class AnimalUnitRepository(BaseRepository[AnimalUnit]):
             .all()
         )
 
+    def get_by_farm_and_species(self, farm_id: int, species: str) -> List[AnimalUnit]:
+        return (
+            self.db.query(AnimalUnit)
+            .options(joinedload(AnimalUnit.animal_type), joinedload(AnimalUnit.farm))
+            .join(AnimalType)
+            .filter(AnimalUnit.farm_id == farm_id, AnimalType.species == species)
+            .all()
+        )
+
     def get_by_species(self, species: str) -> List[AnimalUnit]:
         return (
             self.db.query(AnimalUnit)
