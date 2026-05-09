@@ -20,7 +20,26 @@ const ANIM_CSS = `
   .ap-f2{animation:ap-fadeUp .45s .08s ease both}
   .ap-f3{animation:ap-fadeUp .45s .16s ease both}
   .ap-pulse{animation:ap-pulse 2s infinite}
+  @media(max-width:900px){
+    .ap-2col{grid-template-columns:1fr !important}
+    .ap-sticky{position:static !important}
+    .ap-5kpi{grid-template-columns:repeat(2,1fr) !important}
+    .ap-feat{grid-template-columns:1fr 1fr !important}
+    .ap-stats4{grid-template-columns:1fr 1fr !important}
+  }
+  @media(max-width:600px){
+    .ap-feat{grid-template-columns:1fr !important}
+    .ap-5kpi{grid-template-columns:1fr 1fr !important}
+  }
 `;
+
+// ─── Hero images per species ─────────────────────────────────────────────────
+const HERO_IMG = {
+  cow:    null,
+  sheep:  '/sheep_monitoring_ia.png',
+  goat:   '/goat_monitoring_ia.png',
+  rabbit: '/rabbit_monitoring_ia.png',
+};
 
 // ─── Species config ──────────────────────────────────────────────────────────
 const SC = {
@@ -298,8 +317,28 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
         borderRadius:20, padding:'52px 44px', marginBottom:28,
         position:'relative', overflow:'hidden', color:'white',
       }}>
+        {/* Decorative circles */}
         <div style={{position:'absolute',top:-50,right:-50,width:180,height:180,borderRadius:'50%',background:'rgba(255,255,255,.06)'}} />
         <div style={{position:'absolute',bottom:-30,left:-30,width:140,height:140,borderRadius:'50%',background:'rgba(255,255,255,.04)'}} />
+        {/* Species hero image */}
+        {HERO_IMG[cfg.apiSpecies] && (
+          <img
+            src={HERO_IMG[cfg.apiSpecies]}
+            alt={cfg.name}
+            style={{
+              position:'absolute', right:0, top:0, height:'100%', width:'45%',
+              objectFit:'cover', opacity:.18,
+              maskImage:'linear-gradient(to left, rgba(0,0,0,.8), transparent)',
+              WebkitMaskImage:'linear-gradient(to left, rgba(0,0,0,.8), transparent)',
+            }}
+          />
+        )}
+        {/* Emoji fallback (cow) */}
+        {!HERO_IMG[cfg.apiSpecies] && (
+          <div style={{position:'absolute',right:60,top:'50%',transform:'translateY(-50%)',fontSize:120,opacity:.1,userSelect:'none'}}>
+            {cfg.emoji}
+          </div>
+        )}
         <div style={{position:'relative',zIndex:2,maxWidth:600}}>
           <div className="ap-f1" style={{
             display:'inline-flex', alignItems:'center', gap:6,
@@ -346,7 +385,7 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
       </div>
 
       {/* Stats */}
-      <div className="ap-f2" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:28}}>
+      <div className="ap-f2 ap-stats4" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:28}}>
         {cfg.stats.map((s, i) => (
           <div key={s.label} className="card" style={{textAlign:'center',padding:'20px 14px'}}>
             <div style={{width:44,height:44,borderRadius:12,margin:'0 auto 12px',
@@ -364,7 +403,7 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
       {/* Features */}
       <div className="ap-f3">
         <SectionHeader title="Fonctionnalités du Module" accent={C} />
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
+        <div className="ap-feat" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
           {cfg.features.map(f => (
             <div key={f.title} className="card" style={{borderLeft:`3px solid ${f.color}`,padding:20}}>
               <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
@@ -746,7 +785,7 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
       </div>
 
       {/* KPI Tiles */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:14,marginBottom:22}}>
+      <div className="ap-5kpi" style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:14,marginBottom:22}}>
         {cfg.kpis.map((k, i) => {
           const val = k.key==='count' ? String(animals.length||'—') :
                       k.key==='revenue' ? (revenue>0?`${revenue.toFixed(0)} TND`:'—') :
@@ -791,7 +830,7 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
       </div>
 
       {/* Two-column body */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 360px',gap:22,alignItems:'start'}}>
+      <div className="ap-2col" style={{display:'grid',gridTemplateColumns:'1fr 360px',gap:22,alignItems:'start'}}>
 
         {/* LEFT */}
         <div style={{display:'flex',flexDirection:'column',gap:20}}>
@@ -911,7 +950,7 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
         </div>
 
         {/* RIGHT — sticky */}
-        <div style={{position:'sticky',top:80}}>
+        <div className="ap-sticky" style={{position:'sticky',top:80}}>
           <QuickEntryPanel cfg={cfg} animals={animals} farmId={farmId} workers={workers} onSaved={()=>{
             farmsAPI.getFinance(farmId||1).then(r=>setFinance(r.data?.summary||{})).catch(()=>{});
           }} />

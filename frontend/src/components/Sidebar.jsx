@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Building2, PawPrint, Activity, Eye,
   AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf,
-  Layers, Bot, TreePine, Map, X, ChevronLeft, ChevronRight
+  Layers, Bot, TreePine, Map, X, ChevronLeft, ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -41,6 +42,14 @@ const NAV = [
   },
 ];
 
+const SPECIES_NAV = [
+  { to: '/aboutpoultry', emoji: '🐔', label: 'Volailles',    color: '#0891b2' },
+  { to: '/aboutcow',     emoji: '🐄', label: 'Bovins',       color: '#1d4ed8' },
+  { to: '/aboutsheep',   emoji: '🐑', label: 'Ovins',        color: '#7c3aed' },
+  { to: '/aboutgoat',    emoji: '🐐', label: 'Caprins',      color: '#dc2626' },
+  { to: '/aboutrabbit',  emoji: '🐰', label: 'Cuniculture',  color: '#0d9488' },
+];
+
 export default function Sidebar() {
   const { user, logout } = useAuth() || {};
   const { t } = useTranslation();
@@ -49,6 +58,9 @@ export default function Sidebar() {
 
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar-collapsed') === 'true'
+  );
+  const [speciesOpen, setSpeciesOpen] = useState(
+    () => localStorage.getItem('sidebar-species-open') !== 'false'
   );
 
   useEffect(() => {
@@ -121,6 +133,33 @@ export default function Sidebar() {
             ))}
           </div>
         ))}
+
+        {/* Élevage — species quick links */}
+        <div className="sidebar-section">
+          {!collapsed ? (
+            <button
+              onClick={() => { const next = !speciesOpen; setSpeciesOpen(next); localStorage.setItem('sidebar-species-open', String(next)); }}
+              style={{ display:'flex', alignItems:'center', width:'100%', background:'none', border:'none', cursor:'pointer',
+                padding:'0 12px 6px', gap:6, color:'var(--color-text-3)', fontSize:10, fontWeight:800, letterSpacing:1, textTransform:'uppercase' }}
+            >
+              <span style={{ flex:1 }}>Élevage</span>
+              <ChevronDown size={11} style={{ transform: speciesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform .2s' }} />
+            </button>
+          ) : null}
+          {(speciesOpen || collapsed) && SPECIES_NAV.map(sp => (
+            <NavLink
+              key={sp.to}
+              to={sp.to}
+              onClick={handleNavClick}
+              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+              title={collapsed ? sp.label : undefined}
+              style={({ isActive }) => isActive ? { borderLeft: `3px solid ${sp.color}`, paddingLeft: collapsed ? undefined : 13 } : {}}
+            >
+              <span style={{ fontSize: collapsed ? 18 : 15, flexShrink:0, lineHeight:1 }}>{sp.emoji}</span>
+              {!collapsed && <span style={{ overflow:'hidden', textOverflow:'ellipsis', fontSize:13 }}>{sp.label}</span>}
+            </NavLink>
+          ))}
+        </div>
       </div>
 
       {/* Collapse toggle — desktop only */}
