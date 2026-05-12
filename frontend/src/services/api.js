@@ -148,6 +148,7 @@ export const alertsAPI = {
   list: () => api.get('/alerts'),
   critical: () => api.get('/alerts/critical'),
   resolve: (id, by) => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
+  emergency: () => api.get('/alerts/emergency'),
 };
 
 // ---- Recommendations
@@ -205,7 +206,7 @@ export const agentAPI = {
   analyze: (query, species, detections = [], signal) =>
     api.post('/agent/analyze', { query, species, detections }, { signal }),
   analyzeImage: (image_b64, query, species, signal) =>
-    api.post('/agent/analyze-image', { image_b64, query: query || '', species: species || null }, { signal, timeout: 90000 }),
+    api.post('/agent/analyze-image', { image_b64, query: query || '', species: species || null }, { signal, timeout: 300000 }),
 };
 
 // ---- Diagnostic History
@@ -256,6 +257,10 @@ export const poultryAPI = {
     delete: (id)           => api.delete(`/poultry/inventory/${id}`),
   },
   stats: (farmId) => api.get(`/poultry/stats/farm/${farmId}`),
+  mlInsights: {
+    batch: (batchId) => api.get(`/poultry/ml-insights/${batchId}`),
+    farm:  (farmId)  => api.get(`/poultry/ml-insights/farm/${farmId}`),
+  },
 };
 
 

@@ -5,6 +5,10 @@ import {
   CheckCircle, Shield, Layers, Users, ChevronRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  ComposedChart, AreaChart, Area, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ReferenceLine, ResponsiveContainer, Legend,
+} from 'recharts';
 import Navbar from '../components/Navbar';
 import AnimalERP from '../components/AnimalERP';
 import AIScanner from '../components/AIScanner';
@@ -369,26 +373,93 @@ function AperçuTab({ onGoToERP }) {
 
 function SurveillanceTab() {
   const { t } = useTranslation();
+  const { farmId } = useAuth();
+  const fid = farmId || 1;
+
+  const [mlData,    setMlData]    = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState(null);
+  const [refreshAt, setRefreshAt] = useState(Date.now());
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    poultryAPI.mlInsights.farm(fid)
+      .then(r => setMlData(r.data))
+      .catch(() => setError('Impossible de charger les prédictions ML.'))
+      .finally(() => setLoading(false));
+  }, [fid, refreshAt]);
+
+  // ── SVG Arc Gauge ─────────────────────────────────────────────────────────
+  const ArcGauge = ({ pct = 0, color = C, size = 84, label, sublabel }) => {
+    const r = (size - 14) / 2;
+    const circ = 2 * Math.PI * r;
+    const clamp = Math.min(100, Math.max(0, pct));
+    const dash  = (clamp / 100) * circ;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#f1f5f9" strokeWidth={8} />
+          <circle
+            cx={size/2} cy={size/2} r={r} fill="none"
+            stroke={color} strokeWidth={8}
+            strokeDasharray={`${dash} ${circ - dash}`}
+            strokeDashoffset={circ / 4}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(.4,0,.2,1)' }}
+          />
+          <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
+            style={{ fontSize: 15, fontWeight: 900, fill: color }}>
+            {clamp.toFixed(0)}%
+          </text>
+        </svg>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>{label}</div>
+          {sublabel && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>{sublabel}</div>}
+        </div>
+      </div>
+    );
+  };
+
+  // ── Risk badge ────────────────────────────────────────────────────────────
+  const RiskBadge = ({ level }) => {
+    const map = {
+      low:      { bg: '#dcfce7', color: '#059669', label: '✅ Faible' },
+      medium:   { bg: '#fef3c7', color: '#f59e0b', label: '⚠️ Modéré' },
+      high:     { bg: '#fee2e2', color: '#ef4444', label: '🔴 Élevé' },
+      critical: { bg: '#fde8e8', color: '#dc2626', label: '🚨 Critique' },
+      unknown:  { bg: '#f1f5f9', color: '#94a3b8', label: '❓ Inconnu' },
+    };
+    const s = map[level] || map.unknown;
+    return (
+      <span style={{ background: s.bg, color: s.color, borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 800 }}>
+        {s.label}
+      </span>
+    );
+  };
+
+  // ── Static detection cards ────────────────────────────────────────────────
   const detections = [
-    { icon: Bird,          title: t('poultry.surveillance.det_behavior'), desc: t('poultry.surveillance.det_behavior_desc') },
-    { icon: Shield,        title: t('poultry.surveillance.det_disease'),  desc: t('poultry.surveillance.det_disease_desc')  },
-    { icon: AlertTriangle, title: t('poultry.surveillance.det_alerts'),   desc: t('poultry.surveillance.det_alerts_desc')   },
+    { icon: Bird,          title: t('poultry.surveillance.det_behavior'), desc: t('poultry.surveillance.det_behavior_desc'), color: C },
+    { icon: Shield,        title: t('poultry.surveillance.det_disease'),  desc: t('poultry.surveillance.det_disease_desc'),  color: '#ef4444' },
+    { icon: AlertTriangle, title: t('poultry.surveillance.det_alerts'),   desc: t('poultry.surveillance.det_alerts_desc'),   color: '#f59e0b' },
   ];
+
   return (
     <div>
+      {/* ── Header ── */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 5 }}>{t('poultry.surveillance.title')}</h2>
-        <p style={{ fontSize: 13, color: 'var(--color-text-3)' }}>
-          {t('poultry.surveillance.subtitle')}
-        </p>
+        <p style={{ fontSize: 13, color: 'var(--color-text-3)' }}>{t('poultry.surveillance.subtitle')}</p>
       </div>
 
+      {/* ── Detection feature cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginBottom: 22 }}>
         {detections.map(d => (
-          <div key={d.title} className="card" style={{ padding: 18, borderLeft: `3px solid ${C}` }}>
+          <div key={d.title} className="card" style={{ padding: 18, borderLeft: `3px solid ${d.color}` }}>
             <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: `${C}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <d.icon size={17} color={C} />
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: `${d.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <d.icon size={17} color={d.color} />
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{d.title}</div>
@@ -399,10 +470,194 @@ function SurveillanceTab() {
         ))}
       </div>
 
+      {/* ── ML Insights Panel ── */}
+      <div style={{
+        background: 'white', borderRadius: 16,
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+        marginBottom: 22, overflow: 'hidden',
+      }}>
+        {/* Panel header */}
+        <div style={{
+          padding: '18px 24px', borderBottom: '1px solid #f1f5f9',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10,
+        }}>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 16, color: '#1e293b' }}>🤖 Prédictions ML — Temps Réel</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+              Polynomial Regression · Sliding-Window Classifier · Z-Score Detector · Linear Regression
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {mlData && (
+              <div style={{
+                background: mlData.farm_health_score >= 80 ? '#dcfce7' : mlData.farm_health_score >= 60 ? '#fef3c7' : '#fee2e2',
+                color: mlData.farm_health_score >= 80 ? '#059669' : mlData.farm_health_score >= 60 ? '#f59e0b' : '#ef4444',
+                borderRadius: 999, padding: '5px 14px', fontSize: 13, fontWeight: 800,
+              }}>
+                🏥 Santé Ferme : {mlData.farm_health_score}/100
+              </div>
+            )}
+            <button
+              onClick={() => setRefreshAt(Date.now())}
+              style={{ background: `${C}10`, border: `1px solid ${C}33`, borderRadius: 8, padding: '6px 14px', fontSize: 12, fontWeight: 700, color: C, cursor: 'pointer' }}
+            >
+              🔄 Actualiser
+            </button>
+          </div>
+        </div>
+
+        {loading && (
+          <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>⚙️</div>
+            Exécution des modèles ML en cours…
+          </div>
+        )}
+
+        {error && (
+          <div style={{ padding: 24, textAlign: 'center', color: '#ef4444', fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && mlData && mlData.insights && mlData.insights.length === 0 && (
+          <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
+            Aucun lot actif — créez un lot pour démarrer les prédictions ML.
+          </div>
+        )}
+
+        {!loading && !error && mlData && mlData.insights && mlData.insights.map((insight, idx) => (
+          <div key={insight.batch_id} style={{
+            borderBottom: idx < mlData.insights.length - 1 ? '1px solid #f1f5f9' : 'none',
+          }}>
+            {/* Batch header */}
+            <div style={{ padding: '14px 24px 0', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#1e293b' }}>
+                🐔 Lot #{insight.batch_id}
+              </div>
+              <span style={{ background: `${C}15`, color: C, borderRadius: 999, padding: '2px 10px', fontSize: 11, fontWeight: 700 }}>
+                J{insight.batch_day}
+              </span>
+              <RiskBadge level={insight.summary.risk_level} />
+              <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 'auto' }}>
+                {insight.batch_type.toUpperCase()} · Efficacité {insight.summary.efficiency_index}%
+              </span>
+            </div>
+
+            {/* ML Confidence Gauges */}
+            <div style={{
+              padding: '20px 24px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 20,
+            }}>
+              <ArcGauge
+                pct={insight.models.fcr_forecast.confidence_pct}
+                color="#7c3aed"
+                label="FCR Forecast"
+                sublabel={`Poly Reg. · FCR→${insight.models.fcr_forecast.predicted_fcr_final ?? '–'}`}
+              />
+              <ArcGauge
+                pct={insight.models.mortality_risk.confidence_pct}
+                color={insight.summary.risk_level === 'low' ? '#059669' : insight.summary.risk_level === 'medium' ? '#f59e0b' : '#ef4444'}
+                label="Risque Mortalité"
+                sublabel={`${insight.summary.risk_level.toUpperCase()} · ${insight.models.mortality_risk.mortality_rate_pct}%`}
+              />
+              <ArcGauge
+                pct={insight.models.egg_production.confidence_pct}
+                color="#0891b2"
+                label="Production Œufs"
+                sublabel={`Prévision : ${insight.models.egg_production.today_forecast_eggs} œufs`}
+              />
+              <ArcGauge
+                pct={insight.models.anomaly_detection.confidence_pct}
+                color={insight.models.anomaly_detection.is_anomalous ? '#ef4444' : '#059669'}
+                label="Anomalie"
+                sublabel={insight.models.anomaly_detection.is_anomalous ? '⚠ Anomalie détectée' : '✅ Normal'}
+              />
+              <ArcGauge
+                pct={insight.summary.efficiency_index}
+                color="#f59e0b"
+                label="Efficacité"
+                sublabel={`vs ${insight.models.growth_benchmark.standard_name}`}
+              />
+            </div>
+
+            {/* Model details strip */}
+            <div style={{
+              padding: '0 24px 16px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: 10,
+            }}>
+              {[
+                {
+                  label: '📊 FCR Actuel → Final',
+                  value: `${insight.models.fcr_forecast.current_fcr ?? '–'} → ${insight.models.fcr_forecast.predicted_fcr_final ?? '–'}`,
+                  sub: `Tendance : ${insight.models.fcr_forecast.trend} · ${insight.models.fcr_forecast.model_name}`,
+                  color: '#7c3aed',
+                },
+                {
+                  label: '☠️ Mortalité cumulative',
+                  value: `${insight.models.mortality_risk.mortality_rate_pct}% (${insight.models.mortality_risk.total_deaths} morts)`,
+                  sub: `3j glissants : ${insight.models.mortality_risk.recent_3day_pct}%`,
+                  color: '#ef4444',
+                },
+                {
+                  label: '🥚 Ponte prévue aujourd\'hui',
+                  value: `${insight.models.egg_production.today_forecast_eggs} œufs (${insight.models.egg_production.production_rate_pct}%)`,
+                  sub: `Tendance : ${insight.models.egg_production.trend}`,
+                  color: '#0891b2',
+                },
+                {
+                  label: '📏 Benchmark Standard',
+                  value: `FCR std : ${insight.models.growth_benchmark.standard_fcr ?? '–'} vs réel : ${insight.models.growth_benchmark.current_fcr ?? '–'}`,
+                  sub: `Écart : ${insight.models.growth_benchmark.fcr_deviation !== null ? (insight.models.growth_benchmark.fcr_deviation > 0 ? '+' : '') + insight.models.growth_benchmark.fcr_deviation : '–'} · ${insight.models.growth_benchmark.standard_name}`,
+                  color: '#f59e0b',
+                },
+              ].map(item => (
+                <div key={item.label} style={{
+                  background: `${item.color}08`, border: `1px solid ${item.color}20`,
+                  borderRadius: 10, padding: '10px 14px',
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>{item.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: item.color }}>{item.value}</div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{item.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* AI Recommendations */}
+            {insight.summary.recommendations && insight.summary.recommendations.length > 0 && (
+              <div style={{ padding: '0 24px 18px' }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                  🧠 Recommandations IA
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {insight.summary.recommendations.map((rec, i) => (
+                    <div key={i} style={{
+                      background: rec.startsWith('✅') ? '#f0fdf4' : rec.startsWith('🔴') || rec.startsWith('🚨') ? '#fef2f2' : '#fffbeb',
+                      border: `1px solid ${rec.startsWith('✅') ? '#bbf7d0' : rec.startsWith('🔴') || rec.startsWith('🚨') ? '#fecaca' : '#fde68a'}`,
+                      borderRadius: 8, padding: '8px 12px', fontSize: 12, fontWeight: 600,
+                      color: rec.startsWith('✅') ? '#059669' : rec.startsWith('🔴') || rec.startsWith('🚨') ? '#dc2626' : '#92400e',
+                    }}>
+                      {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── AIScanner (image upload) ── */}
       <AIScanner category="livestock" title={t('poultry.surveillance.scanner_title')} color={C} />
     </div>
   );
 }
+
 
 // ─── Tab 4: PROTOCOLES & CALENDRIER ──────────────────────────────────────────
 
@@ -451,6 +706,36 @@ function ProtocolsTab() {
   );
   const [editingFcr, setEditingFcr] = useState(false);
   const [fcrDraft,   setFcrDraft]   = useState([]);
+  const [realLogs,   setRealLogs]   = useState([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  useEffect(() => {
+    if (!selectedBatchId) return;
+    setLoadingLogs(true);
+    poultryAPI.feed.list(selectedBatchId)
+      .then(r => setRealLogs(r.data || []))
+      .catch(() => {})
+      .finally(() => setLoadingLogs(false));
+  }, [selectedBatchId]);
+
+  // Merge real data with standard rows for the chart
+  const comparativeFcrData = fcrRows.map(stdRow => {
+    const ageNum = parseInt(stdRow.age.replace('J', ''));
+    // Find the closest real log for this age
+    const realLog = realLogs.find(l => {
+      const ms = new Date(l.date).getTime() - new Date(selectedBatch?.arrival_date).getTime();
+      const lAge = Math.max(1, Math.floor(ms / 86400000) + 1);
+      return lAge === ageNum;
+    });
+
+    return {
+      ...stdRow,
+      fcr_std: stdRow.fcr,
+      poids_std: stdRow.poids,
+      fcr_real: realLog?.fcr_calculated ?? null,
+      poids_real: realLog?.actual_weight ?? null, // Assuming weight is logged
+    };
+  });
 
   // ── Load protocol data from backend (overrides localStorage on mount) ──────
   const _saveToBackend = (key, value) =>
@@ -1427,80 +1712,190 @@ function ProtocolsTab() {
           <ActionBar editing={editingFcr} onEdit={startEditFcr} onSave={saveFcr} onCancel={cancelFcr} onDefaults={loadDefaultsFcr} />
         </div>
 
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: `${C}10`, borderBottom: `2px solid ${C}30` }}>
-                {(editingFcr
-                  ? [t('poultry.protocols.fcr_col_age'), 'Poids cible (g)', 'Conso. cumulée (g)', 'FCR cible', '']
-                  : [t('poultry.protocols.fcr_col_age'), t('poultry.protocols.fcr_col_weight'), t('poultry.protocols.fcr_col_cumul'), t('poultry.protocols.fcr_col_fcr')]
-                ).map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', color: C }}>{h}</th>
+        {editingFcr ? (
+          /* ── Edit mode: raw table ── */
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: `${C}10`, borderBottom: `2px solid ${C}30` }}>
+                  {['Âge', 'Poids cible (g)', 'Conso. cumulée (g)', 'FCR cible', ''].map(h => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', color: C }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {fcrDraft.map((row, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid var(--color-border-light)', background: idx % 2 === 0 ? 'transparent' : 'var(--color-surface-2)' }}>
+                    <td style={{ padding: '6px 8px', width: 70 }}><input value={row.age} style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, age: e.target.value } : r))} /></td>
+                    <td style={{ padding: '6px 8px' }}><input type="number" value={row.poids} step="1" style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, poids: +e.target.value } : r))} /></td>
+                    <td style={{ padding: '6px 8px' }}><input type="number" value={row.cumul} step="1" style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, cumul: +e.target.value } : r))} /></td>
+                    <td style={{ padding: '6px 8px', minWidth: 80 }}><input type="number" value={row.fcr} step="0.01" style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, fcr: +e.target.value } : r))} /></td>
+                    <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                      <button onClick={() => setFcrDraft(d => d.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: 18, lineHeight: 1 }}>×</button>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {editingFcr
-                ? fcrDraft.map((row, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--color-border-light)', background: idx % 2 === 0 ? 'transparent' : 'var(--color-surface-2)' }}>
-                      <td style={{ padding: '6px 8px', width: 70 }}><input value={row.age} style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, age: e.target.value } : r))} /></td>
-                      <td style={{ padding: '6px 8px' }}><input type="number" value={row.poids} step="1" style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, poids: +e.target.value } : r))} /></td>
-                      <td style={{ padding: '6px 8px' }}><input type="number" value={row.cumul} step="1" style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, cumul: +e.target.value } : r))} /></td>
-                      <td style={{ padding: '6px 8px', minWidth: 80 }}><input type="number" value={row.fcr} step="0.01" style={inputStyle} onChange={e => setFcrDraft(d => d.map((r, i) => i === idx ? { ...r, fcr: +e.target.value } : r))} /></td>
-                      <td style={{ padding: '6px 8px', textAlign: 'center' }}>
-                        <button onClick={() => setFcrDraft(d => d.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: 18, lineHeight: 1 }}>×</button>
-                      </td>
-                    </tr>
-                  ))
-                : (() => {
-                    const maxPoids = Math.max(...fcrRows.map(r => r.poids));
-                    const maxCumul = Math.max(...fcrRows.map(r => r.cumul));
-                    return fcrRows.map((row, i) => {
-                      const fcrClr = row.fcr < 1.5 ? '#059669' : row.fcr < 2.0 ? '#f59e0b' : '#ef4444';
-                      return (
-                        <tr key={row.age} style={{ borderBottom: '1px solid var(--color-border-light)', background: i % 2 === 0 ? 'transparent' : 'var(--color-surface-2)' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: 900, color: C, whiteSpace: 'nowrap' }}>{row.age}</td>
-                          <td style={{ padding: '12px 16px', minWidth: 160 }}>
-                            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 5 }}>{row.poids.toLocaleString()} g</div>
-                            <div style={{ height: 6, background: 'var(--color-surface-2)', borderRadius: 999 }}>
-                              <div style={{ width: `${(row.poids / maxPoids) * 100}%`, height: '100%', borderRadius: 999, background: `linear-gradient(90deg, ${C_DARK}, ${C})` }} />
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 16px', minWidth: 160, color: 'var(--color-text-3)' }}>
-                            <div style={{ fontSize: 13, marginBottom: 5 }}>{row.cumul.toLocaleString()} g</div>
-                            <div style={{ height: 6, background: 'var(--color-surface-2)', borderRadius: 999 }}>
-                              <div style={{ width: `${(row.cumul / maxCumul) * 100}%`, height: '100%', borderRadius: 999, background: '#7c3aed66' }} />
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <span style={{ fontWeight: 800, fontSize: 16, color: fcrClr, minWidth: 36 }}>{row.fcr}</span>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ height: 8, background: 'var(--color-surface-2)', borderRadius: 999 }}>
-                                  <div style={{ width: `${Math.min(100, (row.fcr / 3.0) * 100)}%`, height: '100%', borderRadius: 999, background: fcrClr }} />
-                                </div>
-                                <div style={{ fontSize: 9, color: fcrClr, fontWeight: 700, marginTop: 3 }}>
-                                  {row.fcr < 1.5 ? t('poultry.protocols.fcr_excellent') : row.fcr < 2.0 ? t('poultry.protocols.fcr_normal') : t('poultry.protocols.fcr_high')}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    });
-                  })()
-              }
-            </tbody>
-          </table>
-          {editingFcr && (
+              </tbody>
+            </table>
             <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border-light)' }}>
               <button onClick={() => setFcrDraft(d => [...d, { age: 'J??', poids: 0, cumul: 0, fcr: 0.00 }])}
                 style={{ padding: '5px 14px', border: `1px dashed ${C}`, borderRadius: 6, fontSize: 12, fontWeight: 600, background: `${C}08`, color: C, cursor: 'pointer' }}>
                 {t('poultry.protocols.fcr_add')}
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          /* ── Read mode: interactive Recharts ComposedChart ── */
+          <div style={{
+            background: 'white',
+            borderRadius: 16,
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+            overflow: 'hidden',
+          }}>
+            {/* Chart header */}
+            <div style={{
+              padding: '20px 24px 0',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+            }}>
+              <div>
+                <div style={{ fontWeight: 900, fontSize: 16, color: '#1e293b', marginBottom: 3 }}>
+                  📊 FCR Comparatif : Standard vs Réel
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  Ligne violette (Standard) — Ligne Cyan (Tes données réelles)
+                </div>
+              </div>
+              {/* KPI summary pills */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Std FCR J42', value: fcrRows[fcrRows.length - 1]?.fcr, clr: '#7c3aed' },
+                  { label: 'Ton FCR Actuel', value: realLogs.length > 0 ? realLogs[realLogs.length - 1].fcr_calculated?.toFixed(2) : '—', clr: C },
+                ].map(p => (
+                  <div key={p.label} style={{
+                    background: `${p.clr}10`, border: `1px solid ${p.clr}33`,
+                    borderRadius: 999, padding: '5px 12px',
+                    fontSize: 12, fontWeight: 700, color: p.clr,
+                  }}>
+                    {p.label}: <strong>{p.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Main chart */}
+            <div style={{ padding: '8px 8px 0' }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={comparativeFcrData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="fcrGradFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"  stopColor="#7c3aed" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.01} />
+                    </linearGradient>
+                    <linearGradient id="realFcrGradFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"  stopColor={C} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={C} stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke="#f1f5f9" vertical={false} />
+                  <XAxis
+                    dataKey="age"
+                    tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    yAxisId="fcr"
+                    domain={[0.7, 2.6]}
+                    tick={{ fontSize: 11, fill: '#7c3aed' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={v => v.toFixed(1)}
+                    width={36}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'white', border: '1px solid #e2e8f0',
+                      borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', fontSize: 13,
+                    }}
+                    formatter={(value, name) => {
+                      if (name === 'fcr_std') return [value.toFixed(2), 'Standard Ross 308'];
+                      if (name === 'fcr_real') return [value ? value.toFixed(2) : '—', 'Tes entrées (Réel)'];
+                      return [value, name];
+                    }}
+                    labelFormatter={label => <span style={{ fontWeight: 800, color: '#1e293b' }}>Âge : {label}</span>}
+                  />
+                  <Legend
+                    verticalAlign="top" height={36}
+                    wrapperStyle={{ paddingTop: 0, fontSize: 12, fontWeight: 600 }}
+                  />
+                  <ReferenceLine
+                    yAxisId="fcr" y={2.0} stroke="#f59e0b" strokeDasharray="6 3" strokeWidth={2}
+                    label={{ value: '⚠ Seuil Alerte', position: 'insideTopRight', fontSize: 10, fontWeight: 700, fill: '#f59e0b' }}
+                  />
+
+                  {/* Standard Curve */}
+                  <Area
+                    yAxisId="fcr"
+                    type="monotone"
+                    dataKey="fcr_std"
+                    name="Standard"
+                    stroke="#7c3aed"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    fill="url(#fcrGradFill)"
+                    dot={false}
+                  />
+
+                  {/* REAL Curve (User Inputs) */}
+                  <Area
+                    yAxisId="fcr"
+                    type="monotone"
+                    dataKey="fcr_real"
+                    name="Réel (Tes saisies)"
+                    stroke={C}
+                    strokeWidth={4}
+                    fill="url(#realFcrGradFill)"
+                    dot={(props) => {
+                      const { cx, cy, payload } = props;
+                      if (!payload.fcr_real) return null;
+                      return <circle key={`dot-real-${cx}`} cx={cx} cy={cy} r={6} fill={C} stroke="white" strokeWidth={2} />;
+                    }}
+                    activeDot={{ r: 8, fill: C, stroke: 'white', strokeWidth: 2 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Bottom legend: zone coloring explanation */}
+            <div style={{
+              borderTop: '1px solid #f1f5f9',
+              padding: '14px 24px',
+              display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                Zone FCR :
+              </span>
+              {[
+                { clr: '#059669', label: 'Excellent  < 1.5', bg: '#dcfce7' },
+                { clr: '#f59e0b', label: 'Normal  1.5 – 2.0', bg: '#fef3c7' },
+                { clr: '#ef4444', label: 'Élevé  > 2.0',      bg: '#fee2e2' },
+              ].map(z => (
+                <div key={z.label} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: z.bg, borderRadius: 999, padding: '4px 12px',
+                  border: `1px solid ${z.clr}33`,
+                }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: z.clr }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: z.clr }}>{z.label}</span>
+                </div>
+              ))}
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94a3b8' }}>
+                Source : Standard Performance Broiler Ross 308
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
     </div>
@@ -1547,6 +1942,8 @@ function TodayWorkspace() {
     } catch { setPushedSet(new Set()); }
   }, [selectedBatchId]);
 
+  const [mlInsights,    setMlInsights]    = useState(null);
+
   useEffect(() => {
     if (!selectedBatchId) return;
     setLoading(true);
@@ -1557,13 +1954,15 @@ function TodayWorkspace() {
       poultryAPI.sales.list(selectedBatchId),
       poultryAPI.inventory.list(fid),
       workerTasksAPI.list({ farm_id: fid }),
-    ]).then(([f, h, e, s, inv, t]) => {
+      poultryAPI.mlInsights.batch(selectedBatchId),
+    ]).then(([f, h, e, s, inv, t, ml]) => {
       setFeedLogs(f.data || []);
       setHealthLogs(h.data || []);
       setEggLogs(e.data || []);
       setSales(s.data || []);
       setInventory(inv.data || []);
       setTasks(t.data || []);
+      setMlInsights(ml.data || null);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [selectedBatchId]);
 
@@ -1777,8 +2176,42 @@ function TodayWorkspace() {
       {selectedBatch ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 22, alignItems: 'start' }}>
 
-          {/* ── LEFT COLUMN: Actions + Lifecycle ── */}
+          {/* ── LEFT COLUMN: AI Advice + Actions + Lifecycle ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+            {/* AI Expert Coaching Card */}
+            {mlInsights && (
+              <div style={{
+                background: 'white', borderRadius: 18,
+                border: `1px solid ${mlInsights.summary.health_score >= 80 ? '#bbf7d0' : mlInsights.summary.health_score >= 60 ? '#fde68a' : '#fecaca'}`,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+                padding: '18px 22px', position: 'relative', overflow: 'hidden',
+              }}>
+                {/* Background watermark */}
+                <div style={{ position: 'absolute', top: -10, right: -10, fontSize: 60, opacity: 0.05, transform: 'rotate(15deg)' }}>💡</div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: C, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>💡</div>
+                  <span style={{ fontWeight: 900, fontSize: 15, color: '#1e293b' }}>Conseil de l'Expert IA</span>
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Score Santé</span>
+                    <div style={{ height: 6, width: 60, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${mlInsights.summary.health_score}%`, background: mlInsights.summary.health_score >= 80 ? '#10b981' : mlInsights.summary.health_score >= 60 ? '#f59e0b' : '#ef4444' }} />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 900, color: '#1e293b' }}>{mlInsights.summary.health_score}%</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {mlInsights.summary.recommendations.map((rec, i) => (
+                    <div key={i} style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, display: 'flex', gap: 10 }}>
+                      <span style={{ color: C }}>•</span>
+                      {rec}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Actions card */}
             <div style={{ background: 'var(--color-surface)', borderRadius: 18, border: '1px solid var(--color-border-light)', overflow: 'hidden' }}>

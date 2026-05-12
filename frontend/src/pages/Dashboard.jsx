@@ -37,11 +37,13 @@ export default function Dashboard() {
   const handleFireDetection = useCallback(({ detections, imageUrl }) => {
     if (!detections?.length) return;
     const fireLabels = detections.filter(d =>
-      d.label?.toLowerCase().includes('fire') || d.label?.toLowerCase().includes('smoke')
+      d.label?.toLowerCase().includes('fire') || 
+      d.label?.toLowerCase().includes('smoke') ||
+      ['0', '1', '2', '3', '4'].includes(d.label)
     );
     if (!fireLabels.length) return;
 
-    const isFire  = fireLabels.some(d => d.label?.toLowerCase().includes('fire'));
+    const isFire  = fireLabels.some(d => d.label?.toLowerCase().includes('fire') || ['0', '1', '2', '3', '4'].includes(d.label));
     const isSmoke = fireLabels.some(d => d.label?.toLowerCase().includes('smoke'));
     const maxConf = Math.round(Math.max(...fireLabels.map(d => d.confidence)) * 100);
 

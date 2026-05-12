@@ -176,21 +176,55 @@ class AgentService:
     ) -> Dict[str, Any]:
         """
         Analyse an image end-to-end:
-          1. Run LLaVA vision + OCR extraction in parallel
-          2. Build enriched prompt with visual description + OCR text
-          3. Pass through the full chat pipeline (RAG + Labess-7B / Groq)
+          1. Try VLM via Ollama (qwen2-vl / llama3.2-vision) for vision + OCR
+          2. If Ollama fails, fallback to the old LLaVA + OCR extraction
+          3. Build enriched prompt with visual description
+          4. Pass through the full chat pipeline (RAG + Labess-7B / Groq)
         """
         logger.info(f"analyze_image: species={species} query='{query[:60]}'")
 
-        # Run vision description and OCR concurrently
-        vision_prompt = (
-            "Describe this agricultural image in detail: "
-            "identify all animals, plants, diseases, injuries, objects, and conditions visible. "
-            "Note any abnormalities, symptoms, or urgent issues."
-        )
-        vision_task = mllm_service.analyze_visual(image_b64, vision_prompt)
-        ocr_task = mllm_service.extract_text_ocr(image_b64)
-        vision_result, ocr_text = await asyncio.gather(vision_task, ocr_task)
+        async def get_ollama_vision():
+            import ollama
+            client = ollama.AsyncClient()
+            prompt_systeme = """Tu es un expert vétérinaire et agricole en Tunisie. 
+            Analyse l'image fournie. Si c'est un animal ou une scène, décris-la. 
+            Si c'est un médicament أو produit, lis son nom sur l'étiquette et explique brièvement son utilité.
+            Réponds toujours de manière claire, en arabe ou en français."""
+            
+            response = await client.chat(
+                model='llava', # Modèle léger (4.5GB) pour s'exécuter à 100% sur le GPU
+                messages=[
+                    {
+                        'role': 'system',
+                        'content': prompt_systeme
+                    },
+                    {
+                        'role': 'user',
+                        'content': query or "Que vois-tu sur cette image ?",
+                        'images': [image_b64]
+                    }
+                ]
+            )
+            return response.get('message', {}).get('content', '')
+
+        # Lancer l'OCR (excellent) et le VLM (Ollama) en parallèle
+        ocr_task = asyncio.create_task(mllm_service.extract_text_ocr(image_b64))
+        vision_result = ""
+        
+        try:
+            vision_result = await get_ollama_vision()
+            ocr_text = await ocr_task
+            logger.info("VLM analysis successful via Ollama.")
+        except Exception as e:
+            logger.warning(f"Ollama VLM failed or not available, falling back to old code: {e}")
+            # --- ANCIEN CODE (Fallback pour ne pas changer l'existant) ---
+            vision_prompt = (
+                "Describe this agricultural image in detail: "
+                "identify all animals, plants, diseases, injuries, objects, and conditions visible. "
+                "Note any abnormalities, symptoms, or urgent issues."
+            )
+            vision_task = mllm_service.analyze_visual(image_b64, vision_prompt)
+            vision_result, ocr_text = await asyncio.gather(vision_task, ocr_task)
 
         # Build enriched query
         context_parts = []

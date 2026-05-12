@@ -16,7 +16,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.config import settings
 from app.services.data_service import CVService
-from app.schemas.domain import CVEventCreate
+from app.schemas.domain import CVEventCreate, AlertCreate
 
 try:
     from ultralytics import YOLO
@@ -199,6 +199,43 @@ async def detect_in_file(
                             bbox_raw[4] if len(bbox_raw) > 4 else 0
                         ]
                     })
+            
+            # Auto-ingest high priority detections (Fire/Smoke)
+            # Some models use numeric labels (0, 1, 2, 3, 4) for fire levels/zones
+            priority_classes = ['fire', 'smoke', 'incendie', '0', '1', '2', '3', '4']
+            high_priority_dets = [d for d in detections if d['label'].lower() in priority_classes]
+            
+            if high_priority_dets and category == "fire":
+                from app.models.domain import AnimalUnit
+                from app.services.data_service import AlertService
+                # Use a default unit (the first one found) or fallback
+                default_unit = db.query(AnimalUnit).first()
+                if default_unit:
+                    for det in high_priority_dets:
+                        try:
+                            # Map numeric labels to human readable if needed
+                            label_display = det['label']
+                            if label_display in ['0', '1', '2', '3', '4']:
+                                label_display = f"Zone/Niveau {label_display} (Feu)"
+                            
+                            # 1. Ingest CV Event
+                            CVService(db).ingest(CVEventCreate(
+                                unit_id=default_unit.id,
+                                object_class=label_display,
+                                confidence=det['confidence'],
+                                severity="critical",
+                                camera_id=category
+                            ))
+                            # 2. Create System Alert
+                            AlertService(db).create_alert(AlertCreate(
+                                unit_id=default_unit.id,
+                                alert_type="fire_detection",
+                                message=f"🚨 ALERTE INCENDIE CRITIQUE : {label_display.upper()} détecté par le Moniteur Souverain (Confiance: {int(det['confidence']*100)}%)",
+                                severity="critical"
+                            ))
+                            logger.info(f"[YOLO] Emergency alert created for {det['label']}")
+                        except Exception as ingest_err:
+                            logger.error(f"Ingest Error: {ingest_err}")
             
             return {
                 "filename": file.filename, 

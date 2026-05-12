@@ -21,7 +21,7 @@ const pickCategory = (text = '') => {
   for (const { keys, cat } of KEYWORD_MAP) {
     if (keys.some(k => t.includes(k))) return cat;
   }
-  return 'leaves'; // fastest / most general default
+  return ''; // general farm assistant by default
 };
 
 /* ─── Palette "Sovereign AI" — light enterprise theme ────── */
@@ -255,9 +255,9 @@ export default function SovereignAssistant() {
     setLoading(true);
     setLoadingStage('thinking');
 
-    // 45s hard timeout
+    // 180s hard timeout
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), 45000)
+      setTimeout(() => reject(new Error('TIMEOUT')), 180000)
     );
 
     try {
@@ -294,7 +294,7 @@ export default function SovereignAssistant() {
         isError: true,
         isTimeout,
         text: isTimeout
-          ? `⏱ L'agent IA n'a pas répondu après 45 secondes. Le modèle est peut-être en cours de chargement.`
+          ? `⏱ L'agent IA n'a pas répondu après 180 secondes. Le modèle est peut-être en cours de chargement.`
           : `❌ ${t('assistant.error') || 'Erreur de connexion à l\'agent IA.'}`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
@@ -316,8 +316,10 @@ export default function SovereignAssistant() {
     <>
       <style>{`
         .sov-page    { display:flex; height:calc(100vh - 0px); overflow:hidden; background:${S.pageBg}; }
-        .sov-sidebar { width:260px; flex-shrink:0; background:${S.sidebarBg}; border-right:1px solid ${S.sideBorder}; display:flex; flex-direction:column; }
-        .sov-main    { flex:1; display:flex; flex-direction:column; overflow:hidden; background:${S.chatBg}; }
+        .sov-sidebar { width:260px; flex-shrink:0; background:${S.sidebarBg}; border-right:1px solid ${S.sideBorder}; display:flex; flex-direction:column; z-index: 10; }
+        .sov-main    { flex:1; display:flex; flex-direction:column; overflow:hidden; background: url('/models%20designe/wmremove-transformed.jpeg') center/cover no-repeat ${S.chatBg}; position: relative; }
+        .sov-main::before { content: ''; position: absolute; inset: 0; background: rgba(248, 250, 252, 0.85); z-index: 0; pointer-events: none; }
+        .sov-msgs    { flex:1; overflow-y:auto; padding:32px 24px; display:flex; flex-direction:column; gap:24px; z-index: 1; position: relative; }
         .sov-msgs    { flex:1; overflow-y:auto; padding:32px 24px; display:flex; flex-direction:column; gap:24px; }
         .sov-msgs::-webkit-scrollbar { width:4px; }
         .sov-msgs::-webkit-scrollbar-track { background:transparent; }
@@ -325,7 +327,7 @@ export default function SovereignAssistant() {
         .conv-item   { padding:9px 10px; border-radius:10px; cursor:pointer; display:flex; align-items:flex-start; gap:8px; margin-bottom:2px; transition:background 0.15s; }
         .conv-item:hover { background:${S.convHover}; }
         .conv-item.active { background:${S.convActive}; }
-        .sov-input-bar { padding:16px 24px 20px; background:${S.chatBg}; border-top:1px solid ${S.sideBorder}; }
+        .sov-input-bar { padding:16px 24px 20px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-top:1px solid ${S.sideBorder}; }
         .sov-textarea  { flex:1; resize:none; outline:none; border:none; background:transparent; color:${S.botText}; font-size:14px; font-family:inherit; line-height:1.55; max-height:120px; overflow-y:auto; }
         .sov-textarea::placeholder { color:${S.muted}; }
         .sov-btn { border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:12px; transition:all 0.2s; flex-shrink:0; }
@@ -422,50 +424,7 @@ export default function SovereignAssistant() {
           {/* Messages */}
           <div className="sov-msgs">
 
-            {/* Empty state */}
-            {messages.length === 0 && (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, paddingTop: 40, animation: 'slideUp 0.4s ease' }}>
-                <div style={{
-                  width: 72, height: 72, borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${S.accent}, ${S.accentLight})`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: `0 0 32px ${S.accentGlow}`,
-                  animation: 'botGlow 3s ease-in-out infinite',
-                }}>
-                  <Sparkles size={32} color="white" />
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
-                    Assistant IA Agricole
-                  </div>
-                  <div style={{ fontSize: 13, color: S.muted, marginTop: 6 }}>
-                    Posez une question · Joignez une image · Dictez en voix
-                  </div>
-                </div>
-                {/* Quick prompts */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 520 }}>
-                  {[
-                    '🐝 État de mes ruches',
-                    '🌿 Diagnostic maladie plante',
-                    '🐄 Protocole vaccination',
-                    '🫒 Traitement oliviers',
-                  ].map((s, i) => (
-                    <button key={i} onClick={() => setInput(s)} style={{
-                      padding: '9px 16px', borderRadius: 24,
-                      border: `1px solid ${S.botBorder}`,
-                      background: 'rgba(22,163,74,.06)',
-                      color: S.accent, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = S.convActive; e.currentTarget.style.borderColor = S.accent; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(22,163,74,.06)'; e.currentTarget.style.borderColor = S.botBorder; }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Empty state (Removed to show only the logo background) */}
 
             {/* Message bubbles */}
             {messages.map((msg, idx) => (
@@ -585,7 +544,8 @@ export default function SovereignAssistant() {
                       : elapsed < 5 ? "Réflexion en cours…"
                       : elapsed < 15 ? `En cours… ${elapsed}s`
                       : elapsed < 30 ? `Modèle en cours de chargement… ${elapsed}s`
-                      : `Encore un instant… ${elapsed}s / 45s`}
+                      : elapsed < 60 ? `Analyse visuelle avec Ollama… ${elapsed}s`
+                      : `Encore un instant… ${elapsed}s / 180s`}
                   </span>
                   {elapsed >= 8 && (
                     <button

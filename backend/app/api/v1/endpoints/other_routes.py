@@ -70,6 +70,51 @@ def resolve_alert(alert_id: int, body: AlertResolve, db: Session = Depends(get_d
     resolved_by = body.resolved_by or user.username
     return _serialize_alert(AlertService(db).resolve_alert(alert_id, resolved_by))
 
+@alert_router.get("/emergency")
+def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Consolidated high-priority emergency monitoring data."""
+    from app.models.domain import Alert, CVEvent, Anomaly
+    from sqlalchemy import desc
+    
+    # 1. Critical Alerts (Animal/System)
+    critical_alerts = db.query(Alert).filter(Alert.is_resolved == False, Alert.severity == "critical").order_by(desc(Alert.timestamp)).limit(10).all()
+    
+    # 2. Fire/Smoke Detections (High Severity CV Events)
+    fire_events = db.query(CVEvent).filter(
+        CVEvent.object_class.in_(["fire", "smoke", "incendie"]),
+        CVEvent.timestamp >= datetime.utcnow() - timedelta(hours=24)
+    ).order_by(desc(CVEvent.timestamp)).all()
+    
+    # 3. Critical Anomalies
+    critical_anomalies = db.query(Anomaly).filter(
+        Anomaly.severity == "critical",
+        Anomaly.is_acknowledged == False,
+        Anomaly.timestamp >= datetime.utcnow() - timedelta(hours=48)
+    ).order_by(desc(Anomaly.timestamp)).limit(10).all()
+    
+    # 4. Tree Diseases (Critical from CV)
+    tree_diseases = db.query(CVEvent).filter(
+        CVEvent.camera_id.in_(["leaves", "olive", "lemon", "orange"]),
+        CVEvent.severity == "critical",
+        CVEvent.timestamp >= datetime.utcnow() - timedelta(days=7)
+    ).order_by(desc(CVEvent.timestamp)).limit(10).all()
+
+    return {
+        "critical_alerts": [_serialize_alert(a) for a in critical_alerts],
+        "fire_events": [_serialize_cv(e) for e in fire_events],
+        "critical_anomalies": [_serialize_anomaly(a) for a in critical_anomalies],
+        "tree_diseases": [_serialize_cv(e) for e in tree_diseases],
+        "system_status": "emergency" if (fire_events or critical_alerts) else "stable",
+        "last_update": datetime.utcnow().isoformat()
+    }
+
+def _serialize_cv(e):
+    return {
+        "id": e.id, "unit_id": e.unit_id, "timestamp": e.timestamp.isoformat(),
+        "object_class": e.object_class, "confidence": e.confidence,
+        "severity": e.severity, "camera_id": e.camera_id, "thumbnail_url": e.thumbnail_url
+    }
+
 
 # ---- Recommendations -------------------------------------------------------
 rec_router = APIRouter(prefix="/recommendations", tags=["Recommendations"])

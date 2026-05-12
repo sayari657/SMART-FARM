@@ -17,6 +17,7 @@ from app.schemas.domain import (
     PoultryLogValidation
 )
 from datetime import datetime
+from app.services.poultry_ml_service import generate_ml_insights
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
@@ -356,18 +357,69 @@ def evaluate_rules(data: dict, db: Session):
 
 @router.get("/predict/{batch_id}")
 def predict_performance(batch_id: int, db: Session = Depends(get_db)):
+    """Legacy endpoint — redirects to ml-insights."""
+    return get_ml_insights(batch_id, db)
+
+
+# ── REAL ML INSIGHTS ──────────────────────────────────────────────────────────
+
+@router.get("/ml-insights/{batch_id}")
+def get_ml_insights(batch_id: int, db: Session = Depends(get_db)):
+    """
+    Run all ML models on the batch data and return predictions:
+    - FCR Forecast (Polynomial Regression)
+    - Mortality Risk (Sliding-Window Classifier)
+    - Egg Production Trend (Linear Regression)
+    - Anomaly Detection (Z-Score)
+    - Growth vs Standard Ross 308 / ISA Brown
+    """
     batch = db.query(PoultryBatch).filter(PoultryBatch.id == batch_id).first()
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
+
+    feed_logs   = db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id == batch_id).all()
+    health_logs = db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id == batch_id).all()
+    egg_logs    = db.query(PoultryEggLog).filter(PoultryEggLog.batch_id == batch_id).all()
+
+    return generate_ml_insights(batch, feed_logs, health_logs, egg_logs)
+
+
+@router.get("/ml-insights/farm/{farm_id}")
+def get_farm_ml_insights(farm_id: int, db: Session = Depends(get_db)):
+    """
+    Run ML insights for ALL active batches of a farm.
+    Returns aggregated risk summary + per-batch predictions.
+    """
+    batches = db.query(PoultryBatch).filter(
+        PoultryBatch.farm_id == farm_id,
+        PoultryBatch.status == "active"
+    ).all()
+
+    if not batches:
+        return {"farm_id": farm_id, "active_batches": 0, "insights": [], "farm_health_score": 100}
+
+    results = []
+    for batch in batches:
+        feed_logs   = db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id == batch.id).all()
+        health_logs = db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id == batch.id).all()
+        egg_logs    = db.query(PoultryEggLog).filter(PoultryEggLog.batch_id == batch.id).all()
+        results.append(generate_ml_insights(batch, feed_logs, health_logs, egg_logs))
+
+    # Farm-level aggregation
+    health_scores = [r["summary"]["health_score"] for r in results]
+    risk_levels = [r["summary"]["risk_level"] for r in results]
+    critical_count = sum(1 for r in risk_levels if r in ["high", "critical"])
+    farm_health = int(sum(health_scores) / len(health_scores)) if health_scores else 100
+
     return {
-        "batch_id":           batch_id,
-        "predicted_weight_g": None,
-        "predicted_fcr":      None,
-        "confidence_score":   None,
-        "model_status":       "placeholder",
-        "forecast_date":      datetime.utcnow(),
-        "recommendation":     None,
+        "farm_id": farm_id,
+        "active_batches": len(batches),
+        "farm_health_score": farm_health,
+        "critical_batches": critical_count,
+        "insights": results,
+        "computed_at": datetime.utcnow().isoformat(),
     }
+
 
 # ── VALIDATION ENGINE ─────────────────────────────────────────────────────────
 
