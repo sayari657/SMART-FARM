@@ -34,33 +34,10 @@ const SovereignMap = ({
         layers: [{ id: 'osm-layer', type: 'raster', source: 'osm' }]
     };
 
-    const [mapStyle, setMapStyle] = React.useState(DEFAULT_MAP_STYLE);
+    const mapStyle = DEFAULT_MAP_STYLE;
 
     useEffect(() => {
-        const checkStyleAvailability = async () => {
-            const hostname = window.location.hostname;
-
-            // If we are on localhost, we can try the local tile server
-            // But for ngrok or others, we keep the default OSM and force "ready"
-            if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-                setIsStyleLoaded(true); 
-                return;
-            }
-
-            try {
-                const response = await fetch('/map-tiles/styles/basic/style.json', { method: 'HEAD' });
-                if (response.ok) {
-                    setMapStyle('/map-tiles/styles/basic/style.json');
-                }
-            } catch (err) {
-                // Keep default OSM
-            }
-        };
-        checkStyleAvailability();
-    }, []);
-
-    useEffect(() => {
-        if (map.current || !mapStyle) return; // Initialize only once style is determined
+        if (map.current) return;
 
         map.current = new maplibregl.Map({
             container: mapContainer.current,
@@ -112,7 +89,7 @@ const SovereignMap = ({
                 map.current = null;
             }
         };
-    }, [mapStyle]);
+    }, []);
 
     // Camera Sync Logic: Fly-to when center/zoom props change
     useEffect(() => {
