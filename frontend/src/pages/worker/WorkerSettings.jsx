@@ -128,16 +128,16 @@ function WorkerSettings() {
         <SettingRow
           icon={<Bell size={18} />}
           label="Notifications"
-          sublabel={Notification.permission === 'granted' ? 'Autorisées' : 'Désactivées'}
+          sublabel={typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'Autorisées' : 'Désactivées'}
           color="#ec4899"
           rightElement={
             <span style={{
               fontSize: 11, fontWeight: 700, borderRadius: 99, padding: '2px 8px',
-              background: Notification.permission === 'granted' ? '#dcfce7' : '#f1f5f9',
-              color:      Notification.permission === 'granted' ? '#15803d' : '#94a3b8',
-              border:     `1px solid ${Notification.permission === 'granted' ? '#bbf7d0' : '#e2e8f0'}`,
+              background: typeof Notification !== 'undefined' && Notification.permission === 'granted' ? '#dcfce7' : '#f1f5f9',
+              color:      typeof Notification !== 'undefined' && Notification.permission === 'granted' ? '#15803d' : '#94a3b8',
+              border:     `1px solid ${typeof Notification !== 'undefined' && Notification.permission === 'granted' ? '#bbf7d0' : '#e2e8f0'}`,
             }}>
-              {Notification.permission === 'granted' ? 'ON' : 'OFF'}
+              {typeof Notification !== 'undefined' && Notification.permission === 'granted' ? 'ON' : 'OFF'}
             </span>
           }
         />

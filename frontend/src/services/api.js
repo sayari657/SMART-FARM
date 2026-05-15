@@ -19,7 +19,8 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      let user = {};
+      try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) {}
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = user?.role === 'worker' ? '/worker-login' : '/login';

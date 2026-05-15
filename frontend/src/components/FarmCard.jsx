@@ -1,68 +1,111 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, AlertTriangle, Heart, X } from 'lucide-react';
-import ThreeTile from './ThreeTile';
+import { MapPin, X, PawPrint, AlertTriangle, Heart, Layers, ArrowRight, CheckCircle2, Clock, Wrench } from 'lucide-react';
 
-const STATUS_CLASS = {
-  active: 'badge-success', inactive: 'badge-neutral', maintenance: 'badge-warning',
+const STATUS_CONFIG = {
+  active:      { label: 'Actif',       color: '#16a34a', bg: 'rgba(22,163,74,.12)',  dot: '#4ade80',  grad: 'linear-gradient(135deg, #064e3b 0%, #166534 50%, #16a34a 100%)' },
+  inactive:    { label: 'Inactif',     color: '#64748b', bg: 'rgba(100,116,139,.12)',dot: '#94a3b8',  grad: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)' },
+  maintenance: { label: 'Maintenance', color: '#d97706', bg: 'rgba(217,119,6,.12)',  dot: '#fbbf24',  grad: 'linear-gradient(135deg, #451a03 0%, #78350f 50%, #d97706 100%)' },
 };
 
 export default function FarmCard({ farm, onDelete }) {
   const navigate = useNavigate();
-  const healthColor = farm.avg_health_score >= 80 ? 'var(--color-success)'
-    : farm.avg_health_score >= 60 ? 'var(--color-warning)'
-    : 'var(--color-critical)';
+  const cfg    = STATUS_CONFIG[farm.status] || STATUS_CONFIG.inactive;
+  const health = farm.avg_health_score;
+  const healthColor = health >= 80 ? '#22c55e' : health >= 60 ? '#f59e0b' : '#ef4444';
 
   return (
-    <ThreeTile>
-      <div
-        className="card"
-        style={{ cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }}
-        onClick={() => navigate(`/farms/${farm.id}`)}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{farm.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, color: 'var(--color-text-3)', fontSize: 12 }}>
-              <MapPin size={12} />
-              {farm.location || 'No location'}
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className={`badge ${STATUS_CLASS[farm.status] || 'badge-neutral'}`}>
-              {farm.status}
-            </span>
-            {onDelete && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); onDelete(farm); }}
-                style={{ background: 'rgba(239, 68, 68, 0.1)', border: 'none', borderRadius: '50%', color: 'var(--color-critical)', cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                title="Delete Farm"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
+    <div className="fcard" onClick={() => navigate(`/farms/${farm.id}`)}>
+
+      {/* ── gradient header ────────────────────────────────────────────── */}
+      <div className="fcard-header" style={{ background: cfg.grad }}>
+        {/* status dot */}
+        <div className="fcard-status-row">
+          <span className="fcard-status-dot" style={{ background: cfg.dot }} />
+          <span className="fcard-status-label" style={{ color: cfg.dot }}>{cfg.label}</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 12, marginTop: 'auto', paddingTop: 16 }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 20 }}>{farm.unit_count ?? 0}</div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>Animal Units</div>
+        {/* farm name */}
+        <div className="fcard-name">{farm.name}</div>
+
+        {/* location */}
+        <div className="fcard-location">
+          <MapPin size={11} style={{ flexShrink: 0 }} />
+          <span>{farm.location || 'Emplacement non défini'}</span>
+        </div>
+
+        {/* area chip */}
+        {farm.total_area_ha > 0 && (
+          <div className="fcard-area-chip">
+            <Layers size={10} /> {farm.total_area_ha} ha
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 20, color: farm.active_alerts > 0 ? 'var(--color-critical)' : 'var(--color-success)' }}>
-              {farm.active_alerts ?? 0}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>Active Alerts</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 20, color: healthColor }}>
-              {farm.avg_health_score ?? '—'}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>Health Score</div>
-          </div>
+        )}
+
+        {/* delete */}
+        {onDelete && (
+          <button
+            className="fcard-delete-btn"
+            title="Supprimer"
+            onClick={e => { e.stopPropagation(); onDelete(farm); }}
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* ── metrics strip ─────────────────────────────────────────────── */}
+      <div className="fcard-metrics">
+        <div className="fcard-metric">
+          <PawPrint size={14} color="#0ea5e9" />
+          <span className="fcard-metric-val">{farm.unit_count ?? 0}</span>
+          <span className="fcard-metric-label">Animaux</span>
+        </div>
+
+        <div className="fcard-metric-divider" />
+
+        <div className="fcard-metric">
+          <AlertTriangle size={14} color={farm.active_alerts > 0 ? '#ef4444' : '#22c55e'} />
+          <span className="fcard-metric-val" style={{ color: farm.active_alerts > 0 ? '#ef4444' : '#22c55e' }}>
+            {farm.active_alerts ?? 0}
+          </span>
+          <span className="fcard-metric-label">Alertes</span>
+        </div>
+
+        <div className="fcard-metric-divider" />
+
+        <div className="fcard-metric">
+          <Heart size={14} color={healthColor} />
+          <span className="fcard-metric-val" style={{ color: healthColor }}>
+            {health != null ? `${health}%` : '—'}
+          </span>
+          <span className="fcard-metric-label">Santé</span>
         </div>
       </div>
-    </ThreeTile>
+
+      {/* ── health bar ────────────────────────────────────────────────── */}
+      {health != null && (
+        <div className="fcard-health-bar-wrap">
+          <div className="fcard-health-bar-track">
+            <div
+              className="fcard-health-bar-fill"
+              style={{ width: `${Math.min(health, 100)}%`, background: healthColor }}
+            />
+          </div>
+          <span className="fcard-health-pct" style={{ color: healthColor }}>{health}%</span>
+        </div>
+      )}
+
+      {/* ── footer CTA ────────────────────────────────────────────────── */}
+      <div className="fcard-footer">
+        <span className="fcard-view-btn">
+          Voir la ferme <ArrowRight size={13} />
+        </span>
+        {farm.latitude && farm.longitude && (
+          <span className="fcard-coords">
+            {(+farm.latitude).toFixed(3)}, {(+farm.longitude).toFixed(3)}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

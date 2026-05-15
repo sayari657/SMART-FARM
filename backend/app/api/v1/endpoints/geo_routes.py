@@ -1,19 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
-from typing import List, Optional
+from typing import List
 from app.core.database import get_db
 from app.models.domain import Farm, Veterinary, Market, BeeHive, BeeApiary
 from pydantic import BaseModel
-from geoalchemy2.functions import ST_AsGeoJSON, ST_DWithin
-import json
+from app.core.config import settings
 
 router = APIRouter(prefix="/geo", tags=["GIS & Maps"])
 
-# --- Pydantic Schemas for GeoJSON ---
+
 class GeoJSONGeometry(BaseModel):
-    type: str  # e.g. "Point"
-    coordinates: List[float] # [lon, lat]
+    type: str = "Point"
+    coordinates: List[float]
 
 class GeoJSONFeature(BaseModel):
     type: str = "Feature"
@@ -24,70 +22,58 @@ class GeoJSONFeatureCollection(BaseModel):
     type: str = "FeatureCollection"
     features: List[GeoJSONFeature]
 
-from app.core.config import settings
 
-# --- Helper for SQLite Geo ---
-def point_to_geojson(lat, lon):
-    return {
-        "type": "Point",
-        "coordinates": [lon, lat]
-    }
+def _use_sqlite() -> bool:
+    return settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite")
+
 
 def haversine(lat1, lon1, lat2, lon2):
     import math
-    R = 6371  # Earth radius in km
+    R = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-# --- Endpoints ---
 
 @router.get("/vets", response_model=GeoJSONFeatureCollection)
 def get_veterinarians(db: Session = Depends(get_db)):
-    """Return all veterinarians in GeoJSON format using PostGIS optimized queries."""
-    if settings.DATABASE_URL.startswith("sqlite"):
+    if _use_sqlite():
         vets = db.query(Veterinary).filter(Veterinary.is_active == True).all()
         features = []
         for v in vets:
+            if v.latitude is None or v.longitude is None:
+                continue
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[v.longitude, v.latitude]),
-                properties={
-                    "id": v.id, "name": v.name, "specialty": v.specialty,
-                    "phone": v.phone, "address": v.address
-                }
+                properties={"id": v.id, "name": v.name, "specialty": v.specialty,
+                            "phone": v.phone, "address": v.address}
             ))
         return GeoJSONFeatureCollection(features=features)
-        
-    # Sovereign PostGIS Raw Path (High Performance)
+
     from sqlalchemy import text
     query = text("""
         SELECT id, name, specialty, phone, address,
                ST_X(geom) as lon, ST_Y(geom) as lat
-        FROM veterinarians
-        WHERE is_active = true
+        FROM veterinarians WHERE is_active = true
     """)
-    result = db.execute(query)
-    features = []
-    for row in result:
-        features.append(GeoJSONFeature(
-            geometry=GeoJSONGeometry(type="Point", coordinates=[row.lon, row.lat]),
-            properties={
-                "id": row.id, "name": row.name, "specialty": row.specialty,
-                "phone": row.phone, "address": row.address
-            }
-        ))
+    rows = db.execute(query).fetchall()
+    features = [
+        GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[r.lon, r.lat]),
+            properties={"id": r.id, "name": r.name, "specialty": r.specialty,
+                        "phone": r.phone, "address": r.address}
+        ) for r in rows
+    ]
     return GeoJSONFeatureCollection(features=features)
+
 
 @router.get("/farms", response_model=GeoJSONFeatureCollection)
 def get_farms_geojson(db: Session = Depends(get_db)):
-    """Return all farms in GeoJSON format using local PostGIS."""
-    if settings.DATABASE_URL.startswith("sqlite"):
+    if _use_sqlite():
         farms = db.query(Farm).all()
         features = []
         for f in farms:
-            # Skip farms without GPS coordinates — avoids Pydantic crash → CORS bypass
             if f.latitude is None or f.longitude is None:
                 continue
             features.append(GeoJSONFeature(
@@ -97,27 +83,29 @@ def get_farms_geojson(db: Session = Depends(get_db)):
         return GeoJSONFeatureCollection(features=features)
 
     from sqlalchemy import text
-    query = text("""
-        SELECT id, name, status, 
-               ST_X(geom) as lon, ST_Y(geom) as lat
-        FROM farms
-    """)
-    result = db.execute(query)
+    query = text("SELECT id, name, status, ST_X(geom) as lon, ST_Y(geom) as lat FROM farms")
+    rows = db.execute(query).fetchall()
+    features = [
+        GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[r.lon, r.lat]),
+            properties={"id": r.id, "name": r.name, "status": r.status}
+        ) for r in rows
+    ]
     return GeoJSONFeatureCollection(features=features)
+
 
 @router.get("/markets", response_model=GeoJSONFeatureCollection)
 def get_markets_geojson(db: Session = Depends(get_db)):
-    """Return all agricultural markets/suppliers in GeoJSON format."""
-    if settings.DATABASE_URL.startswith("sqlite"):
+    if _use_sqlite():
         markets = db.query(Market).filter(Market.is_active == True).all()
         features = []
         for m in markets:
+            if m.latitude is None or m.longitude is None:
+                continue
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[m.longitude, m.latitude]),
-                properties={
-                    "id": m.id, "name": m.name, "type": m.market_type,
-                    "phone": m.phone, "address": m.address, "description": m.description
-                }
+                properties={"id": m.id, "name": m.name, "type": m.market_type,
+                            "phone": m.phone, "address": m.address, "description": m.description}
             ))
         return GeoJSONFeatureCollection(features=features)
 
@@ -125,30 +113,26 @@ def get_markets_geojson(db: Session = Depends(get_db)):
     query = text("""
         SELECT id, name, market_type, phone, address, description,
                ST_X(geom) as lon, ST_Y(geom) as lat
-        FROM markets
-        WHERE is_active = true
+        FROM markets WHERE is_active = true
     """)
-    result = db.execute(query)
-    features = []
-    for row in result:
-        features.append(GeoJSONFeature(
-            geometry=GeoJSONGeometry(type="Point", coordinates=[row.lon, row.lat]),
-            properties={
-                "id": row.id, "name": row.name, "type": row.market_type,
-                "phone": row.phone, "address": row.address, "description": row.description
-            }
-        ))
+    rows = db.execute(query).fetchall()
+    features = [
+        GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[r.lon, r.lat]),
+            properties={"id": r.id, "name": r.name, "type": r.market_type,
+                        "phone": r.phone, "address": r.address, "description": r.description}
+        ) for r in rows
+    ]
     return GeoJSONFeatureCollection(features=features)
+
 
 @router.get("/hives", response_model=GeoJSONFeatureCollection)
 def get_hives_geojson(db: Session = Depends(get_db)):
-    """Return all hives (bee units) joined with their latest telemetry records."""
     from app.models.domain import AnimalUnit, AnimalType, TelemetryRecord
     from sqlalchemy import desc
-    
+
     features = []
 
-    # --- 1. General Animal Units (Legacy/General) ---
     bee_type = db.query(AnimalType).filter(AnimalType.species == "bee").first()
     if bee_type:
         hives = db.query(AnimalUnit).filter(AnimalUnit.type_id == bee_type.id).all()
@@ -161,57 +145,44 @@ def get_hives_geojson(db: Session = Depends(get_db)):
             lon = h.farm.longitude + (hash(h.name) % 80 / 10000)
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
-                properties={
-                    "id": f"unit_{h.id}",
-                    "name": h.name,
-                    "status": h.status,
-                    "metrics": metrics,
-                    "timestamp": latest.timestamp.isoformat() if latest else None,
-                    "type": "unit"
-                }
+                properties={"id": f"unit_{h.id}", "name": h.name, "status": h.status,
+                            "metrics": metrics,
+                            "timestamp": latest.timestamp.isoformat() if latest else None,
+                            "type": "unit"}
             ))
 
-    # --- 2. Smart Bee Hives (Management Module) ---
     smart_hives = db.query(BeeHive).all()
     for sh in smart_hives:
         if not sh.apiary or sh.apiary.latitude is None or sh.apiary.longitude is None:
             continue
-        
-        # Mapping Smart Bee properties to common GIS format
         lat = sh.apiary.latitude + (hash(sh.identifier) % 100 / 10000)
         lon = sh.apiary.longitude + (hash(sh.identifier) % 80 / 10000)
-        
         features.append(GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
-            properties={
-                "id": f"bee_{sh.id}",
-                "name": f"{sh.identifier} ({sh.apiary.name})",
-                "status": "healthy" if sh.health_score > 7 else ("warning" if sh.health_score > 4 else "critical"),
-                "metrics": {
-                    "weight": sh.honey_level, 
-                    "temperature": 35.0, # Placeholder
-                    "humidity": 60.0    # Placeholder
-                },
-                "timestamp": sh.updated_at.isoformat() if sh.updated_at else None,
-                "type": "beehive"
-            }
+            properties={"id": f"bee_{sh.id}",
+                        "name": f"{sh.identifier} ({sh.apiary.name})",
+                        "status": "healthy" if sh.health_score > 7 else ("warning" if sh.health_score > 4 else "critical"),
+                        "metrics": {"weight": sh.honey_level, "temperature": 35.0, "humidity": 60.0},
+                        "timestamp": sh.updated_at.isoformat() if sh.updated_at else None,
+                        "type": "beehive"}
         ))
-        
+
     return GeoJSONFeatureCollection(features=features)
+
 
 @router.get("/nearby-vets", response_model=List[dict])
 def find_nearby_vets(lat: float, lon: float, radius_km: float = 100, db: Session = Depends(get_db)):
-    """Find veterinarians within a radius from a point using native PostGIS radial search."""
-    if settings.DATABASE_URL.startswith("sqlite"):
+    if _use_sqlite():
         vets = db.query(Veterinary).filter(Veterinary.is_active == True).all()
         nearby = []
         for v in vets:
+            if v.latitude is None or v.longitude is None:
+                continue
             d = haversine(lat, lon, v.latitude, v.longitude)
             if d <= radius_km:
                 nearby.append({"id": v.id, "name": v.name, "distance_km": round(d, 2)})
         return nearby
 
-    # Golden Architecture: Native ST_DWithin Query
     from sqlalchemy import text
     radius_meters = radius_km * 1000
     query = text("""
@@ -219,42 +190,12 @@ def find_nearby_vets(lat: float, lon: float, radius_km: float = 100, db: Session
                ST_X(geom) as lon, ST_Y(geom) as lat,
                ST_Distance(geom::geography, ST_MakePoint(:lon, :lat)::geography) / 1000 as distance_km
         FROM veterinarians
-        WHERE ST_DWithin(
-            geom::geography,
-            ST_MakePoint(:lon, :lat)::geography,
-            :radius
-        ) AND is_active = true
+        WHERE ST_DWithin(geom::geography, ST_MakePoint(:lon, :lat)::geography, :radius)
+          AND is_active = true
         ORDER BY distance_km ASC
     """)
-    result = db.execute(query, {"lon": lon, "lat": lat, "radius": radius_meters})
-    
-    return [
-        {
-            "id": row.id, "name": row.name, "specialty": row.specialty, 
-            "phone": row.phone, "address": row.address,
-            "coords": [row.lat, row.lon],
-            "distance_km": round(row.distance_km, 2)
-        } for row in result
-    ]
-
-
-@router.get("/markets", response_model=GeoJSONFeatureCollection)
-def get_markets_geojson(db: Session = Depends(get_db)):
-    """
-    Public markets overlay.
-    Visible to all users.
-    """
-    markets = db.query(Market).filter(Market.is_active == True).all()
-    features = []
-    for m in markets:
-        if m.latitude is None or m.longitude is None: continue
-        features.append(GeoJSONFeature(
-            geometry=GeoJSONGeometry(coordinates=[m.longitude, m.latitude]),
-            properties={
-                "id": str(m.id), 
-                "name": m.name, 
-                "address": m.address,
-                "type": m.market_type
-            }
-        ))
-    return GeoJSONFeatureCollection(features=features)
+    rows = db.execute(query, {"lon": lon, "lat": lat, "radius": radius_meters}).fetchall()
+    return [{"id": r.id, "name": r.name, "specialty": r.specialty,
+             "phone": r.phone, "address": r.address,
+             "coords": [r.lat, r.lon], "distance_km": round(r.distance_km, 2)}
+            for r in rows]

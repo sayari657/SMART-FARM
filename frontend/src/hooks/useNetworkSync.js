@@ -42,7 +42,7 @@ export function useNetworkSync() {
       const tasks = await offlineDB.pendingTasks.where('synced').equals(0).toArray();
       for (const task of tasks) {
         try {
-          await api.put(`/worker/tasks/${task.task_id}`, {
+          await api.put(`/worker-tasks/${task.task_id}`, {
             status: task.status,
             done_at: task.done_at,
           });

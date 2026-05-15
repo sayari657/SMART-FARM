@@ -114,79 +114,56 @@ export default function Reports() {
       <Navbar
         title={t('reports_page.title')}
         subtitle={t('reports_page.subtitle')}
-        actions={
-          <div style={{ display: 'flex', gap: 10 }}>
-             <button 
-              className={`btn ${view === 'live' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setView('live')}
-            >
-              <Zap size={14} /> {t('reports_page.live_report')}
-            </button>
-            <button 
-              className={`btn ${view === 'archive' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setView('archive')}
-            >
-              <Database size={14} /> {t('reports_page.archives')}
-            </button>
-          </div>
-        }
       />
 
-      <div className="page-content" style={{ padding: '24px 40px', background: '#ffffff' }} id="report-content">
-        
-        {/* Strategic Actions Header */}
-        <div style={{ 
-          display: 'flex', gap: 15, marginBottom: 25, padding: 20, 
-          background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(10px)',
-          borderRadius: 20, border: '1px solid rgba(22, 163, 74, 0.2)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.05)',
-          alignItems: 'center', flexWrap: 'wrap'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 'auto' }}>
-            <div style={{ padding: 10, background: '#dcfce7', borderRadius: 12 }}>
-              <BrainCircuit size={20} color="#16a34a" />
+      <div className="page-content" id="report-content">
+
+        {/* ── Enterprise Hero ── */}
+        <div className="rp-hero">
+          <div className="rp-hero-left">
+            <div className="rp-hero-eyebrow">
+              <BrainCircuit size={11} /> AI REPORTING ENGINE · {t('reports_page.ai_ollama', 'Labess-7B + RAG')}
             </div>
+            <h1 className="rp-hero-title">{t('reports_page.title', 'Rapports Intelligents')}</h1>
+            <p className="rp-hero-sub">{t('reports_page.strategic_reports_based_on', 'Rapports stratégiques au')} {new Date().toLocaleDateString('fr-FR')}</p>
+          </div>
+
+          {/* View toggle */}
+          <div className="rp-view-toggle">
+            <button className={`rp-toggle-btn ${view === 'live' ? 'active' : ''}`} onClick={() => setView('live')}>
+              <Zap size={13} /> {t('reports_page.live_report', 'Rapport Live')}
+            </button>
+            <button className={`rp-toggle-btn ${view === 'archive' ? 'active' : ''}`} onClick={() => setView('archive')}>
+              <Database size={13} /> {t('reports_page.archives', 'Archives')}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Action bar ── */}
+        <div className="rp-action-bar">
+          <div className="rp-action-left">
+            <div className="rp-action-icon"><BrainCircuit size={16} color="#16a34a" /></div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800 }}>{t('reports_page.ai_ollama')}</div>
-              <div style={{ fontSize: 11, opacity: 0.6 }}>{t('reports_page.strategic_reports_based_on')} {new Date().toLocaleDateString()}</div>
+              <div className="rp-action-title">Génération IA — Rapports Stratégiques</div>
+              <div className="rp-action-sub">Ollama · Labess-7B · Analyse multi-domaines</div>
             </div>
           </div>
-          
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => handleGenerateIntelligent('animals')}
-            disabled={generating}
-            style={{ gap: 8 }}
-          >
-            <Activity size={14} /> {t('reports_page.animal_report')}
-          </button>
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => handleGenerateIntelligent('plants')}
-            disabled={generating}
-            style={{ gap: 8 }}
-          >
-            <Leaf size={14} /> {t('reports_page.plant_report')}
-          </button>
-          <button 
-            className="btn btn-primary btn-sm" 
-            onClick={() => handleGenerateIntelligent('general')}
-            disabled={generating}
-            style={{ gap: 8, background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
-          >
-            {generating ? <Zap size={14} className="spin" /> : <Sparkles size={14} />} 
-            {t('reports_page.global_ai_report')}
-          </button>
-          
-          <div style={{ width: 1, height: 30, background: '#e2e8f0', margin: '0 10px' }} />
-          
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={downloadPDF}
-            style={{ gap: 8, borderColor: '#16a34a', color: '#16a34a' }}
-          >
-            <Printer size={14} /> {t('reports_page.download_pdf')}
-          </button>
+          <div className="rp-action-btns">
+            <button className="rp-gen-btn secondary" onClick={() => handleGenerateIntelligent('animals')} disabled={generating}>
+              <Activity size={13} /> {t('reports_page.animal_report', 'Rapport Animaux')}
+            </button>
+            <button className="rp-gen-btn secondary" onClick={() => handleGenerateIntelligent('plants')} disabled={generating}>
+              <Leaf size={13} /> {t('reports_page.plant_report', 'Rapport Plantes')}
+            </button>
+            <button className="rp-gen-btn primary" onClick={() => handleGenerateIntelligent('general')} disabled={generating}>
+              {generating ? <Zap size={13} style={{ animation: 'spin .6s linear infinite' }} /> : <Sparkles size={13} />}
+              {t('reports_page.global_ai_report', 'Rapport Global IA')}
+            </button>
+            <div className="rp-divider" />
+            <button className="rp-gen-btn pdf" onClick={downloadPDF}>
+              <Printer size={13} /> PDF
+            </button>
+          </div>
         </div>
 
         {view === 'live' ? (

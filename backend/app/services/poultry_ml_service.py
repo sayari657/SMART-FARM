@@ -211,6 +211,7 @@ def predict_egg_production(egg_logs: list, current_qty: int, batch_day: int) -> 
         y = np.array(rates)
 
         # Simple linear trend
+        slope = 0.0
         if len(X) > 1:
             slope, intercept = np.polyfit(X, y, 1)
             next_rate = float(np.clip(intercept + slope * len(X), 0, 100))

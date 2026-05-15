@@ -34,7 +34,7 @@ export default function Animals() {
   useEffect(load, []);
 
   const filtered = units.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || (u.identifier || '').includes(search);
+    const matchSearch = (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.identifier || '').includes(search);
     const matchSpecies = speciesFilter === 'all' || u.species === speciesFilter;
     const matchFarm = !farmFilter || String(u.farm_id) === farmFilter;
     return matchSearch && matchSpecies && matchFarm;

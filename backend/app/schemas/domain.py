@@ -435,7 +435,8 @@ class PoultryBatchCreate(PoultryBatchBase):
 
 class PoultryBatchResponse(PoultryBatchBase):
     id: int
-    created_at: datetime
+    farm_id: int
+    created_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 
@@ -458,7 +459,8 @@ class PoultryFeedLogCreate(PoultryFeedLogBase):
 
 class PoultryFeedLogResponse(PoultryFeedLogBase):
     id: int
-    status: str
+    batch_id: int
+    status: Optional[str] = "pending"
     created_by_id: Optional[int] = None
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
@@ -480,7 +482,8 @@ class PoultryEggLogCreate(PoultryEggLogBase):
 
 class PoultryEggLogResponse(PoultryEggLogBase):
     id: int
-    status: str
+    batch_id: int
+    status: Optional[str] = "pending"
     created_by_id: Optional[int] = None
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
@@ -504,7 +507,8 @@ class PoultryHealthLogCreate(PoultryHealthLogBase):
 
 class PoultryHealthLogResponse(PoultryHealthLogBase):
     id: int
-    status: str
+    batch_id: int
+    status: Optional[str] = "pending"
     created_by_id: Optional[int] = None
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
@@ -527,7 +531,8 @@ class PoultrySaleCreate(PoultrySaleBase):
 
 class PoultrySaleResponse(PoultrySaleBase):
     id: int
-    status: str
+    batch_id: int
+    status: Optional[str] = "pending"
     created_by_id: Optional[int] = None
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None

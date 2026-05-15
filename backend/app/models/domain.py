@@ -22,7 +22,7 @@ from app.core.config import settings
 
 def get_geom_column(geometry_type='POINT', srid=4326):
     """Fallback to standard types if in Lite mode/SQLite to avoid SpatiaLite requirement"""
-    if settings.DATABASE_URL.startswith("sqlite") or not HAS_GEOALCHEMY:
+    if settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite") or not HAS_GEOALCHEMY:
         return Column(String(100), nullable=True)
     return Column(Geometry(geometry_type=geometry_type, srid=srid))
 

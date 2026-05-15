@@ -11,7 +11,7 @@ function WorkerHome() {
   const navigate = useNavigate();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled]     = useState(false);
-  const [pushStatus, setPushStatus]       = useState(Notification.permission);
+  const [pushStatus, setPushStatus]       = useState(typeof Notification !== 'undefined' ? Notification.permission : 'default');
   const [pendingTasks, setPendingTasks]   = useState(null);
   const now = new Date();
   const hour = now.getHours();
@@ -26,8 +26,8 @@ function WorkerHome() {
 
   useEffect(() => {
     if (!isOnline) return;
-    api.get('/worker/tasks')
-      .then(({ data }) => setPendingTasks(data.filter(t => t.status === 'pending').length))
+    api.get('/worker-tasks')
+      .then(({ data }) => setPendingTasks((Array.isArray(data) ? data : []).filter(t => t.status === 'pending').length))
       .catch(() => {});
   }, [isOnline]);
 

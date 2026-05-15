@@ -604,38 +604,57 @@ function UnitTab() {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 const TABS = (t) => [
-  { id: 'iot',   label: t('telemetry.tab_iot'),    sub: t('telemetry.tab_iot_sub') },
-  { id: 'units', label: t('telemetry.tab_units'), sub: t('telemetry.tab_units_sub') },
+  { id: 'iot',   label: t('telemetry.tab_iot'),   sub: t('telemetry.tab_iot_sub'),   emoji: '📡' },
+  { id: 'units', label: t('telemetry.tab_units'), sub: t('telemetry.tab_units_sub'), emoji: '🐾' },
 ];
 
 export default function TelemetryAnalysis() {
   const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState('iot');
+  const rtl = i18n.language === 'ar';
 
   return (
     <>
-      <Navbar title={t("telemetry.page_title")} subtitle={t("telemetry.page_subtitle")} />
+      <Navbar title={t('telemetry.page_title')} subtitle={t('telemetry.page_subtitle')} />
 
-      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
-        {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
+      <div className="page-content" style={{ direction: rtl ? 'rtl' : 'ltr' }}>
+
+        {/* ── Enterprise hero ── */}
+        <div className="tl-hero">
+          <div className="tl-hero-left">
+            <div className="tl-hero-eyebrow">
+              <span className="tl-live-dot" />
+              IOT TELEMETRY · LIVE DATA STREAM
+            </div>
+            <h1 className="tl-hero-title">{t('telemetry.page_title', 'Télémesure & Analyse')}</h1>
+            <p className="tl-hero-sub">Nœuds IoT temps réel · Historique 200 points · Détection d'anomalies thermiques</p>
+          </div>
+          <div className="tl-hero-nodes">
+            {[
+              { emoji: '🌱', label: 'Node A', desc: 'Sol & Irrigation', color: '#16a34a' },
+              { emoji: '🐝', label: 'Node B', desc: 'Ruche & Météo',   color: '#f59e0b' },
+            ].map(({ emoji, label, desc, color }) => (
+              <div key={label} className="tl-node-chip" style={{ borderColor: `${color}40` }}>
+                <span style={{ fontSize: 20 }}>{emoji}</span>
+                <div>
+                  <div className="tl-node-chip-label" style={{ color }}>{label}</div>
+                  <div className="tl-node-chip-desc">{desc}</div>
+                </div>
+                <span className="tl-node-online" style={{ background: color }}>LIVE</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Tab bar ── */}
+        <div className="tl-tabs">
           {TABS(t).map(tab => {
             const active = activeTab === tab.id;
             return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  padding: '10px 20px', borderRadius: 12, cursor: 'pointer',
-                  background: active ? '#0f172a' : '#fff',
-                  border: `1px solid ${active ? '#0f172a' : '#e2e8f0'}`,
-                  color: active ? '#fff' : '#64748b',
-                  fontWeight: 700, fontSize: 13,
-                  transition: 'all .15s',
-                }}
-              >
-                {tab.label}
-                <div style={{ fontSize: 10, fontWeight: 400, opacity: 0.6, marginTop: 1 }}>{tab.sub}</div>
+              <button key={tab.id} className={`tl-tab ${active ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                <span className="tl-tab-emoji">{tab.emoji}</span>
+                <span className="tl-tab-label">{tab.label}</span>
+                <span className="tl-tab-sub">{tab.sub}</span>
               </button>
             );
           })}

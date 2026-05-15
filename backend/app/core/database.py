@@ -2,22 +2,31 @@
 Smart Farm AI - Database Session Management
 """
 
+from pathlib import Path
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-connect_args = {"check_same_thread": False, "timeout": 15} if settings.DATABASE_URL.startswith("sqlite") else {}
+# Resolve the effective DB URL: SQLite when USE_SQLITE=True or PostgreSQL unavailable
+if settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite"):
+    _db_file = Path(__file__).parent.parent.parent / "smart_farm.db"
+    _effective_url = f"sqlite:///{_db_file}"
+    connect_args = {"check_same_thread": False, "timeout": 15}
+    _extra_kwargs = {}
+else:
+    _effective_url = settings.DATABASE_URL
+    connect_args = {}
+    _extra_kwargs = {"pool_size": 10, "max_overflow": 20}
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    _effective_url,
     connect_args=connect_args,
     pool_pre_ping=True,
-    # pool_size and max_overflow are NOT supported by SQLite
-    **(dict(pool_size=10, max_overflow=20) if not settings.DATABASE_URL.startswith("sqlite") else {})
+    **_extra_kwargs
 )
 
-if settings.DATABASE_URL.startswith("sqlite"):
+if _effective_url.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
