@@ -132,8 +132,22 @@ def _serialize_rec(r):
     }
 
 @rec_router.get("")
-def list_recommendations(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return [_serialize_rec(r) for r in RecommendationService(db).get_pending()]
+def list_recommendations(
+    include_actioned: bool = Query(False),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    svc = RecommendationService(db)
+    recs = svc.get_all() if include_actioned else svc.get_pending()
+    return [_serialize_rec(r) for r in recs]
+
+@rec_router.put("/{rec_id}/action")
+def action_recommendation(rec_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    rec = RecommendationService(db).mark_actioned(rec_id)
+    if not rec:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    return _serialize_rec(rec)
 
 @rec_router.get("/{unit_id}")
 def recs_by_unit(unit_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):

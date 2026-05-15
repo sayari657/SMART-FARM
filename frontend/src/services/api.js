@@ -154,8 +154,10 @@ export const alertsAPI = {
 
 // ---- Recommendations
 export const recsAPI = {
-  list: () => api.get('/recommendations'),
+  list: (includeActioned = false) => api.get('/recommendations', { params: { include_actioned: includeActioned } }),
   byUnit: (unitId) => api.get(`/recommendations/${unitId}`),
+  action: (recId) => api.put(`/recommendations/${recId}/action`),
+  generate: (farmId, plant = 'grass') => api.get(`/recommendations-advanced/${farmId}`, { params: { plant } }),
 };
 
 // ---- Reports

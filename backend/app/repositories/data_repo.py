@@ -203,6 +203,23 @@ class RecommendationRepository(BaseRepository[Recommendation]):
             .all()
         )
 
+    def get_all(self, limit: int = 200) -> List[Recommendation]:
+        return (
+            self.db.query(Recommendation)
+            .options(joinedload(Recommendation.unit))
+            .order_by(desc(Recommendation.timestamp))
+            .limit(limit)
+            .all()
+        )
+
+    def mark_actioned(self, rec_id: int) -> Recommendation:
+        rec = self.db.query(Recommendation).filter(Recommendation.id == rec_id).first()
+        if rec:
+            rec.is_actioned = True
+            self.db.commit()
+            self.db.refresh(rec)
+        return rec
+
 
 class ReportRepository(BaseRepository[Report]):
     def __init__(self, db: Session):

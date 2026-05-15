@@ -135,6 +135,12 @@ class RecommendationService:
         payload["timestamp"] = datetime.utcnow()
         return self.repo.create(payload)
 
+    def get_all(self, limit: int = 200):
+        return self.repo.get_all(limit=limit)
+
+    def mark_actioned(self, rec_id: int):
+        return self.repo.mark_actioned(rec_id)
+
 
 class ReportService:
     def __init__(self, db: Session):
