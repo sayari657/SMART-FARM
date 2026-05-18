@@ -22,7 +22,8 @@
     "poultry": "Volailles",
     "sheep": "Moutons",
     "goat": "Chèvres",
-    "rabbit": "Lapins"
+    "rabbit": "Lapins",
+    "entrepot": "Entrepôt"
   },
   "navbar": {
     "title": "Smart Farm AI",

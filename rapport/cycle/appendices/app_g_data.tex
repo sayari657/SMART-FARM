@@ -1,0 +1,103 @@
+\chapter{Données brutes — Formats et exemples}
+\label{ann:raw_data}
+
+\section*{G.1 — Format des annotations YOLO v8}
+
+Chaque image est associée à un fichier texte \texttt{.txt} portant le même nom.
+Chaque ligne représente un objet annoté avec le format :
+
+\begin{lstlisting}[caption={Format annotation YOLO v8 (.txt par image)},
+  label={lst:yolo_format}]
+<class_id> <x_center> <y_center> <width> <height>
+
+# Exemple : image_ruche_0042.txt (2 abeilles détectées)
+0 0.4823 0.3154 0.0821 0.0734
+0 0.6245 0.5678 0.0932 0.0845
+
+# Correspondance class_id : {0:bee, 1:cattle, 2:sheep, 3:goat,
+# 4:leaves, 5:olive, 6:insects, 7:lemon, 8:orange, 9:fire, 10:livestock}
+# Toutes les coordonnées sont normalisées dans [0, 1]
+\end{lstlisting}
+
+\section*{G.2 — Échantillon \texttt{poultry\_feed\_logs.csv}}
+
+\begin{lstlisting}[caption={Extrait du fichier poultry\_feed\_logs.csv (8 premières lignes)},
+  label={lst:csv_sample}]
+batch_id,log_date,batch_age,feed_consumed_kg,avg_weight_g,fcr_calculated,mortality_count
+12,2024-03-01,7,18.4,145.2,1.82,0
+12,2024-03-02,8,19.1,158.7,1.78,1
+12,2024-03-03,9,20.3,172.4,1.76,0
+12,2024-03-04,10,21.7,187.1,1.74,0
+12,2024-03-05,11,22.9,203.5,1.71,2
+12,2024-03-06,12,24.1,218.9,1.69,0
+12,2024-03-07,13,25.3,235.8,1.67,1
+\end{lstlisting}
+
+\textbf{Description des colonnes} :
+\begin{itemize}
+  \item \texttt{batch\_id} : identifiant du lot (FK vers \texttt{poultry\_batch.id}) ;
+  \item \texttt{batch\_age} : âge du lot en jours depuis le démarrage ;
+  \item \texttt{feed\_consumed\_kg} : quantité d'aliment distribuée (kg/jour) ;
+  \item \texttt{avg\_weight\_g} : poids moyen des sujets (g), mesuré par échantillonnage ;
+  \item \texttt{fcr\_calculated} : ICF calculé = aliment cumulé / poids total gagné ;
+  \item \texttt{mortality\_count} : nombre de décès enregistrés dans la journée.
+\end{itemize}
+
+\section*{G.3 — Exemples de payload JSON — Télémétrie IoT (ESP32)}
+
+Le broker MQTT reçoit des messages JSON publiés par les nœuds ESP32 toutes les
+60 secondes (configurable). Deux formats coexistent selon le nœud émetteur :
+
+\begin{lstlisting}[caption={Payload JSON — Nœud A : contrôleur irrigation (ESP32-WROOM-32)},
+  label={lst:json_node_a}]
+{
+  "node_id": "farm_12_node_a",
+  "farm_id": 12,
+  "timestamp": "2024-03-15T08:43:27Z",
+  "sensors": {
+    "soil_moisture_pct":  38.7,
+    "soil_temperature_c": 21.4,
+    "water_pressure_bar":  2.31,
+    "flow_rate_lpm":       4.87,
+    "pump_active":         true,
+    "valve_zones":         [true, false, true, false]
+  },
+  "battery_mv": 3847,
+  "rssi_dbm":   -68,
+  "firmware":   "node_a_v2.1.0"
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Payload JSON — Nœud B : monitoring ruche (ESP32-WROOM-32)},
+  label={lst:json_node_b}]
+{
+  "node_id": "farm_03_node_b",
+  "farm_id": 3,
+  "hive_id": 7,
+  "timestamp": "2024-03-15T09:01:05Z",
+  "sensors": {
+    "hive_weight_kg":        23.41,
+    "internal_temp_c":       35.2,
+    "internal_humidity_pct": 72.8,
+    "external_temp_c":       18.7,
+    "sound_level_db":        54.3,
+    "activity_index":         0.78
+  },
+  "alerts": {
+    "weight_drop_alert": false,
+    "overheating_alert": false,
+    "swarm_risk":        false
+  },
+  "battery_mv": 3921,
+  "rssi_dbm":   -73
+}
+\end{lstlisting}
+
+\textbf{Note} : L'\texttt{activity\_index} ($\in [0,1]$) est calculé à bord de l'ESP32
+comme ratio de variations de poids sur une fenêtre glissante de 5 minutes — indicateur
+proxy de l'activité butineuse. Un index $> 0.85$ déclenche une alerte de surveillance
+d'essaimage côté serveur.
+
+% ============================================================
+%  ANNEXE H : Guide de reproduction
+% ============================================================

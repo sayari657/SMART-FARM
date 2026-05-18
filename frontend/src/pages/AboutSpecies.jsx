@@ -120,7 +120,7 @@ export default function AboutSpecies({ speciesType }) {
     <>
       <Navbar title={`Smart Farm AI - ${config.name}`} subtitle={`Gouvernance et Pilotage Opérationnel ${config.name}`} />
 
-      <div className="page-content" style={{ background: COLORS.bg, minHeight: '100vh', paddingBottom: 100 }}>
+      <div className="page-content" style={{ background: COLORS.bg, minHeight: '100dvh', paddingBottom: 100 }}>
         
         {/* ACTIONS */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, overflowX: 'auto', paddingBottom: 10 }}>

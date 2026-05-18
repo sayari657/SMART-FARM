@@ -1,47 +1,61 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import ThreeTile from './ThreeTile';
+import { MapPin, ChevronRight, Activity } from 'lucide-react';
 
-const SPECIES_EMOJI = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐' };
-const STATUS_CLASS  = { healthy: 'badge-success', warning: 'badge-warning', critical: 'badge-danger', offline: 'badge-neutral' };
+const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
+const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
+const STATUS_CFG = {
+  healthy:  { color: '#15803d', bg: '#f0fdf4', label: 'Sain' },
+  warning:  { color: '#d97706', bg: '#fffbeb', label: 'Attention' },
+  critical: { color: '#dc2626', bg: '#fef2f2', label: 'Critique' },
+  offline:  { color: '#94a3b8', bg: '#f8fafc', label: 'Hors ligne' },
+};
 
 export default function AnimalCard({ unit }) {
-  const navigate = useNavigate();
-  const health = unit.health_score ?? 0;
-  const barColor = health >= 80 ? 'var(--color-success)' : health >= 60 ? 'var(--color-warning)' : 'var(--color-critical)';
+  const navigate   = useNavigate();
+  const health     = unit.health_score ?? 0;
+  const sp         = unit.species || 'bee';
+  const spColor    = SPECIES_COLORS[sp] || '#16a34a';
+  const statusCfg  = STATUS_CFG[unit.status] || STATUS_CFG.offline;
+  const barColor   = health >= 80 ? '#15803d' : health >= 60 ? '#d97706' : '#dc2626';
 
   return (
-    <ThreeTile>
-      <div
-        className="card"
-        style={{ cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column' }}
-        onClick={() => navigate(`/animals/${unit.id}`)}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 28 }}>{SPECIES_EMOJI[unit.species] || '🐾'}</span>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>{unit.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>
-                {unit.species_display || unit.species} · {unit.farm_name}
-              </div>
-            </div>
-          </div>
-          <span className={`badge ${STATUS_CLASS[unit.status] || 'badge-neutral'}`}>
-            {unit.status}
-          </span>
-        </div>
+    <div className="anim-card" onClick={() => navigate(`/animals/${unit.id}`)}>
 
-        <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-            <span style={{ color: 'var(--color-text-3)' }}>Health Score</span>
-            <span style={{ fontWeight: 700, color: barColor }}>{health.toFixed(0)}%</span>
+      {/* Top — species color band */}
+      <div className="anim-card-top" style={{ background: `linear-gradient(135deg, ${spColor}18, ${spColor}06)` }}>
+        <div className="anim-card-accent" style={{ background: spColor }} />
+        <div className="anim-card-species-icon" style={{ background: `${spColor}20`, color: spColor }}>
+          {SPECIES_EMOJI[sp] || '🐾'}
+        </div>
+        <div className="anim-card-info">
+          <div className="anim-card-name">{unit.name}</div>
+          <div className="anim-card-meta">
+            <MapPin size={10} /> {unit.farm_name || '—'}
           </div>
-          <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 99, overflow: 'hidden' }}>
-            <div style={{ width: `${health}%`, height: '100%', background: barColor, borderRadius: 99, transition: 'width .5s ease' }} />
-          </div>
+        </div>
+        <div className="anim-card-status" style={{ background: statusCfg.bg, color: statusCfg.color }}>
+          <span className="anim-card-status-dot" style={{ background: statusCfg.color }} />
+          {statusCfg.label}
         </div>
       </div>
-    </ThreeTile>
+
+      {/* Body */}
+      <div className="anim-card-body">
+        <div className="anim-card-id">
+          ID: <span>{unit.identifier || '—'}</span> · {unit.species_display || sp}
+        </div>
+        <div className="anim-card-health-row">
+          <span className="anim-card-health-label"><Activity size={11} /> Santé</span>
+          <span className="anim-card-health-val" style={{ color: barColor }}>{health.toFixed(0)}%</span>
+        </div>
+        <div className="anim-card-bar-bg">
+          <div className="anim-card-bar-fill" style={{ width: `${health}%`, background: barColor }} />
+        </div>
+        <div className="anim-card-footer" style={{ color: spColor }}>
+          Voir le dossier <ChevronRight size={12} />
+        </div>
+      </div>
+    </div>
   );
 }

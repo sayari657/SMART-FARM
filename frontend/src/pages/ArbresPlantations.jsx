@@ -217,7 +217,7 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
       </div>
 
       {/* Viewport */}
-      <div style={{height:240,background:'#0f172a',position:'relative',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+      <div style={{height:'clamp(180px,30vw,240px)',background:'#0f172a',position:'relative',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
         {!img && (
           <div style={{position:'absolute',inset:0,backgroundImage:`linear-gradient(${accent}14 1px,transparent 1px),linear-gradient(90deg,${accent}14 1px,transparent 1px)`,backgroundSize:'32px 32px',pointerEvents:'none'}}/>
         )}

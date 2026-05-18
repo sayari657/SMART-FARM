@@ -1,51 +1,84 @@
 /**
- * BeeConstants — "Miel du Matin" Design System
- * Palette apicole lumineuse :
- *   Fond       → crème ivoire chaud  (lumière du matin dans le rucher)
- *   Surface    → blanc pur           (carte de ruche propre)
- *   Accent     → ambre miel          (couleur signature apicole)
- *   Santé      → vert de champ       (colonie saine)
- *   Reine      → violet royal        (essaimage / banque reines)
- *   Alerte     → orange pollen       (surveillance)
- *   Critique   → rouge               (urgence)
- *   Texte      → brun profond chaud  (comme un vieux carnet d'apiculteur)
+ * BeeConstants — "ApiCraft Modern" Design System
+ * Palette apicole professionnelle :
+ *   Fond       → gris clair neutre    (clean, moderne)
+ *   Surface    → blanc pur            (carte propre)
+ *   Accent     → ambre miel           (couleur signature — inchangée)
+ *   Santé      → émeraude             (colonie saine)
+ *   Reine      → violet profond       (banque reines)
+ *   Alerte     → orange               (surveillance)
+ *   Critique   → rouge clair          (urgence)
+ *   Texte      → slate sombre         (lisibilité maximale)
  */
+import { Sprout, ShieldPlus, Wrench, Truck, Users, MoreHorizontal } from 'lucide-react';
+
 export const COLORS = {
-  /* ── Fonds — crème de miel matinal ── */
-  bg:         '#FFFFFF',                       // blanc pur
-  bg2:        '#F8FAFC',                       // blanc légèrement gris
-  surface:    '#FFFFFF',                       // carte blanche pure
-  surface2:   'rgba(248, 250, 252, 0.95)',     // panneau blanc doux
-  glass:      'rgba(245, 158, 11, 0.05)',      // reflet doré subtil
+  /* ── Fonds ── */
+  bg:         '#F9FAFB',
+  bg2:        '#F3F4F6',
+  surface:    '#FFFFFF',
+  surface2:   'rgba(249, 250, 251, 0.97)',
+  glass:      'rgba(245, 158, 11, 0.06)',
 
-  /* ── Bordures — cire claire ── */
-  border:     '#EDE0C4',
-  borderHigh: 'rgba(217, 119, 6, 0.52)',
+  /* ── Bordures ── */
+  border:     '#E5E7EB',
+  borderHigh: 'rgba(245, 158, 11, 0.45)',
 
-  /* ── Accent principal — miel ambré ── */
-  accent:      '#D97706',   // ambre miel (lisible sur fond blanc)
-  accentLight: '#F59E0B',   // miel lumineux
-  accentDark:  '#92400E',   // miel foncé / acajou
-  accentGlow:  'rgba(217, 119, 6, 0.13)',
+  /* ── Accent principal — miel ambré (signature) ── */
+  accent:      '#D97706',
+  accentLight: '#F59E0B',
+  accentDark:  '#92400E',
+  accentGlow:  'rgba(217, 119, 6, 0.10)',
+  honey:       '#FBBF24',      // amber-400 → température, statut "en cours"
 
   /* ── Sémantique métier apicole ── */
-  success:  '#15803D',   // vert champ        → colonie saine / récolte OK
-  error:    '#DC2626',   // rouge critique     → colonie en danger
-  warning:  '#EA580C',   // orange pollen      → surveillance nécessaire
-  info:     '#7C3AED',   // violet royal       → reine / essaimage / banque
-  purple:   '#8B5CF6',   // lavande clover     → référence florale / royale
+  success:  '#059669',   // émeraude    → colonie saine
+  error:    '#EF4444',   // rouge clair → urgence
+  warning:  '#F97316',   // orange vif  → surveillance
+  info:     '#6D28D9',   // violet prof → reine / banque
+  purple:   '#7C3AED',   // lavande     → analytics
 
-  /* ── Texte — brun profond chaud ── */
-  text:      '#1C0A00',   // brun très sombre — carnet d'apiculteur
-  textMuted: '#78716C',   // gris chaud neutre
-  textDim:   '#A07848',   // or ambré tamisé
+  /* ── Texte ── */
+  text:      '#111827',   // slate sombre — lisibilité maximale
+  textMuted: '#6B7280',   // gris neutre
+  textDim:   '#9CA3AF',   // gris clair
 
   /* ── Graphiques ── */
-  chart: ['#F59E0B', '#D97706', '#15803D', '#EA580C', '#8B5CF6', '#DC2626'],
+  chart: ['#F59E0B', '#D97706', '#059669', '#F97316', '#7C3AED', '#EF4444'],
 
   /* ── Grades santé colonie ── */
-  gradeA: '#15803D',   // vert champ    → A : excellente santé
-  gradeB: '#D97706',   // ambre miel    → B : bonne santé
-  gradeC: '#EA580C',   // orange pollen → C : à surveiller
-  gradeD: '#DC2626',   // rouge urgence → D : critique
+  gradeA: '#059669',   // émeraude    → A : excellente santé
+  gradeB: '#D97706',   // ambre miel  → B : bonne santé
+  gradeC: '#F97316',   // orange vif  → C : à surveiller
+  gradeD: '#EF4444',   // rouge clair → D : critique
+
+  /* ── Catégories dépenses ── */
+  catAlim:  '#10b981',   // emerald-500 → Alimentation
+  catEquip: '#3B82F6',   // blue-500    → Équipement
+  catWork:  '#8B5CF6',   // violet-500  → Main-d'œuvre
+  catOther: '#94A3B8',   // slate-400   → Autre
+
+  /* ── Overlay (rgba shortcuts — évite les inline magic values) ── */
+  overlay03: 'rgba(0,0,0,0.03)',
+  overlay04: 'rgba(0,0,0,0.04)',
+  overlay06: 'rgba(0,0,0,0.06)',
+  overlay08: 'rgba(0,0,0,0.08)',
+  overlay10: 'rgba(0,0,0,0.10)',
 };
+
+/* ── Helpers grades (partagés entre InventaireTab, HiveDetailView, etc.) ── */
+export const gradeColor = s =>
+  s >= 8 ? COLORS.gradeA : s >= 6 ? COLORS.gradeB : s >= 4 ? COLORS.gradeC : COLORS.gradeD;
+
+export const gradeLabel = s =>
+  s >= 8 ? 'A' : s >= 6 ? 'B' : s >= 4 ? 'C' : 'D';
+
+/* ── Catégories dépenses (partagées entre DepensesTab, HiveFinanceTab, etc.) ── */
+export const EXPENSE_CATEGORIES = [
+  { id: 'Alimentation', icon: Sprout,         color: COLORS.catAlim     },
+  { id: 'Traitement',   icon: ShieldPlus,     color: COLORS.error       },
+  { id: 'Équipement',   icon: Wrench,         color: COLORS.catEquip    },
+  { id: 'Transport',    icon: Truck,          color: COLORS.accentLight },
+  { id: "Main-d'œuvre", icon: Users,          color: COLORS.catWork     },
+  { id: 'Autre',        icon: MoreHorizontal, color: COLORS.catOther    },
+];

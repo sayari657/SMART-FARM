@@ -107,7 +107,7 @@ export default function AlertsCenter() {
   return (
     <>
       <Navbar title={t('alerts.center_title')} subtitle={t('alerts.center_subtitle')} />
-      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr', background: T.bg, minHeight: '100vh' }}>
+      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr', background: T.bg, minHeight: '100dvh' }}>
 
         <div className="kpi-grid" style={{ marginBottom:32 }}>
           <KPIBox icon={ShieldAlert} value={counts.emergency} label="Urgence" colorClass="red" />
@@ -169,14 +169,14 @@ export default function AlertsCenter() {
                   </div>
                   <button onClick={() => navigate('/cv')} className="btn btn-sm btn-secondary" style={{ fontSize: 11 }}>Scanner Live</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
                   {emergencyData.fire_events.map(e => (
                     <div key={e.id} style={{ 
                       background: '#fff', borderRadius: 16, border: `2px solid ${T.red}`, 
                       overflow: 'hidden', boxShadow: '0 8px 24px rgba(239, 68, 68, 0.15)',
                       position: 'relative'
                     }}>
-                      <div style={{ height: 160, background: '#000', position: 'relative' }}>
+                      <div style={{ height: 'clamp(120px, 30vw, 160px)', background: '#000', position: 'relative' }}>
                         {e.thumbnail_url ? (
                           <img src={e.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Fire detection" />
                         ) : (

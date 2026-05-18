@@ -15,27 +15,33 @@ export default defineConfig({
       manifest: {
         name: "Smart Farm AI",
         short_name: "FarmAI",
-        description: "Plateforme agricole intelligente — Tunisian Sovereign AI",
+        description: "Plateforme agricole intelligente — Monitoring temps réel, IA prédictive, gestion du bétail.",
         start_url: "/",
+        scope: "/",
         display: "standalone",
-        orientation: "portrait",
+        display_override: ["standalone", "minimal-ui", "browser"],
+        orientation: "any",
         theme_color: "#16a34a",
         background_color: "#0f172a",
         lang: "fr",
+        prefer_related_applications: false,
         icons: [
-          { src: "/icons/icon-72.png", sizes: "72x72", type: "image/png" },
+          { src: "/icons/icon-72.png",  sizes: "72x72",   type: "image/png" },
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
         ],
         shortcuts: [
-          { name: "Scanner IA", url: "/worker/scan", icons: [{ src: "/icons/scan.png", sizes: "96x96" }] },
-          { name: "Mes Tâches", url: "/worker/tasks", icons: [{ src: "/icons/tasks.png", sizes: "96x96" }] },
-          { name: "Dashboard", url: "/dashboard", icons: [{ src: "/icons/dash.png", sizes: "96x96" }] }
+          { name: "Scanner IA",  short_name: "Scanner", url: "/worker/scan",  icons: [{ src: "/icons/scan.png",  sizes: "96x96" }] },
+          { name: "Mes Tâches",  short_name: "Tâches",  url: "/worker/tasks", icons: [{ src: "/icons/tasks.png", sizes: "96x96" }] },
+          { name: "Dashboard",   short_name: "Dash",    url: "/dashboard",    icons: [{ src: "/icons/dash.png",  sizes: "96x96" }] }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         maximumFileSizeToCacheInBytes: 10000000,
+        navigateFallback: '/offline.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/ws\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -51,6 +57,16 @@ export default defineConfig({
             urlPattern: /\/api\/.*/i,
             handler: 'NetworkFirst',
             options: { cacheName: 'api-cache', expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 } }
+          },
+          {
+            urlPattern: /^https:\/\/tile\.openstreetmap\.org\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'osm-tiles-cache', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 } }
+          },
+          {
+            urlPattern: /\/map-tiles\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'local-tiles-cache', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 7 } }
           }
         ]
       }

@@ -85,6 +85,10 @@ async def app_lifespan(app_instance: FastAPI):
             # Bee Expenses (Fixes stuck loading)
             "ALTER TABLE bee_expenses ADD COLUMN apiary_id INTEGER",
             "ALTER TABLE bee_expenses ADD COLUMN visit_id INTEGER",
+            # Bee Expenses — budget prévisionnel
+            "ALTER TABLE bee_expenses ADD COLUMN amount_planned REAL",
+            # Warehouse category emoji
+            "ALTER TABLE warehouse_categories ADD COLUMN emoji VARCHAR(10)",
         ]
         with engine.connect() as _conn:
             for _stmt in _migrations:

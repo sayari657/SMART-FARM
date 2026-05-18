@@ -267,4 +267,19 @@ export const poultryAPI = {
 };
 
 
+// ---- Warehouse / Entrepôt
+export const warehouseAPI = {
+  categories:     ()           => api.get('/warehouse/categories'),
+  createCategory: (data)       => api.post('/warehouse/categories', data),
+  updateCategory: (id, data)   => api.put(`/warehouse/categories/${id}`, data),
+  deleteCategory: (id)         => api.delete(`/warehouse/categories/${id}`),
+  items:      (catId)      => catId
+                               ? api.get('/warehouse/items', { params: { category_id: catId } })
+                               : api.get('/warehouse/items'),
+  create:     (data)       => api.post('/warehouse/items', data),
+  update:     (id, data)   => api.put(`/warehouse/items/${id}`, data),
+  delete:     (id)         => api.delete(`/warehouse/items/${id}`),
+  seed:       ()           => api.post('/warehouse/seed'),
+};
+
 export default api;

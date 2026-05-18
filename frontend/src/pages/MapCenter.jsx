@@ -290,7 +290,7 @@ const MapCenter = () => {
                         type="text"
                         placeholder={t('map_center.search_placeholder')}
                         className="form-control"
-                        style={{ paddingLeft: 36, paddingRight: isSearching ? 36 : 12, height: 36, fontSize: 13, borderRadius: 'var(--r)' }}
+                        style={{ paddingLeft: 36, paddingRight: isSearching ? 36 : 12, height: 42, fontSize: 13, borderRadius: 'var(--r)', touchAction: 'manipulation' }}
                         value={globalSearch}
                         onChange={(e) => handleSearchInput(e.target.value)}
                         onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
@@ -398,7 +398,7 @@ const MapCenter = () => {
             </div>
 
             {/* ── Map + Panel ─────────────────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, padding: '0 24px 24px', height: 'calc(100vh - 168px)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr min(340px, 35vw)', gap: 16, padding: '0 24px 24px', height: 'calc(100dvh - 168px)' }}>
 
                 {/* Map */}
                 <div style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--color-border)' }}>

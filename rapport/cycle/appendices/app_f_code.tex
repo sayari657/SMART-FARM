@@ -1,0 +1,168 @@
+\chapter{Code source étendu}
+\label{ann:code_extended}
+
+\section*{F.1 — Endpoint FastAPI d'analyse d'image}
+
+\begin{lstlisting}[language=python,
+  caption={Endpoint FastAPI POST /api/v1/agent/analyze-image (extrait simplifié)},
+  label={lst:analyze_image}]
+@router.post("/analyze-image", response_model=AgentAnalysisResponse)
+async def analyze_image(
+    file: UploadFile = File(...),
+    question: str = Form(default="Qu'est-ce que tu vois?"),
+    language: str = Form(default="darija"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # 1. Validation et sauvegarde temporaire
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Format non supporté")
+    tmp_path = await save_upload_temp(file)
+
+    try:
+        # 2. Inférence YOLO
+        yolo_result = await run_yolo_inference(tmp_path)
+        detections = [
+            Detection(label=d["label"], confidence=d["conf"],
+                      bbox=d["xyxy"])
+            for d in yolo_result["detections"]
+        ]
+
+        # 3. Requête LLM avec fallback 3-niveaux
+        context = build_rag_context(question, detections)
+        answer = await llm_service.generate_with_fallback(
+            prompt=question,
+            context=context,
+            language=language,  # "darija" | "fr" | "ar"
+            detections=detections,
+        )
+
+        # 4. Journalisation MLflow
+        mlflow.log_metric("yolo_detections", len(detections))
+        mlflow.log_param("llm_fallback_level", answer.fallback_level)
+
+        return AgentAnalysisResponse(
+            detections=detections,
+            answer=answer.text,
+            confidence=answer.confidence,
+            fallback_level=answer.fallback_level,
+            processing_time_ms=answer.latency_ms,
+        )
+    finally:
+        tmp_path.unlink(missing_ok=True)
+\end{lstlisting}
+
+\section*{F.2 — Hook React \texttt{useNetworkSync}}
+
+\begin{lstlisting}[language=Java,
+  caption={Hook React useNetworkSync --- synchronisation offline/online (IndexedDB + API)},
+  label={lst:use_network_sync}]
+import { useState, useEffect, useCallback } from 'react';
+import { db } from '../db/dexie';
+import { syncPendingActions } from '../services/api';
+import { useToast } from './useToast';
+
+export function useNetworkSync() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState('idle'); // idle | syncing | error
+  const { showToast } = useToast();
+
+  const performSync = useCallback(async () => {
+    const pending = await db.pendingActions.toArray();
+    if (pending.length === 0) return;
+
+    setSyncStatus('syncing');
+    try {
+      const results = await syncPendingActions(pending);
+      const successIds = results
+        .filter(r => r.success)
+        .map(r => r.localId);
+      await db.pendingActions.bulkDelete(successIds);
+
+      showToast(`${successIds.length} action(s) synchronisée(s)`, 'success');
+      setSyncStatus('idle');
+    } catch (err) {
+      setSyncStatus('error');
+      showToast('Échec de synchronisation — réessai dans 30s', 'warning');
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      performSync(); // Auto-sync on reconnect
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [performSync]);
+
+  return { isOnline, syncStatus, performSync };
+}
+\end{lstlisting}
+
+\section*{F.3 — Service MQTT IoT (backend Python)}
+
+\begin{lstlisting}[language=python,
+  caption={Service MQTT — abonnement aux topics IoT et dispatch WebSocket},
+  label={lst:mqtt_service}]
+import json
+import logging
+from aiomqtt import Client as MqttClient
+from app.core.config import settings
+from app.services.alert_service import evaluate_and_dispatch_alert
+
+logger = logging.getLogger(__name__)
+
+MQTT_TOPICS = {
+    "smartfarm/node_a/#": "irrigation",   # Node A: soil, pressure, flow, temp, alert
+    "smartfarm/node_b/#": "beehive",      # Node B: weight, hive_temp, ext_temp, ext_hum, alert
+}
+# Topics réels publiés par le firmware ESP32 :
+# smartfarm/node_a/{soil,pressure,flow,pump,valve,alert}
+# smartfarm/node_b/{weight,hive_temp,ext_temp,ext_hum,alert}
+
+async def mqtt_listener(websocket_manager):
+    async with MqttClient(
+        hostname=settings.MQTT_BROKER_HOST,
+        port=settings.MQTT_BROKER_PORT,
+    ) as client:
+        for topic in MQTT_TOPICS:
+            await client.subscribe(topic)
+            logger.info(f"Abonne au topic MQTT : {topic}")
+
+        async for message in client.messages:
+            try:
+                payload = json.loads(message.payload.decode())
+                topic_str = str(message.topic)
+
+                # Extraction du farm_id depuis le topic (pattern: farm/{id}/...)
+                parts = topic_str.split("/")
+                farm_id = int(parts[1]) if len(parts) > 1 else None
+
+                # Evaluation des seuils et creation d'alerte si necessaire
+                alert = await evaluate_and_dispatch_alert(
+                    farm_id=farm_id,
+                    sensor_type=MQTT_TOPICS.get(topic_str, "unknown"),
+                    payload=payload,
+                )
+
+                # Broadcast WebSocket vers tous les clients du tenant
+                if alert:
+                    await websocket_manager.broadcast_to_farm(
+                        farm_id=farm_id,
+                        event={"type": "ALERT", "data": alert.dict()},
+                    )
+
+            except (json.JSONDecodeError, KeyError, ValueError) as exc:
+                logger.warning(f"Payload MQTT invalide sur {message.topic}: {exc}")
+\end{lstlisting}
+
+% ============================================================
+%  ANNEXE G : Données brutes et formats
+% ============================================================

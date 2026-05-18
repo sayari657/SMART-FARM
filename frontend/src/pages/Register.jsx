@@ -37,7 +37,7 @@ export default function Register() {
       <ThreeBackground />
 
       {/* ── Left panel ── */}
-      <div className="auth-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'center', zIndex:1, padding:'40px' }}>
+      <div className="auth-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'center', zIndex:1, padding:'clamp(20px, 5vw, 40px)' }}>
         <ThreeFarmBackground />
         <div style={{ position:'relative', zIndex:2 }}>
 

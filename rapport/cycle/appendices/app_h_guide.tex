@@ -1,0 +1,93 @@
+\chapter{Guide de reproduction de l'environnement}
+\label{ann:reproduction}
+
+Ce guide permet à un tiers de reproduire intégralement l'environnement de développement
+et d'obtenir les résultats rapportés dans ce mémoire.
+
+\section*{H.1 — Versions exactes des dépendances}
+
+\begin{table}[H]
+\centering
+\caption{Versions exactes des dépendances principales du projet}
+\label{tab:versions}
+\begin{tabular}{llll}
+\toprule
+\textbf{Composant} & \textbf{Version (min)} & \textbf{Composant} & \textbf{Version (min)} \\
+\midrule
+Python         & 3.11.x            & FastAPI            & $\geq$0.100.0 \\
+Node.js        & 20 LTS            & SQLAlchemy         & $\geq$2.0.36 \\
+Docker         & 25.x              & Pydantic           & $\geq$2.10.0 \\
+Docker Compose & 2.24.x            & Ultralytics (YOLO) & $\geq$8.1.0 \\
+PostgreSQL     & 16-alpine         & React              & 18.2.0 \\
+Ollama         & $\geq$0.1.7       & Vite               & 5.1.5 \\
+MLflow         & $\geq$2.10.0      & ChromaDB           & $\geq$0.4.24 \\
+DVC            & $\geq$3.45.0      & sentence-transformers & $\geq$2.5.0 \\
+GeoAlchemy2    & $\geq$0.14.7      & torch              & $\geq$2.2.0 \\
+paho-mqtt      & $\geq$1.6.1       & Three.js           & 0.183.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{H.2 — Procédure de démarrage}
+
+\begin{lstlisting}[language=bash,
+  caption={Script de démarrage complet — Linux/macOS/WSL2},
+  label={lst:setup}]
+# 1. Cloner le repository
+git clone https://github.com/<user>/smart-farm-ai.git
+cd smart-farm-ai
+
+# 2. Configurer les variables d'environnement
+cp backend/.env.example backend/.env
+# Editer backend/.env : DATABASE_URL, GROQ_API_KEY, META_WHATSAPP_TOKEN
+
+# 3. Demarrer les services Docker (db + backend + frontend actifs)
+# docker-compose.yml :
+#   db       : postgres:16-alpine  (port 5432, volume postgres_data)
+#   backend  : Dockerfile Python   (port 8000, uvicorn --workers 2)
+#   frontend : Dockerfile nginx    (port 80, proxy /api/v1 -> backend)
+#   caddy    : caddy:2-alpine      (commenté - activer pour HTTPS)
+docker compose --env-file .env.production up -d --build
+
+# 4. Initialiser la base de donnees
+docker exec smart_farm_backend python -m app.scripts.seed_db
+
+# 5. Telecharger le modele LLM local (Labess-7B, ~4.7 Go)
+docker exec smart_farm_backend ollama pull labess:7b
+
+# 6. Lancer la suite de tests avec couverture
+docker exec smart_farm_backend pytest --cov=app --cov-report=html -v
+
+# 7. Acces aux services
+# Frontend  : http://localhost:3000
+# API docs  : http://localhost:8000/docs   (Swagger UI)
+# MLflow UI : http://localhost:5000
+# Adminer   : http://localhost:8080
+\end{lstlisting}
+
+\section*{H.3 — Reproduction des expériences ML}
+
+\begin{lstlisting}[language=bash,
+  caption={Reproduction des entraînements YOLO et ML avicoles (3 runs + 5-fold CV)},
+  label={lst:ml_repro}]
+# Reproduction des 3 runs YOLO independants (seeds documentes)
+for seed in 42 137 255; do
+  python backend/app/scripts/train_yolo.py \
+    --data data/yolo_dataset.yaml \
+    --model yolov8n.pt \
+    --epochs 100 --batch 16 --imgsz 640 \
+    --seed $seed \
+    --project mlruns/yolo_runs \
+    --name "run_seed_${seed}"
+done
+# Resultat attendu : mAP@50 moyen = 84.7% +/- 0.45%
+
+# Validation croisee 5-fold modeles avicoles (TimeSeriesSplit)
+python backend/app/scripts/train_poultry_ml.py \
+  --data data/poultry_feed_logs.csv \
+  --cv-folds 5 \
+  --time-series-split \
+  --mlflow-tracking-uri ./mlruns
+# Resultat attendu : R2(FCR) = 0.891 +/- 0.024
+\end{lstlisting}
+

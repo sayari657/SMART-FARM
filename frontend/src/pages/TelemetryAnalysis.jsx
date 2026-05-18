@@ -341,7 +341,7 @@ function IoTTab() {
         {/* Chart Node A */}
         <div style={{
           background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0',
-          flex: 1, minWidth: 300, overflow: 'hidden',
+          flex: 1, minWidth: 'min(100%, 280px)', overflow: 'hidden',
         }}>
           <div style={{ padding: '14px 18px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={15} color="#16a34a" />
@@ -374,7 +374,7 @@ function IoTTab() {
         {/* Chart Node B */}
         <div style={{
           background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0',
-          flex: 1, minWidth: 300, overflow: 'hidden',
+          flex: 1, minWidth: 'min(100%, 280px)', overflow: 'hidden',
         }}>
           <div style={{ padding: '14px 18px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={15} color="#f59e0b" />

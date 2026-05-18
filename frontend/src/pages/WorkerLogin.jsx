@@ -127,7 +127,7 @@ export default function WorkerLogin() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: '#f1f5f9',
       display: 'flex', flexDirection: 'column',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
@@ -363,11 +363,11 @@ export default function WorkerLogin() {
                       onKeyDown={e => handleOtpKeyDown(i, e)}
                       disabled={loading}
                       style={{
-                        width: 44, height: 54, flexShrink: 0,
+                        width: 'clamp(38px, 11vw, 48px)', height: 'clamp(48px, 14vw, 56px)', flexShrink: 0,
                         background: digit ? '#f0fdf4' : '#f8fafc',
                         border: `2px solid ${digit ? '#16a34a' : '#e2e8f0'}`,
                         borderRadius: 12, color: '#0f172a',
-                        fontSize: 22, fontWeight: 800, fontFamily: 'monospace',
+                        fontSize: 'clamp(18px, 5vw, 22px)', fontWeight: 800, fontFamily: 'monospace',
                         textAlign: 'center', outline: 'none',
                         boxShadow: digit ? '0 0 0 3px rgba(22,163,74,.1)' : 'none',
                         transition: 'all .15s', cursor: 'text',

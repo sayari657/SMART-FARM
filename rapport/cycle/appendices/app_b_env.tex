@@ -1,0 +1,32 @@
+\chapter{Variables d'environnement}
+\label{ann:envvars}
+
+\begin{lstlisting}[language=bash, caption={Variables d'environnement backend (.env)}]
+# Base de données
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/smartfarm
+SQLITE_FALLBACK=sqlite+aiosqlite:///./smartfarm_lite.db
+
+# Sécurité JWT
+SECRET_KEY=<clé 256 bits>
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080   # 7 jours (7×24×60)
+
+# IA - LLM
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=labess:7b
+GROQ_API_KEY=<clé Groq>
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# IA - Vision
+YOLO_MODEL_PATH=./ml_models/yolov8_farm.pt
+CHROMA_DB_PATH=./data/chroma_db
+
+# IoT
+MQTT_BROKER_HOST=localhost
+MQTT_BROKER_PORT=1883
+
+# OTP WhatsApp
+META_WHATSAPP_TOKEN=<token Meta API v25.0>
+META_PHONE_NUMBER_ID=<ID numéro WhatsApp Business>
+\end{lstlisting}
+

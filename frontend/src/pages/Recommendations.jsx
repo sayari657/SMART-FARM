@@ -493,7 +493,7 @@ export default function Recommendations() {
               )}
 
               {/* AI recommendation cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
                 {aiRecs.recommendations?.map((ar, idx) => (
                   <AiRecCard key={idx} rec={ar} idx={idx} />
                 ))}

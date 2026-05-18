@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
+import OfflineBanner from './components/OfflineBanner';
+import { usePinLock, PinLockScreen } from './components/PinLock';
 import MainLayout from './layouts/MainLayout';
 
 // Pages
@@ -29,6 +32,7 @@ import SovereignAssistant from './pages/SovereignAssistant';
 import AboutProject from './pages/AboutProject';
 import ArbresPlantations from './pages/ArbresPlantations';
 import MapCenter from './pages/MapCenter';
+import Entrepot from './pages/Entrepot';
 import NotFound from './pages/NotFound';
 
 // Worker Pages (PWA)
@@ -94,6 +98,7 @@ function AppRoutes() {
         <Route path="about-project" element={<AboutProject />} />
         <Route path="trees" element={<ArbresPlantations />} />
         <Route path="map" element={<MapCenter />} />
+        <Route path="entrepot" element={<Entrepot />} />
       </Route>
 
       {/* Worker Protected layout (PWA) */}
@@ -116,16 +121,28 @@ function AppRoutes() {
   );
 }
 
-export default function App() {
+function AppWithPin() {
+  const { locked, unlock } = usePinLock();
   return (
-    <AuthProvider>
+    <>
+      {locked && <PinLockScreen onUnlock={unlock} />}
+      <OfflineBanner />
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppRoutes />
       </Router>
       <Toaster
         position="top-right"
-        toastOptions={{ duration: 4000, style: { fontSize: 13, fontWeight: 700, maxWidth: 420 } }}
+        toastOptions={{ duration: 4000, style: { fontSize: 13, fontWeight: 700, maxWidth: 'min(420px, calc(100vw - 32px))' } }}
       />
+      <PWAInstallPrompt />
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppWithPin />
     </AuthProvider>
   );
 }

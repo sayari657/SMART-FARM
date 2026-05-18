@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { reportsAPI, farmsAPI, animalsAPI, plantsAPI } from '../services/api';
@@ -53,6 +54,51 @@ export default function Reports() {
       alert("Erreur lors de la génération du rapport IA.");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const downloadExcel = async () => {
+    const token = localStorage.getItem('token');
+    const h = token ? { Authorization: `Bearer ${token}` } : {};
+    const BEE = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/bee/history`;
+    try {
+      const [r1, r2, r3, r4] = await Promise.all([
+        fetch(`${BEE}/hives`,       { headers: h }),
+        fetch(`${BEE}/visits`,      { headers: h }),
+        fetch(`${BEE}/productions`, { headers: h }),
+        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/bee/expenses`, { headers: h }),
+      ]);
+      const [hives, visits, productions, depenses] = await Promise.all([
+        r1.ok ? r1.json() : [], r2.ok ? r2.json() : [],
+        r3.ok ? r3.json() : [], r4.ok ? r4.json() : [],
+      ]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(hives.map(h => ({
+        Identifiant: h.identifier, Site: h.apiary_id, Type: h.hive_type,
+        Statut: h.is_active ? 'Active' : 'Inactive',
+        Santé: h.health_score, Miel: h.honey_level, Force: h.force_level,
+        'Dernière visite': h.last_visit_date,
+      }))), 'Ruches');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(visits.map(v => ({
+        Date: v.visit_date, Ruche: v.hive_id, 'État': v.health_state,
+        'Score santé': v.health_score, 'Niveau miel': v.honey_level,
+        Température: v.temperature, 'Récolte (kg)': v.harvest_kg,
+        'Pollen (kg)': v.pollen_kg, 'Sirop (L)': v.needs_sirop,
+        'Pâte (kg)': v.needs_pate, 'Traitements': v.needs_traitement,
+      }))), 'Visites');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(productions.map(p => ({
+        Date: p.production_date, Ruche: p.hive_id, Site: p.apiary_id,
+        'Miel (kg)': p.honey_kg, 'Pollen (kg)': p.pollen_kg,
+        'Type floraison': p.flower_type, Notes: p.quality_notes,
+      }))), 'Production');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(depenses.map(d => ({
+        Date: d.expense_date, Catégorie: d.category,
+        'Montant réel (TND)': d.amount, 'Montant prévu (TND)': d.amount_planned || '',
+        Description: d.description, Ruche: d.hive_id, Site: d.apiary_id,
+      }))), 'Dépenses');
+      XLSX.writeFile(wb, `SmartFarm_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err) {
+      console.error('Excel export error:', err);
     }
   };
 
@@ -163,6 +209,9 @@ export default function Reports() {
             <button className="rp-gen-btn pdf" onClick={downloadPDF}>
               <Printer size={13} /> PDF
             </button>
+            <button className="rp-gen-btn pdf" onClick={downloadExcel} style={{ background: '#166534', borderColor: '#166534' }}>
+              <Download size={13} /> Excel
+            </button>
           </div>
         </div>
 
@@ -193,23 +242,27 @@ function LiveReport({ stats }) {
   return (
     <div className="fade-in">
       {/* Header Banner */}
-      <div style={{ 
-        height: 250, borderRadius: 24, overflow: 'hidden', position: 'relative', 
-        marginBottom: 30, background: '#000' 
+      <div style={{
+        height: 'clamp(160px, 35vw, 250px)', borderRadius: 'clamp(12px, 3vw, 24px)',
+        overflow: 'hidden', position: 'relative',
+        marginBottom: 30, background: '#000'
       }}>
         <img src={IMG_HEADER} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.7 }} alt="Report Header" />
-        <div style={{ 
-          position: 'absolute', bottom: 30, left: 40, color: 'white', zIndex: 10 
+        <div style={{
+          position: 'absolute', bottom: 'clamp(14px, 4vw, 30px)', left: 'clamp(16px, 4vw, 40px)',
+          color: 'white', zIndex: 10, maxWidth: 'calc(100% - 32px)'
         }}>
-          <h1 style={{ fontSize: 36, fontWeight: 900, marginBottom: 8 }}>{t('reports_page.integrated_report_title')}</h1>
-          <p style={{ opacity: 0.8, fontSize: 16 }}>{t('reports_page.integrated_report_subtitle')}</p>
+          <h1 style={{ fontSize: 'clamp(20px, 5vw, 36px)', fontWeight: 900, marginBottom: 6 }}>{t('reports_page.integrated_report_title')}</h1>
+          <p style={{ opacity: 0.8, fontSize: 'clamp(13px, 2.5vw, 16px)', margin: 0 }}>{t('reports_page.integrated_report_subtitle')}</p>
         </div>
-        <div style={{ 
-          position: 'absolute', top: 30, right: 40, background: 'rgba(0,0,0,0.4)', 
-          backdropFilter: 'blur(10px)', padding: '10px 20px', borderRadius: 100,
-          border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', gap: 10
+        <div style={{
+          position: 'absolute', top: 'clamp(12px, 3vw, 30px)', right: 'clamp(12px, 3vw, 40px)',
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(10px)', padding: '8px 14px', borderRadius: 100,
+          border: '1px solid rgba(255,255,255,0.2)', color: 'white', display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 12,
         }}>
-          <Activity size={16} color="#10b981" /> {t('reports_page.system_operational')}
+          <Activity size={14} color="#10b981" /> {t('reports_page.system_operational')}
         </div>
       </div>
 

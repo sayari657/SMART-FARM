@@ -673,10 +673,11 @@ class BeeExpense(Base):
     hive_id      = Column(Integer, ForeignKey("bee_hives.id",    ondelete="SET NULL"), nullable=True)
     apiary_id    = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="SET NULL"), nullable=True)
     visit_id     = Column(Integer, ForeignKey("bee_visits.id",   ondelete="SET NULL"), nullable=True)
-    expense_date = Column(String(20), nullable=False)
-    amount       = Column(Float, nullable=False)
-    category     = Column(String(50), nullable=False)   # Alimentation | Traitement | Équipement | Transport | Main-d'œuvre | Autre
-    description  = Column(Text, nullable=True)
+    expense_date    = Column(String(20), nullable=False)
+    amount          = Column(Float, nullable=False)           # Montant réel
+    amount_planned  = Column(Float, nullable=True)            # Montant prévisionnel (optionnel)
+    category        = Column(String(50), nullable=False)      # Alimentation | Traitement | Équipement | Transport | Main-d'œuvre | Autre
+    description     = Column(Text, nullable=True)
     created_at   = Column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -688,6 +689,60 @@ class BeeExpense(Base):
 # ---------------------------------------------------------------------------
 # Bee — Planning (visites planifiées + tâches)
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Warehouse / Entrepôt de la Ferme
+# ---------------------------------------------------------------------------
+
+class WarehouseCategory(Base):
+    """Catégorie de produits de l'entrepôt."""
+    __tablename__ = "warehouse_categories"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    name_ar       = Column(String(100), nullable=False)
+    name_fr       = Column(String(100), nullable=False)
+    icon          = Column(String(50),  default="Package")   # lucide icon name
+    emoji         = Column(String(10),  nullable=True)       # optional emoji override
+    color         = Column(String(20),  default="#16a34a")
+    display_order = Column(Integer,     default=0)
+
+    items = relationship("WarehouseItem", back_populates="category",
+                         cascade="all, delete-orphan", order_by="WarehouseItem.id")
+
+
+class WarehouseItem(Base):
+    """Article stocké dans l'entrepôt."""
+    __tablename__ = "warehouse_items"
+
+    id           = Column(Integer,  primary_key=True, index=True)
+    category_id  = Column(Integer,  ForeignKey("warehouse_categories.id", ondelete="CASCADE"), nullable=False)
+    name_ar      = Column(String(150), nullable=False)
+    name_fr      = Column(String(150), nullable=False)
+    emoji        = Column(String(10),  default="📦")
+    description  = Column(Text,        default="")
+    quantity     = Column(Float,       default=0.0,  nullable=False)
+    unit         = Column(String(30),  default="unités")
+    min_quantity = Column(Float,       default=5.0)   # seuil "stock faible"
+    entry_date   = Column(DateTime,    nullable=True)
+    expiry_date  = Column(DateTime,    nullable=True)
+    notes        = Column(Text,        default="")
+    created_at   = Column(DateTime,    default=datetime.utcnow)
+    updated_at   = Column(DateTime,    default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    category = relationship("WarehouseCategory", back_populates="items")
+
+    @property
+    def status(self):
+        if self.quantity <= 0:
+            return "out"
+        if self.min_quantity and self.quantity <= self.min_quantity:
+            return "limited"
+        return "available"
+
+    __table_args__ = (
+        Index("ix_warehouse_item_cat", "category_id"),
+    )
+
 
 class BeePlanning(Base):
     """Mission planifiée pour une ruche."""

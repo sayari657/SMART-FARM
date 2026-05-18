@@ -5,7 +5,7 @@ import { Home, ArrowLeft } from 'lucide-react';
 export default function NotFound() {
   const navigate = useNavigate();
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--color-bg)', flexDirection:'column', gap:20, textAlign:'center', padding:24 }}>
+    <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--color-bg)', flexDirection:'column', gap:20, textAlign:'center', padding:24 }}>
       <div style={{ fontSize:80 }}>🌿</div>
       <div style={{ fontSize:72, fontWeight:900, color:'var(--color-primary)', lineHeight:1 }}>404</div>
       <h1 style={{ fontSize:24, fontWeight:800 }}>Page Not Found</h1>

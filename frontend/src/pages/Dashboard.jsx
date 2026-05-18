@@ -582,7 +582,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-3)', padding: '6px 10px', background: 'var(--color-surface-2)' }}>
                         Image capturée — validation visuelle
                       </div>
-                      <img src={fireAlert.imageUrl} alt="Détection feu/fumée" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block' }} />
+                      <img src={fireAlert.imageUrl} alt="Détection feu/fumée" style={{ width: '100%', maxHeight: 'clamp(120px, 25vw, 180px)', objectFit: 'cover', display: 'block' }} />
                     </div>
                   )}
                   <button className="btn btn-sm" onClick={() => navigate('/alerts')} style={{ background: '#ef4444', color: 'white', fontWeight: 700, fontSize: 12 }}>

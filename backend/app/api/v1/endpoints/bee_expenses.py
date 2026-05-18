@@ -28,7 +28,8 @@ class ExpenseIn(BaseModel):
     apiary_id: Optional[int] = None
     visit_id: Optional[int] = None
     expense_date: str
-    amount: float
+    amount: float                           # Montant réel dépensé
+    amount_planned: Optional[float] = None  # Montant prévisionnel
     category: str
     description: Optional[str] = None
 
@@ -133,6 +134,8 @@ def financial_summary(
     prods     = q_prod.all()
 
     total_expenses = sum(e.amount for e in expenses)
+    total_planned  = sum(e.amount_planned for e in expenses if e.amount_planned is not None)
+    ecart          = round(total_expenses - total_planned, 2) if total_planned else None
     total_honey_kg = sum(p.honey_kg for p in prods)
     total_revenue  = round(total_honey_kg * HONEY_PRICE_PER_KG, 2)
     profit         = round(total_revenue - total_expenses, 2)
@@ -179,8 +182,10 @@ def financial_summary(
     ]
 
     return {
-        "total_expenses":   round(total_expenses, 2),
-        "total_honey_kg":   round(total_honey_kg, 2),
+        "total_expenses":    round(total_expenses, 2),
+        "total_planned":     round(total_planned, 2),
+        "ecart":             ecart,
+        "total_honey_kg":    round(total_honey_kg, 2),
         "total_revenue_tnd": total_revenue,
         "profit_tnd":        profit,
         "honey_price_kg":    HONEY_PRICE_PER_KG,

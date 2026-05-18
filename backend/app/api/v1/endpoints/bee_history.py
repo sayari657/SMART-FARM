@@ -38,7 +38,7 @@ class ApiaryOut(ApiaryIn):
 
 class HiveIn(BaseModel):
     apiary_id: int
-    identifier: str
+    identifier: Optional[str] = None
     is_active: bool = True
     health_score: float = 10.0
     honey_level: float = 5.0
@@ -195,10 +195,20 @@ def list_hives(apiary_id: Optional[int] = None, db: Session = Depends(get_db)):
 
 @router.post("/hives", response_model=HiveOut, status_code=201)
 def create_hive(body: HiveIn, db: Session = Depends(get_db)):
-    existing = db.query(BeeHive).filter(BeeHive.identifier == body.identifier).first()
-    if existing:
-        raise HTTPException(409, f"Identifier '{body.identifier}' already exists")
-    obj = BeeHive(**body.model_dump())
+    identifier = body.identifier
+    if not identifier:
+        count = db.query(BeeHive).count()
+        identifier = f"HIVE-{count + 1:04d}"
+        while db.query(BeeHive).filter(BeeHive.identifier == identifier).first():
+            count += 1
+            identifier = f"HIVE-{count + 1:04d}"
+    else:
+        existing = db.query(BeeHive).filter(BeeHive.identifier == identifier).first()
+        if existing:
+            raise HTTPException(409, f"Identifier '{identifier}' already exists")
+    data = body.model_dump()
+    data['identifier'] = identifier
+    obj = BeeHive(**data)
     db.add(obj)
     db.commit()
     db.refresh(obj)
@@ -301,6 +311,29 @@ def get_hive_details(hive_id: int, db: Session = Depends(get_db)):
             "traitement_min": hive_stock.traitement_min if hive_stock else 1,
         },
     }
+
+
+@router.get("/hives/{hive_id}/qr")
+def get_hive_qr(hive_id: int, db: Session = Depends(get_db)):
+    """Génère un QR code PNG encodant l'identifiant de la ruche — retourné en base64."""
+    hive = db.query(BeeHive).filter(BeeHive.id == hive_id).first()
+    if not hive:
+        raise HTTPException(404, "Hive not found")
+    try:
+        import qrcode, io, base64
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(hive.identifier)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#1C0A00", back_color="#FFFFFF")
+        buf = io.BytesIO()
+        img.save(buf)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return {
+            "identifier": hive.identifier,
+            "data_url": f"data:image/png;base64,{b64}",
+        }
+    except ImportError:
+        raise HTTPException(500, "qrcode library not installed — run: pip install qrcode[pil]")
 
 
 # ─── Visits — preview / create / apply ───────────────────────────────────────

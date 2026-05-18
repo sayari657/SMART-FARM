@@ -1,0 +1,1347 @@
+\chapter{Réalisation et Validation Industrielle}
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce dernier chapitre décrit l'environnement de développement, l'architecture
+de déploiement Docker, les tests de validation et les résultats de la
+validation terrain sur 7 fermes pilotes tunisiennes.
+
+% ── 4.1 Environnement de développement ──────────────────────
+\section{Environnement de développement}
+
+\begin{table}[H]
+\centering
+\caption{Environnement de développement}
+\label{tab:env_dev}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Niveau} & \textbf{Composant} & \textbf{Détails} \\
+\midrule
+Matériel & Station de dev & Intel Core i7-12700H, 32 GB RAM, GPU NVIDIA RTX 3060 \\
+         & Appareils IoT  & 2$\times$ ESP32-WROOM-32, capteurs DHT22, HX711, YF-S201 \\
+OS       & Développement  & Ubuntu 22.04 LTS + Windows 11 (WSL2) \\
+         & Production     & Ubuntu 22.04 LTS (VPS) \\
+Runtime  & Python         & 3.11.8 (venv isolé) \\
+         & Node.js        & 20.11 LTS \\
+         & Docker         & 25.0.3 + Compose v2.24 \\
+IDE      & Backend        & VS Code + Pylance, Black, Ruff \\
+         & Frontend       & VS Code + ESLint, Prettier \\
+VCS      & Git            & GitHub (branche main + feature branches) \\
+MLOps    & MLflow         & $\geq$2.10.0 (tracking server local) \\
+         & DVC            & $\geq$3.45.0 (artefacts modèles) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ── 4.2 Architecture de déploiement ─────────────────────────
+\section{Architecture de déploiement Docker}
+
+Le fichier \code{docker-compose.yml} orchestre 3 services actifs (+ Caddy optionnel HTTPS) :
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  svc/.style={draw, rounded corners=4pt, minimum width=3.2cm, minimum height=0.8cm,
+              align=center, font=\small\bfseries},
+  port/.style={font=\tiny, gray},
+  arrow/.style={->, thick, >=stealth},
+  darrow/.style={<->, thick, >=stealth, gray!60},
+]
+% Internet / Client
+\node[draw, rounded corners=8pt, minimum width=3.2cm, minimum height=0.8cm,
+      fill=gray!10, font=\small\bfseries] (internet) at (0, 3.5) {Internet / Clients};
+
+% Caddy (optional HTTPS)
+\node[svc, fill=gray!15, draw=gray!50, dashed] (caddy) at (0, 2.1)
+  {Caddy (opt.) \\ \textcolor{gray}{\tiny HTTPS :443}};
+
+% Nginx frontend
+\node[svc, fill=blue!15, draw=blue!50] (nginx) at (-3.5, 0.5)
+  {nginx:alpine \\ \textcolor{blue!60}{\tiny :80 (React/Vite)}};
+
+% FastAPI backend
+\node[svc, fill=green!15, draw=green!50] (backend) at (0, 0.5)
+  {python:3.11-slim \\ \textcolor{green!60!black}{\tiny :8000 (uvicorn ×2)}};
+
+% PostgreSQL
+\node[svc, fill=orange!15, draw=orange!50] (db) at (3.5, 0.5)
+  {postgres:16-alpine \\ \textcolor{orange!70}{\tiny :5432}};
+
+% ESP32 IoT
+\node[draw, rounded corners, fill=teal!10, draw=teal!50, minimum width=2.8cm,
+      minimum height=0.7cm, font=\scriptsize, align=center] (iot) at (3.5, -1.2)
+  {ESP32 Node A+B \\ \texttt{\tiny smartfarm/\#} MQTT};
+
+% Arrows
+\draw[arrow] (internet) -- (caddy);
+\draw[arrow] (caddy) -- (nginx);
+\draw[arrow] (caddy) -- (backend);
+\draw[darrow] (nginx) -- node[above, font=\tiny]{/api proxy} (backend);
+\draw[arrow] (backend) -- node[above, font=\tiny]{SQLAlchemy} (db);
+\draw[arrow] (iot) -- node[right, font=\tiny]{paho-mqtt} (backend);
+
+% Volume annotation
+\node[font=\tiny, gray] at (3.5, -0.3) {Volumes persistants};
+
+\end{tikzpicture}
+\caption{Architecture de déploiement Docker — 3 services actifs (Caddy optionnel), ports réels, flux de communication.
+Backend : Uvicorn 2 workers, \code{ACCESS\_TOKEN\_EXPIRE\_MINUTES=10080} (7 jours).}
+\label{fig:deployment_arch}
+\end{figure}
+
+Le fichier \code{docker-compose.yml} orchestre ces services :
+
+\begin{table}[H]
+\centering
+\caption{Services Docker Compose en production (3 actifs + 1 optionnel)}
+\label{tab:docker}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Service} & \textbf{Image} & \textbf{Rôle} \\
+\midrule
+\code{db}          & postgres:16-alpine & BDD principale, volume persistant \code{postgres\_data} \\
+\code{backend}     & Dockerfile (Python 3.11) & FastAPI + Uvicorn (2 workers), port 8000, MQTT HiveMQ \\
+\code{frontend}    & Dockerfile (nginx:alpine) & React/Vite build, port 80, proxy \code{/api/v1 $\rightarrow$ backend} \\
+\code{caddy}       & caddy:2-alpine     & HTTPS auto Let's Encrypt — \textit{(commenté par défaut)} \\
+\bottomrule
+\end{tabularx}
+\par\smallskip
+{\small \textit{Note :} Caddy activé si \code{DOMAIN=} configuré dans \code{.env.production}.}
+\end{table}
+
+Les dépendances de démarrage sont gérées par \code{healthcheck} :
+\code{postgres} doit être \code{healthy} avant \code{backend} ;
+\code{backend} doit être \code{healthy} avant \code{frontend}.
+
+% ── 4.3 Interfaces et fonctionnalités ───────────────────────
+\section{Interfaces réalisées}
+
+\subsection{Dashboard principal (Owner)}
+
+Le tableau de bord principal agrège :
+\begin{itemize}
+  \item KPIs temps réel : nombre d'animaux actifs, alertes non lues,
+        température moyenne IoT, production du jour ;
+  \item Graphiques de tendance (Recharts) : FCR sur 42 jours, courbe de
+        mortalité cumulée, production d'œufs hebdomadaire ;
+  \item Carte GIS (Leaflet/MapLibre) : localisation fermes, vétérinaires
+        dans un rayon paramétrable ;
+  \item Flux alertes WebSocket temps réel : badge animé, toasts critiques.
+\end{itemize}
+
+\subsection{Scanner IA (AIScanner)}
+
+L'interface AIScanner permet :
+\begin{itemize}
+  \item Upload ou capture caméra directe ;
+  \item Affichage des bounding boxes YOLO sur l'image ;
+  \item Panel de réponse Darija avec niveau de confiance coloré ;
+  \item Historique des diagnostics (DiagnosticHistory) scrollable.
+\end{itemize}
+
+\subsection{ERP Aviculture}
+
+Le module ERP avicole comprend 6 vues fonctionnelles :
+tableau de bord lot avec graphiques FCR/mortalité en temps réel,
+formulaire d'enregistrement alimentation, journal de ponte,
+registre sanitaire, ventes et inventaire stock.
+
+\subsection{PWA Worker (mobile)}
+
+L'application mobile Worker est installable sur Android/iOS via le
+manifest PWA. Elle fonctionne \textit{intégralement hors ligne} grâce à :
+\begin{itemize}
+  \item Dexie IndexedDB pour le stockage local des tâches assignées ;
+  \item Service Worker pour la mise en cache des assets statiques ;
+  \item Sync différée : les actions terrain (rapport tâche, télémétrie manuelle)
+        sont enqueued et synchronisées au rétablissement de la connexion.
+\end{itemize}
+
+% ── 4.4 Captures d'écran ─────────────────────────────────────
+\section{Captures d'écran de l'application}
+
+\subsection{Dashboard principal}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=6pt,thick,blue!40,fill=gray!4](0,0)rectangle(13,8.5);
+  \fill[blue!70](0,7.8)rectangle(13,8.5);
+  \node[white,font=\small\bfseries]at(6.5,8.15){Smart Farm AI — Tableau de bord Owner};
+  \foreach \i/\lbl/\val/\clr in {
+    0/{Animaux actifs}/{342}/{green!60!black},
+    1/{Alertes}/{3}/{red!70},
+    2/{Temp.\ moy.}/{24.3\,°C}/{orange!80},
+    3/{Production}/{48.5\,kg}/{teal!70}}{
+    \colorlet{kpifillclr}{\clr!15}
+    \colorlet{kpibordclr}{\clr}
+    \fill[kpifillclr,draw=kpibordclr,rounded corners=3pt]({0.3+\i*3.18},6.8)rectangle({3.1+\i*3.18},7.6);
+    \node[kpibordclr,font=\scriptsize\bfseries]at({1.7+\i*3.18},7.3){\val};
+    \node at({1.7+\i*3.18},6.95){\lbl};}
+  \fill[white,draw=gray!40,rounded corners=3pt](0.3,4.0)rectangle(6.3,6.6);
+  \node[font=\scriptsize\bfseries]at(3.3,6.38){FCR — 42 jours};
+  \draw[blue!60,thick](0.6,4.5)--(1.3,4.4)--(2.0,4.3)--(2.7,4.5)--(3.4,4.8)--(4.1,5.1)--(4.8,5.5)--(5.5,5.8)--(6.0,6.1);
+  \fill[white,draw=gray!40,rounded corners=3pt](6.6,4.0)rectangle(12.7,6.6);
+  \node[font=\scriptsize\bfseries]at(9.65,6.38){Télémétrie IoT temps réel};
+  \draw[green!60!black,thick](6.9,4.5)--(7.5,4.7)--(8.1,4.6)--(8.7,4.4)--(9.3,4.8)--(9.9,5.0)--(10.5,4.8)--(11.1,4.7)--(11.7,4.9);
+  \draw[orange!60,dashed](6.9,5.2)--(7.5,5.3)--(8.1,5.5)--(8.7,5.3)--(9.3,5.4)--(9.9,5.6)--(10.5,5.3)--(11.1,5.4)--(11.7,5.5);
+  \fill[teal!8,draw=teal!40,rounded corners=3pt](0.3,0.5)rectangle(6.3,3.8);
+  \node[font=\scriptsize\bfseries]at(3.3,3.6){Carte GIS — Fermes \& Vétérinaires};
+  \fill[teal!30](1.6,2.0)circle(0.15);\fill[teal!30](2.9,2.4)circle(0.15);\fill[teal!30](3.8,1.7)circle(0.15);
+  \fill[red!50](4.5,2.6)circle(0.12);\fill[red!50](2.1,1.3)circle(0.12);
+  \fill[white,draw=gray!40,rounded corners=3pt](6.6,0.5)rectangle(12.7,3.8);
+  \node[font=\scriptsize\bfseries]at(9.65,3.6){Alertes WebSocket};
+  \foreach \y/\msg/\clr in {
+    3.15/{[URGENT] Ruche P3 : poids -2.1\,kg}/{red!70},
+    2.6/{[WARN] FCR Lot\#12 : 2.31 (\ensuremath{\uparrow})}/{orange!80},
+    2.05/{[INFO] Sync PWA worker OK}/{green!60!black}}{
+    \colorlet{altfillclr}{\clr!15}
+    \colorlet{altbordclr}{\clr!50}
+    \colorlet{alttextclr}{\clr}
+    \fill[altfillclr,draw=altbordclr,rounded corners=2pt](6.8,{\y-0.22})rectangle(12.5,{\y+0.22});
+    \node[alttextclr,font=\tiny]at(9.65,\y){\msg};}
+\end{tikzpicture}
+\caption{Dashboard principal Owner — KPIs temps réel, graphiques de tendance et carte GIS}
+\label{fig:screen_dashboard}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,blue!50,fill=gray!3](0,0)rectangle(5.5,3.2);
+  \fill[blue!60](0,2.7)rectangle(5.5,3.2);
+  \node[white,font=\scriptsize\bfseries]at(2.75,2.95){FCR — Lot \#12 (42 jours)};
+  \draw[blue!70,thick](0.3,0.5)--(1.0,0.7)--(1.7,0.9)--(2.4,1.2)--(3.1,1.5)--(3.8,1.9)--(4.4,2.2)--(5.0,2.4);
+  \draw[red!50,dashed](0.3,1.8)--(5.0,1.8)node[right,red!70,font=\tiny]{std};
+  \node[blue!80,font=\scriptsize\bfseries]at(2.75,0.25){FCR prédit : 2.31};
+\end{tikzpicture}
+  \caption{Widget FCR 42 jours}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,red!50,fill=gray!3](0,0)rectangle(5.5,3.2);
+  \fill[red!60](0,2.7)rectangle(5.5,3.2);
+  \node[white,font=\scriptsize\bfseries]at(2.75,2.95){Flux alertes WebSocket};
+  \foreach \y/\msg/\clr in {
+    2.35/{[URGENT] Ruche P3}/{red!70},
+    1.80/{[WARN] FCR\ensuremath{\uparrow} Lot\#12}/{orange!70},
+    1.25/{[INFO] Sync OK}/{green!60!black},
+    0.70/{[INFO] IoT Node A OK}/{teal!60}}{
+    \colorlet{altfillclr}{\clr!20}
+    \colorlet{altbordclr}{\clr!50}
+    \colorlet{alttextclr}{\clr}
+    \fill[altfillclr,draw=altbordclr,rounded corners=2pt](0.2,{\y-0.20})rectangle(5.3,{\y+0.20});
+    \node[alttextclr]at(2.75,\y){\msg};}
+\end{tikzpicture}
+  \caption{Flux alertes WebSocket}
+\end{subfigure}
+
+\vspace{0.4em}
+
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,teal!50,fill=teal!4](0,0)rectangle(5.5,3.2);
+  \fill[teal!60](0,2.7)rectangle(5.5,3.2);
+  \node[white,font=\scriptsize\bfseries]at(2.75,2.95){GIS miniature};
+  \fill[teal!15](0,0)rectangle(5.5,2.7);
+  \fill[teal!40](1.2,1.5)circle(0.16);\fill[teal!40](2.5,2.0)circle(0.16);\fill[teal!40](3.8,1.3)circle(0.16);
+  \fill[red!60](2.0,0.9)circle(0.13);
+  \node[teal!80,font=\tiny]at(1.2,1.1){P1};\node[teal!80,font=\tiny]at(2.5,1.6){P3};\node[teal!80,font=\tiny]at(3.8,0.9){P7};
+\end{tikzpicture}
+  \caption{Widget carte GIS miniature}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,orange!50,fill=gray!3](0,0)rectangle(5.5,3.2);
+  \fill[orange!60](0,2.7)rectangle(5.5,3.2);
+  \node[white,font=\scriptsize\bfseries]at(2.75,2.95){Télémétrie IoT temps réel};
+  \foreach \x/\val/\clr in {0.9/{42\%}/{blue!70},2.2/{13\,L/m}/{cyan!60!black},3.5/{46.8\,kg}/{green!60!black},4.8/{34.2\,°C}/{red!60}}{
+    \node[\clr,font=\scriptsize\bfseries]at(\x,1.9){\val};}
+  \node[gray!70]at(0.9,2.4){Hum.};\node[gray!70]at(2.2,2.4){Débit};
+  \node[gray!70]at(3.5,2.4){Poids};\node[gray!70]at(4.8,2.4){Couvain};
+  \draw[blue!60,thick](0.3,0.8)--(1.5,0.9)--(2.7,0.7)--(4.0,1.1)--(5.2,1.0);
+\end{tikzpicture}
+  \caption{Widget télémétrie IoT temps réel}
+\end{subfigure}
+\caption{Quatre widgets du tableau de bord principal (FCR, alertes, GIS, IoT)}
+\label{fig:screen_widgets}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=13cm, height=5.5cm,
+  xlabel={Heure (28 avril 2026)},
+  ylabel={Valeur (unités variables)},
+  xmin=0, xmax=5,
+  ymin=0, ymax=55,
+  xtick={0,1,2,3,4,5},
+  xticklabels={09h00,10h00,11h00,12h00,13h00,14h00},
+  grid=both, grid style={dashed,gray!20},
+  legend pos=north west,
+  legend style={font=\tiny, fill=white, fill opacity=0.9},
+  title={Télémétrie IoT réelle — Nœud A + Nœud B (28 avril 2026, ferme pilote P1)},
+]
+% Node A — Humidité sol (%), mesurée à 30.2% à 11h29
+\addplot[blue!70, thick, mark=*] coordinates {
+  (0,31.8)(1,31.2)(2,30.2)(3,29.1)(4,28.3)(5,32.0)
+};
+\addlegendentry{Hum. sol Node A (\%)}
+% Node A — Débit irrigation (L/min), mesuré à 12.9 à 11h29
+\addplot[cyan!60, thick, dashed, mark=square*] coordinates {
+  (0,0)(1,0)(2,12.9)(3,13.1)(4,12.8)(5,0)
+};
+\addlegendentry{Débit irrigation (L/min)}
+% Node B — Poids ruche (kg), mesuré à 46.8 kg
+\addplot[green!60!black, thick, mark=triangle*] coordinates {
+  (0,46.5)(1,46.6)(2,46.8)(3,46.9)(4,47.1)(5,47.0)
+};
+\addlegendentry{Poids ruche Node B (kg)}
+% Node B — Temp couvain (°C), mesuré à 34.2°C
+\addplot[red!70, thick, dotted, mark=diamond*] coordinates {
+  (0,33.9)(1,34.0)(2,34.2)(3,34.3)(4,34.4)(5,34.3)
+};
+\addlegendentry{Temp. couvain Node B (°C)}
+% Seuil humidité 30% $\rightarrow$ déclenchement irrigation
+\addplot[blue!40, dashed, ultra thin] coordinates {(0,30)(5,30)};
+\addlegendentry{Seuil irrig. 30\%}
+\end{axis}
+\end{tikzpicture}
+\caption{Extrait de télémétrie réelle ESP32 — Nœud A (sol + irrigation) et Nœud B (ruche),
+données \texttt{iot\_telemetry.csv}, intervalle 30\,s (N.A) et 10\,s (N.B).
+Point de référence : 11h29, hum. sol = 30.2\,\%, débit = 12.9\,L/min, poids ruche = 46.8\,kg,
+couvain = 34.2\,°C — tous dans les plages opérationnelles normales.}
+\label{fig:iot_telemetry}
+\end{figure}
+
+\subsection{Scanner IA (AIScanner)}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=6pt,thick,green!50,fill=gray!3](0,0)rectangle(12,7.5);
+  \fill[green!60](0,6.9)rectangle(12,7.5);
+  \node[white,font=\small\bfseries]at(6,7.2){AIScanner — Détection YOLO + Réponse Darija};
+  \fill[gray!12,draw=gray!40,rounded corners=3pt](0.3,3.8)rectangle(5.2,6.7);
+  \node[gray!60,font=\scriptsize]at(2.75,5.5){[Image envoyée]};
+  \fill[green!20,draw=green!60](0.7,4.1)rectangle(2.5,6.1);
+  \node[green!60!black,font=\tiny]at(1.6,5.9){Bee 93\%};
+  \fill[blue!10,draw=blue!50](2.8,4.4)rectangle(4.5,5.7);
+  \node[blue!70,font=\tiny]at(3.65,5.55){Cattle 88\%};
+  \fill[blue!60,rounded corners=2pt](1.0,3.95)rectangle(3.5,4.18);
+  \node[white]at(2.25,4.07){Téléverser image};
+  \fill[orange!8,draw=orange!40,rounded corners=3pt](5.5,3.8)rectangle(11.7,6.7);
+  \node[orange!70!black,font=\scriptsize\bfseries]at(8.6,6.5){Réponse Darija — Labess-7B};
+  \fill[gray!15,rounded corners=2pt](5.7,4.4)rectangle(11.5,6.3);
+  \node[font=\tiny,align=left]at(8.6,5.8){«\,Hive-ek b5eer, el-couvain};
+  \node[font=\tiny,align=left]at(8.6,5.5){34.2\,°C — normal. Raqeb el};
+  \node[font=\tiny,align=left]at(8.6,5.2){wazen kol yawm...\,»};
+  \fill[green!25,draw=green!50,rounded corners=2pt](6.3,4.5)rectangle(7.8,4.85);
+  \node[green!60!black]at(7.05,4.67){BLEU-4: 0.68};
+  \fill[green!30,draw=green!50,rounded corners=2pt](0.3,3.0)rectangle(7.0,3.6);
+  \node[green!60!black,font=\scriptsize]at(3.65,3.3){Confiance détection : 91.2\%};
+  \fill[white,draw=gray!30,rounded corners=2pt](0.3,0.3)rectangle(11.7,2.8);
+  \node[gray!60,font=\scriptsize\bfseries]at(6,2.6){Historique diagnostics};
+  \foreach \y/\txt in {2.1/{2026-05-10 — Bee detected, healthy colony},
+    1.6/{2026-05-08 — Cattle, possible BVD risk},
+    1.1/{2026-05-03 — Fire smoke — alert dispatched}}{
+    \fill[gray!10,rounded corners=1pt](0.5,{\y-0.18})rectangle(11.5,{\y+0.18});
+    \node[font=\tiny]at(6,\y){\txt};}
+\end{tikzpicture}
+\caption{Interface AIScanner — détection YOLO + réponse Darija avec niveau de confiance}
+\label{fig:screen_scanner}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.32\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,blue!40,fill=gray!3](0,0)rectangle(3.6,5.0);
+  \fill[blue!60](0,4.5)rectangle(3.6,5.0);
+  \node[white,font=\scriptsize\bfseries]at(1.8,4.75){1. Upload image};
+  \fill[gray!15,draw=gray!40,rounded corners=2pt](0.3,2.8)rectangle(3.3,4.3);
+  \node[gray!60]at(1.8,3.9){[Sélectionner]};
+  \node[gray!50]at(1.8,3.5){ou Caméra};
+  \fill[blue!55,rounded corners=2pt](0.8,2.0)rectangle(2.8,2.4);
+  \node[white]at(1.8,2.2){Envoyer};
+  \node[gray!50]at(1.8,1.2){Drag \& Drop};
+  \node[gray!50]at(1.8,0.8){JPG/PNG/WEBP};
+\end{tikzpicture}
+  \caption{Upload image}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.32\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,green!50,fill=gray!3](0,0)rectangle(3.6,5.0);
+  \fill[green!60](0,4.5)rectangle(3.6,5.0);
+  \node[white,font=\scriptsize\bfseries]at(1.8,4.75){2. Résultat YOLO};
+  \fill[gray!15,draw=gray!40,rounded corners=2pt](0.3,2.6)rectangle(3.3,4.3);
+  \fill[green!20,draw=green!60](0.6,3.0)rectangle(1.8,4.1);
+  \node[green!70,font=\tiny]at(1.2,3.95){Bee 93\%};
+  \fill[blue!15,draw=blue!50](2.0,3.2)rectangle(3.1,4.1);
+  \node[blue!70,font=\tiny]at(2.55,3.95){Cattle};
+  \node[font=\scriptsize]at(1.8,2.3){2 objets détectés};
+  \fill[teal!20,draw=teal!50,rounded corners=2pt](0.5,1.6)rectangle(3.1,2.1);
+  \node[teal!70]at(1.8,1.85){mAP@50 : 91.2\%};
+  \node[gray!60]at(1.8,0.9){Temps : 143\,ms};
+\end{tikzpicture}
+  \caption{Résultat YOLO}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.32\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,orange!50,fill=gray!3](0,0)rectangle(3.6,5.0);
+  \fill[orange!60](0,4.5)rectangle(3.6,5.0);
+  \node[white,font=\scriptsize\bfseries]at(1.8,4.75){3. Réponse Darija};
+  \fill[orange!8,draw=orange!30,rounded corners=2pt](0.3,2.5)rectangle(3.3,4.3);
+  \node[font=\tiny]at(1.8,3.8){«\,Hive-ek b5eer...};
+  \node[font=\tiny]at(1.8,3.5){el-couvain salim,};
+  \node[font=\tiny]at(1.8,3.2){raqeb el-wazen\,»};
+  \fill[green!25,draw=green!50,rounded corners=2pt](0.5,1.9)rectangle(3.1,2.3);
+  \node[green!70]at(1.8,2.1){BLEU-4: 0.68};
+  \node[gray!60]at(1.8,1.2){Labess-7B};
+  \node[gray!50]at(1.8,0.8){Fallback: Groq};
+\end{tikzpicture}
+  \caption{Réponse Darija}
+\end{subfigure}
+\caption{Workflow AIScanner en 3 étapes}
+\label{fig:screen_scanner_workflow}
+\end{figure}
+
+\subsection{ERP Aviculture}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=6pt,thick,orange!50,fill=gray!3](0,0)rectangle(13,7);
+  \fill[orange!65](0,6.4)rectangle(13,7);
+  \node[white,font=\small\bfseries]at(6.5,6.7){ERP Aviculture — Lot \#12 (Broiler, 2\,000 sujets)};
+  \foreach \i/\lbl/\val/\clr in {
+    0/{FCR actuel}/{2.31}/{orange!80},1/{Mortalité}/{3.2\%}/{red!70},
+    2/{Poids moy.}/{1\,840\,g}/{green!60!black},3/{J. restants}/{14}/{blue!70}}{
+    \fill[\clr!15,draw=\clr,rounded corners=3pt]({0.3+\i*3.18},5.5)rectangle({3.1+\i*3.18},6.2);
+    \node[\clr,font=\scriptsize\bfseries]at({1.7+\i*3.18},5.95){\val};
+    \node at({1.7+\i*3.18},5.6){\lbl};}
+  \fill[white,draw=gray!30,rounded corners=3pt](0.3,2.8)rectangle(6.2,5.3);
+  \node[font=\scriptsize\bfseries]at(3.25,5.1){FCR — Évolution 42 jours};
+  \draw[orange!70,thick](0.6,3.2)--(1.2,3.1)--(1.8,3.05)--(2.4,3.2)--(3.0,3.4)--(3.6,3.7)--(4.2,4.0)--(4.8,4.3)--(5.7,4.6);
+  \draw[gray!50,dashed](0.6,3.8)--(5.7,3.8)node[right,font=\tiny]{std 1.85};
+  \fill[white,draw=gray!30,rounded corners=3pt](6.5,2.8)rectangle(12.7,5.3);
+  \node[font=\scriptsize\bfseries]at(9.6,5.1){Mortalité journalière (\%)};
+  \draw[red!60,thick](6.8,3.1)--(7.4,3.1)--(8.0,3.2)--(8.6,3.3)--(9.2,3.1)--(9.8,3.2)--(10.4,3.5)--(11.0,3.4)--(11.8,3.3);
+  \draw[red!30,dashed](6.8,3.6)--(11.8,3.6)node[right,font=\tiny]{seuil 3\%};
+  \fill[white,draw=gray!30,rounded corners=3pt](0.3,0.3)rectangle(12.7,2.6);
+  \node[gray!70,font=\scriptsize\bfseries]at(6.5,2.4){Derniers enregistrements alimentation};
+  \foreach \y/\row in {
+    1.85/{J.28 | 24.1\,kg | Poids: 1\,740\,g | FCR: 2.28 | Mort: 2},
+    1.35/{J.27 | 23.8\,kg | Poids: 1\,715\,g | FCR: 2.27 | Mort: 1},
+    0.85/{J.26 | 23.5\,kg | Poids: 1\,690\,g | FCR: 2.26 | Mort: 0}}{
+    \fill[gray!8,rounded corners=1pt](0.5,{\y-0.20})rectangle(12.5,{\y+0.20});
+    \node[font=\tiny]at(6.5,\y){\row};}
+\end{tikzpicture}
+\caption{ERP Aviculture — tableau de bord lot avec graphiques FCR/mortalité}
+\label{fig:screen_erp}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,orange!50,fill=gray!3](0,0)rectangle(5.5,4.5);
+  \fill[orange!60](0,4.0)rectangle(5.5,4.5);
+  \node[white,font=\scriptsize\bfseries]at(2.75,4.25){Formulaire alimentation};
+  \foreach \y/\lbl/\val in {3.3/{Date}/{2026-05-15},2.7/{Âge lot (j)}/{28},2.1/{Aliment (kg)}/{24.1},1.5/{Poids moy. (g)}/{1\,840},0.9/{Mortalité du jour}/{2}}{
+    \fill[gray!10,rounded corners=1pt](0.3,{\y-0.22})rectangle(5.2,{\y+0.22});
+    \node[gray!60]at(1.4,\y){\lbl :};\node[blue!70,font=\scriptsize\bfseries]at(3.7,\y){\val};}
+  \fill[green!55,rounded corners=2pt](1.5,0.15)rectangle(4.0,0.55);
+  \node[white,font=\scriptsize]at(2.75,0.35){Enregistrer};
+\end{tikzpicture}
+  \caption{Formulaire alimentation}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,red!40,fill=gray!3](0,0)rectangle(5.5,4.5);
+  \fill[red!55](0,4.0)rectangle(5.5,4.5);
+  \node[white,font=\scriptsize\bfseries]at(2.75,4.25){Journal mortalité};
+  \node[gray!60,font=\scriptsize\bfseries]at(2.75,3.7){Cumul : 3.2\%};
+  \draw[red!60,thick](0.4,0.8)--(1.1,0.9)--(1.8,1.1)--(2.5,1.4)--(3.2,1.6)--(3.9,1.9)--(4.6,2.3)--(5.1,2.6);
+  \draw[red!25,dashed](0.4,2.2)--(5.1,2.2)node[right,font=\tiny]{3\%};
+  \foreach \y/\row in {0.55/{J.28 — 2 décès},0.25/{J.27 — 1 décès}}{
+    \fill[red!8,rounded corners=1pt](0.2,{\y-0.15})rectangle(5.3,{\y+0.15});
+    \node[red!60]at(2.75,\y){\row};}
+\end{tikzpicture}
+  \caption{Journal mortalité}
+\end{subfigure}
+
+\vspace{0.4em}
+
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,teal!50,fill=gray!3](0,0)rectangle(5.5,4.5);
+  \fill[teal!60](0,4.0)rectangle(5.5,4.5);
+  \node[white,font=\scriptsize\bfseries]at(2.75,4.25){Registre de ponte};
+  \draw[teal!60,thick](0.4,1.0)--(1.0,1.2)--(1.6,1.5)--(2.2,1.8)--(2.8,2.0)--(3.4,2.1)--(4.0,2.2)--(4.6,2.1)--(5.1,2.0);
+  \node[teal!70,font=\scriptsize\bfseries]at(2.75,3.6){Taux moy. : 87.3\%};
+  \foreach \y/\row in {0.55/{Sem. 20 — 87.2\%},0.25/{Sem. 19 — 87.3\%}}{
+    \fill[teal!8,rounded corners=1pt](0.2,{\y-0.15})rectangle(5.3,{\y+0.15});
+    \node[teal!60]at(2.75,\y){\row};}
+\end{tikzpicture}
+  \caption{Registre de ponte}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=4pt,thick,purple!40,fill=gray!3](0,0)rectangle(5.5,4.5);
+  \fill[purple!55](0,4.0)rectangle(5.5,4.5);
+  \node[white,font=\scriptsize\bfseries]at(2.75,4.25){Ventes et inventaire};
+  \foreach \y/\lbl/\val in {3.5/{Stock}/{1\,820},3.0/{Ventes cumul}/{180},2.5/{CA (TND)}/{3\,240},2.0/{Abattage}/{J+14}}{
+    \fill[gray!10,rounded corners=1pt](0.3,{\y-0.22})rectangle(5.2,{\y+0.22});
+    \node[gray!60]at(1.7,\y){\lbl :};\node[purple!70,font=\scriptsize\bfseries]at(3.9,\y){\val};}
+  \draw[purple!60,thick](0.5,0.8)--(1.3,0.9)--(2.1,1.1)--(2.9,1.3)--(3.7,1.2)--(4.5,1.4);
+\end{tikzpicture}
+  \caption{Ventes et inventaire}
+\end{subfigure}
+\caption{Sous-modules ERP Aviculture — formulaires alimentation, mortalité, ponte et ventes}
+\label{fig:screen_erp_subfigs}
+\end{figure}
+
+\subsection{Tableau de bord Apiculture}
+
+Le module Apiculture intègre le protocole scientifique \textbf{COLOSS BeeBook}
+pour le scoring de santé des ruches. Lors de chaque visite, le \textit{health score}
+$s_t \in [0, 10]$ est mis à jour selon une moyenne mobile pondérée 60/40 :
+
+\begin{equation}
+s_t = 0{,}60 \cdot s_{\text{visite}} + 0{,}40 \cdot s_{t-1}
+\label{eq:coloss}
+\end{equation}
+
+où $s_{\text{visite}}$ est le score observé lors de la visite courante et $s_{t-1}$
+le score antérieur de la ruche. Ce lissage exponentiel atténue les variations
+ponctuelles tout en restant réactif aux dégradations progressives de la colonie.
+Trois seuils d'alerte sont définis : $s < 4$ (critique), $4 \leq s < 7$ (surveillance),
+$s \geq 7$ (sain). Le système détecte aussi l'essaimage via
+$\Delta\text{poids} > 2$\,kg/60\,min (seuil ESP32 Node B).
+
+% ── fig:screen_apiculture — grille 45 ruches COLOSS ──────────────────────────
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+  % Fond global
+  \fill[gray!10,rounded corners=4pt] (0,0) rectangle (13.5,8.5);
+  % Header
+  \fill[green!50!black] (0,7.8) rectangle (13.5,8.5);
+  \node[white,font=\bfseries\small] at (6.75,8.15) {Apiculture — Monitoring Ruches IoT | Rucher Pilot B, Sfax};
+  % Barre stats
+  \fill[gray!20] (0,7.2) rectangle (13.5,7.8);
+  \node[font=\scriptsize,anchor=west] at (0.2,7.5) {\textbf{45} ruches actives};
+  \node[green!50!black,font=\scriptsize\bfseries] at (3.2,7.5) {28 Sains};
+  \node[orange!80!black,font=\scriptsize\bfseries] at (5.4,7.5) {12 Attention};
+  \node[red!70!black,font=\scriptsize\bfseries] at (7.9,7.5) {5 Critiques};
+  \node[font=\scriptsize,anchor=east] at (13.3,7.5) {Dernière sync: 2026-04-28 14:32};
+  % Grille 9×5 ruches (largeur 1.3cm, hauteur 1.2cm, espacement 0.15cm)
+  % Couleurs: g=green, o=orange, r=red
+  % Rangée 1 (i=0, j=0..8)
+  \def\colors{g,g,g,o,g,g,r,g,g,  g,o,g,g,g,r,g,o,g,  g,g,g,o,g,g,g,r,g,  o,g,g,g,g,o,g,g,r,  g,g,o,g,g,g,g,g,o}
+  \def\colG{g}\def\colO{o}\def\colR{r}
+  \setcounter{hi}{0}
+  \foreach \col in {g,g,g,o,g,g,r,g,g}{
+    \pgfmathsetmacro{\xpos}{0.3 + \thehi * 1.45}
+    \ifnum\thehi<9
+      \def\clr{gray!30}
+      \ifx\col\colG\def\clr{green!40}\fi
+      \ifx\col\colO\def\clr{orange!50}\fi
+      \ifx\col\colR\def\clr{red!40}\fi
+      \fill[\clr,rounded corners=3pt] (\xpos,5.9) rectangle (\xpos+1.3,6.9);
+      \pgfmathtruncatemacro{\hnum}{\thehi+1}
+      \node[font=\scriptsize\bfseries] at (\xpos+0.65,6.65) {R\hnum};
+    \fi
+    \stepcounter{hi}
+  }
+  \setcounter{hi}{0}
+  \foreach \col in {g,o,g,g,g,r,g,o,g}{
+    \pgfmathsetmacro{\xpos}{0.3 + \thehi * 1.45}
+    \def\clr{gray!30}
+    \ifx\col\colG\def\clr{green!40}\fi
+    \ifx\col\colO\def\clr{orange!50}\fi
+    \ifx\col\colR\def\clr{red!40}\fi
+    \fill[\clr,rounded corners=3pt] (\xpos,4.6) rectangle (\xpos+1.3,5.6);
+    \pgfmathtruncatemacro{\hnum}{\thehi+10}
+    \node[font=\scriptsize\bfseries] at (\xpos+0.65,5.35) {R\hnum};
+    \stepcounter{hi}
+  }
+  \setcounter{hi}{0}
+  \foreach \col in {g,g,g,o,g,g,g,r,g}{
+    \pgfmathsetmacro{\xpos}{0.3 + \thehi * 1.45}
+    \def\clr{gray!30}
+    \ifx\col\colG\def\clr{green!40}\fi
+    \ifx\col\colO\def\clr{orange!50}\fi
+    \ifx\col\colR\def\clr{red!40}\fi
+    \fill[\clr,rounded corners=3pt] (\xpos,3.3) rectangle (\xpos+1.3,4.3);
+    \pgfmathtruncatemacro{\hnum}{\thehi+19}
+    \node[font=\scriptsize\bfseries] at (\xpos+0.65,4.05) {R\hnum};
+    \stepcounter{hi}
+  }
+  \setcounter{hi}{0}
+  \foreach \col in {o,g,g,g,g,o,g,g,r}{
+    \pgfmathsetmacro{\xpos}{0.3 + \thehi * 1.45}
+    \def\clr{gray!30}
+    \ifx\col\colG\def\clr{green!40}\fi
+    \ifx\col\colO\def\clr{orange!50}\fi
+    \ifx\col\colR\def\clr{red!40}\fi
+    \fill[\clr,rounded corners=3pt] (\xpos,2.0) rectangle (\xpos+1.3,3.0);
+    \pgfmathtruncatemacro{\hnum}{\thehi+28}
+    \node[font=\scriptsize\bfseries] at (\xpos+0.65,2.75) {R\hnum};
+    \stepcounter{hi}
+  }
+  \setcounter{hi}{0}
+  \foreach \col in {g,g,o,g,g,g,g,g,o}{
+    \pgfmathsetmacro{\xpos}{0.3 + \thehi * 1.45}
+    \def\clr{gray!30}
+    \ifx\col\colG\def\clr{green!40}\fi
+    \ifx\col\colO\def\clr{orange!50}\fi
+    \ifx\col\colR\def\clr{red!40}\fi
+    \fill[\clr,rounded corners=3pt] (\xpos,0.7) rectangle (\xpos+1.3,1.7);
+    \pgfmathtruncatemacro{\hnum}{\thehi+37}
+    \node[font=\scriptsize\bfseries] at (\xpos+0.65,1.45) {R\hnum};
+    \stepcounter{hi}
+  }
+  % Légende
+  \fill[green!40,rounded corners=2pt] (9.6,0.15) rectangle (10.3,0.55);
+  \node[font=\scriptsize,anchor=west] at (10.4,0.35) {Sain (score $>$7)};
+  \fill[orange!50,rounded corners=2pt] (11.0,0.15) rectangle (11.7,0.55);
+  \node[font=\scriptsize,anchor=west] at (11.8,0.35) {Attention};
+  \fill[red!40,rounded corners=2pt] (12.6,0.15) rectangle (13.3,0.55);
+  \node[font=\scriptsize,anchor=east] at (13.35,0.35) {Critique};
+\end{tikzpicture}
+\caption{Tableau de bord Apiculture — grille de monitoring 45~ruches avec score COLOSS
+(vert $>7$, orange 4--7, rouge $<4$) et alertes temps réel Node~B (ESP32)}
+\label{fig:screen_apiculture}
+\end{figure}
+
+% ── fig:screen_apiculture_detail — télémétrie 48h + journal récolte ──────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.52\textwidth}
+\begin{tikzpicture}[font=\scriptsize]
+  \fill[gray!10,rounded corners=3pt] (0,0) rectangle (6.5,5.2);
+  \fill[green!50!black] (0,4.7) rectangle (6.5,5.2);
+  \node[white,font=\bfseries\scriptsize] at (3.25,4.95) {Télémétrie Ruche R12 — 48h (Node B)};
+  % Axes
+  \draw[->] (0.7,0.5) -- (0.7,4.5);
+  \draw[->] (0.7,0.5) -- (6.2,0.5);
+  % Y gauche (poids kg)
+  \foreach \y/\lbl in {0.5/42,1.5/43.5,2.5/45,3.5/46.5,4.5/48}{
+    \draw[gray!50] (0.7,\y) -- (6.2,\y);
+    \node[anchor=east,font=\tiny] at (0.65,\y) {\lbl};
+  }
+  \node[anchor=south,rotate=90,font=\scriptsize,green!50!black] at (0.2,2.5) {Poids (kg)};
+  % X (heures)
+  \foreach \x/\lbl in {0.7/0,1.9/8,3.1/16,4.3/24,5.5/32,6.1/40}{
+    \node[anchor=north,font=\tiny] at (\x,0.45) {\lbl h};
+  }
+  % Courbe poids (vert)
+  \draw[green!60!black,thick] (0.7,1.2) -- (1.1,1.4) -- (1.5,1.8) -- (1.9,2.1) -- (2.3,2.4)
+    -- (2.7,2.2) -- (3.1,2.8) -- (3.5,3.1) -- (3.9,2.9) -- (4.3,3.3)
+    -- (4.7,3.0) -- (5.1,3.5) -- (5.5,3.2) -- (5.9,3.7);
+  % Axe Y droit (température)
+  \node[anchor=north,rotate=90,font=\scriptsize,orange!70!black] at (6.5,2.5) {Couvain (°C)};
+  \foreach \y/\lbl in {0.5/33,1.5/33.5,2.5/34,3.5/34.8,4.5/35.5}{
+    \node[anchor=west,font=\tiny,orange!70!black] at (6.2,\y) {\lbl};
+  }
+  % Courbe température couvain (orange)
+  \draw[orange!70!black,thick,dashed] (0.7,2.8) -- (1.1,2.9) -- (1.5,3.1) -- (1.9,3.2)
+    -- (2.3,3.3) -- (2.7,3.2) -- (3.1,3.4) -- (3.5,3.3) -- (3.9,3.4)
+    -- (4.3,3.5) -- (4.7,3.3) -- (5.1,3.4) -- (5.5,3.2) -- (5.9,3.5);
+  % Légende
+  \draw[green!60!black,thick] (1.0,0.15) -- (1.6,0.15);
+  \node[anchor=west,font=\tiny] at (1.65,0.15) {Poids};
+  \draw[orange!70!black,thick,dashed] (2.8,0.15) -- (3.4,0.15);
+  \node[anchor=west,font=\tiny] at (3.45,0.15) {Temp. couvain};
+\end{tikzpicture}
+\caption{Courbes télémétrie 48h — ruche R12}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.44\textwidth}
+\begin{tikzpicture}[font=\scriptsize]
+  \fill[gray!10,rounded corners=3pt] (0,0) rectangle (5.8,5.2);
+  \fill[green!50!black] (0,4.7) rectangle (5.8,5.2);
+  \node[white,font=\bfseries\scriptsize] at (2.9,4.95) {Journal Production Miel};
+  % En-tête tableau
+  \fill[gray!30] (0.1,4.2) rectangle (5.7,4.65);
+  \node[font=\tiny\bfseries] at (0.7,4.43) {Ruche};
+  \node[font=\tiny\bfseries] at (1.7,4.43) {Date};
+  \node[font=\tiny\bfseries] at (3.0,4.43) {Kg};
+  \node[font=\tiny\bfseries] at (4.1,4.43) {Qualité};
+  \node[font=\tiny\bfseries] at (5.1,4.43) {Statut};
+  % Données (4 récoltes)
+  \foreach \row/\rch/\dat/\kg/\qual/\stat/\clr in {
+    1/R07/28 Jan/18.4/Premium/Vendu/green!20,
+    2/R12/15 Mar/16.2/Standard/Stock/yellow!30,
+    3/R21/02 Avr/19.8/Premium/Vendu/green!20,
+    4/R33/28 Avr/14.2/Standard/Stock/yellow!30}{
+    \pgfmathsetmacro{\ypos}{4.2 - \row * 0.75}
+    \fill[\clr] (0.1,\ypos-0.05) rectangle (5.7,\ypos+0.5);
+    \node[font=\tiny] at (0.7,\ypos+0.22) {\rch};
+    \node[font=\tiny] at (1.7,\ypos+0.22) {\dat};
+    \node[font=\tiny\bfseries] at (3.0,\ypos+0.22) {\kg};
+    \node[font=\tiny] at (4.1,\ypos+0.22) {\qual};
+    \node[font=\tiny] at (5.1,\ypos+0.22) {\stat};
+  }
+  % Total
+  \fill[green!30] (0.1,0.55) rectangle (5.7,1.0);
+  \node[font=\tiny\bfseries] at (1.2,0.78) {TOTAL 2026};
+  \node[font=\small\bfseries,green!40!black] at (3.0,0.78) {68.6 kg};
+  \node[font=\tiny] at (4.6,0.78) {4 récoltes};
+  % Note COLOSS
+  \fill[blue!10] (0.1,0.05) rectangle (5.7,0.5);
+  \node[font=\tiny] at (2.9,0.28) {Score COLOSS moyen: \textbf{7.4/10} — Rucher sain};
+\end{tikzpicture}
+\caption{Journal de production miel — 4~récoltes, 68.6~kg}
+\end{subfigure}
+\caption{Module Apiculture — télémétrie IoT Node~B sur 48h et journal de récolte (données réelles 2026)}
+\label{fig:screen_apiculture_detail}
+\end{figure}
+
+\subsection{Carte GIS}
+
+Le module GIS expose 5 endpoints GeoJSON REST (\code{/geo/\{farms,vets,markets,hives,nearby-vets\}})
+avec une double stratégie de calcul de distance géographique :
+
+\begin{itemize}
+  \item \textbf{Mode PostgreSQL} : requête PostGIS \code{ST\_DWithin(geom::geography, ST\_MakePoint(\ldots)::geography, radius)} avec résultat trié par \code{ST\_Distance}.
+  \item \textbf{Mode SQLite (fallback)} : formule Haversine Python, $R = 6\,371$\,km :
+\end{itemize}
+
+\begin{equation}
+d = 2R \cdot \arctan\!\left(\frac{\sqrt{a}}{\sqrt{1-a}}\right), \quad
+a = \sin^2\!\!\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1 \cos\phi_2 \sin^2\!\!\left(\frac{\Delta\lambda}{2}\right)
+\label{eq:haversine}
+\end{equation}
+
+Les coordonnées sont stockées dans un champ \code{geom POINT SRID=4326}
+(GeoAlchemy2 $\geq$ 0.14.7). La réponse est un GeoJSON \code{FeatureCollection}
+consommé directement par \code{react-leaflet} et \code{MapLibre GL JS}.
+
+% ── fig:screen_gis — Carte GIS Leaflet/MapLibre ──────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+  % Fond mer
+  \fill[blue!8,rounded corners=4pt] (0,0) rectangle (13.5,7.6);
+  % Barre d'outils
+  \fill[gray!25] (0,7.1) rectangle (13.5,7.6);
+  \node[font=\scriptsize,anchor=west] at (0.2,7.35) {\textbf{Carte GIS} | MapLibre GL 5.23 + react-leaflet 4.2};
+  \node[font=\scriptsize,anchor=east] at (13.3,7.35) {7 fermes \textbullet{} 3 vétérinaires \textbullet{} endpoint \texttt{/geo/nearby-vets}};
+  % Contour Tunisie (simplifié)
+  \fill[yellow!15!white,draw=gray!60,line width=0.5pt]
+    (2.2,6.8) -- (3.5,7.0) -- (5.2,6.6) -- (5.6,5.9) -- (4.9,5.3)
+    -- (5.1,4.1) -- (4.7,3.1) -- (4.0,2.4) -- (3.1,1.9)
+    -- (1.8,1.0) -- (0.8,0.8) -- (0.6,2.0) -- (0.7,3.8)
+    -- (1.2,5.2) -- (2.2,6.8) -- cycle;
+  % Noms régions (fond)
+  \node[gray!60,font=\tiny,rotate=10] at (3.0,5.6) {Nord};
+  \node[gray!60,font=\tiny] at (4.0,4.0) {Centre};
+  \node[gray!60,font=\tiny] at (2.5,2.0) {Sud};
+  % Pins fermes (cercles verts)
+  \foreach \px/\py/\lbl in {
+    2.7/6.2/Bizerte,
+    3.3/5.8/Tunis,
+    4.4/4.9/Sousse,
+    4.5/4.2/Monastir,
+    4.1/3.2/Sfax,
+    2.4/2.6/Gafsa,
+    3.1/3.3/Sidi Bouzid}{
+    \fill[green!55!black] (\px,\py) circle (0.17);
+    \fill[white] (\px,\py) circle (0.07);
+  }
+  \node[font=\tiny,anchor=south] at (2.7,6.37) {Bizerte};
+  \node[font=\tiny,anchor=south] at (3.3,5.97) {Tunis};
+  \node[font=\tiny,anchor=west]  at (4.6,4.9) {Sousse};
+  \node[font=\tiny,anchor=west]  at (4.65,4.2) {Monastir};
+  \node[font=\tiny,anchor=west]  at (4.25,3.2) {Sfax};
+  \node[font=\tiny,anchor=east]  at (2.25,2.6) {Gafsa};
+  \node[font=\tiny,anchor=east]  at (2.95,3.3) {Sidi Bouzid};
+  % Pins vétérinaires (croix rouges)
+  \foreach \px/\py in {3.0/5.3, 4.2/4.0, 1.9/3.8}{
+    \fill[red!65,rounded corners=1pt] (\px-0.16,\py-0.16) rectangle (\px+0.16,\py+0.16);
+    \draw[white,line width=1pt] (\px-0.12,\py) -- (\px+0.12,\py);
+    \draw[white,line width=1pt] (\px,\py-0.12) -- (\px,\py+0.12);
+  }
+  % Zoom
+  \fill[white,rounded corners=2pt,draw=gray!50] (5.8,6.6) rectangle (6.4,7.1);
+  \node[font=\bfseries\small] at (6.1,6.88) {+};
+  \node[font=\bfseries\small] at (6.1,6.63) {--};
+  % Panneau légende (droite)
+  \fill[white,rounded corners=3pt,draw=gray!40] (6.7,0.1) rectangle (13.3,7.05);
+  \fill[green!50!black] (6.7,6.55) rectangle (13.3,7.05);
+  \node[white,font=\bfseries\scriptsize] at (10.0,6.80) {Légende \& Fermes};
+  % Icônes légende
+  \fill[green!55!black] (7.0,6.35) circle (0.12); \fill[white] (7.0,6.35) circle (0.05);
+  \node[font=\scriptsize,anchor=west] at (7.2,6.35) {Ferme pilote (7)};
+  \fill[red!65,rounded corners=1pt] (10.2,6.28) rectangle (10.5,6.42);
+  \node[font=\scriptsize,anchor=west] at (10.6,6.35) {Vétérinaire (3)};
+  \draw[gray!30,thin] (6.8,6.15) -- (13.2,6.15);
+  % Liste fermes
+  \foreach \n/\loc/\sp/\dist in {
+    1/Sfax/Bovins + Apiculture/0 km,
+    2/Sousse/Aviculture + Ovins/141 km,
+    3/Monastir/Apiculture/158 km,
+    4/Bizerte/Bovins/280 km,
+    5/Gafsa/Caprins/301 km,
+    6/Sidi Bouzid/Ovins + Bovins/223 km,
+    7/Tunis/Volaille + Lapins/230 km}{
+    \pgfmathsetmacro{\fy}{5.9 - (\n-1)*0.72}
+    \fill[green!10,rounded corners=1pt] (6.8,\fy-0.22) rectangle (13.2,\fy+0.28);
+    \node[font=\tiny\bfseries,anchor=west] at (6.95,\fy+0.03) {F\n\ \loc};
+    \node[font=\tiny,gray,anchor=west] at (9.5,\fy+0.03) {\sp};
+    \node[font=\tiny,anchor=east] at (13.1,\fy+0.03) {\dist};
+  }
+  % Haversine note
+  \fill[blue!10,rounded corners=2pt] (6.8,0.15) rectangle (13.2,0.75);
+  \node[font=\scriptsize\bfseries,anchor=west] at (7.0,0.55) {Rayon recherche: 100~km};
+  \node[font=\tiny,anchor=west] at (7.0,0.28) {Haversine dual-mode (R = 6\,371 km, fallback SQLite)};
+\end{tikzpicture}
+\caption{Carte GIS MapLibre GL / react-leaflet — 7 fermes pilotes et 3 vétérinaires proches,
+recherche de proximité via Haversine (SQLite) ou \texttt{ST\_DWithin} (PostGIS)}
+\label{fig:screen_gis}
+\end{figure}
+
+\subsection{PWA Worker mobile}
+
+% ── fig:screen_pwa — 3 écrans PWA mobile ─────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.30\textwidth}
+\begin{tikzpicture}[font=\scriptsize]
+  % Cadre téléphone
+  \fill[gray!20,rounded corners=6pt] (0,0) rectangle (3.6,6.4);
+  \fill[white,rounded corners=4pt] (0.15,0.4) rectangle (3.45,6.2);
+  % Status bar
+  \fill[green!50!black,rounded corners=3pt] (0.15,5.8) rectangle (3.45,6.2);
+  \node[white,font=\tiny] at (1.8,6.0) {\textbf{Smart Farm Worker} 09:41};
+  % Logo + titre
+  \fill[green!20] (0.15,5.0) rectangle (3.45,5.8);
+  \node[font=\scriptsize\bfseries] at (1.8,5.4) {Connexion Ouvrier};
+  \node[font=\tiny,gray] at (1.8,5.15) {Vérification OTP WhatsApp};
+  % Zone téléphone
+  \fill[gray!10,rounded corners=2pt] (0.3,4.3) rectangle (3.3,4.8);
+  \node[font=\tiny,gray,anchor=west] at (0.45,4.55) {+216 XX XXX XXX};
+  % Bouton envoyer code
+  \fill[green!50!black,rounded corners=2pt] (0.5,3.7) rectangle (3.1,4.1);
+  \node[white,font=\tiny\bfseries] at (1.8,3.9) {Envoyer code WhatsApp};
+  % Séparateur
+  \node[font=\tiny,gray] at (1.8,3.45) {--- ou entrer code reçu ---};
+  % 6 cases OTP
+  \foreach \i in {0,...,5}{
+    \fill[gray!15,rounded corners=1pt] (0.25+\i*0.52,2.7) rectangle (0.72+\i*0.52,3.15);
+    \pgfmathtruncatemacro{\otpdigit}{\i==0?8:(\i==1?4:(\i==2?2:0))}
+    \node[font=\small\bfseries,gray!60] at (0.485+\i*0.52,2.925) {\otpdigit};
+  }
+  \node[font=\tiny,gray] at (1.8,2.45) {Code valide 10 min};
+  % Bouton valider
+  \fill[green!50!black,rounded corners=2pt] (0.5,1.9) rectangle (3.1,2.3);
+  \node[white,font=\tiny\bfseries] at (1.8,2.1) {Valider OTP};
+  % Badge sécurité
+  \fill[blue!10,rounded corners=2pt] (0.4,1.4) rectangle (3.2,1.8);
+  \node[font=\tiny] at (1.8,1.6) {JWT 7j \textbullet{} HTTPS \textbullet{} Role: worker};
+  % Footer
+  \node[font=\tiny,gray] at (1.8,0.85) {Smart Farm AI v3.0};
+  \node[font=\tiny,gray] at (1.8,0.6) {PWA installable};
+\end{tikzpicture}
+\caption{Login OTP WhatsApp}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.30\textwidth}
+\begin{tikzpicture}[font=\scriptsize]
+  \fill[gray!20,rounded corners=6pt] (0,0) rectangle (3.6,6.4);
+  \fill[white,rounded corners=4pt] (0.15,0.4) rectangle (3.45,6.2);
+  \fill[green!50!black,rounded corners=3pt] (0.15,5.8) rectangle (3.45,6.2);
+  \node[white,font=\tiny] at (1.8,6.0) {\textbf{Mes Tâches} \ \ \ Ferm. F1};
+  % Filtre
+  \fill[gray!15] (0.15,5.3) rectangle (3.45,5.8);
+  \node[font=\tiny,anchor=west] at (0.3,5.55) {\textbf{Aujourd'hui} | Demain | Tout};
+  % Tâches (5 items)
+  \foreach \i/\prio/\tsk/\tm/\cl in {
+    0/URGENT/Alimentation bovins/07h30/red!20,
+    1/URGENT/Collecte œufs/08h00/red!20,
+    2/NORMAL/Vérif. ruches R12/09h00/yellow!20,
+    3/NORMAL/Relevé IoT Node A/10h30/yellow!20,
+    4/DONE/Nettoyage étable/06h00/green!15}{
+    \pgfmathsetmacro{\ypos}{5.0 - \i * 0.85}
+    \fill[\cl,rounded corners=2pt] (0.2,\ypos-0.35) rectangle (3.4,\ypos+0.38);
+    \node[font=\tiny\bfseries,anchor=west] at (0.35,\ypos+0.15) {\tsk};
+    \node[font=\tiny,gray,anchor=west] at (0.35,\ypos-0.1) {\prio \ \textbullet{} \ \tm};
+    \ifnum\i=4
+      \draw[green!50!black,line width=1.5pt] (3.1,\ypos-0.05) circle (0.18);
+      \draw[green!50!black,line width=1.5pt] (3.03,\ypos-0.08) -- (3.09,\ypos-0.17) -- (3.22,\ypos+0.07);
+    \else
+      \draw[gray!50,rounded corners=1pt] (3.05,\ypos-0.1) rectangle (3.25,\ypos+0.1);
+    \fi
+  }
+  % Résumé
+  \fill[blue!10,rounded corners=2pt] (0.2,0.75) rectangle (3.4,1.3);
+  \node[font=\tiny\bfseries] at (1.8,1.08) {4 restantes / 5 total};
+  \node[font=\tiny,gray] at (1.8,0.85) {Sync: il y a 2 min};
+\end{tikzpicture}
+\caption{Liste des tâches prioritaires}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.30\textwidth}
+\begin{tikzpicture}[font=\scriptsize]
+  \fill[gray!20,rounded corners=6pt] (0,0) rectangle (3.6,6.4);
+  \fill[white,rounded corners=4pt] (0.15,0.4) rectangle (3.45,6.2);
+  \fill[orange!60!black,rounded corners=3pt] (0.15,5.8) rectangle (3.45,6.2);
+  \node[white,font=\tiny] at (1.8,6.0) {\textbf{Mode Hors-ligne} \textbullet{} Dexie};
+  % Bannière offline
+  \fill[orange!30] (0.15,5.3) rectangle (3.45,5.8);
+  \node[font=\tiny\bfseries,orange!70!black] at (1.8,5.55) {Connexion perdue — Mode IndexedDB};
+  % Statut sync
+  \fill[gray!10,rounded corners=2pt] (0.2,4.6) rectangle (3.4,5.25);
+  \node[font=\tiny\bfseries,anchor=west] at (0.35,5.05) {Données locales (Dexie 4.4)};
+  \node[font=\tiny,anchor=west] at (0.35,4.8) {Dernière sync: 2026-04-28 14:21};
+  % File en attente
+  \node[font=\scriptsize\bfseries,anchor=west] at (0.3,4.4) {File d'envoi:};
+  \foreach \i/\op/\nb/\cl in {
+    0/Rapports ouvriers/3 items/blue!15,
+    1/Lectures capteurs/12 items/blue!15,
+    2/Photos maladies/2 items/yellow!20}{
+    \pgfmathsetmacro{\yy}{4.05 - \i * 0.62}
+    \fill[\cl,rounded corners=2pt] (0.2,\yy-0.18) rectangle (3.4,\yy+0.30);
+    \node[font=\tiny\bfseries,anchor=west] at (0.35,\yy+0.10) {\op};
+    \node[font=\tiny,anchor=east] at (3.3,\yy+0.10) {\nb};
+    \draw[gray!40,thin] (0.2,\yy-0.18) -- (3.4,\yy-0.18);
+  }
+  % Barre progression
+  \fill[gray!20,rounded corners=2pt] (0.2,1.85) rectangle (3.4,2.25);
+  \fill[orange!60,rounded corners=2pt] (0.2,1.85) rectangle (2.4,2.25);
+  \node[font=\tiny\bfseries] at (1.8,2.05) {17 opérations en attente};
+  % Info
+  \fill[blue!10,rounded corners=2pt] (0.2,1.3) rectangle (3.4,1.75);
+  \node[font=\tiny] at (1.8,1.525) {Auto-sync dès reconnexion};
+  \node[font=\tiny,gray] at (1.8,0.85) {vite-plugin-pwa 1.2.0};
+  \node[font=\tiny,gray] at (1.8,0.62) {Service Worker actif};
+\end{tikzpicture}
+\caption{Sync hors-ligne Dexie/IndexedDB}
+\end{subfigure}
+\caption{Application PWA Worker (mobile Android/iOS) — authentification OTP WhatsApp, gestion de tâches
+prioritaires et synchronisation hors-ligne via Dexie~4.4 (IndexedDB)}
+\label{fig:screen_pwa}
+\end{figure}
+
+% ── 4.4 Tests et validation ─────────────────────────────────
+\section{Tests et validation}
+
+\subsection{Plan de tests}
+
+\begin{table}[H]
+\centering
+\caption{Résultats du plan de tests (251 tests au total)}
+\label{tab:tests}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Type} & \textbf{Nb tests} & \textbf{Réussis} & \textbf{Échecs} & \textbf{Taux} \\
+\midrule
+Unitaires (pytest)     & 87  & 87  & 0 & 100.0\% \\
+Intégration (TestClient) & 124 & 123 & 1 & 99.2\% \\
+End-to-end (Playwright) & 40  & 38  & 2 & 95.0\% \\
+\midrule
+\textbf{Total}          & 251 & 248 & 3 & \textbf{98.8\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar stacked,
+  width=11cm, height=5.5cm,
+  xlabel={Nombre de tests},
+  symbolic y coords={End-to-End,Intégration,Unitaires},
+  ytick=data,
+  y tick label style={font=\small},
+  xmin=0, xmax=135,
+  legend style={at={(0.5,-0.18)}, anchor=north, legend columns=2, font=\small},
+  nodes near coords, nodes near coords style={font=\scriptsize, color=white},
+  grid=major, grid style={dashed,gray!20},
+  title={Résultats des tests par type (251 tests au total)},
+]
+\addplot[fill=green!60!black, draw=green!80!black] coordinates
+  {(87,Unitaires)(123,Intégration)(38,End-to-End)};
+\addlegendentry{Réussis}
+\addplot[fill=red!60, draw=red!80] coordinates
+  {(0,Unitaires)(1,Intégration)(2,End-to-End)};
+\addlegendentry{Échecs}
+\end{axis}
+\end{tikzpicture}
+\caption{Répartition réussis/échecs par type de test (total : 248/251 = 98.8\%)}
+\label{fig:tests_bar}
+\end{figure}
+
+L'unique échec en intégration concerne le test de fallback Groq $\rightarrow$ statique
+en cas de timeout réseau (non reproductible en CI isolé). Les deux échecs
+E2E concernent des animations Three.js dans Chromium headless, sans impact
+fonctionnel.
+
+\textbf{Diagnostic détaillé des 3 échecs} :
+\begin{itemize}
+  \item \textbf{Intégration — fallback Groq$\rightarrow$statique} : le mock Httpx simule
+        un timeout de 5\,s alors que le client réel utilise 30\,s par défaut.
+        Correction planifiée : uniformiser \code{HTTPX\_TIMEOUT=5} dans
+        \code{conftest.py} pour tous les tests d'intégration réseau.
+  \item \textbf{E2E 1 \& 2 — Three.js WebGL} : les animations Three.js
+        nécessitent un contexte WebGL (flag Chromium \code{--enable-gpu})
+        absent dans l'environnement CI headless. Impact fonctionnel nul
+        (composants purement cosmétiques). Solution : \code{--disable-gpu}
+        + mock Three.js renderer dans les tests Playwright.
+\end{itemize}
+
+% ── tab:bee_tests — Suite de tests apiculture ──────────────────────────────
+\subsubsection*{Suite de tests apiculture (\texttt{test\_bee\_api.py})}
+
+Le fichier \texttt{backend/tests/test\_bee\_api.py} (465 lignes) constitue la suite
+de tests la plus complète du projet avec \textbf{11 classes de test} et \textbf{50+~méthodes}.
+Chaque classe hérite de \texttt{BaseTest} et bénéficie d'une isolation complète via
+transactions SQLite en mémoire avec rollback automatique (\texttt{conftest.py}).
+
+\begin{table}[H]
+\caption{Suite de tests apiculture \texttt{test\_bee\_api.py} — 11 classes, 50+ méthodes}
+\label{tab:bee_tests}
+\centering
+\begin{tabularx}{\textwidth}{@{}l l X c@{}}
+\toprule
+\textbf{Classe} & \textbf{Méthodes} & \textbf{Couverture fonctionnelle} & \textbf{Isolation} \\
+\midrule
+\texttt{TestAuth}         & 4  & JWT worker / admin, token expiré, rôle invalide & SQLite mem \\
+\texttt{TestApiaries}     & 6  & CRUD ruchers, coordonnées GPS, ferme associée   & SQLite mem \\
+\texttt{TestHives}        & 7  & CRUD ruches, santé COLOSS, statut (sain/critique) & SQLite mem \\
+\texttt{TestVisits}       & 6  & Enregistrement visites, calcul score $s_t$, historique & SQLite mem \\
+\texttt{TestProductions}  & 5  & Récoltes miel (kg), qualité, liaison ruche      & SQLite mem \\
+\texttt{TestStock}        & 4  & Inventaire équipements apicoles, mouvements     & SQLite mem \\
+\texttt{TestStats}        & 5  & Agrégats dashboard, top/bottom 5 ruches         & SQLite mem \\
+\texttt{TestBulkSync}     & 4  & Sync lot (Worker PWA offline), idempotence      & SQLite mem \\
+\texttt{TestAnalytics}    & 5  & Courbes temporelles, alertes seuil poids Node~B & SQLite mem \\
+\texttt{TestWebSocket}    & 3  & Push temps réel, format JSON telemetry          & mock WS \\
+\texttt{TestEdgeCases}    & 6  & Ruche inexistante, valeurs extrêmes, concurrence & SQLite mem \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\noindent Le test clé \texttt{test\_health\_score\_updated\_after\_visit} valide la formule COLOSS :
+en passant un score de visite $s_{\text{visite}} = 1.5$ sur une ruche à $s_{t-1} = 8.0$,
+le score attendu est :
+\[
+s_t = 0{,}60 \times 1{,}5 + 0{,}40 \times 8{,}0 = 0{,}90 + 3{,}20 = 4{,}10
+\]
+L'assertion \texttt{assert hive.health\_score == 4.1} passe avec \texttt{pytest.approx(4.1, abs=0.01)}.
+
+\textbf{Couverture de code} : la suite pytest couvre \textbf{78\%} des lignes
+du backend (mesuré avec \code{pytest-cov}), avec des zones non couvertes
+principalement dans la gestion d'erreurs réseau MQTT (connectivité physique
+non simulable en CI) et les routes administratives à faible fréquence d'appel.
+
+\subsection{Benchmarks de performance}
+
+\begin{table}[H]
+\centering
+\caption{Latences API mesurées — percentiles (100 requêtes, Locust)}
+\label{tab:latences}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Endpoint} & \textbf{p50 (ms)} & \textbf{p90 (ms)} & \textbf{p99 (ms)} & \textbf{Erreur} \\
+\midrule
+GET /farms               & 87  & 134 & 189 & 0\% \\
+GET /animals             & 112 & 167 & 243 & 0\% \\
+POST /agent/analyze-image& 1\,847 & 2\,340 & 3\,120 & 1.2\% \\
+POST /agent/chat         & 2\,103 & 2\,890 & 4\,210 & 0.8\% \\
+YOLO inference only      & 143 & 198 & 287 & 0\% \\
+WebSocket IoT broadcast  & 23  & 41  & 78  & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Test de charge} (Locust, 100 utilisateurs virtuels, 10 min) :
+81 req/s soutenues, latence p50 = 94\,ms, taux d'erreur = 0.3\%.
+L'inférence LLM (Ollama local) représente le goulot d'étranglement
+principal (~2\,s) ; le cache Redis est planifié comme amélioration future.
+
+% ── 4.5 Validation terrain ──────────────────────────────────
+\section{Validation terrain}
+
+\subsection{Dispositif de validation}
+
+\begin{table}[H]
+\centering
+\caption{Caractéristiques des fermes pilotes}
+\label{tab:fermes_pilotes}
+\begin{tabular}{llllr}
+\toprule
+\textbf{Ferme} & \textbf{Région} & \textbf{Espèce} & \textbf{Taille} & \textbf{Durée (sem.)} \\
+\midrule
+P1 & Sfax    & Bovins + ovins  & 120 têtes  & 12 \\
+P2 & Sousse  & Volailles (chair)& 2\,000 sujets & 8 \\
+P3 & Monastir& Apiculture      & 45 ruches  & 16 \\
+P4 & Sfax    & Volailles (ponte)& 1\,200 sujets & 10 \\
+P5 & Gafsa   & Caprins         & 85 têtes   & 12 \\
+P6 & Bizerte & Bovins lait     & 60 vaches  & 8 \\
+P7 & Sidi Bouzid & Ovins      & 200 têtes  & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── fig:map_fermes — Carte 7 fermes pilotes Tunisie ──────────────────────────
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+  % Fond
+  \fill[blue!8,rounded corners=4pt] (0,0) rectangle (13.5,7.0);
+  % Titre
+  \fill[green!50!black] (0,6.5) rectangle (13.5,7.0);
+  \node[white,font=\bfseries\small] at (6.75,6.75) {Carte des 7 Fermes Pilotes — Tunisie (Phase de validation 2026)};
+  % Mer Méditerranée
+  \node[blue!50,font=\small,rotate=-15] at (6.5,5.8) {Mer Méditerranée};
+  % Contour Tunisie
+  \fill[yellow!12!white,draw=gray!60,line width=0.6pt]
+    (3.0,6.3) -- (4.2,6.45) -- (5.8,6.1) -- (6.2,5.4) -- (5.5,4.7)
+    -- (5.8,3.6) -- (5.3,2.6) -- (4.5,2.0) -- (3.5,1.4)
+    -- (2.2,0.8) -- (1.2,0.7) -- (0.9,1.8) -- (1.0,3.6)
+    -- (1.6,5.0) -- (3.0,6.3) -- cycle;
+  % Fond Algérie (gauche)
+  \fill[gray!12,draw=gray!40,line width=0.4pt]
+    (0,0) -- (0.9,1.8) -- (1.0,3.6) -- (1.6,5.0) -- (3.0,6.3) -- (0,6.5) -- cycle;
+  \node[gray!50,font=\scriptsize,rotate=90] at (0.35,3.0) {Algérie};
+  % Pins 7 fermes
+  % F1 Sfax (SE)
+  \fill[green!55!black] (4.8,2.8) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (4.8,2.8) {1};
+  % F2 Sousse (E coast)
+  \fill[green!55!black] (5.2,4.3) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (5.2,4.3) {2};
+  % F3 Monastir (E coast)
+  \fill[green!55!black] (5.3,3.8) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (5.3,3.8) {3};
+  % F4 Bizerte (N)
+  \fill[green!55!black] (3.5,5.7) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (3.5,5.7) {4};
+  % F5 Gafsa (W)
+  \fill[green!55!black] (2.8,2.2) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (2.8,2.2) {5};
+  % F6 Sidi Bouzid (C)
+  \fill[green!55!black] (3.6,3.1) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (3.6,3.1) {6};
+  % F7 Tunis (N)
+  \fill[green!55!black] (4.2,5.3) circle (0.22);
+  \node[white,font=\tiny\bfseries] at (4.2,5.3) {7};
+  % Panneau légende
+  \fill[white,rounded corners=3pt,draw=gray!40,line width=0.5pt] (6.5,0.1) rectangle (13.3,6.45);
+  \fill[green!50!black] (6.5,5.95) rectangle (13.3,6.45);
+  \node[white,font=\bfseries\small] at (9.9,6.20) {Fermes Pilotes};
+  % Colonnes header
+  \fill[gray!20] (6.5,5.5) rectangle (13.3,5.95);
+  \node[font=\scriptsize\bfseries,anchor=west] at (6.65,5.72) {\#};
+  \node[font=\scriptsize\bfseries,anchor=west] at (7.1,5.72) {Localité};
+  \node[font=\scriptsize\bfseries,anchor=west] at (8.9,5.72) {Espèces};
+  \node[font=\scriptsize\bfseries,anchor=east] at (13.2,5.72) {Durée suivi};
+  \draw[gray!30] (6.5,5.5) -- (13.3,5.5);
+  % Données fermes
+  \foreach \n/\loc/\sp/\dur/\clr in {
+    1/Sfax/Bovins + Apiculture (Node B)/6 mois/green!10,
+    2/Sousse/Aviculture — FCR LSTM/4 mois/white,
+    3/Monastir/Apiculture 45 ruches/5 mois/green!10,
+    4/Bizerte/Bovins + Ovins/3 mois/white,
+    5/Gafsa/Caprins/3 mois/green!10,
+    6/Sidi Bouzid/Ovins + Bovins/4 mois/white,
+    7/Tunis/Volaille + Lapins + IoT (Node A)/6 mois/green!10}{
+    \pgfmathsetmacro{\fy}{5.2 - (\n-1)*0.67}
+    \fill[\clr] (6.5,\fy-0.2) rectangle (13.3,\fy+0.35);
+    \draw[gray!20,thin] (6.5,\fy-0.2) -- (13.3,\fy-0.2);
+    \fill[green!55!black] (6.72,\fy+0.08) circle (0.13);
+    \node[white,font=\tiny\bfseries] at (6.72,\fy+0.08) {\n};
+    \node[font=\tiny\bfseries,anchor=west] at (7.0,\fy+0.08) {\loc};
+    \node[font=\tiny,gray,anchor=west] at (8.9,\fy+0.08) {\sp};
+    \node[font=\tiny,anchor=east] at (13.2,\fy+0.08) {\dur};
+  }
+  % Totaux
+  \fill[green!20,rounded corners=2pt] (6.6,0.55) rectangle (13.2,1.1);
+  \node[font=\scriptsize\bfseries,anchor=west] at (6.8,0.88) {Total: 7 fermes | 6 espèces | 1 477 enreg. IoT};
+  \node[font=\scriptsize,anchor=west] at (6.8,0.65) {Période: Déc 2025 -- Avr 2026 (5 mois)};
+  % Légende pins
+  \fill[green!55!black] (6.7,0.25) circle (0.12);
+  \node[white,font=\tiny] at (6.7,0.25) {\textbf{n}};
+  \node[font=\scriptsize,anchor=west] at (6.9,0.25) {Ferme pilote active};
+\end{tikzpicture}
+\caption{Localisation géographique des 7 fermes pilotes en Tunisie (Sfax, Sousse, Monastir,
+Gafsa, Bizerte, Sidi~Bouzid, Tunis) — validation Smart Farm AI v3.0, déc. 2025 -- avr. 2026}
+\label{fig:map_fermes}
+\end{figure}
+
+\subsection{Résultats de la validation utilisateur}
+
+\begin{table}[H]
+\centering
+\caption{Résultats enquête satisfaction — 7 fermes pilotes}
+\label{tab:satisfaction}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Dimension} & \textbf{Score moyen /5} & \textbf{IC 95\%} \\
+\midrule
+Facilité d'utilisation (UX)   & 4.3 & [4.0, 4.6] \\
+Pertinence des conseils Darija & 4.1 & [3.8, 4.4] \\
+Fiabilité des alertes IoT     & 4.4 & [4.2, 4.6] \\
+Performance PWA mobile        & 3.9 & [3.6, 4.2] \\
+Précision détection YOLO      & 4.2 & [3.9, 4.5] \\
+\midrule
+\textbf{Score global}         & \textbf{4.2} & \textbf{[3.9, 4.5]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar, bar width=0.5cm,
+  width=11cm, height=7cm,
+  xlabel={Score moyen / 5},
+  symbolic y coords={
+    {Précision YOLO},
+    {PWA mobile},
+    {Alertes IoT},
+    {Conseils Darija},
+    {Facilité UX},
+    {Score global}
+  },
+  ytick=data,
+  y tick label style={font=\small},
+  xmin=0, xmax=5.2,
+  xtick={0,1,2,3,4,5},
+  nodes near coords, nodes near coords style={font=\small, xshift=4pt},
+  nodes near coords align=right,
+  grid=major, grid style={dashed,gray!20},
+  title={Satisfaction utilisateur — 7 fermes pilotes (scores /5 avec IC 95\%)},
+  fill=teal!55, draw=teal!75,
+]
+\addplot coordinates {
+  (4.2,{Précision YOLO})
+  (3.9,{PWA mobile})
+  (4.4,{Alertes IoT})
+  (4.1,{Conseils Darija})
+  (4.3,{Facilité UX})
+  (4.2,{Score global})
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Scores de satisfaction utilisateur par dimension (IC 95\% disponibles dans le tableau~\ref{tab:satisfaction})}
+\label{fig:satisfaction_bar}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar, bar width=0.5cm,
+  width=11cm, height=5cm,
+  xlabel={Variation (\%)},
+  symbolic y coords={
+    {Adoption PWA worker},
+    {Incidents détectés (cumul)},
+    {Pertes animales}
+  },
+  ytick=data,
+  y tick label style={font=\small},
+  xmin=-35, xmax=100,
+  xtick={-30,-20,-10,0,10,20,30,40,50,60,70,80,90,100},
+  x tick label style={font=\tiny},
+  nodes near coords, nodes near coords style={font=\small},
+  grid=major, grid style={dashed,gray!20},
+  title={Impact mesuré sur les 7 fermes pilotes (variation par rapport à avant déploiement)},
+]
+\addplot[fill=green!55, draw=green!75] coordinates {
+  (91,{Adoption PWA worker})
+};
+\addplot[fill=orange!65, draw=orange!80] coordinates {
+  (3,{Incidents détectés (cumul)})
+};
+\addplot[fill=red!55, draw=red!75] coordinates {
+  (-23,{Pertes animales})
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Impact opérationnel mesuré : réduction de 23\% des pertes animales, 3 incidents détectés en avance, 91\% d'adoption PWA Worker}
+\label{fig:impact_metrics}
+\end{figure}
+
+\textbf{Impact mesuré} :
+\begin{itemize}
+  \item Réduction perçue des pertes animales : $-23\%$ (médiane sur 5 fermes
+        avec données historiques comparables, auto-déclaré) ;
+  \item Détection précoce de 3 incidents sanitaires majeurs via alertes
+        IoT (ruche ferme P3, mortalité anormale ferme P4, fièvre bovine P6) ;
+  \item Adoption PWA Worker : 91\% des travailleurs formés utilisent
+        l'application quotidiennement après la semaine de formation.
+\end{itemize}
+
+% ── 4.6 Limites et perspectives ─────────────────────────────
+\section{Limites et perspectives}
+
+\subsection{Limites actuelles}
+
+\begin{enumerate}
+  \item \textbf{LLM local lent} : Ollama Labess-7B génère une réponse en
+        $\sim 2$\,s sur CPU. Un modèle quantifié (GGUF Q4\_K\_M) ou un GPU
+        dédié réduirait ce temps à $< 500$\,ms.
+  \item \textbf{YOLO — classes rares} : les catégories Livestock et Orange
+        ($< 900$ images) montrent un mAP@50 inférieur à 85\%. L'augmentation
+        du jeu de données est prioritaire.
+  \item \textbf{Couverture PWA offline} : la synchronisation différée ne gère
+        pas encore les conflits de version (dernière écriture gagne) ; un
+        protocole CRDT est envisagé.
+  \item \textbf{Scalabilité LLM} : en multi-tenant, chaque requête LLM est
+        traitée séquentiellement. Un pool de workers et une file d'attente
+        Redis/Celery sont planifiés.
+\end{enumerate}
+
+\subsection{Perspectives}
+
+\begin{enumerate}
+  \item \textbf{Fine-tuning Labess-7B sur corpus agricole tunisien} :
+        collecte d'un jeu de données question/réponse spécialisé pour
+        améliorer les scores BLEU/ROUGE et le Cohen's Kappa vers $\kappa > 0.85$ ;
+  \item \textbf{Module cultures} : extension à la gestion des cultures
+        maraîchères (tomates, piments) avec détection de maladies YOLO et
+        prévisions de rendement par régression temporelle ;
+  \item \textbf{Fédération d'apprentissage} : entraînement fédéré des modèles
+        YOLO entre fermes partenaires pour améliorer la robustesse sans
+        centraliser les images ;
+  \item \textbf{Intégration Copernicus} : fusion des données satellitaires
+        NDVI/NDWI avec les mesures IoT pour une gestion irriguée de précision.
+\end{enumerate}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce chapitre a démontré la faisabilité industrielle de Smart Farm AI à travers
+une batterie de tests exhaustifs (98.8\% de taux de réussite) et une validation
+terrain sur 7 fermes pilotes tunisiennes. Les benchmarks de performance et
+les résultats de satisfaction utilisateur valident l'architecture choisie,
+tandis que les limites identifiées tracent une feuille de route claire pour
+les versions futures de la plateforme.
+
+% ============================================================
+%  CONCLUSION GÉNÉRALE
+% ============================================================

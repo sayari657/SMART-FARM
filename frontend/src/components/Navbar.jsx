@@ -11,7 +11,9 @@ export default function Navbar({ title, subtitle, actions }) {
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
-    document.body.dir = lng === 'ar' ? 'rtl' : 'ltr';
+    const dir = lng === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir  = dir;
+    document.documentElement.lang = lng;
   };
 
   const initials = user?.full_name
@@ -32,13 +34,13 @@ export default function Navbar({ title, subtitle, actions }) {
           <Menu size={16} />
         </button>
         <div>
-          <h1 style={{ fontSize: 'var(--text-xl, 18px)', fontWeight: 'var(--fw-bold, 700)', color: 'var(--color-text)', margin: 0, lineHeight: 1.2 }}>
+          <h1 style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
             {title || t('navbar.title')}
           </h1>
-          <div style={{ fontSize: 'var(--text-xs, 11px)', color: 'var(--color-text-3)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-            <span>SmartFarm AI</span>
-            <ChevronRight size={10} />
-            <span style={{ color: 'var(--color-text-2)', fontWeight: 500 }}>{title || t('navbar.title')}</span>
+          <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+            <span style={{ fontWeight: 600 }}>SmartFarm AI</span>
+            <ChevronRight size={10} style={{ color: '#9ca3af' }} />
+            <span style={{ color: '#374151', fontWeight: 600 }}>{subtitle || title || t('navbar.title')}</span>
           </div>
         </div>
       </div>

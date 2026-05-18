@@ -491,6 +491,37 @@ class PoultryEggLogResponse(PoultryEggLogBase):
     class Config:
         from_attributes = True
 
+
+# ===========================================================================
+# Warehouse / Entrepôt
+# ===========================================================================
+
+class WarehouseItemCreate(BaseModel):
+    category_id:  int
+    name_ar:      str
+    name_fr:      str
+    emoji:        Optional[str]   = "📦"
+    description:  Optional[str]   = ""
+    quantity:     float            = 0.0
+    unit:         Optional[str]   = "unités"
+    min_quantity: Optional[float] = 5.0
+    entry_date:   Optional[datetime] = None
+    expiry_date:  Optional[datetime] = None
+    notes:        Optional[str]   = ""
+
+class WarehouseItemUpdate(BaseModel):
+    name_ar:      Optional[str]   = None
+    name_fr:      Optional[str]   = None
+    emoji:        Optional[str]   = None
+    description:  Optional[str]   = None
+    quantity:     Optional[float] = None
+    unit:         Optional[str]   = None
+    min_quantity: Optional[float] = None
+    entry_date:   Optional[datetime] = None
+    expiry_date:  Optional[datetime] = None
+    notes:        Optional[str]   = None
+    category_id:  Optional[int]   = None
+
 class PoultryHealthLogBase(BaseModel):
     date: datetime = Field(default_factory=datetime.utcnow)
     event_type: str = "inspection"

@@ -315,8 +315,8 @@ export default function SovereignAssistant() {
   return (
     <>
       <style>{`
-        .sov-page    { display:flex; height:calc(100vh - 0px); overflow:hidden; background:${S.pageBg}; }
-        .sov-sidebar { width:260px; flex-shrink:0; background:${S.sidebarBg}; border-right:1px solid ${S.sideBorder}; display:flex; flex-direction:column; z-index: 10; }
+        .sov-page    { display:flex; height:100dvh; overflow:hidden; background:${S.pageBg}; }
+        .sov-sidebar { width:260px; flex-shrink:0; background:${S.sidebarBg}; border-inline-end:1px solid ${S.sideBorder}; display:flex; flex-direction:column; z-index: 10; }
         .sov-main    { flex:1; display:flex; flex-direction:column; overflow:hidden; background: url('/models%20designe/wmremove-transformed.jpeg') center/cover no-repeat ${S.chatBg}; position: relative; }
         .sov-main::before { content: ''; position: absolute; inset: 0; background: rgba(248, 250, 252, 0.85); z-index: 0; pointer-events: none; }
         .sov-msgs    { flex:1; overflow-y:auto; padding:32px 24px; display:flex; flex-direction:column; gap:24px; z-index: 1; position: relative; }
@@ -327,7 +327,7 @@ export default function SovereignAssistant() {
         .conv-item   { padding:9px 10px; border-radius:10px; cursor:pointer; display:flex; align-items:flex-start; gap:8px; margin-bottom:2px; transition:background 0.15s; }
         .conv-item:hover { background:${S.convHover}; }
         .conv-item.active { background:${S.convActive}; }
-        .sov-input-bar { padding:16px 24px 20px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-top:1px solid ${S.sideBorder}; }
+        .sov-input-bar { padding:16px 24px calc(20px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border-top:1px solid ${S.sideBorder}; }
         .sov-textarea  { flex:1; resize:none; outline:none; border:none; background:transparent; color:${S.botText}; font-size:14px; font-family:inherit; line-height:1.55; max-height:120px; overflow-y:auto; }
         .sov-textarea::placeholder { color:${S.muted}; }
         .sov-btn { border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:12px; transition:all 0.2s; flex-shrink:0; }

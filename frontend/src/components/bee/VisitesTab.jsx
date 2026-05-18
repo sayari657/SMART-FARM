@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import {
   ArrowLeft, QrCode, Calendar, Navigation,
   ThumbsUp, AlertTriangle, AlertCircle, Droplets, Camera,
@@ -9,7 +9,7 @@ import { COLORS } from './BeeConstants';
 
 const HEALTH_OPTIONS = [
   { id: 'health',    label: 'En bonne santé',   icon: ThumbsUp,     color: COLORS.success },
-  { id: 'warning',   label: 'À surveiller',      icon: AlertTriangle, color: '#fbbf24' },
+  { id: 'warning',   label: 'À surveiller',      icon: AlertTriangle, color: COLORS.honey },
   { id: 'urgent',    label: 'Urgent',             icon: AlertCircle,   color: COLORS.error },
   { id: 'treatment', label: 'Traitement requis',  icon: ShieldPlus,    color: COLORS.info }
 ];
@@ -91,9 +91,9 @@ export default function VisitesTab({
   });
 
   const inputStyle = {
-    width: '100%', height: 48, background: 'rgba(255,255,255,0.04)',
+    width: '100%', height: 48, background: '#F8F5F0',
     border: `1px solid ${COLORS.border}`, borderRadius: 12,
-    padding: '0 16px', color: 'white', outline: 'none', fontSize: 14
+    padding: '0 16px', color: COLORS.text, outline: 'none', fontSize: 14
   };
 
   /* ═══════════════════ ADD VISIT FORM ═══════════════════ */
@@ -101,7 +101,7 @@ export default function VisitesTab({
     <div style={{ background: COLORS.surface, borderRadius: 32, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
 
       {/* Header */}
-      <div style={{ padding: '28px 40px', borderBottom: `1px solid ${COLORS.border}`, background: 'rgba(255,255,255,0.02)' }}>
+      <div style={{ padding: '28px 40px', borderBottom: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
         <button onClick={() => setIsAddingVisit(false)} style={{ background: 'none', border: 'none', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
           <ArrowLeft size={18} /> Retour à l'historique
         </button>
@@ -110,7 +110,7 @@ export default function VisitesTab({
             <QrCode size={28} color={COLORS.accent} />
           </div>
           <div style={{ flex: 1 }}>
-            <h2 style={{ color: 'white', fontSize: 22, fontWeight: 900, margin: 0 }}>Nouvelle Inspection</h2>
+            <h2 style={{ color: COLORS.text, fontSize: 22, fontWeight: 900, margin: 0 }}>Nouvelle Inspection</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 12 }}>
               {/* Ruche selector */}
               <select
@@ -119,7 +119,7 @@ export default function VisitesTab({
                   const ruche = ruches.find(r => r.id === Number(e.target.value));
                   setVisiteForm({ ...visiteForm, hive_id: e.target.value, apiary_id: ruche?.apiary_id || '' });
                 }}
-                style={{ background: 'transparent', border: 'none', color: 'white', fontSize: 20, fontWeight: 800, cursor: 'pointer', outline: 'none' }}
+                style={{ background: 'transparent', border: 'none', color: COLORS.text, fontSize: 20, fontWeight: 800, cursor: 'pointer', outline: 'none' }}
               >
                 <option value="">Sélectionner une ruche...</option>
                 {ruches.map(r => <option key={r.id} value={r.id}>{r.identifier} ({emplacements.find(e => e.id === r.apiary_id)?.name || 'Site ?'})</option>)}
@@ -156,22 +156,23 @@ export default function VisitesTab({
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>BILAN DE SANTÉ</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-                {HEALTH_OPTIONS.map(st => (
-                  <button
-                    key={st.id}
-                    onClick={() => setVisiteForm({ ...visiteForm, health_state: st.id })}
-                    style={{
-                      padding: '16px', borderRadius: 16, cursor: 'pointer',
-                      border: visiteForm.health_state === st.id ? `2px solid ${st.color}` : `1px solid ${COLORS.border}`,
-                      background: visiteForm.health_state === st.id ? `${st.color}18` : 'rgba(255,255,255,0.02)',
-                      color: 'white', display: 'flex', alignItems: 'center', gap: 12,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <st.icon size={20} color={st.color} />
-                    <span style={{ fontWeight: 700, fontSize: 13 }}>{st.label}</span>
-                  </button>
-                ))}
+                {HEALTH_OPTIONS.map(st => {
+                  const emoji = st.id === 'health' ? '💚' : st.id === 'warning' ? '🟡' : st.id === 'urgent' ? '🔴' : '💊';
+                  const sel = visiteForm.health_state === st.id;
+                  return (
+                    <button key={st.id} onClick={() => setVisiteForm({ ...visiteForm, health_state: st.id })}
+                      style={{
+                        padding: '18px 12px', borderRadius: 18, cursor: 'pointer', minHeight: 80,
+                        border: sel ? `3px solid ${st.color}` : `1px solid ${COLORS.border}`,
+                        background: sel ? `${st.color}22` : 'rgba(0,0,0,0.02)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                        transition: 'all 0.2s', boxShadow: sel ? `0 0 18px ${st.color}30` : 'none',
+                      }}>
+                      <span style={{ fontSize: 28, lineHeight: 1 }}>{emoji}</span>
+                      <span style={{ fontWeight: 800, fontSize: 12, color: sel ? st.color : '#94a3b8', textAlign: 'center', lineHeight: 1.3 }}>{st.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -187,13 +188,13 @@ export default function VisitesTab({
                   { key: 'needs_pate',       label: 'Pâte (kg)',   color: COLORS.success },
                   { key: 'needs_traitement', label: 'Traitement',  color: COLORS.error }
                 ].map(item => (
-                  <div key={item.key} style={{ padding: '16px', borderRadius: 16, border: `1px solid ${COLORS.border}`, background: 'rgba(255,255,255,0.02)' }}>
+                  <div key={item.key} style={{ padding: '16px', borderRadius: 16, border: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
                     <span style={{ fontSize: 10, fontWeight: 800, color: item.color, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{item.label}</span>
                     <input
                       type="number" min="0"
                       value={visiteForm[item.key] || 0}
                       onChange={(e) => setVisiteForm({ ...visiteForm, [item.key]: parseInt(e.target.value) || 0 })}
-                      style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }}
+                      style={{ background: 'none', border: 'none', color: COLORS.text, fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }}
                     />
                   </div>
                 ))}
@@ -211,14 +212,14 @@ export default function VisitesTab({
                   { key: 'harvest_kg', label: 'Miel', color: COLORS.accent },
                   { key: 'pollen_kg',  label: 'Pollen', color: '#10b981' }
                 ].map(f => (
-                  <div key={f.key} style={{ padding: 16, borderRadius: 16, border: `1px solid ${COLORS.border}`, background: 'rgba(255,255,255,0.02)' }}>
+                  <div key={f.key} style={{ padding: 16, borderRadius: 16, border: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
                     <span style={{ fontSize: 10, fontWeight: 800, color: f.color, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{f.label}</span>
                     <input
                       type="number" min="0" step="0.1"
                       placeholder="0.0"
                       value={visiteForm[f.key] || ''}
                       onChange={(e) => setVisiteForm({ ...visiteForm, [f.key]: parseFloat(e.target.value) || 0 })}
-                      style={{ background: 'none', border: 'none', color: 'white', fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }}
+                      style={{ background: 'none', border: 'none', color: COLORS.text, fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }}
                     />
                   </div>
                 ))}
@@ -228,7 +229,7 @@ export default function VisitesTab({
             {/* Température */}
             <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Thermometer size={18} color="#fbbf24" />
+                <Thermometer size={18} color={COLORS.honey} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>TEMPÉRATURE AMBIANTE (°C)</span>
               </div>
               <input
@@ -271,16 +272,16 @@ export default function VisitesTab({
                 </div>
               ) : (
                 <div style={{ position: 'relative' }}>
-                  <button onClick={() => setPhotoMenuOpen(!photoMenuOpen)} style={{ width: '100%', height: 130, border: `2px dashed ${COLORS.border}`, borderRadius: 20, background: 'rgba(255,255,255,0.01)', color: COLORS.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'border-color 0.2s' }}>
+                  <button onClick={() => setPhotoMenuOpen(!photoMenuOpen)} style={{ width: '100%', height: 130, border: `2px dashed ${COLORS.border}`, borderRadius: 20, background: 'rgba(0,0,0,0.02)', color: COLORS.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'border-color 0.2s' }}>
                     <Camera size={28} />
                     <span style={{ fontWeight: 700, fontSize: 13 }}>Ajouter une photo</span>
                   </button>
                   {photoMenuOpen && (
                     <div style={{ position: 'absolute', top: '110%', left: 0, right: 0, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 8, zIndex: 10, boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
-                      <button onClick={startCamera} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: 'white', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
+                      <button onClick={startCamera} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
                         <Camera size={16} color={COLORS.accent} /> Prendre une photo
                       </button>
-                      <button onClick={() => photoInputRef.current?.click()} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: 'white', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
+                      <button onClick={() => photoInputRef.current?.click()} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
                         <Upload size={16} color={COLORS.accent} /> Galerie / Fichier
                       </button>
                     </div>
@@ -296,19 +297,27 @@ export default function VisitesTab({
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>NIVEAU DE MIEL</span>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['Faible', 'Moyen', 'Bon', 'Excellent'].map(lvl => (
-                  <button
-                    key={lvl}
-                    onClick={() => setVisiteForm({ ...visiteForm, honey_level: lvl })}
-                    style={{
-                      flex: 1, padding: '10px 8px', borderRadius: 12, cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                      border: visiteForm.honey_level === lvl ? `2px solid ${COLORS.accent}` : `1px solid ${COLORS.border}`,
-                      background: visiteForm.honey_level === lvl ? COLORS.accent + '20' : 'rgba(255,255,255,0.02)',
-                      color: visiteForm.honey_level === lvl ? COLORS.accent : COLORS.textMuted,
-                      transition: 'all 0.2s'
-                    }}
-                  >{lvl}</button>
-                ))}
+                {[
+                  { val: 'Faible',    emoji: '🏺', label: 'FAIBLE' },
+                  { val: 'Moyen',     emoji: '🍯', label: 'MOYEN' },
+                  { val: 'Bon',       emoji: '🍯', label: 'BON' },
+                  { val: 'Excellent', emoji: '🍯🍯', label: 'ABONDANT' },
+                ].map(lvl => {
+                  const sel = visiteForm.honey_level === lvl.val;
+                  return (
+                    <button key={lvl.val} onClick={() => setVisiteForm({ ...visiteForm, honey_level: lvl.val })}
+                      style={{
+                        flex: 1, padding: '14px 6px', borderRadius: 16, cursor: 'pointer', minHeight: 70,
+                        border: sel ? `3px solid ${COLORS.accent}` : `1px solid ${COLORS.border}`,
+                        background: sel ? COLORS.accent + '20' : 'rgba(0,0,0,0.02)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        transition: 'all 0.2s', boxShadow: sel ? `0 0 14px ${COLORS.accent}30` : 'none',
+                      }}>
+                      <span style={{ fontSize: 22, lineHeight: 1 }}>{lvl.emoji}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: sel ? COLORS.accent : COLORS.textMuted, letterSpacing: '0.5px' }}>{lvl.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -319,7 +328,7 @@ export default function VisitesTab({
                 value={visiteForm.notes || ''}
                 onChange={(e) => setVisiteForm({ ...visiteForm, notes: e.target.value })}
                 placeholder="Décrivez vos observations : comportement des abeilles, état du couvain, présence de maladies..."
-                style={{ width: '100%', minHeight: 140, background: 'rgba(255,255,255,0.02)', border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 16, color: 'white', resize: 'vertical', lineHeight: 1.6, outline: 'none', fontSize: 13 }}
+                style={{ width: '100%', minHeight: 140, background: 'rgba(0,0,0,0.02)', border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 16, color: COLORS.text, resize: 'vertical', lineHeight: 1.6, outline: 'none', fontSize: 13 }}
               />
             </div>
           </div>
@@ -328,7 +337,7 @@ export default function VisitesTab({
         {/* Submit */}
         <button
           onClick={() => handleAddVisite(visiteForm)}
-          style={{ width: '100%', height: 68, borderRadius: 20, background: `linear-gradient(135deg, ${COLORS.accent} 0%, #92400e 100%)`, border: 'none', color: 'white', fontSize: 17, fontWeight: 900, marginTop: 32, cursor: 'pointer', letterSpacing: '0.5px', boxShadow: `0 12px 30px -8px ${COLORS.accent}60`, transition: 'transform 0.2s' }}
+          style={{ width: '100%', height: 68, borderRadius: 20, background: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDark} 100%)`, border: 'none', color: 'white', fontSize: 17, fontWeight: 900, marginTop: 32, cursor: 'pointer', letterSpacing: '0.5px', boxShadow: `0 12px 30px -8px ${COLORS.accent}60`, transition: 'transform 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
@@ -344,12 +353,12 @@ export default function VisitesTab({
       {/* Top bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 30, fontWeight: 900, color: 'white', margin: 0 }}>Inspections</h1>
+          <h1 style={{ fontSize: 30, fontWeight: 900, color: COLORS.text, margin: 0 }}>Inspections</h1>
           <p style={{ color: COLORS.textMuted, marginTop: 4, fontSize: 13 }}>{filteredVisites.length} inspection(s) enregistrée(s)</p>
         </div>
         <button
           onClick={() => setIsAddingVisit(true)}
-          style={{ background: `linear-gradient(135deg, ${COLORS.accent}, #92400e)`, color: 'white', border: 'none', padding: '13px 28px', borderRadius: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: `0 4px 20px ${COLORS.accent}40` }}
+          style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`, color: 'white', border: 'none', padding: '13px 28px', borderRadius: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: `0 4px 20px ${COLORS.accent}40` }}
         >
           <Plus size={20} /> Nouvelle Inspection
         </button>
@@ -362,12 +371,12 @@ export default function VisitesTab({
           <input
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
             placeholder="Rechercher par ruche..."
-            style={{ width: '100%', height: 44, paddingLeft: 44, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, color: 'white', outline: 'none', fontSize: 13 }}
+            style={{ width: '100%', height: 44, paddingLeft: 44, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, color: COLORS.text, outline: 'none', fontSize: 13 }}
           />
         </div>
         <select
           value={filterHealth} onChange={e => setFilterHealth(e.target.value)}
-          style={{ height: 44, paddingLeft: 16, paddingRight: 16, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, color: 'white', outline: 'none', fontSize: 13 }}
+          style={{ height: 44, paddingLeft: 16, paddingRight: 16, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, color: COLORS.text, outline: 'none', fontSize: 13 }}
         >
           <option value="">Tous les états</option>
           {HEALTH_OPTIONS.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
@@ -378,7 +387,7 @@ export default function VisitesTab({
       <div style={{ background: COLORS.surface, borderRadius: 28, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+            <tr style={{ background: 'rgba(0,0,0,0.03)' }}>
               {['DATE', 'RUCHE', 'SITE', 'ÉTAT', 'RÉCOLTE', 'ACTIONS'].map(h => (
                 <th key={h} style={{ padding: '16px 24px', textAlign: 'left', color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px' }}>{h}</th>
               ))}
@@ -398,16 +407,16 @@ export default function VisitesTab({
               const site = emplacements.find(e => e.id === (v.apiary_id || ruche?.apiary_id));
               return (
                 <tr key={v.id} style={{ borderTop: `1px solid ${COLORS.border}`, transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '18px 24px', color: 'white', fontWeight: 600, fontSize: 14 }}>
+                  <td style={{ padding: '18px 24px', color: COLORS.text, fontWeight: 600, fontSize: 14 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Calendar size={14} color={COLORS.textMuted} />
                       {v.visit_date || v.date || '—'}
                     </div>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
-                    <span style={{ color: 'white', fontWeight: 800 }}>{ruche?.identifier || v.hive_id || '—'}</span>
+                    <span style={{ color: COLORS.text, fontWeight: 800 }}>{ruche?.identifier || v.hive_id || '—'}</span>
                   </td>
                   <td style={{ padding: '18px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textMuted, fontSize: 13 }}>

@@ -15,11 +15,13 @@ function WorkerLayout() {
   };
 
   return (
-    <div style={{ 
-      display:'flex', flexDirection:'column', height:'100vh',
+    <div style={{
+      display:'flex', flexDirection:'column',
+      height:'100dvh',
       background:'#0f172a', color:'#f1f5f9',
       fontFamily:"'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      maxWidth:480, margin:'0 auto', position:'relative'
+      maxWidth:480, margin:'0 auto', position:'relative',
+      overscrollBehavior:'none',
     }}>
       {/* ── TOP BAR ── */}
       <header style={{
@@ -81,7 +83,11 @@ function WorkerLayout() {
       )}
 
       {/* ── MAIN CONTENT ── */}
-      <main style={{ flex:1, overflowY:'auto', paddingBottom:80 }}>
+      <main style={{
+        flex:1, overflowY:'auto',
+        paddingBottom:'calc(80px + env(safe-area-inset-bottom))',
+        WebkitOverflowScrolling:'touch',
+      }}>
         <Outlet />
       </main>
 
@@ -93,7 +99,10 @@ function WorkerLayout() {
         backdropFilter:'blur(20px)',
         borderTop:'1px solid rgba(255,255,255,0.06)',
         display:'flex', justifyContent:'space-around', alignItems:'center',
-        height:72, zIndex:50
+        height:'calc(72px + env(safe-area-inset-bottom))',
+        paddingBottom:'env(safe-area-inset-bottom)',
+        zIndex:50,
+        touchAction:'manipulation',
       }}>
         <NavItem to="/worker" icon={<Home size={22} />} label="Accueil" end />
         <NavItem to="/worker/tasks" icon={<CheckSquare size={22} />} label="Tâches" />
@@ -132,11 +141,12 @@ function WorkerLayout() {
 
 function NavItem({ to, icon, label, end }) {
   return (
-    <NavLink to={to} end={end} style={{ textDecoration:'none' }}>
+    <NavLink to={to} end={end} style={{ textDecoration:'none', touchAction:'manipulation' }}>
       {({ isActive }) => (
         <div style={{
           display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-          padding:'4px 12px', minWidth:60,
+          padding:'8px 12px', minWidth:60, minHeight:44,
+          justifyContent:'center',
           color: isActive ? '#22c55e' : '#475569',
           transition:'color 0.2s'
         }}>

@@ -1,20 +1,10 @@
 import {
-  Wallet, Plus, X, Sprout, ShieldPlus, Wrench,
-  Truck, Users, MoreHorizontal, Trash2, TrendingUp,
+  Wallet, Plus, X, Trash2, TrendingUp,
   MapPin, Calendar, BarChart2
 } from 'lucide-react';
-import { COLORS } from './BeeConstants';
+import { COLORS, EXPENSE_CATEGORIES } from './BeeConstants';
 
-const CATEGORIES = [
-  { id: 'Alimentation', icon: Sprout,        color: '#10b981' },
-  { id: 'Traitement',   icon: ShieldPlus,    color: '#ef4444' },
-  { id: 'Équipement',   icon: Wrench,        color: '#3b82f6' },
-  { id: 'Transport',    icon: Truck,         color: '#f59e0b' },
-  { id: "Main-d'œuvre", icon: Users,         color: '#8b5cf6' },
-  { id: 'Autre',        icon: MoreHorizontal, color: '#94a3b8' }
-];
-
-const getCat = (id) => CATEGORIES.find(c => c.id === id) || CATEGORIES[5];
+const getCat = (id) => EXPENSE_CATEGORIES.find(c => c.id === id) || EXPENSE_CATEGORIES[5];
 
 export default function DepensesTab({
   depenses = [], emplacements = [],
@@ -23,7 +13,7 @@ export default function DepensesTab({
   handleAddDepense, onDelete
 }) {
   const total = depenses.reduce((s, d) => s + (parseFloat(d.montantReel) || 0), 0);
-  const byCategory = CATEGORIES.map(cat => ({
+  const byCategory = EXPENSE_CATEGORIES.map(cat => ({
     ...cat,
     sum: depenses.filter(d => d.type === cat.id).reduce((s, d) => s + (parseFloat(d.montantReel) || 0), 0)
   })).filter(c => c.sum > 0);
@@ -47,7 +37,7 @@ export default function DepensesTab({
         </div>
         <button
           onClick={() => setModalActive('depenses')}
-          style={{ background: `linear-gradient(135deg, ${COLORS.accent}, #92400e)`, color: 'white', border: 'none', padding: '12px 28px', borderRadius: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10, boxShadow: `0 4px 20px ${COLORS.accent}40`, cursor: 'pointer' }}
+          style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`, color: 'white', border: 'none', padding: '12px 28px', borderRadius: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 10, boxShadow: `0 4px 20px ${COLORS.accent}40`, cursor: 'pointer' }}
         >
           <Plus size={20} /> Ajouter Dépense
         </button>
@@ -92,7 +82,7 @@ export default function DepensesTab({
             <span style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700 }}>CATÉGORIES ACTIVES</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {CATEGORIES.map(cat => {
+            {EXPENSE_CATEGORIES.map(cat => {
               const active = depenses.some(d => d.type === cat.id);
               return (
                 <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 8, background: active ? `${cat.color}18` : 'rgba(255,255,255,0.03)', border: `1px solid ${active ? cat.color + '40' : COLORS.border}` }}>
@@ -210,7 +200,7 @@ export default function DepensesTab({
               <div>
                 <label style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px', marginBottom: 12, display: 'block' }}>CATÉGORIE</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
-                  {CATEGORIES.map(cat => (
+                  {EXPENSE_CATEGORIES.map(cat => (
                     <button
                       key={cat.id}
                       onClick={() => setDepenseForm({ ...depenseForm, type: cat.id })}
@@ -256,7 +246,7 @@ export default function DepensesTab({
 
               <button
                 onClick={() => handleAddDepense(depenseForm)}
-                style={{ height: 58, background: `linear-gradient(135deg, ${COLORS.accent}, #92400e)`, borderRadius: 16, border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer', fontSize: 15, boxShadow: `0 8px 24px ${COLORS.accent}40`, transition: 'transform 0.2s' }}
+                style={{ height: 58, background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`, borderRadius: 16, border: 'none', color: 'white', fontWeight: 900, cursor: 'pointer', fontSize: 15, boxShadow: `0 8px 24px ${COLORS.accent}40`, transition: 'transform 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                 onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
               >

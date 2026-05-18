@@ -11,7 +11,7 @@ from datetime import datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.domain import BeePlanning, BeePlanningTask, BeeHive, BeeApiary
+from app.models.domain import BeePlanning, BeePlanningTask, BeeHive, BeeApiary, BeeVisit, BeeGlobalStock
 
 router = APIRouter(prefix="/bee/planning", tags=["Bee Planning"], dependencies=[Depends(get_current_user)])
 
@@ -60,6 +60,108 @@ class PlanningOut(BaseModel):
     created_at: datetime
     tasks: List[TaskOut] = []
     class Config: from_attributes = True
+
+
+# ─── Prévision logistique ────────────────────────────────────────────────────
+
+@router.get("/logistics-preview")
+def logistics_preview(apiary_id: int, date: Optional[str] = None, db: Session = Depends(get_db)):
+    """
+    Calcule les besoins matériels totaux pour visiter tous les ruches actives
+    d'un emplacement à une date donnée.
+    Retourne : besoins par ruche + totaux + comparaison avec stock global.
+    """
+    apiary = db.query(BeeApiary).filter(BeeApiary.id == apiary_id).first()
+    if not apiary:
+        raise HTTPException(404, "Emplacement introuvable")
+
+    hives = db.query(BeeHive).filter(
+        BeeHive.apiary_id == apiary_id,
+        BeeHive.is_active == True,
+        BeeHive.hive_type != "queen_bank",
+    ).all()
+
+    # ── Multiplicateurs saisonniers (même logique que bee_analytics) ──────────
+    SEASON_MULT = {
+        "Printemps": {"sirop": 1.4, "pate": 1.3, "traitement": 0.8},
+        "Eté":       {"sirop": 1.2, "pate": 1.0, "traitement": 0.6},
+        "Automne":   {"sirop": 1.5, "pate": 1.2, "traitement": 1.2},
+        "Hiver":     {"sirop": 1.8, "pate": 1.5, "traitement": 0.5},
+    }
+    mults = SEASON_MULT.get(apiary.season or "", {"sirop": 1.0, "pate": 1.0, "traitement": 1.0})
+    flower = (apiary.flower_type or "").lower()
+    if any(f in flower for f in ["oranger", "eucalyptus", "lavande", "colza"]):
+        mults["sirop"] = max(0.5, mults["sirop"] - 0.3)
+
+    today_month = datetime.utcnow().month
+    hive_results = []
+
+    for hive in hives:
+        last_visits = (
+            db.query(BeeVisit)
+            .filter(BeeVisit.hive_id == hive.id)
+            .order_by(desc(BeeVisit.visit_date))
+            .limit(5)
+            .all()
+        )
+        if last_visits:
+            avg_sirop      = sum(v.needs_sirop      or 0 for v in last_visits) / len(last_visits)
+            avg_pate       = sum(v.needs_pate       or 0 for v in last_visits) / len(last_visits)
+            avg_traitement = sum(v.needs_traitement or 0 for v in last_visits) / len(last_visits)
+        else:
+            avg_sirop, avg_pate, avg_traitement = 5.0, 1.0, 0.0
+
+        hm = dict(mults)
+        if (hive.health_score or 7) < 4:
+            hm["traitement"] = min(hm["traitement"] * 1.8, 3.0)
+        elif (hive.health_score or 7) < 6:
+            hm["traitement"] = min(hm["traitement"] * 1.3, 2.5)
+
+        cadres = 2 if (hive.force_level or 5) >= 7 and today_month in (3, 4, 5, 6, 7) else 0
+
+        hive_results.append({
+            "hive_id":    hive.id,
+            "identifier": hive.identifier,
+            "health_score": hive.health_score,
+            "sirop_L":      round(avg_sirop      * hm["sirop"],      1),
+            "pate_kg":      round(avg_pate       * hm["pate"],       1),
+            "traitement":   round(avg_traitement * hm["traitement"]),
+            "cadres":       cadres,
+            "visits_used":  len(last_visits),
+        })
+
+    totals = {
+        "sirop_L":    round(sum(h["sirop_L"]    for h in hive_results), 1),
+        "pate_kg":    round(sum(h["pate_kg"]    for h in hive_results), 1),
+        "traitement": round(sum(h["traitement"] for h in hive_results)),
+        "cadres":     round(sum(h["cadres"]     for h in hive_results)),
+    }
+
+    global_stock = db.query(BeeGlobalStock).first()
+    stock = {
+        "sirop":    global_stock.sirop      if global_stock else 0,
+        "pate":     global_stock.pate       if global_stock else 0,
+        "traitement": global_stock.traitement if global_stock else 0,
+        "cadres":   global_stock.cadres     if global_stock else 0,
+    }
+
+    return {
+        "apiary_id":   apiary_id,
+        "apiary_name": apiary.name,
+        "season":      apiary.season,
+        "flower_type": apiary.flower_type,
+        "hive_count":  len(hives),
+        "visit_date":  date,
+        "per_hive":    hive_results,
+        "totals":      totals,
+        "stock_disponible": stock,
+        "manques": {
+            "sirop_L":    round(max(0, totals["sirop_L"]    - stock["sirop"]),   1),
+            "pate_kg":    round(max(0, totals["pate_kg"]    - stock["pate"]),    1),
+            "traitement": max(0, totals["traitement"] - stock["traitement"]),
+            "cadres":     max(0, totals["cadres"]     - stock["cadres"]),
+        },
+    }
 
 
 # ─── CRUD ────────────────────────────────────────────────────────────────────

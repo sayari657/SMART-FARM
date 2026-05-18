@@ -71,6 +71,38 @@
   --color-whatsapp: #25D366;
 }
 
+/* ---- Dark mode overrides -------------------------------------------- */
+html.dark {
+  --color-bg:           #0f172a;
+  --color-surface:      #1e293b;
+  --color-surface-2:    #1a2540;
+  --color-border:       rgba(255,255,255,0.08);
+  --color-border-light: rgba(255,255,255,0.05);
+
+  --color-text:         #f8fafc;
+  --color-text-2:       #94a3b8;
+  --color-text-3:       #475569;
+
+  --glass-bg:           rgba(30, 41, 59, 0.85);
+  --glass-border:       rgba(255, 255, 255, 0.08);
+
+  --color-critical-bg:  rgba(239,68,68,0.12);
+  --color-warning-bg:   rgba(245,158,11,0.12);
+  --color-success-bg:   rgba(34,197,94,0.12);
+  --color-info-bg:      rgba(59,130,246,0.12);
+}
+
+html.dark body, html.dark #root {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+html.dark .stat-card,
+html.dark .report-grid > * {
+  background: #1e293b;
+  border-color: rgba(255,255,255,0.08);
+}
+
 /* ---- Reset & Base ---------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -101,7 +133,7 @@ ul, ol { list-style: none; }
 /* ---- Layout ---------------------------------------------------------- */
 .app-shell {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -117,6 +149,8 @@ ul, ol { list-style: none; }
   overflow-y: auto;
   padding: 28px 32px;
   background: #ffffff;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* ---- Sidebar --------------------------------------------------------- */
@@ -128,6 +162,7 @@ ul, ol { list-style: none; }
   flex-direction: column;
   flex-shrink: 0;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   transition: width .25s ease;
 }
 
@@ -360,7 +395,7 @@ ul, ol { list-style: none; }
 .badge-neutral  { background: var(--color-bg);          color: var(--color-text-2); border: 1px solid var(--color-border); }
 
 /* ---- Tables ---------------------------------------------------------- */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th {
   text-align: left;
@@ -386,12 +421,14 @@ tbody tr:hover td { background: var(--color-surface-2); }
 .form-label { font-size: 12px; font-weight: 600; color: var(--color-text-2); }
 .form-input, .form-select {
   padding: 9px 12px;
+  min-height: 42px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
   transition: var(--transition);
   width: 100%;
+  touch-action: manipulation;
 }
 .form-input:focus, .form-select:focus {
   border-color: var(--color-primary);
@@ -435,7 +472,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
 
 /* ---- Auth pages ------------------------------------------------------ */
 .auth-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: var(--color-bg);
@@ -834,7 +871,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   .page-content { padding: 14px; }
 
   /* Grids collapse to 1 column */
-  .grid-2, .grid-3, .grid-4, .summary-grid, .grid-auto, .control-row {
+  .grid-2, .grid-3, .grid-4, .grid-auto, .control-row {
     grid-template-columns: 1fr;
     flex-direction: column;
     align-items: stretch;
@@ -981,6 +1018,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 
@@ -1449,6 +1487,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
 }
 @media (max-width: 1100px) { .phyto-cards-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 600px)  { .phyto-cards-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 375px)  { .phyto-cards-grid { grid-template-columns: 1fr; } }
 
 .phyto-card-item {
   padding: 20px 18px 16px;
@@ -1685,12 +1724,14 @@ tbody tr:hover td { background: var(--color-surface-2); }
 .farms-search-input {
   width: 100%;
   padding: 9px 36px 9px 36px;
+  min-height: 42px;
   border: 1.5px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-surface);
   font-size: 13px;
   color: var(--color-text);
   transition: border-color .18s, box-shadow .18s;
+  touch-action: manipulation;
 }
 .farms-search-input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(22,163,74,.1); }
 .farms-search-clear {
@@ -1807,6 +1848,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
 .farms-required { color: var(--color-critical); }
 .farms-input, .farms-select {
   padding: 9px 12px;
+  min-height: 42px;
   border: 1.5px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
@@ -1814,6 +1856,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   color: var(--color-text);
   transition: border-color .18s, box-shadow .18s;
   width: 100%;
+  touch-action: manipulation;
 }
 .farms-input:focus, .farms-select:focus {
   border-color: var(--color-primary);
@@ -1879,7 +1922,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
 /* ── Grid ────────────────────────────────────────────────────────────── */
 .farms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 20px;
 }
 
@@ -2510,7 +2553,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   border-radius: var(--r-xl);
   overflow: hidden;
 }
-.cv-table-wrap { overflow-x: auto; }
+.cv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cv-table {
   width: 100%; border-collapse: collapse;
 }
@@ -2903,3 +2946,963 @@ tbody tr:hover td { background: var(--color-surface-2); }
 .st-td-id   { font-size: 11px; color: var(--color-text-3); font-family: monospace; }
 .st-td-name { font-size: 13px; font-weight: 700; color: var(--color-text); }
 .st-td-loc  { font-size: 12px; color: var(--color-text-3); display: flex; align-items: center; }
+
+/* ═══════════════════════════════════════════
+   ANIMALS PAGE  (.anim-*)
+═══════════════════════════════════════════ */
+.anim-hero {
+  background: linear-gradient(135deg, #92400e 0%, #b45309 35%, #d97706 70%, #fbbf24 100%);
+  border-radius: 20px;
+  padding: clamp(24px, 4vw, 36px);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+  overflow: hidden;
+  position: relative;
+}
+.anim-hero::before {
+  content: '🐾';
+  position: absolute; right: 24px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 130px; opacity: .06; pointer-events: none;
+}
+.anim-hero-left { flex: 1; min-width: 200px; }
+.anim-hero-eyebrow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 800; letter-spacing: 3px;
+  text-transform: uppercase; color: rgba(255,255,255,.7); margin-bottom: 10px;
+}
+.anim-hero-title {
+  font-size: clamp(24px, 4vw, 36px); font-weight: 900;
+  color: #fff; letter-spacing: -0.03em; margin: 0 0 6px;
+}
+.anim-hero-sub { font-size: 13px; color: rgba(255,255,255,.75); margin: 0; }
+.anim-hero-kpis { display: flex; gap: 12px; flex-wrap: wrap; }
+.anim-kpi {
+  background: rgba(255,255,255,.92); border-radius: 14px;
+  padding: 14px 18px; min-width: 86px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.10);
+}
+.anim-kpi-val  { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.anim-kpi-label { font-size: 10px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: .05em; }
+
+.anim-section-label {
+  font-size: 9px; font-weight: 800; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--color-text-3); margin: 0 0 14px;
+}
+.anim-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px; margin-top: 8px;
+}
+.anim-farm-select {
+  height: 38px; padding: 0 12px;
+  border: 1.5px solid var(--color-border); border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+  color: var(--color-text); background: var(--color-surface);
+  outline: none; cursor: pointer; min-width: 140px;
+}
+.anim-clear-filter {
+  background: none; border: none; color: #d97706;
+  font-weight: 800; cursor: pointer; padding: 0 4px; font-size: 11px;
+}
+
+/* Animal Card */
+.anim-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 16px; overflow: hidden; cursor: pointer;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+  display: flex; flex-direction: column;
+}
+.anim-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.1);
+  border-color: transparent;
+}
+.anim-card-top {
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 12px;
+  position: relative; overflow: hidden;
+}
+.anim-card-accent {
+  position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+}
+.anim-card-species-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.anim-card-info { flex: 1; min-width: 0; }
+.anim-card-name {
+  font-size: 15px; font-weight: 800; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.anim-card-meta {
+  font-size: 11px; color: var(--color-text-3);
+  display: flex; align-items: center; gap: 4px; margin-top: 3px;
+}
+.anim-card-status {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.anim-card-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.anim-card-body {
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--color-border-light);
+  display: flex; flex-direction: column; gap: 8px; flex: 1;
+}
+.anim-card-id { font-size: 11px; color: var(--color-text-3); }
+.anim-card-id span { font-weight: 700; color: var(--color-text); }
+.anim-card-health-row { display: flex; justify-content: space-between; align-items: center; }
+.anim-card-health-label {
+  font-size: 11px; color: var(--color-text-3);
+  display: flex; align-items: center; gap: 4px; font-weight: 600;
+}
+.anim-card-health-val { font-size: 13px; font-weight: 900; }
+.anim-card-bar-bg { height: 5px; background: var(--color-border); border-radius: 99px; overflow: hidden; }
+.anim-card-bar-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+.anim-card-footer {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 4px; font-size: 12px; font-weight: 700; margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════
+   ANIMAL DETAILS PAGE  (.ad-*)
+═══════════════════════════════════════════ */
+.ad-hero {
+  border-radius: 20px;
+  padding: clamp(24px, 4vw, 36px);
+  margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; overflow: hidden; flex-wrap: wrap;
+}
+.ad-hero-left { flex: 1; min-width: 200px; }
+.ad-hero-eyebrow {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 800; letter-spacing: 3px;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.ad-hero-name { display: flex; align-items: center; gap: 14px; }
+.ad-hero-title {
+  font-size: clamp(22px, 3vw, 32px); font-weight: 900;
+  color: #fff; letter-spacing: -0.03em; margin: 0 0 4px;
+}
+.ad-hero-sub { font-size: 13px; color: rgba(255,255,255,.75); margin: 0; }
+.ad-hero-right { flex-shrink: 0; }
+
+.ad-kpi-strip { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+.ad-kpi {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px; padding: 14px 20px;
+  flex: 1; min-width: 100px; text-align: center;
+}
+.ad-kpi-val  { font-size: 18px; font-weight: 900; letter-spacing: -0.02em; }
+.ad-kpi-label {
+  font-size: 10px; font-weight: 700; color: var(--color-text-3);
+  text-transform: uppercase; letter-spacing: .05em; margin-top: 4px;
+}
+
+.ad-metrics-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 16px; padding: 20px 24px; margin-bottom: 20px;
+}
+.ad-metrics-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 700; color: var(--color-text); margin-bottom: 16px;
+}
+.ad-metrics-ts {
+  margin-left: auto; font-size: 11px; font-weight: 500;
+  color: var(--color-text-3); display: flex; align-items: center; gap: 4px;
+}
+.ad-metrics-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;
+}
+.ad-metric-tile {
+  background: var(--color-surface-2); border-radius: 10px;
+  padding: 12px 14px; text-align: center;
+}
+.ad-metric-key {
+  font-size: 10px; color: var(--color-text-3); font-weight: 600;
+  text-transform: capitalize; margin-bottom: 6px;
+}
+.ad-metric-val { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; }
+
+.ad-tabs {
+  display: flex; gap: 4px;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+}
+.ad-tabs::-webkit-scrollbar { display: none; }
+.ad-tab-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 16px; border: none; background: none;
+  font-size: 13px; font-weight: 600; color: var(--color-text-3);
+  cursor: pointer; border-bottom: 2.5px solid transparent;
+  margin-bottom: -2px; white-space: nowrap; transition: color .15s;
+}
+.ad-tab-btn:hover { color: var(--color-text); }
+.ad-tab-btn.active { font-weight: 800; }
+.ad-tab-count {
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; color: #fff;
+}
+.ad-panel-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 16px; padding: 24px; margin-bottom: 16px;
+}
+.ad-panel-title { font-size: 14px; font-weight: 800; color: var(--color-text); margin-bottom: 18px; }
+
+/* ═══════════════════════════════════════════
+   ABOUT BEE HERO  (.bee-hero-*)
+═══════════════════════════════════════════ */
+.bee-hero {
+  background: linear-gradient(135deg, #78350f 0%, #92400e 20%, #b45309 45%, #d97706 75%, #f59e0b 100%);
+  border-radius: 20px;
+  padding: clamp(24px, 3.5vw, 36px);
+  margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 22px; overflow: hidden; position: relative;
+  box-shadow: 0 8px 40px rgba(146,64,14,.30), 0 2px 8px rgba(0,0,0,.10);
+}
+.bee-hero-left { flex: 1; min-width: 220px; position: relative; z-index: 1; }
+.bee-hero-eyebrow {
+  font-size: 9px; font-weight: 800; letter-spacing: 3px;
+  text-transform: uppercase; color: rgba(255,255,255,.72); margin-bottom: 10px;
+}
+.bee-hero-title {
+  font-size: clamp(24px, 3.5vw, 34px); font-weight: 900;
+  color: #fff; letter-spacing: -0.03em; margin: 0 0 6px;
+  text-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.bee-hero-sub { font-size: 13px; color: rgba(255,255,255,.78); margin: 0; }
+.bee-hero-stats { display: flex; gap: 10px; flex-wrap: wrap; position: relative; z-index: 1; }
+.bee-hero-stat {
+  background: rgba(255,255,255,.94); border-radius: 14px;
+  padding: 13px 16px; min-width: 82px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  transition: transform .15s;
+}
+.bee-hero-stat:hover { transform: translateY(-2px); }
+.bee-hero-stat-icon { font-size: 18px; line-height: 1; }
+.bee-hero-stat-val  { font-size: 18px; font-weight: 900; color: #92400e; line-height: 1.1; }
+.bee-hero-stat-label { font-size: 9px; font-weight: 700; color: #374151; text-align: center; letter-spacing: .3px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PWA & MOBILE RESPONSIVE — global improvements
+   Breakpoints:  ≤640px (small mobile)  ·  ≤480px (very small)
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Touch targets: all tappable elements ≥ 44px ──────────────────── */
+button, [role="button"], a, select, input[type="checkbox"], input[type="radio"] {
+  touch-action: manipulation;
+}
+.btn, .sidebar-link, .farms-filter-pill, .ad-tab-btn, .farms-hero-btn,
+.farms-cancel-btn, .sidebar-collapse-btn, .sidebar-close-btn, .menu-toggle {
+  min-height: 40px;
+}
+
+/* ── Safe-area insets (iPhone notch / home indicator) ─────────────── */
+.app-shell       { padding-bottom: env(safe-area-inset-bottom); }
+.sidebar         { padding-bottom: env(safe-area-inset-bottom); }
+.page-content    { padding-bottom: max(28px, env(safe-area-inset-bottom)); }
+
+/* ── Small mobile (≤640px) ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Page padding tighter */
+  .page-content { padding: 12px 12px max(12px, env(safe-area-inset-bottom)); }
+
+  /* ── Navbar ── */
+  .navbar { padding: 0 10px; height: 56px; gap: 6px; }
+  .navbar-right { gap: 6px; }
+  /* Hide refresh + bell on very small screens to avoid overflow */
+  .navbar-right > button:not(.menu-toggle) { display: none; }
+
+  /* ── Animals hero KPIs → 2×2 grid ── */
+  .anim-hero-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .anim-kpi { min-width: auto; padding: 10px 12px; }
+  .anim-kpi-val { font-size: 18px; }
+
+  /* ── Animals toolbar → stack vertically ── */
+  .farms-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .farms-search-wrap {
+    max-width: 100%;
+    min-width: unset;
+    width: 100%;
+  }
+  .anim-farm-select {
+    min-width: unset;
+    width: 100%;
+  }
+  /* Filter pills: single scrollable row */
+  .farms-filter-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .farms-filter-pills::-webkit-scrollbar { display: none; }
+  .farms-filter-pill { flex-shrink: 0; }
+
+  /* farms-count on its own row */
+  .farms-count { justify-content: flex-start; }
+
+  /* ── Animal card grid: 1 column ── */
+  .anim-grid { grid-template-columns: 1fr; gap: 12px; }
+
+  /* ── AnimalDetails hero → stack ── */
+  .ad-hero { flex-direction: column; }
+  .ad-hero-right { align-self: flex-start; }
+
+  /* ── AnimalDetails KPI strip → 2×2 grid ── */
+  .ad-kpi-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .ad-kpi { min-width: auto; padding: 10px 12px; }
+  .ad-kpi-val { font-size: 16px; }
+
+  /* ── AnimalDetails metrics grid ── */
+  .ad-metrics-card { padding: 14px; }
+  .ad-metrics-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+  .ad-panel-card { padding: 14px; }
+
+  /* ── Tab buttons: smaller on mobile ── */
+  .ad-tab-btn { padding: 8px 10px; font-size: 12px; }
+
+  /* ── Bee hero stats → 2-col grid ── */
+  .bee-hero-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .bee-hero-stat { min-width: auto; }
+
+  /* ── Summary grid (species cards): 2 columns ── */
+  .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  /* ── Form panel ── */
+  .farms-form-body { padding: 14px; }
+  .farms-form-header { padding: 12px 14px; }
+
+  /* ── KPI boxes: 2 cols ── */
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  /* ── Cards ── */
+  .card { padding: 14px; }
+
+  /* ── Tables: horizontal scroll ── */
+  .cv-table-wrap, .ad-panel-card .cv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 480px; }
+
+  /* ── Hero sections: tighter font ── */
+  .anim-hero-title, .bee-hero-title { font-size: clamp(20px, 6vw, 28px); }
+  .ad-hero-title { font-size: clamp(18px, 5vw, 26px); }
+
+  /* ── Dashboard / Farms hero KPIs ── */
+  .farms-hero-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+}
+
+/* ── Very small (≤480px) ────────────────────────────────────────────── */
+@media (max-width: 480px) {
+
+  /* Navbar: hide language dropdown to save space */
+  .navbar .form-select { display: none; }
+  /* Keep just the menu-toggle + title */
+  .navbar-right > div:has(.form-select) { display: none; }
+
+  /* Page heading smaller */
+  .navbar-title { font-size: 15px; }
+
+  /* Species grid: 2 columns */
+  .species-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* AnimalDetails: smaller emoji */
+  .ad-hero-name > span:first-child { font-size: 30px !important; }
+
+  /* Sidebar wider for thumb reach */
+  .sidebar { width: 280px !important; }
+  .app-shell.sidebar-open .sidebar { width: 280px !important; }
+}
+
+/* ── Landscape mode on mobile ──────────────────────────────────────── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar { height: 48px; }
+  :root { --navbar-height: 48px; }
+  .page-content { padding-top: 10px; padding-bottom: 10px; }
+  .anim-hero, .ad-hero, .bee-hero { padding: 14px 20px; margin-bottom: 14px; }
+  .anim-hero::before, .bee-hero::before { display: none; }
+}
+
+/* ── Ultra-small screens (≤375px — iPhone SE, Galaxy A03) ───────────── */
+@media (max-width: 375px) {
+
+  /* Prevent any horizontal overflow */
+  body, #root { max-width: 100vw; overflow-x: hidden; }
+
+  /* Page padding */
+  .page-content { padding: 10px; }
+
+  /* Grids: force 1 column */
+  .farms-grid,
+  .anim-grid { grid-template-columns: 1fr !important; }
+
+  /* Hero KPIs: tighter */
+  .anim-kpi, .bee-hero-stat { padding: 8px 10px; }
+  .anim-kpi-val { font-size: 16px; }
+  .bee-hero-stat-val { font-size: 15px; }
+
+  /* Tabs: smaller padding */
+  .ad-tab-btn { padding: 7px 8px; font-size: 11px; gap: 4px; }
+
+  /* Cards: no outer shadow to save space */
+  .card { box-shadow: none; border-radius: var(--r); }
+
+  /* Navbar title: truncate */
+  .navbar-title { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Form inputs full height */
+  .form-input, .form-select, .farms-input, .farms-search-input {
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+
+  /* Filter pills: wrap at 2 per row */
+  .farms-filter-pills { flex-wrap: wrap; }
+  .farms-filter-pill  { flex: 1 1 calc(50% - 6px); text-align: center; }
+
+  /* Map: hide sidebar panel, show only map */
+  .map-layout > div:last-child { display: none; }
+}
+
+/* ── Global touch-action: no 300ms tap delay on clickable elements ──── */
+[role="button"],
+button,
+a,
+.hive-card,
+.summary-card,
+.anim-card,
+.species-card,
+.conv-item,
+.farms-filter-pill,
+.alert-card,
+.rec-card,
+.ad-tab-btn,
+.sidebar-link,
+.sidebar-item,
+.worker-nav-item,
+.report-card,
+.telemetry-card,
+.tree-card,
+.cv-row,
+.kpi-card,
+.metric-card {
+  touch-action: manipulation;
+}
+
+/* ── Safe-area bottom padding for About* static-bottom bars ─────────── */
+.about-footer,
+.about-actions,
+.about-sticky-bar,
+.bee-sticky-bar,
+.anim-sticky-bar {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* ── Responsive Recharts heights on small screens ───────────────────── */
+@media (max-width: 640px) {
+  .recharts-wrapper { height: 200px !important; }
+  .recharts-wrapper svg { height: 200px !important; }
+
+  /* Prevent chart containers from overflowing */
+  .recharts-responsive-container { min-height: 0 !important; }
+
+  /* Charts inside cards: tighter */
+  .card .recharts-wrapper { height: 180px !important; }
+  .card .recharts-wrapper svg { height: 180px !important; }
+}
+
+@media (max-width: 480px) {
+  .recharts-wrapper { height: 160px !important; }
+  .recharts-wrapper svg { height: 160px !important; }
+  .card .recharts-wrapper { height: 150px !important; }
+  .card .recharts-wrapper svg { height: 150px !important; }
+}
+
+/* ══ RTL (Arabic) — global layout overrides ═════════════════════════════ */
+
+/* Purely directional arrows — mirror in RTL (chevron-right/left used as breadcrumbs,
+   back/forward buttons, and expand indicators all flip correctly) */
+[dir="rtl"] .lucide-arrow-left,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-chevron-left {
+  transform: scaleX(-1);
+}
+/* ChevronDown/Up are vertical — do NOT flip them */
+
+/* Sidebar: border moves from right edge to left edge */
+[dir="rtl"] .sidebar {
+  border-right: none;
+  border-left: 1px solid var(--color-border);
+}
+
+/* Navbar breadcrumb separator: mirror the chevron */
+[dir="rtl"] .navbar-breadcrumb-sep {
+  transform: scaleX(-1);
+}
+
+/* Mobile: sidebar slides in from the right in RTL */
+@media (max-width: 768px) {
+  [dir="rtl"] .sidebar {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+  }
+  [dir="rtl"] .app-shell.sidebar-open .sidebar {
+    transform: translateX(0);
+    box-shadow: -6px 0 24px rgba(0,0,0,0.18);
+  }
+  /* SovereignAssistant conversation panel */
+  [dir="rtl"] .sov-sidebar {
+    left: auto !important;
+    right: 0 !important;
+    transform: translateX(100%) !important;
+  }
+  [dir="rtl"] .sov-sidebar.open {
+    transform: translateX(0) !important;
+  }
+}
+
+/* Tables: text stays readable in RTL */
+[dir="rtl"] table    { text-align: right; }
+[dir="rtl"] th,
+[dir="rtl"] td       { text-align: right; }
+[dir="rtl"] thead th,
+[dir="rtl"] .enterprise-table th,
+[dir="rtl"] .cv-table th,
+[dir="rtl"] .st-table th { text-align: right; }
+
+/* Sidebar link active indicator: left bar → right bar */
+[dir="rtl"] .sidebar-link {
+  border-left: none;
+  border-right: 3px solid transparent;
+}
+[dir="rtl"] .sidebar-link.active { border-right-color: var(--color-primary); }
+
+/* Settings nav items */
+[dir="rtl"] .st-nav-item { text-align: right; }
+[dir="rtl"] .st-nav-text { text-align: right; }
+
+/* Alert / info banners — indicator bar on left → right */
+[dir="rtl"] .alert-banner { border-left: none; border-right: 4px solid; }
+[dir="rtl"] .al-card      { border-left: none; border-right: 4px solid #e2e8f0; }
+
+/* KPI row separators — border-right → border-left */
+[dir="rtl"] .al-kpi,
+[dir="rtl"] .cv-kpi,
+[dir="rtl"] .rc-kpi,
+[dir="rtl"] .st-kpi {
+  border-right: none;
+  border-left: 1px solid rgba(0,0,0,.08);
+}
+[dir="rtl"] .al-kpi:last-child,
+[dir="rtl"] .cv-kpi:last-child,
+[dir="rtl"] .rc-kpi:last-child,
+[dir="rtl"] .st-kpi:last-child { border-left: none; }
+
+/* Grid card separators (phyto, arch, rec-agro) — swap axes */
+[dir="rtl"] .phyto-card-item { border-right: none; border-left: 1px solid var(--color-border); }
+[dir="rtl"] .phyto-card-item:last-child { border-left: none; }
+[dir="rtl"] .ap-arch-item    { border-right: none; border-left: 1px solid var(--color-border); }
+[dir="rtl"] .rc-agro-card    { border-right: none; border-left: 1px solid var(--color-border); }
+
+/* Animal card accent stripe — left → right */
+[dir="rtl"] .anim-card-accent { left: auto; right: 0; }
+
+/* Worker bottom nav: center the fixed bar correctly in RTL (it's centered anyway) */
+[dir="rtl"] .al-card:hover { transform: translateX(-3px); }
+
+/* Control rows: flex already flips, keep search icon on the correct side */
+[dir="rtl"] .control-item-search .lucide-search { order: 1; }
+
+/* ─── Bee Module — Accessibilité / UX illettrés ──────────────────── */
+
+/* Cibles tactiles minimales WCAG AA sur tous les boutons bee */
+.hive-card button,
+.nav-pill,
+.action-btn {
+  min-height: 44px;
+}
+
+/* Labels lisibles (taille minimale 13px) */
+.hive-card label,
+.hive-card .label-text {
+  font-size: 13px !important;
+}
+
+/* Tooltips automatiques sur les icônes seules (attribut title) */
+.hive-card [title],
+.nav-pill[title] {
+  position: relative;
+}
+.hive-card [title]:hover::after,
+.nav-pill[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1C0A00;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+/* Animation pulse déjà définie dans GlobalStyles — on l'expose aussi ici */
+@keyframes beePulse {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50%       { opacity: 1;    transform: scale(1.15); }
+}
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  GLOBAL READABILITY & VISUAL AURA LAYER                         ║
+   ║  Applies to ALL pages — ensures nothing is invisible             ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+
+/* ── 1. Base text legibility upgrade ─────────────────────────────── */
+/* Minimum contrast for "muted" text — replaces near-invisible #94a3b8 */
+:root {
+  --color-text-3: #6b7280;    /* was #94a3b8 — minimum AA contrast on white */
+}
+body { -webkit-font-smoothing: antialiased; font-feature-settings: 'kern' 1; }
+
+/* ── 2. Navbar — stronger presence ───────────────────────────────── */
+.navbar {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%) !important;
+  border-bottom: 1.5px solid #e5e7eb !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,.07), 0 1px 0 rgba(22,163,74,.08) !important;
+}
+.navbar h1 {
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em;
+}
+/* Breadcrumb subtitle */
+.navbar h1 + div { color: #6b7280 !important; font-size: 12px !important; }
+
+/* ── 3. Sidebar — stronger text contrast ─────────────────────────── */
+.sidebar-section-label {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #6b7280 !important;
+  letter-spacing: 1.5px !important;
+}
+.sidebar-link {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+}
+.sidebar-link:hover { color: var(--color-primary) !important; }
+.sidebar-link.active { color: var(--color-primary-dark) !important; font-weight: 700 !important; }
+.sidebar-user-name { font-size: 14px !important; font-weight: 700 !important; color: #111827 !important; }
+.sidebar-user-role { font-size: 12px !important; color: #6b7280 !important; }
+
+/* ── 4. Cards — stronger shadows & text ──────────────────────────── */
+.card {
+  box-shadow: 0 2px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04) !important;
+  border-color: #e5e7eb !important;
+}
+.card-title {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.01em;
+}
+.card-subtitle {
+  font-size: 13px !important;
+  color: #6b7280 !important;
+}
+
+/* ── 5. KPI Boxes — global ────────────────────────────────────────── */
+.kpi-box {
+  box-shadow: 0 4px 20px rgba(0,0,0,.07) !important;
+  border-color: #e5e7eb !important;
+}
+.kpi-value {
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+}
+.kpi-label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #4b5563 !important;
+}
+
+/* ── 6. Table typography ──────────────────────────────────────────── */
+thead th {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #374151 !important;
+  letter-spacing: .05em;
+  border-bottom: 2px solid #e5e7eb !important;
+}
+tbody td {
+  font-size: 13.5px !important;
+  color: #1f2937 !important;
+}
+tbody tr:hover td { background: #f9fafb !important; }
+
+/* ── 7. Section labels — all pages ───────────────────────────────── */
+.ap-section-label,
+.anim-section-label,
+.farms-section-label {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  color: #374151 !important;
+  letter-spacing: 2.5px !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 12px;
+  border-left: 3px solid var(--color-primary);
+  margin-bottom: 18px !important;
+}
+
+/* ── 8. Hero sections — text shadow & contrast ───────────────────── */
+/* All hero titles */
+.ap-hero-title, .al-hero-title, .cv-hero-title,
+.tl-hero-title, .rc-hero-title, .rp-hero-title,
+.st-hero-title, .anim-hero-title, .bee-hero-title,
+.ad-hero-title {
+  text-shadow: 0 2px 12px rgba(0,0,0,.20) !important;
+  letter-spacing: -0.04em !important;
+}
+/* All hero eyebrows */
+.ap-hero-eyebrow, .al-hero-eyebrow, .cv-hero-eyebrow,
+.tl-hero-eyebrow, .rc-hero-eyebrow, .rp-hero-eyebrow,
+.st-hero-eyebrow, .anim-hero-eyebrow, .bee-hero-eyebrow,
+.ad-hero-eyebrow {
+  font-size: 10px !important;
+  letter-spacing: 3px !important;
+  color: rgba(255,255,255,.88) !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,.18) !important;
+}
+/* All hero subtitles */
+.ap-hero-desc, .al-hero-sub, .cv-hero-sub,
+.tl-hero-sub, .rc-hero-sub, .rp-hero-sub,
+.st-hero-sub, .anim-hero-sub, .bee-hero-sub,
+.ad-hero-sub {
+  color: rgba(255,255,255,.90) !important;
+  font-size: 14px !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+}
+
+/* ── 9. Hero KPI tiles — white cards inside heroes ───────────────── */
+/* Force white background + strong text on ALL hero stat tiles */
+.ap-stat, .anim-kpi, .bee-hero-stat, .ad-kpi,
+.farms-kpi-tile, .al-kpi, .cv-kpi, .rc-kpi,
+.st-kpi, .tl-node-chip {
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.14) !important;
+  border: none !important;
+}
+/* Values inside hero tiles */
+.ap-stat-val  { color: #15803d !important; font-size: 24px !important; font-weight: 900 !important; }
+.anim-kpi-val { font-size: 24px !important; font-weight: 900 !important; }
+.bee-hero-stat-val { color: #92400e !important; font-size: 20px !important; font-weight: 900 !important; }
+/* Labels inside hero tiles */
+.ap-stat-label, .anim-kpi-label, .bee-hero-stat-label,
+.al-kpi-label, .cv-kpi-label, .rc-kpi-label,
+.st-kpi-label, .tl-node-chip-label, .farms-kpi-label {
+  color: #374151 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+/* ── 10. Badges — stronger legibility ───────────────────────────── */
+.badge { font-size: 12px !important; font-weight: 700 !important; padding: 4px 10px !important; }
+.badge-success  { color: #14532d !important; background: #dcfce7 !important; }
+.badge-warning  { color: #78350f !important; background: #fef3c7 !important; }
+.badge-danger   { color: #7f1d1d !important; background: #fee2e2 !important; }
+.badge-info     { color: #1e3a8a !important; background: #dbeafe !important; }
+.badge-neutral  { color: #374151 !important; background: #f3f4f6 !important; border-color: #d1d5db !important; }
+
+/* ── 11. Form elements ─────────────────────────────────────────────── */
+.form-label {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #1f2937 !important;
+}
+.form-input, .form-select, .farms-form-input {
+  font-size: 14px !important;
+  color: #0f172a !important;
+  border-color: #d1d5db !important;
+}
+.form-input::placeholder { color: #9ca3af !important; }
+.form-input:focus, .form-select:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(22,163,74,.15) !important;
+}
+
+/* ── 12. Animal card body text ──────────────────────────────────── */
+.anim-card-name  { font-size: 16px !important; font-weight: 800 !important; color: #0f172a !important; }
+.anim-card-meta  { font-size: 12px !important; color: #6b7280 !important; }
+.anim-card-id    { font-size: 12px !important; color: #6b7280 !important; }
+.anim-card-id span { color: #1f2937 !important; font-weight: 700 !important; }
+.anim-card-health-label { color: #6b7280 !important; font-size: 12px !important; font-weight: 600 !important; }
+.anim-card-health-val   { font-size: 14px !important; font-weight: 900 !important; }
+.anim-card-footer { font-size: 13px !important; font-weight: 800 !important; }
+
+/* ── 13. Animal details — tab buttons ───────────────────────────── */
+.ad-tab-btn { font-size: 13px !important; font-weight: 700 !important; color: #4b5563 !important; }
+.ad-tab-btn.active { font-size: 13px !important; font-weight: 800 !important; }
+.ad-panel-title { font-size: 16px !important; font-weight: 800 !important; color: #0f172a !important; }
+.ad-metric-key  { font-size: 11px !important; color: #6b7280 !important; font-weight: 600 !important; text-transform: capitalize; }
+.ad-metric-val  { font-size: 22px !important; font-weight: 900 !important; }
+.ad-kpi-val     { font-size: 20px !important; font-weight: 900 !important; }
+.ad-kpi-label   { font-size: 11px !important; color: #6b7280 !important; font-weight: 700 !important; }
+
+/* ── 14. Farm cards & filter toolbar ───────────────────────────── */
+.farms-count { font-size: 13px !important; font-weight: 700 !important; color: #374151 !important; }
+.farms-hero-btn {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: .02em;
+}
+.farms-filter-pill { font-size: 12px !important; font-weight: 700 !important; }
+
+/* ── 15. Settings page ───────────────────────────────────────────── */
+.st-field-label { font-size: 14px !important; font-weight: 700 !important; color: #1f2937 !important; }
+.st-field-key   { font-size: 11px !important; color: #6b7280 !important; }
+.st-nav-label   { font-size: 14px !important; font-weight: 700 !important; }
+.st-nav-count   { font-size: 12px !important; color: #6b7280 !important; }
+.st-panel-title { font-size: 16px !important; font-weight: 800 !important; color: #0f172a !important; }
+.st-hero-title  { text-shadow: 0 2px 12px rgba(0,0,0,.20) !important; }
+
+/* ── 16. Alerts page ─────────────────────────────────────────────── */
+.al-card { border-left-width: 4px !important; box-shadow: 0 2px 16px rgba(0,0,0,.07) !important; }
+.al-empty h3 { font-size: 18px !important; font-weight: 800 !important; color: #374151 !important; }
+.al-empty p  { font-size: 14px !important; color: #6b7280 !important; }
+
+/* ── 17. CV monitoring table ────────────────────────────────────── */
+.cv-table th { font-size: 12px !important; font-weight: 800 !important; color: #374151 !important; }
+.cv-table td { font-size: 13px !important; color: #1f2937 !important; }
+.cv-class-chip { font-size: 12px !important; font-weight: 700 !important; color: #0369a1 !important; }
+
+/* ── 18. Recommendations ────────────────────────────────────────── */
+.rc-agro-card-title  { font-size: 15px !important; font-weight: 800 !important; color: #0f172a !important; }
+.rc-agro-card-action { font-size: 13px !important; color: #1f2937 !important; }
+.rc-agro-card-reason { font-size: 12px !important; color: #6b7280 !important; }
+
+/* ── 19. Telemetry tab chips ────────────────────────────────────── */
+.tl-node-chip-label { font-size: 13px !important; font-weight: 800 !important; color: #0f172a !important; }
+.tl-node-chip-desc  { font-size: 11px !important; color: #6b7280 !important; }
+
+/* ── 20. Reports ─────────────────────────────────────────────────── */
+.rp-gen-btn { font-size: 14px !important; font-weight: 700 !important; }
+
+/* ── 21. Global aura — cards hover effect ────────────────────────── */
+.fcard:hover, .anim-card:hover, .ap-animal-card:hover,
+.al-card:hover, .rc-agro-card:hover {
+  box-shadow: 0 20px 48px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06) !important;
+}
+
+/* ── 22. Page content breathing room ────────────────────────────── */
+.page-content { padding: 28px 32px 48px !important; }
+
+/* ── 23. Spinner ─────────────────────────────────────────────────── */
+.spinner {
+  width: 40px; height: 40px;
+  border: 3.5px solid #e5e7eb;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+/* ── 24. Empty state ─────────────────────────────────────────────── */
+.al-empty, .empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 80px 20px; text-align: center;
+}
+.al-empty h3, .empty-state h3 {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #374151 !important;
+}
+.al-empty p, .empty-state p {
+  font-size: 14px !important;
+  color: #6b7280 !important;
+  max-width: 360px;
+}
+
+/* ── 25. About Project ──────────────────────────────────────────── */
+.ap-pillar-title { font-size: 16px !important; font-weight: 800 !important; color: #0f172a !important; }
+.ap-pillar-desc  { font-size: 13.5px !important; color: #374151 !important; line-height: 1.6 !important; }
+.ap-pillar-more  { font-size: 13px !important; font-weight: 700 !important; }
+.ap-arch-title   { font-size: 16px !important; font-weight: 800 !important; color: #0f172a !important; }
+.ap-arch-sub     { font-size: 13px !important; color: #6b7280 !important; }
+.ap-arch-item-label { font-size: 14px !important; font-weight: 800 !important; color: #0f172a !important; }
+.ap-arch-item-tech  { font-size: 12px !important; font-weight: 700 !important; }
+.ap-arch-item-desc  { font-size: 12.5px !important; color: #374151 !important; margin-top: 3px; line-height: 1.5; }
+.ap-animal-name  { font-size: 15px !important; font-weight: 800 !important; color: #0f172a !important; }
+.ap-animal-desc  { font-size: 13px !important; color: #374151 !important; line-height: 1.6 !important; }
+.ap-tech-chip    { font-size: 12px !important; font-weight: 700 !important; }
+.ap-section-sub  { font-size: 14px !important; color: #4b5563 !important; margin-bottom: 20px; }
+
+/* ── 26. Tech chips on bright backgrounds ────────────────────────── */
+.ap-tech-chip {
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.10) !important;
+  border-radius: 20px !important;
+  padding: 5px 12px !important;
+}
+
+/* ── 27. Footer text ─────────────────────────────────────────────── */
+.ap-footer-copy  { font-size: 13px !important; color: #6b7280 !important; }
+.ap-footer-badge { font-size: 12px !important; font-weight: 700 !important; }
+
+/* ── 28. Responsive: keep text readable on small screens ─────────── */
+@media (max-width: 640px) {
+  .navbar h1       { font-size: 16px !important; }
+  .kpi-value       { font-size: 24px !important; }
+  .card-title      { font-size: 15px !important; }
+  .anim-hero-title { font-size: 22px !important; }
+  .ad-hero-title   { font-size: 20px !important; }
+  .bee-hero-title  { font-size: 22px !important; }
+}
+[dir="rtl"] .ap-section-label,
+[dir="rtl"] .anim-section-label { border-left: none; border-right: 3px solid var(--color-primary); padding-left: 0; padding-right: 12px; }
+[dir="rtl"] .control-item-search input          { order: 0; }

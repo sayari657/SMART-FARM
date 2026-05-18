@@ -1,54 +1,64 @@
 import { useMemo, useState, useEffect } from 'react';
 import {
   Droplets, Plus, MapPin, TrendingUp, Flower2,
-  Award, Calendar, X, BarChart2, Leaf, ChevronDown,
+  Award, Calendar, X, BarChart2, Leaf,
   RefreshCw, Trash2, ArrowUpRight
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
+import { beeApi } from '../../services/beeApi';
+import ProductionModal from './ProductionModal.jsx';
 
-const API = 'http://localhost:8000/api/v1/bee/history';
-
-/* ── Helpers ────────────────────────────────────────────────── */
 const fmt = (n) => Number(n || 0).toFixed(1);
 
-/* ── Mini bar chart SVG ──────────────────────────────────────── */
-function MiniBarChart({ data = [], color = COLORS.accent, height = 80 }) {
+function MiniBarChart({ data = [], color = COLORS.accent, height = 120 }) {
   if (!data.length) return (
     <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: COLORS.textMuted, fontSize: 12 }}>
       Aucune donnée
     </div>
   );
   const max = Math.max(...data.map(d => d.value), 0.1);
-  const w = 100 / data.length;
+  const chartH = height - 44;
+
   return (
-    <svg viewBox={`0 0 100 ${height}`} style={{ width: '100%', height }} preserveAspectRatio="none">
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height, padding: '0 4px' }}>
       {data.map((d, i) => {
-        const barH = (d.value / max) * (height - 16);
-        const x = i * w + w * 0.15;
-        const barW = w * 0.7;
-        const y = height - barH - 14;
+        const barH = Math.max(4, (d.value / max) * chartH);
         return (
-          <g key={i}>
-            <rect x={x} y={y} width={barW} height={barH} rx={2} fill={color} opacity={0.85} />
-            <text x={x + barW / 2} y={height - 2} textAnchor="middle" fontSize={6} fill={COLORS.textMuted}>{d.label}</text>
-          </g>
+          <div key={i} style={{
+            flex: 1, minWidth: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'flex-end', height: '100%',
+          }}>
+            <span style={{ fontSize: 10, color, fontWeight: 800, marginBottom: 5, opacity: d.value > 0 ? 1 : 0 }}>
+              {d.value.toFixed(1)}
+            </span>
+            <div style={{
+              width: '55%', maxWidth: 44, minWidth: 10,
+              height: barH,
+              borderRadius: '6px 6px 3px 3px',
+              background: `linear-gradient(180deg, ${color}bb 0%, ${color} 100%)`,
+              boxShadow: `0 3px 10px ${color}30`,
+              transition: 'height 0.4s ease',
+            }} />
+            <span style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 600, marginTop: 7 }}>
+              {d.label}
+            </span>
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
-/* ── Progress bar ────────────────────────────────────────────── */
 function ProgressBar({ value, max, color }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div style={{ height: 6, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+    <div style={{ height: 6, borderRadius: 4, background: 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
       <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
     </div>
   );
 }
 
-/* ── Site production card ───────────────────────────────────── */
 function SiteCard({ site, total, onSelect, isSelected }) {
   const pct = total > 0 ? ((site.totalMiel / total) * 100).toFixed(0) : 0;
   return (
@@ -73,7 +83,7 @@ function SiteCard({ site, total, onSelect, isSelected }) {
             <MapPin size={18} color={COLORS.accent} />
           </div>
           <div>
-            <div style={{ color: 'white', fontWeight: 700, fontSize: 15 }}>{site.name || site.nom}</div>
+            <div style={{ color: COLORS.text, fontWeight: 700, fontSize: 15 }}>{site.name || site.nom}</div>
             <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2 }}>{site.flower_type || site.typeFleur} · {site.season || site.saison}</div>
           </div>
         </div>
@@ -85,16 +95,14 @@ function SiteCard({ site, total, onSelect, isSelected }) {
       <ProgressBar value={site.totalMiel} max={total || 1} color={COLORS.accent} />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
         <span style={{ color: COLORS.textMuted, fontSize: 11 }}>Part de la production totale</span>
-        <span style={{ color: 'white', fontSize: 11, fontWeight: 700 }}>{pct}%</span>
+        <span style={{ color: COLORS.text, fontSize: 11, fontWeight: 700 }}>{pct}%</span>
       </div>
     </div>
   );
 }
 
-/* ── Harvest row ────────────────────────────────────────────── */
 function HarvestRow({ p, emplacements, onDelete }) {
   const emp = emplacements.find(e => Number(e.id) === Number(p.empId));
-  const stateColor = { health: COLORS.success || '#22c55e', warning: '#f59e0b', urgent: COLORS.error }['health'] || COLORS.success;
   return (
     <div style={{
       display: 'grid',
@@ -103,13 +111,13 @@ function HarvestRow({ p, emplacements, onDelete }) {
       alignItems: 'center',
       padding: '14px 20px',
       borderRadius: 14,
-      background: 'rgba(255,255,255,0.02)',
+      background: 'rgba(0,0,0,0.02)',
       border: `1px solid ${COLORS.border}`,
       marginBottom: 8,
       transition: 'background 0.15s',
     }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+      onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Calendar size={13} color={COLORS.textMuted} />
@@ -117,23 +125,23 @@ function HarvestRow({ p, emplacements, onDelete }) {
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <MapPin size={13} color={COLORS.accent} />
-        <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>{emp?.name || emp?.nom || '—'}</span>
+        <span style={{ color: COLORS.text, fontSize: 13, fontWeight: 600 }}>{emp?.name || emp?.nom || '—'}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <Droplets size={13} color={COLORS.info} />
-        <span style={{ color: 'white', fontWeight: 700 }}>{fmt(p.honey_kg || p.miel)} kg</span>
+        <span style={{ color: COLORS.text, fontWeight: 700 }}>{fmt(p.honey_kg || p.miel)} kg</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Leaf size={13} color={COLORS.success || '#22c55e'} />
+        <Leaf size={13} color={COLORS.success} />
         <span style={{ color: COLORS.textMuted, fontSize: 12 }}>{fmt(p.pollen_kg || p.pollen)} kg</span>
       </div>
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 4,
-        background: `${COLORS.success || '#22c55e'}15`,
-        color: COLORS.success || '#22c55e',
+        background: `${COLORS.success}15`,
+        color: COLORS.success,
         padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
       }}>
-        <div style={{ width: 5, height: 5, borderRadius: '50%', background: stateColor }} />
+        <div style={{ width: 5, height: 5, borderRadius: '50%', background: COLORS.success }} />
         Validé
       </div>
       <button
@@ -148,7 +156,6 @@ function HarvestRow({ p, emplacements, onDelete }) {
   );
 }
 
-/* ── Main component ─────────────────────────────────────────── */
 export default function ProductionTab({
   productions, emplacements, ruches, visites, stock, setProductions,
   modalActive, setModalActive,
@@ -157,18 +164,15 @@ export default function ProductionTab({
   const [selectedSite, setSelectedSite] = useState(null);
   const [dbStats, setDbStats] = useState(null);
 
-
-  /* Charger les stats depuis l'API */
   const loadStats = async () => {
     try {
-      const r = await fetch(`${API}/apiaries`);
+      const r = await beeApi.getApiaries();
       if (r.ok) setDbStats(await r.json());
     } catch (_) {}
   };
 
   useEffect(() => { loadStats(); }, [productions]);
 
-  /* Stats locales (localStorage) */
   const statsParSite = useMemo(() => emplacements.map(emp => {
     const sp = productions.filter(p => Number(p.apiary_id) === Number(emp.id));
     return {
@@ -195,7 +199,6 @@ export default function ProductionTab({
   const totalGlobal = useMemo(() => productions.reduce((a, p) => a + parseFloat(p.honey_kg || 0), 0), [productions]);
   const totalPollen = useMemo(() => productions.reduce((a, p) => a + parseFloat(p.pollen_kg || 0), 0), [productions]);
 
-  /* Chart data : regrouper par mois */
   const chartData = useMemo(() => {
     const months = {};
     productions.forEach(p => {
@@ -213,7 +216,6 @@ export default function ProductionTab({
       });
   }, [productions]);
 
-  /* Sync vers l'API */
   const handleSync = async () => {
     await onSync();
     await loadStats();
@@ -221,7 +223,7 @@ export default function ProductionTab({
 
   const handleDelete = async (id) => {
     if (!confirm('Supprimer cette récolte ?')) return;
-    await fetch(`${API}/productions/${id}`, { method: 'DELETE' });
+    await beeApi.deleteProduction(id);
     if (onSync) onSync();
   };
 
@@ -230,14 +232,15 @@ export default function ProductionTab({
     : productions;
 
   const topSite = statsParSite.reduce((best, s) => s.totalMiel > (best?.totalMiel || 0) ? s : best, null);
+  const chartColors = [COLORS.accent, COLORS.info, COLORS.success, COLORS.accentLight];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
 
-      {/* ── En-tête ── */}
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: 'white', margin: 0 }}>Production & Récoltes</h1>
+          <h1 style={{ fontSize: 30, fontWeight: 800, color: COLORS.text, margin: 0 }}>Production & Récoltes</h1>
           <p style={{ color: COLORS.textMuted, marginTop: 6, fontSize: 13 }}>
             Analytique des rendements · {productions.length} récolte{productions.length !== 1 ? 's' : ''} enregistrée{productions.length !== 1 ? 's' : ''}
           </p>
@@ -247,7 +250,7 @@ export default function ProductionTab({
             onClick={handleSync}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              background: 'rgba(255,255,255,0.05)', border: `1px solid ${COLORS.border}`,
+              background: 'rgba(0,0,0,0.04)', border: `1px solid ${COLORS.border}`,
               color: COLORS.textMuted, padding: '10px 18px', borderRadius: 12, cursor: 'pointer', fontSize: 13,
             }}
           >
@@ -260,7 +263,7 @@ export default function ProductionTab({
               background: COLORS.accent, color: 'white', border: 'none',
               padding: '10px 24px', borderRadius: 14, fontWeight: 800,
               display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-              boxShadow: '0 4px 14px rgba(217,119,6,0.35)',
+              boxShadow: `0 4px 14px ${COLORS.accent}35`,
             }}
           >
             <Plus size={18} /> Nouvelle Récolte
@@ -268,25 +271,13 @@ export default function ProductionTab({
         </div>
       </div>
 
-      {/* ── KPI cards ── */}
+      {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 }}>
         {[
-          {
-            label: 'Production Totale', value: `${fmt(totalGlobal)} kg`,
-            sub: 'miel récolté', icon: Droplets, color: COLORS.accent,
-          },
-          {
-            label: 'Pollen Récolté', value: `${fmt(totalPollen)} kg`,
-            sub: 'toutes récoltes', icon: Leaf, color: COLORS.info,
-          },
-          {
-            label: 'Meilleur Site', value: topSite?.nom || '—',
-            sub: topSite ? `${fmt(topSite.totalMiel)} kg` : 'aucun', icon: Award, color: '#f59e0b',
-          },
-          {
-            label: 'Historique DB', value: dbStats ? `${fmt(dbStats.total_honey_kg)} kg` : '—',
-            sub: dbStats ? `${dbStats.total_visits} visites` : 'non synchronisé', icon: BarChart2, color: COLORS.success || '#22c55e',
-          },
+          { label: 'Production Totale', value: `${fmt(totalGlobal)} kg`, sub: 'miel récolté',        icon: Droplets, color: COLORS.accent },
+          { label: 'Pollen Récolté',    value: `${fmt(totalPollen)} kg`, sub: 'toutes récoltes',     icon: Leaf,     color: COLORS.info },
+          { label: 'Meilleur Site',     value: topSite?.nom || '—',      sub: topSite ? `${fmt(topSite.totalMiel)} kg` : 'aucun', icon: Award, color: COLORS.accentLight },
+          { label: 'Historique DB',     value: dbStats ? `${fmt(dbStats.total_honey_kg)} kg` : '—', sub: dbStats ? `${dbStats.total_visits} visites` : 'non synchronisé', icon: BarChart2, color: COLORS.success },
         ].map((kpi, i) => (
           <div key={i} style={{
             background: COLORS.surface, borderRadius: 20, padding: 22,
@@ -303,22 +294,21 @@ export default function ProductionTab({
               <ArrowUpRight size={14} color={COLORS.textMuted} style={{ opacity: 0.4 }} />
             </div>
             <div style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{kpi.label}</div>
-            <div style={{ color: 'white', fontWeight: 900, fontSize: 22, marginTop: 4, lineHeight: 1.1 }}>{kpi.value}</div>
+            <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 22, marginTop: 4, lineHeight: 1.1 }}>{kpi.value}</div>
             <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 4 }}>{kpi.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Graphique + Floraisons ── */}
+      {/* Chart + Floraisons */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
 
-        {/* Bar chart mensuel */}
         <div style={{ background: COLORS.surface, borderRadius: 28, padding: 28, border: `1px solid ${COLORS.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <TrendingUp size={18} color={COLORS.accent} />
-                <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>Courbe de production</span>
+                <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 16 }}>Courbe de production</span>
               </div>
               <p style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 4 }}>Miel récolté par période</p>
             </div>
@@ -330,12 +320,12 @@ export default function ProductionTab({
             </div>
           </div>
           {chartData.length > 0 ? (
-            <MiniBarChart data={chartData} color={COLORS.accent} height={120} />
+            <MiniBarChart data={chartData} color={COLORS.accent} height={160} />
           ) : (
             <div style={{
-              height: 120, display: 'flex', flexDirection: 'column',
+              height: 160, display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: 10,
-              background: 'rgba(255,255,255,0.02)', borderRadius: 16,
+              background: 'rgba(0,0,0,0.02)', borderRadius: 16,
             }}>
               <BarChart2 size={32} color={COLORS.textMuted} style={{ opacity: 0.3 }} />
               <p style={{ color: COLORS.textMuted, fontSize: 13 }}>Ajoutez des récoltes pour voir le graphique</p>
@@ -343,11 +333,10 @@ export default function ProductionTab({
           )}
         </div>
 
-        {/* Floraisons */}
         <div style={{ background: COLORS.surface, borderRadius: 28, padding: 28, border: `1px solid ${COLORS.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-            <Flower2 size={18} color={COLORS.success || '#22c55e'} />
-            <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>Par Floraison</span>
+            <Flower2 size={18} color={COLORS.success} />
+            <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 16 }}>Par Floraison</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {statsParFleur.length === 0 && (
@@ -359,16 +348,16 @@ export default function ProductionTab({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%',
-                      background: [COLORS.accent, COLORS.info, COLORS.success || '#22c55e', '#f59e0b'][i % 4],
+                      background: chartColors[i % 4],
                     }} />
-                    <span style={{ color: 'white', fontSize: 13, fontWeight: 600 }}>Miel de {f.name}</span>
+                    <span style={{ color: COLORS.text, fontSize: 13, fontWeight: 600 }}>Miel de {f.name}</span>
                   </div>
                   <span style={{ color: COLORS.accent, fontWeight: 800, fontSize: 13 }}>{fmt(f.honey)} kg</span>
                 </div>
                 <ProgressBar
                   value={f.honey}
                   max={Math.max(...statsParFleur.map(x => x.honey), 0.1)}
-                  color={[COLORS.accent, COLORS.info, COLORS.success || '#22c55e', '#f59e0b'][i % 4]}
+                  color={chartColors[i % 4]}
                 />
               </div>
             ))}
@@ -376,16 +365,16 @@ export default function ProductionTab({
         </div>
       </div>
 
-      {/* ── Sites de production ── */}
+      {/* Sites de production */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h2 style={{ color: 'white', fontWeight: 800, fontSize: 18, margin: 0 }}>Sites de Production</h2>
+          <h2 style={{ color: COLORS.text, fontWeight: 800, fontSize: 18, margin: 0 }}>Sites de Production</h2>
           {selectedSite && (
             <button
               onClick={() => setSelectedSite(null)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: 'rgba(255,255,255,0.05)', border: `1px solid ${COLORS.border}`,
+                background: 'rgba(0,0,0,0.04)', border: `1px solid ${COLORS.border}`,
                 color: COLORS.textMuted, padding: '6px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 12,
               }}
             >
@@ -409,12 +398,12 @@ export default function ProductionTab({
         </div>
       </div>
 
-      {/* ── Journal des récoltes ── */}
+      {/* Journal des récoltes */}
       <div style={{ background: COLORS.surface, borderRadius: 28, border: `1px solid ${COLORS.border}`, padding: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Calendar size={18} color={COLORS.info} />
-            <span style={{ color: 'white', fontWeight: 800, fontSize: 16 }}>Journal des Récoltes</span>
+            <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 16 }}>Journal des Récoltes</span>
             {selectedSite && (
               <span style={{
                 background: `${COLORS.accent}20`, color: COLORS.accent,
@@ -449,7 +438,6 @@ export default function ProductionTab({
           </div>
         ) : (
           <div>
-            {/* Header */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1.5fr 1fr 1fr 1fr auto',
@@ -467,114 +455,15 @@ export default function ProductionTab({
         )}
       </div>
 
-      {/* ── Modal nouvelle récolte ── */}
+      {/* New récolte modal */}
       {modalActive === 'production' && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
-          zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <div style={{
-            background: COLORS.surface, width: 480, borderRadius: 32,
-            border: `1px solid ${COLORS.border}`, overflow: 'hidden',
-            boxShadow: '0 40px 80px rgba(0,0,0,0.6)',
-          }}>
-            {/* Header modal */}
-            <div style={{
-              padding: '24px 32px', borderBottom: `1px solid ${COLORS.border}`,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              background: `${COLORS.accent}08`,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  background: COLORS.accent,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Droplets size={20} color="white" />
-                </div>
-                <div>
-                  <h2 style={{ color: 'white', fontSize: 18, fontWeight: 800, margin: 0 }}>Nouvelle Récolte</h2>
-                  <p style={{ color: COLORS.textMuted, fontSize: 12, margin: 0, marginTop: 2 }}>Enregistrement de production</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setModalActive(null)}
-                style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: 'white', borderRadius: 10, padding: 8, cursor: 'pointer', display: 'flex' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {/* Date */}
-              <div>
-                <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date de récolte</label>
-                <input
-                  type="date"
-                  value={prodForm.production_date || ''}
-                  onChange={e => setProdForm({ ...prodForm, production_date: e.target.value })}
-                  style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: 'white', fontSize: 14, boxSizing: 'border-box' }}
-                />
-              </div>
-
-              {/* Emplacement */}
-              <div>
-                <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Site apicole</label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={prodForm.apiary_id || ''}
-                    onChange={e => setProdForm({ ...prodForm, apiary_id: e.target.value })}
-                    style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: prodForm.apiary_id ? 'white' : COLORS.textMuted, fontSize: 14, boxSizing: 'border-box', appearance: 'none' }}
-                  >
-                    <option value="">Sélectionner un site</option>
-                    {emplacements.map(e => <option key={e.id} value={e.id}>{e.name || e.nom} — {e.flower_type || e.typeFleur}</option>)}
-                  </select>
-                  <ChevronDown size={16} color={COLORS.textMuted} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                </div>
-              </div>
-
-              {/* Quantités */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-                <div>
-                  <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    <Droplets size={11} style={{ marginRight: 4 }} />Miel (kg)
-                  </label>
-                  <input
-                    type="number" min="0" step="0.1"
-                    value={prodForm.honey_kg || ''}
-                    onChange={e => setProdForm({ ...prodForm, honey_kg: e.target.value })}
-                    style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: 'white', fontSize: 14, boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    <Leaf size={11} style={{ marginRight: 4 }} />Pollen (kg)
-                  </label>
-                  <input
-                    type="number" min="0" step="0.1"
-                    value={prodForm.pollen_kg || ''}
-                    onChange={e => setProdForm({ ...prodForm, pollen_kg: e.target.value })}
-                    style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.04)', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: 'white', fontSize: 14, boxSizing: 'border-box' }}
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={handleAddProd}
-                disabled={!prodForm.apiary_id}
-                style={{
-                  height: 54, background: prodForm.apiary_id ? COLORS.accent : 'rgba(255,255,255,0.06)',
-                  borderRadius: 16, border: 'none', color: prodForm.apiary_id ? 'white' : COLORS.textMuted,
-                  fontWeight: 800, fontSize: 15, cursor: prodForm.apiary_id ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s',
-                }}
-              >
-                Enregistrer la récolte
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProductionModal
+          emplacements={emplacements}
+          prodForm={prodForm}
+          setProdForm={setProdForm}
+          handleAddProd={handleAddProd}
+          onClose={() => setModalActive(null)}
+        />
       )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

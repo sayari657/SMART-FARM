@@ -21,8 +21,19 @@ i18n
     lng: 'fr', // Default language as requested
     fallbackLng: 'en',
     interpolation: {
-      escapeValue: false 
+      escapeValue: false
     }
   });
+
+// Apply document direction on startup and on every language change
+const applyDir = (lng) => {
+  const dir = lng === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.dir  = dir;
+  document.documentElement.lang = lng || 'fr';
+};
+// Apply immediately (init is synchronous when resources are bundled)
+applyDir(i18n.language);
+// Re-apply on every language switch
+i18n.on('languageChanged', applyDir);
 
 export default i18n;

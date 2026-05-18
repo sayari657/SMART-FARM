@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Building2, PawPrint, Activity, Eye,
   AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf,
   Layers, Bot, TreePine, Map, X, ChevronLeft, ChevronRight,
-  ChevronDown,
+  ChevronDown, Warehouse,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -19,6 +19,7 @@ const NAV = [
       { to: '/animals',      icon: PawPrint,         labelKey: 'sidebar.animals' },
       { to: '/trees',        icon: TreePine,         labelKey: 'sidebar.trees' },
       { to: '/map',          icon: Map,              labelKey: 'sidebar.map_center' },
+      { to: '/entrepot',    icon: Warehouse,        labelKey: 'sidebar.entrepot' },
     ]
   },
   {
@@ -153,7 +154,7 @@ export default function Sidebar() {
               onClick={handleNavClick}
               className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
               title={collapsed ? sp.label : undefined}
-              style={({ isActive }) => isActive ? { borderLeft: `3px solid ${sp.color}`, paddingLeft: collapsed ? undefined : 13 } : {}}
+              style={({ isActive }) => isActive ? { borderInlineStart: `3px solid ${sp.color}`, paddingInlineStart: collapsed ? undefined : 13 } : {}}
             >
               <span style={{ fontSize: collapsed ? 18 : 15, flexShrink:0, lineHeight:1 }}>{sp.emoji}</span>
               {!collapsed && <span style={{ overflow:'hidden', textOverflow:'ellipsis', fontSize:13 }}>{sp.label}</span>}

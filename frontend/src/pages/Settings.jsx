@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { PinSetup } from '../components/PinLock';
 import {
   Save, Settings2, Bell, Cpu, Building2, CheckCircle2,
   Thermometer, Droplets, Wind, Activity, Clock, MapPin,
@@ -169,7 +170,15 @@ export default function Settings() {
   const [activeSection, setActiveSection] = useState('organisation');
   const [saving, setSaving]             = useState(false);
   const [sectionStatus, setSectionStatus] = useState({}); // 'saved' | 'error' per section
-  const [dirty, setDirty]               = useState({});   // { sectionId: bool }
+  const [dirty, setDirty]               = useState({});
+  const [darkMode, setDarkMode]         = useState(() => document.documentElement.classList.contains('dark'));
+
+  const toggleDark = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };   // { sectionId: bool }
   const origRef = useRef({});
 
   /* Load all settings + farms */
@@ -310,6 +319,17 @@ export default function Settings() {
             <p className="st-hero-sub">Calibration IA · Seuils · Notifications · Sécurité · {farms.length} ferme{farms.length !== 1 ? 's' : ''} connectée{farms.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="st-hero-kpis">
+            {/* Dark mode toggle */}
+            <button onClick={toggleDark} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderRadius: 14, background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)', border: `1px solid ${darkMode ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`, cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}>
+              <span style={{ fontSize: 18 }}>{darkMode ? '🌙' : '☀️'}</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--color-text)', letterSpacing: '0.5px' }}>{darkMode ? 'Mode Sombre' : 'Mode Clair'}</div>
+                <div style={{ fontSize: 9, color: 'var(--color-text-2)', marginTop: 1 }}>Cliquer pour basculer</div>
+              </div>
+              <div style={{ width: 34, height: 20, borderRadius: 10, background: darkMode ? '#6366f1' : 'rgba(0,0,0,0.15)', position: 'relative', transition: 'background 0.2s', marginLeft: 4 }}>
+                <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: darkMode ? 17 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
+              </div>
+            </button>
             {[
               { val: Object.values(FIELD_DEFS).flat().length, label: 'Paramètres',  color: '#60a5fa', icon: Sliders },
               { val: SECTIONS.length,                          label: 'Sections',    color: '#a78bfa', icon: Settings2 },
@@ -530,7 +550,7 @@ export default function Settings() {
             {/* ── Farms section ──────────────────────────────────────── */}
             {activeSection === 'farms' && (
               <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16, marginBottom: 24 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 240px), 1fr))', gap: 16, marginBottom: 24 }}>
                   {farms.map(f => (
                     <div key={f.id} style={{
                       border: '1px solid var(--color-border)', borderRadius: 12,
@@ -613,17 +633,22 @@ export default function Settings() {
             )}
 
             {activeSection === 'security' && (
-              <div style={{
-                marginTop: 16, padding: '12px 16px', borderRadius: 10,
-                background: '#fef2f2', border: '1px solid #fecaca',
-                display: 'flex', gap: 10, alignItems: 'flex-start',
-              }}>
-                <AlertTriangle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
-                <div style={{ fontSize: 12, color: '#dc2626', lineHeight: 1.6 }}>
-                  Les paramètres de sécurité nécessitent un redémarrage du serveur backend pour être pleinement appliqués.
-                  Le timeout de session s'applique aux nouveaux tokens uniquement.
+              <>
+                <div style={{
+                  marginTop: 16, padding: '12px 16px', borderRadius: 10,
+                  background: '#fef2f2', border: '1px solid #fecaca',
+                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                }}>
+                  <AlertTriangle size={15} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ fontSize: 12, color: '#dc2626', lineHeight: 1.6 }}>
+                    Les paramètres de sécurité nécessitent un redémarrage du serveur backend pour être pleinement appliqués.
+                    Le timeout de session s'applique aux nouveaux tokens uniquement.
+                  </div>
                 </div>
-              </div>
+                <div style={{ marginTop: 16, padding: '18px 20px', borderRadius: 14, background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                  <PinSetup />
+                </div>
+              </>
             )}
 
           </div>

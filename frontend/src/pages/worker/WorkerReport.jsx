@@ -185,7 +185,7 @@ function WorkerReport() {
           />
           {photoPreview ? (
             <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden' }}>
-              <img src={photoPreview} alt="Preview" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
+              <img src={photoPreview} alt="Preview" style={{ width: '100%', height: 'clamp(140px, 40vw, 220px)', objectFit: 'cover', display: 'block' }} />
               <button
                 type="button"
                 onClick={() => { setPhoto(null); setPhotoPreview(null); }}
@@ -205,10 +205,11 @@ function WorkerReport() {
               type="button"
               onClick={() => fileInputRef.current.click()}
               style={{
-                width: '100%', height: 90, borderRadius: 10,
+                width: '100%', minHeight: 80, borderRadius: 10,
                 background: '#f8fafc', border: '2px dashed #e2e8f0',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 gap: 6, cursor: 'pointer', color: '#94a3b8', transition: 'all .2s',
+                touchAction: 'manipulation',
               }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#16a34a'; e.currentTarget.style.color = '#16a34a'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#94a3b8'; }}

@@ -1,0 +1,44 @@
+
+% ============================================================
+%  GLOSSAIRE
+% ============================================================
+\chapter*{Glossaire}
+\addcontentsline{toc}{chapter}{Glossaire}
+
+\begin{description}
+  \item[Agent IA] Composant logiciel capable de percevoir son environnement
+    (requête utilisateur, données IoT) et de produire une réponse ou une
+    action de manière autonome.
+  \item[Chunk (RAG)] Fragment de document découpé et encodé vectoriellement
+    pour la recherche sémantique dans ChromaDB. Taille moyenne : 384~tokens.
+  \item[CIoU] \textit{Complete Intersection over Union} — variante de IoU
+    intégrant distance des centres, ratio d'aspect et chevauchement ;
+    utilisée comme perte de régression dans YOLOv8 (voir équation~\ref{eq:ciou}).
+  \item[Darija] Dialecte arabe tunisien, première langue orale des éleveurs
+    ruraux ; peu doté en ressources NLP.
+  \item[DFL] \textit{Distribution Focal Loss} — perte probabiliste sur les
+    coordonnées de boîtes englobantes dans YOLOv8.
+  \item[Embedding] Représentation vectorielle dense d'un texte en haute
+    dimension. Utilisé par ChromaDB pour la recherche sémantique.
+  \item[FCR] \textit{Feed Conversion Ratio} — indice de consommation :
+    rapport aliment ingéré / gain de poids. FCR~$< 1.8$ est considéré
+    excellent pour un poulet de chair à 42~jours.
+  \item[Fine-tuning] Réentraînement partiel d'un modèle pré-entraîné sur
+    un corpus spécialisé pour adapter ses poids au domaine cible.
+  \item[mAP@50] \textit{mean Average Precision at IoU~$\geq 0.50$} —
+    métrique standard d'évaluation des détecteurs d'objets, moyennée sur
+    toutes les catégories.
+  \item[Multi-tenant] Architecture où une instance unique sert plusieurs
+    clients (fermes) avec isolation totale des données par \code{tenant\_id}.
+  \item[Offline-first] Paradigme PWA : l'application fonctionne sans
+    réseau grâce à IndexedDB et synchronise dès la reconnexion.
+  \item[PAN-FPN] \textit{Path Aggregation Network -- Feature Pyramid
+    Network} — cou de fusion multi-échelle dans YOLOv8.
+  \item[RAG] \textit{Retrieval-Augmented Generation} — enrichissement du
+    contexte LLM par récupération vectorielle de documents pertinents
+    (voir~\cite{lewis2020rag}).
+  \item[Tenant] Dans ce projet, une ferme ou un groupement de fermes
+    partageant un espace de données isolé.
+  \item[Z-score] Écart à la moyenne en unités d'écart-type :
+    $z = (x-\mu)/\sigma$. Utilisé pour la détection d'anomalies IoT.
+\end{description}

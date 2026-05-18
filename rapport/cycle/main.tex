@@ -1,0 +1,191 @@
+% ============================================================
+%  Smart Farm AI v3.0 Enterprise — Mémoire PFE
+%  Auteur : Mohamed Sayari | Intech Solutions | 2024-2025
+%  Structure multi-fichiers — fichier maître
+% ============================================================
+\documentclass[12pt,a4paper,twoside]{report}
+
+% ── Encodage et langue ──────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+
+% ── Mise en page ────────────────────────────────────────────
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Mathématiques ───────────────────────────────────────────
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{siunitx}
+
+% ── Tableaux ────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+% ── Figures ─────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ── Code source ─────────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{green!60!black},
+  stringstyle=\color{orange},
+  backgroundcolor=\color{gray!5},
+  captionpos=b,
+  extendedchars=true,
+  literate=
+    {é}{{\'{e}}}1 {è}{{\`{e}}}1 {ê}{{\^{e}}}1 {ë}{{\"e}}1
+    {à}{{\`{a}}}1 {â}{{\^{a}}}1 {ä}{{\"a}}1
+    {î}{{\^{i}}}1 {ï}{{\"i}}1
+    {ô}{{\^{o}}}1 {ö}{{\"o}}1
+    {ù}{{\`{u}}}1 {û}{{\^{u}}}1 {ü}{{\"u}}1
+    {ç}{{\c{c}}}1
+    {É}{{\'E}}1 {È}{{\`E}}1 {Ê}{{\^E}}1
+    {À}{{\`A}}1 {Â}{{\^A}}1
+    {Î}{{\^I}}1
+    {Ô}{{\^O}}1
+    {Ù}{{\`U}}1 {Û}{{\^U}}1
+    {Ç}{{\c{C}}}1
+    {²}{{\textsuperscript{2}}}1
+    {°}{{\textdegree}}1
+    {×}{{\texttimes}}1
+}
+
+% ── Boîtes colorées ─────────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% ── Algorithmes ─────────────────────────────────────────────
+\usepackage[ruled,vlined]{algorithm2e}
+
+% ── Références et liens ─────────────────────────────────────
+\usepackage[
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue,
+  pdftitle={Smart Farm AI v3.0 --- Mémoire PFE},
+  pdfauthor={Mohamed Sayari}
+]{hyperref}
+\usepackage{cleveref}
+
+% ── Typographie fine ────────────────────────────────────────
+\usepackage{microtype}
+\usepackage{csquotes}
+
+% ── Bibliographie ───────────────────────────────────────────
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=none,
+  maxbibnames=6
+]{biblatex}
+\addbibresource{references.bib}
+
+% ── Définitions théorèmes ───────────────────────────────────
+\newtheorem{definition}{Définition}[chapter]
+\newtheorem{propriete}{Propriété}[chapter]
+
+% ── En-têtes / pieds de page ────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\thepage}
+\fancyhead[RE]{\small\nouppercase{\leftmark}}
+\fancyhead[LO]{\small\nouppercase{\rightmark}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Gantt ────────────────────────────────────────────────────
+\usepackage{pgfgantt}
+
+% ── Commandes personnalisées ────────────────────────────────
+\newcommand{\ic}[2]{$#1 \pm #2$}
+\newcommand{\pval}[1]{$p < #1$}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% Compteur pour la grille apiculture (figure ch4)
+\newcounter{hi}
+
+% Boîte placeholder pour images à insérer ultérieurement
+\newcommand{\placeholder}[2][0.9]{%
+  \begin{tcolorbox}[colback=orange!6,colframe=orange!55,
+    width=#1\linewidth,center,
+    title={\small\color{red!70!black}\bfseries \faCamera\ IMAGE À INSÉRER}]
+  \centering\ttfamily\small #2\\[0.15cm]
+  {\footnotesize\itshape Remplacer par votre capture / fichier image}
+  \end{tcolorbox}%
+}
+% Version sans l'icône caméra si fontawesome non disponible
+\providecommand{\faCamera}{[img]}
+
+% ============================================================
+\begin{document}
+\pagenumbering{gobble}
+
+% Front matter
+\include{front/titlepage}
+\include{front/dedicace}
+\include{front/remerciements}
+\include{front/resume}
+
+% Lists
+\pagenumbering{roman}
+\setcounter{page}{1}
+\tableofcontents
+\listoffigures
+\listoftables
+
+\include{front/acronymes}
+\include{front/glossaire}
+
+% Main chapters
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{chapters/introduction}
+\include{chapters/ch1_contexte}
+\include{chapters/ch2_besoins}
+\include{chapters/ch3_modelisation}
+\include{chapters/ch4_realisation}
+\include{chapters/conclusion}
+
+% Appendices
+\appendix
+\include{appendices/app_a_structure}
+\include{appendices/app_b_env}
+\include{appendices/app_c_fcr}
+\include{appendices/app_d_bd}
+\include{appendices/app_e_hyperparams}
+\include{appendices/app_f_code}
+\include{appendices/app_g_data}
+\include{appendices/app_h_guide}
+
+% Bibliography
+\printbibliography[heading=bibintoc, title={Références Bibliographiques}]
+
+\end{document}

@@ -1,0 +1,54 @@
+\chapter{Hyperparamètres — Grid Search et comparaison d'algorithmes}
+\label{ann:hyperparams}
+
+\section*{E.1 — Grid Search YOLOv8 (7 configurations)}
+
+\begin{table}[H]
+\centering
+\caption{Résultats du Grid Search YOLOv8 (7 configurations d'hyperparamètres)}
+\label{tab:gs_yolo}
+\begin{tabular}{lllllrr}
+\toprule
+\textbf{Config} & \textbf{LR init} & \textbf{Batch} & \textbf{Epochs} & \textbf{Aug.} & \textbf{mAP@50 (\%)} & \textbf{Temps (h)} \\
+\midrule
+C1 & $10^{-2}$ & 8  & 100 & standard   & 82.1 & 4.2 \\
+C2 & $10^{-2}$ & 16 & 100 & standard   & 83.9 & 3.8 \\
+\textbf{C3} & $10^{-2}$ & 16 & 100 & \textbf{étendue} & \textbf{84.7} & \textbf{4.1} \\
+C4 & $5\times10^{-3}$ & 16 & 150 & étendue & 84.3 & 6.0 \\
+C5 & $10^{-2}$ & 32 & 100 & standard   & 83.2 & 3.5 \\
+C6 & $10^{-3}$ & 16 & 200 & étendue    & 84.1 & 8.2 \\
+C7 & $10^{-2}$ & 16 & 100 & + mixup    & 83.6 & 4.3 \\
+\midrule
+\multicolumn{5}{l}{\textbf{Meilleure configuration}} & \textbf{84.7} & 4.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La configuration C3 (retenue) présente le meilleur compromis performance/temps.
+L'augmentation étendue (mosaic + flip + HSV + rotation ±15° + blur) apporte
++0.8\% mAP@50 vs augmentation standard, sans surcoût computationnel significatif.
+
+\section*{E.2 — Comparaison d'algorithmes de mortalité (5-fold CV)}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison de 5 algorithmes pour la prédiction de risque de mortalité}
+\label{tab:algo_mort}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Algorithme} & \textbf{Précision} & \textbf{Rappel} & \textbf{F1} & \textbf{AUC-ROC} \\
+\midrule
+Régression logistique & $0.821 \pm 0.028$ & $0.762 \pm 0.031$ & $0.790 \pm 0.029$ & $0.863 \pm 0.031$ \\
+SVM (RBF kernel)      & $0.848 \pm 0.024$ & $0.789 \pm 0.027$ & $0.817 \pm 0.025$ & $0.881 \pm 0.028$ \\
+Random Forest         & $0.871 \pm 0.022$ & $0.801 \pm 0.024$ & $0.835 \pm 0.023$ & $0.893 \pm 0.025$ \\
+\textbf{Proposé (LR + fenêtre 7j)} & $\mathbf{0.874 \pm 0.021}$ & $\mathbf{0.810 \pm 0.021}$ & $\mathbf{0.841 \pm 0.022}$ & $\mathbf{0.907 \pm 0.026}$ \\
+XGBoost               & $0.868 \pm 0.023$ & $0.807 \pm 0.025$ & $0.836 \pm 0.024$ & $0.901 \pm 0.027$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Justification du choix} : L'algorithme proposé (régression logistique sur fenêtre glissante de 7 jours) obtient le meilleur AUC-ROC ($0.907 \pm 0.026$) tout en restant le plus interprétable et léger computationnellement — un critère important pour le déploiement sur serveur VPS modeste.
+
+% ============================================================
+%  ANNEXE F : Code source étendu
+% ============================================================

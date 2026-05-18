@@ -103,7 +103,7 @@ export default function Login() {
             <div style={{ opacity: .65, fontSize: 12, color: '#fff' }}>Enterprise Platform</div>
           </div>
         </div>
-        <h2 style={{ color: '#fff', fontSize: 32, fontWeight: 800, lineHeight: 1.2, marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: t("login.hero_title") }}></h2>
+        <h2 style={{ color: '#fff', fontSize: 'clamp(22px, 4vw, 32px)', fontWeight: 800, lineHeight: 1.2, marginBottom: 16 }} dangerouslySetInnerHTML={{ __html: t("login.hero_title") }}></h2>
         <p style={{ color: '#fff', opacity: .8, fontSize: 15, lineHeight: 1.7, maxWidth: 360 }}>{t('login.hero_desc')}</p>
         <div className="auth-features">
           {[
@@ -149,7 +149,7 @@ export default function Login() {
                   <label className="form-label">{t('login.password')}</label>
                   <div style={{ position: 'relative' }}>
                     <input className="form-input" id="login-password" type={showPw ? 'text' : 'password'} placeholder={t("login.enter_password")} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required style={{ paddingRight: 40 }} />
-                    <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer' }}>
+                    <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--color-text-3)', cursor: 'pointer', padding: '8px', touchAction: 'manipulation', minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>

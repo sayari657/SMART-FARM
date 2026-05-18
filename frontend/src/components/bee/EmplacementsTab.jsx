@@ -1,4 +1,4 @@
-import { MapPin, Plus, Navigation, X, Trash2, LayoutGrid } from 'lucide-react';
+﻿import { MapPin, Plus, Navigation, X, Trash2, LayoutGrid } from 'lucide-react';
 import { COLORS } from './BeeConstants';
 import { useState } from 'react';
 
@@ -84,7 +84,10 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
             </div>
             <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.text, marginBottom: 6 }}>{e.name || e.nom}</div>
             <div style={{ color: COLORS.textMuted, fontSize: 13, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 6 }}>
-               <Navigation size={14} color={COLORS.accent} /> {e.latitude || e.lat}, {e.longitude || e.lng}
+               <Navigation size={14} color={(e.latitude || e.lat) ? COLORS.accent : COLORS.textMuted} />
+               {(e.latitude || e.lat)
+                 ? `${e.latitude || e.lat}, ${e.longitude || e.lng}`
+                 : 'GPS non défini'}
             </div>
             
             <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -113,11 +116,11 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 20 }}>
                  <div>
                     <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 800, marginBottom: 8, display: 'block' }}>NOM DU SITE</label>
-                    <input value={empForm.name} onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })} placeholder="ex: Parc Nord" style={{ width: '100%', height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text, fontSize: 15 }} />
+                    <input value={empForm.name} onChange={(e) => setEmpForm({ ...empForm, name: e.target.value })} placeholder="ex: Parc Nord" style={{ width: '100%', height: 50, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text, fontSize: 15 }} />
                  </div>
                  <div>
                     <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 800, marginBottom: 8, display: 'block' }}>SAISON</label>
-                    <select value={empForm.season} onChange={(e) => setEmpForm({ ...empForm, season: e.target.value })} style={{ width: '100%', height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }}>
+                    <select value={empForm.season} onChange={(e) => setEmpForm({ ...empForm, season: e.target.value })} style={{ width: '100%', height: 50, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }}>
                        <option>Printemps</option><option>Eté</option><option>Automne</option><option>Hiver</option>
                     </select>
                  </div>
@@ -126,11 +129,11 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
                  <div>
                     <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 800, marginBottom: 8, display: 'block' }}>RÉGION / GOUVERNORAT</label>
-                    <input value={empForm.region} onChange={(e) => setEmpForm({ ...empForm, region: e.target.value })} placeholder="ex: Bizerte" style={{ width: '100%', height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text, fontSize: 15 }} />
+                    <input value={empForm.region} onChange={(e) => setEmpForm({ ...empForm, region: e.target.value })} placeholder="ex: Bizerte" style={{ width: '100%', height: 50, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text, fontSize: 15 }} />
                  </div>
                  <div>
                     <label style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 800, marginBottom: 8, display: 'block' }}>TYPE DE FLORAISON</label>
-                    <input value={empForm.flower_type} onChange={(e) => setEmpForm({ ...empForm, flower_type: e.target.value })} placeholder="ex: Oranger, Thym..." style={{ width: '100%', height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
+                    <input value={empForm.flower_type} onChange={(e) => setEmpForm({ ...empForm, flower_type: e.target.value })} placeholder="ex: Oranger, Thym..." style={{ width: '100%', height: 50, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
                  </div>
               </div>
 
@@ -140,8 +143,8 @@ export default function EmplacementsTab({ emplacements = [], onAction, handleAdd
                   <button onClick={captureGPS} style={{ background: 'none', border: 'none', color: COLORS.accent, fontSize: 12, fontWeight: 900, cursor: 'pointer' }}>CAPTURER GPS</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-                  <input value={empForm.latitude} onChange={(e) => setEmpForm({ ...empForm, latitude: e.target.value })} placeholder="Lat" style={{ height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
-                  <input value={empForm.longitude} onChange={(e) => setEmpForm({ ...empForm, longitude: e.target.value })} placeholder="Lng" style={{ height: 50, background: '#FEFCF7', border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
+                  <input value={empForm.latitude} onChange={(e) => setEmpForm({ ...empForm, latitude: e.target.value })} placeholder="Lat" style={{ height: 50, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
+                  <input value={empForm.longitude} onChange={(e) => setEmpForm({ ...empForm, longitude: e.target.value })} placeholder="Lng" style={{ height: 50, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '0 16px', color: COLORS.text }} />
                 </div>
               </div>
 

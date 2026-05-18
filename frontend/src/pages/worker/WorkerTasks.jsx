@@ -60,7 +60,7 @@ function WorkerTasks() {
   };
 
   return (
-    <div style={{ background: '#f3f4f6', minHeight: '100vh', paddingBottom: 100 }}>
+    <div style={{ background: '#f3f4f6', minHeight: '100dvh', paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
       {/* Header */}
       <header style={{ background: '#2563eb', padding: '24px 20px', color: 'white', borderRadius: '0 0 24px 24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -135,10 +135,10 @@ function WorkerTasks() {
       </div>
 
       {/* Floating Action Button for Anomalies */}
-      <div style={{ position: 'fixed', bottom: 30, left: 20, right: 20 }}>
-        <button 
+      <div style={{ position: 'fixed', bottom: 'calc(100px + env(safe-area-inset-bottom))', left: 20, right: 20 }}>
+        <button
           onClick={() => window.location.href = '/worker/report'}
-          style={{ width: '100%', background: '#f59e0b', color: 'white', padding: '18px', borderRadius: 20, border: 'none', fontWeight: 900, fontSize: 16, boxShadow: '0 10px 15px -3px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+          style={{ width: '100%', background: '#f59e0b', color: 'white', padding: '16px', borderRadius: 20, border: 'none', fontWeight: 900, fontSize: 16, boxShadow: '0 10px 15px -3px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 52, touchAction: 'manipulation' }}
         >
           <AlertTriangle size={20} /> + SIGNALER ANOMALIE
         </button>

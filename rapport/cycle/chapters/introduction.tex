@@ -1,0 +1,98 @@
+
+% ============================================================
+%  INTRODUCTION GÉNÉRALE
+% (pagenumbering/setcounter are in main.tex)
+% ============================================================
+\cleardoublepage
+
+\chapter*{Introduction Générale}
+\addcontentsline{toc}{chapter}{Introduction Générale}
+\markboth{Introduction Générale}{Introduction Générale}
+
+\section*{Contexte mondial}
+L'agriculture mondiale traverse une mutation profonde sous l'impulsion de
+la \textit{quatrième révolution industrielle}. Les technologies de l'Internet
+des Objets (IoT), de l'intelligence artificielle (IA) et des systèmes
+d'information géographique (GIS) convergent pour donner naissance au
+concept de \textbf{Smart Farming} — une agriculture de précision, connectée
+et pilotée par la donnée. Selon la FAO~\cite{fao2023}, la population mondiale
+devrait atteindre 9,7 milliards d'individus en 2050, imposant une augmentation
+de 70\% de la production alimentaire mondiale. Dans ce contexte, l'IA
+agricole représente un levier stratégique incontournable.
+
+\section*{Enjeux tunisiens}
+La Tunisie, dont le secteur agricole représente environ 10\% du PIB et
+emploie 16\% de la population active (UTAP~\cite{utap2023}), fait face
+à des défis structurels majeurs : morcellement foncier, vieillissement de la
+population agricole, accès limité aux technologies et dépendance vis-à-vis
+de solutions étrangères coûteuses inadaptées au contexte local. L'absence
+d'outils numériques en langue locale (Darija tunisienne) constitue un
+obstacle particulièrement saillant pour l'adoption technologique par les
+éleveurs.
+
+\section*{Présentation du projet}
+\textbf{Smart Farm AI v3.0 Enterprise} est une plateforme d'agriculture
+intelligente conçue et développée en réponse à ces défis. Elle couvre la
+gestion multi-espèces (bovins, ovins, caprins, volailles, abeilles), l'analyse
+d'image par vision par ordinateur, un assistant IA conversationnel en Darija
+tunisienne, la surveillance IoT en temps réel et un ERP avicole complet.
+L'ensemble est déployé selon une architecture multi-tenant sécurisée, accessible
+sur mobile via une PWA offline-first.
+
+\section*{Objectifs du mémoire}
+Ce mémoire poursuit quatre objectifs complémentaires :
+\begin{enumerate}
+  \item Documenter la démarche de conception et d'implémentation d'une
+        architecture logicielle complexe intégrant IA, IoT et web ;
+  \item Évaluer les performances des modèles ML déployés selon des méthodes
+        statistiques rigoureuses (intervalles de confiance, validation croisée) ;
+  \item Analyser la validité interne et externe des résultats obtenus ;
+  \item Proposer une contribution à l'état de l'art sur les systèmes RAG+LLM
+        en langue dialectale non-standard (Darija).
+\end{enumerate}
+
+\section*{Hypothèses de recherche}
+Ce travail pose trois hypothèses testables, vérifiées expérimentalement dans les
+chapitres 3 et 4 :
+\begin{description}
+  \item[\textbf{H1} — Efficacité Darija] Un pipeline RAG+LLM local (Labess-7B) obtiendra
+        un accord inter-annotateurs supérieur à $\kappa = 0.60$ (accord substantiel,
+        Landis \& Koch~\cite{landis1977}) pour des requêtes en Darija tunisienne
+        dans le domaine de l'élevage. \textit{Vérifiée} : $\kappa = 0.76$ (Chap.~3).
+  \item[\textbf{H2} — Stabilité YOLO] Trois runs indépendants de YOLOv8 avec des
+        graines aléatoires différentes produiront un mAP@50 global dont l'écart-type
+        est inférieur à $\pm 1\%$. \textit{Vérifiée} : $\sigma = 0.45\%$ (Chap.~3).
+  \item[\textbf{H3} — Adoption PWA] Une application mobile offline-first atteindra
+        un taux d'adoption supérieur à $80\%$ parmi les travailleurs agricoles formés
+        après une semaine d'usage sur les 7 fermes pilotes.
+        \textit{Vérifiée} : 91\% d'adoption (Chap.~4).
+\end{description}
+
+\section*{Contributions originales}
+Par rapport aux travaux existants, ce projet apporte trois contributions nouvelles :
+\begin{enumerate}
+  \item \textbf{Première évaluation quantitative RAG+LLM en Darija agricole} :
+        à notre connaissance, aucun travail publié ne combine RAG + LLM + évaluation
+        BLEU/ROUGE/Kappa pour le dialecte tunisien dans un contexte d'élevage.
+  \item \textbf{Protocole de validation statistique pour un ERP industriel} :
+        l'utilisation de la validation croisée 5-fold avec \textit{TimeSeriesSplit},
+        d'intervalles de confiance à 95\% et d'une analyse des menaces à la validité
+        est inhabituellement rigoureuse pour un système de gestion agricole opérationnel.
+  \item \textbf{Architecture open-source agro-tech souveraine} : l'intégration de
+        11 catégories YOLO, 5 modèles ML avicoles, RAG ChromaDB et LLM local dans
+        un déploiement Docker entièrement open-source constitue un patron d'architecture
+        reproductible pour l'agri-tech en pays émergents à connectivité limitée.
+\end{enumerate}
+
+\section*{Structure du document}
+Le mémoire est organisé en quatre chapitres. Le \textbf{Chapitre~1} présente
+l'organisme d'accueil, le contexte du projet et la méthodologie de gestion
+de projet hybride CRISP-DM/Scrum. Le \textbf{Chapitre~2} détaille l'analyse
+des besoins et l'architecture globale du système. Le \textbf{Chapitre~3}
+expose la modélisation des composants IA et l'évaluation quantitative des
+performances. Le \textbf{Chapitre~4} décrit la réalisation technique et
+la validation industrielle sur le terrain.
+
+% ============================================================
+%  CHAPITRE 1 : CONTEXTE GÉNÉRAL ET CADRE MÉTHODOLOGIQUE
+% ============================================================

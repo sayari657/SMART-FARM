@@ -59,19 +59,20 @@ function AnimalScene({ emoji, color, isActive }) {
 const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
   const { t } = useTranslation();
   return (
-    <div 
+    <div
       className={`summary-card ${isActive ? 'active' : ''}`}
       onClick={onClick}
-      style={{ 
-        height: '240px', 
-        padding: '0', 
+      style={{
+        height: 'clamp(180px, 22vw, 240px)',
+        padding: '0',
         overflow: 'hidden',
-        position: 'relative'
+        position: 'relative',
+        touchAction: 'manipulation',
       }}
     >
       {/* 3D Canvas Layer */}
-      <div style={{ width: '100%', height: '160px' }}>
-        <StableCanvas camera={{ position: [0, 0, 8], fov: 40 }} dpr={[1, 2]}>
+      <div style={{ width: '100%', height: 'clamp(110px, 14vw, 160px)' }}>
+        <StableCanvas camera={{ position: [0, 0, 8], fov: 40 }} dpr={[1, Math.min(window.devicePixelRatio, 2)]}>
           <Suspense fallback={null}>
             <AnimalScene emoji={emoji} color={color} isActive={isActive} />
           </Suspense>
@@ -79,7 +80,7 @@ const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
       </div>
 
       {/* Info Layer */}
-      <div style={{ padding: '0 20px 20px', textAlign: 'center', zIndex: 1, pointerEvents: 'none' }}>
+      <div style={{ padding: '0 12px 16px', textAlign: 'center', zIndex: 1, pointerEvents: 'none' }}>
         <div className="summary-card-title">{t(`sidebar.${sp}`)}</div>
         <div className="summary-card-count">{count} {t('animals.population')}</div>
       </div>

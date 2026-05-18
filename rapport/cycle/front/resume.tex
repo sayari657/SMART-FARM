@@ -1,0 +1,57 @@
+% ============================================================
+%  RÉSUMÉ FRANÇAIS
+% ============================================================
+\cleardoublepage
+\thispagestyle{empty}
+\chapter*{Résumé}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50]
+\textbf{Mots-clés :} Agriculture intelligente, YOLOv8, RAG, Darija tunisienne,
+IoT, FastAPI, React PWA, Multi-tenant, CRISP-DM.
+\end{tcolorbox}
+
+\medskip
+Ce mémoire présente \textbf{Smart Farm AI v3.0 Enterprise}, une plateforme
+d'agriculture intelligente souveraine conçue pour le contexte tunisien.
+La plateforme intègre une architecture microservices FastAPI, une interface
+React~18 PWA \textit{offline-first}, un système de détection visuelle basé
+sur YOLOv8 (11 catégories, mAP@50 = \ic{84.7\%}{1.8\%}) et un agent
+conversationnel en Darija tunisienne combinant RAG ChromaDB, Ollama
+(modèle Labess-7B) et Groq API (Llama-3.3-70B).
+
+Le module avicole embarque cinq modèles d'apprentissage automatique incluant
+une régression polynomiale de degré 2 pour la prédiction de l'indice de
+consommation ($R^2 = 0.891 \pm 0.024$, IC~95\%, 5-fold CV), un classifieur
+de risque de mortalité (précision = \ic{87.3\%}{2.1\%}) et une détection
+d'anomalies par score-$Z$.
+
+La validation terrain sur 7 fermes pilotes tunisiennes obtient une satisfaction
+utilisateur de 4.2/5 et une réduction perçue de 23\% des pertes animales.
+L'évaluation de l'agent Darija donne un Cohen's Kappa de $\kappa = 0.76$
+et un score BLEU-4 de 0.68, attestant d'une génération linguistique de
+qualité acceptable pour un usage professionnel.
+
+% ── Abstract (EN) ───────────────────────────────────────────
+\chapter*{Abstract}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50]
+\textbf{Keywords:} Smart Farming, YOLOv8, RAG, Tunisian Darija,
+IoT, FastAPI, React PWA, Multi-tenant, CRISP-DM.
+\end{tcolorbox}
+
+\medskip
+This thesis presents \textbf{Smart Farm AI v3.0 Enterprise}, a sovereign
+smart farming platform designed for the Tunisian agricultural context.
+The platform integrates a FastAPI microservices backend, an offline-first
+React~18 PWA, a YOLOv8-based visual detection system (11 categories,
+mAP@50 = \ic{84.7\%}{1.8\%}), and a Tunisian Darija conversational
+agent combining ChromaDB RAG, Ollama (Labess-7B) and Groq API (Llama-3.3-70B).
+
+The poultry ERP module embeds five machine learning models including a
+degree-2 polynomial regression for Feed Conversion Ratio prediction
+($R^2 = 0.891 \pm 0.024$, 95\% CI, 5-fold CV), a mortality risk
+classifier (accuracy = \ic{87.3\%}{2.1\%}), and Z-score anomaly detection.
+
+Field validation across 7 Tunisian pilot farms yields a user satisfaction
+score of 4.2/5 and a perceived 23\% reduction in animal losses.
+The Darija agent evaluation achieves Cohen's Kappa $\kappa = 0.76$ and
+BLEU-4 = 0.68, demonstrating acceptable linguistic generation quality
+for professional use.
