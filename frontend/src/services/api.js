@@ -149,6 +149,7 @@ export const alertsAPI = {
   list: () => api.get('/alerts'),
   critical: () => api.get('/alerts/critical'),
   resolve: (id, by) => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
+  delete: (id) => api.delete(`/alerts/${id}`),
   emergency: () => api.get('/alerts/emergency'),
 };
 
@@ -280,6 +281,15 @@ export const warehouseAPI = {
   update:     (id, data)   => api.put(`/warehouse/items/${id}`, data),
   delete:     (id)         => api.delete(`/warehouse/items/${id}`),
   seed:       ()           => api.post('/warehouse/seed'),
+  seedItems:  ()           => api.post('/warehouse/seed-items'),
+  reseed:     ()           => api.post('/warehouse/reseed'),
+  alerts: {
+    list:    (resolved = false) => api.get('/warehouse/alerts', { params: { resolved } }),
+    create:  (data)             => api.post('/warehouse/alerts', data),
+    resolve: (id)               => api.put(`/warehouse/alerts/${id}/resolve`),
+    delete:  (id)               => api.delete(`/warehouse/alerts/${id}`),
+  },
+  assistant: (query, lang = 'fr') => api.post('/warehouse/assistant', { query, lang }),
 };
 
 export default api;

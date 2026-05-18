@@ -1,3 +1,4 @@
+import math
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -47,7 +48,8 @@ def get_veterinarians(db: Session = Depends(get_db)):
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[v.longitude, v.latitude]),
                 properties={"id": v.id, "name": v.name, "specialty": v.specialty,
-                            "phone": v.phone, "address": v.address}
+                            "phone": v.phone, "address": v.address,
+                            "lat": v.latitude, "lon": v.longitude}
             ))
         return GeoJSONFeatureCollection(features=features)
 
@@ -62,7 +64,8 @@ def get_veterinarians(db: Session = Depends(get_db)):
         GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[r.lon, r.lat]),
             properties={"id": r.id, "name": r.name, "specialty": r.specialty,
-                        "phone": r.phone, "address": r.address}
+                        "phone": r.phone, "address": r.address,
+                        "lat": r.lat, "lon": r.lon}
         ) for r in rows
     ]
     return GeoJSONFeatureCollection(features=features)
@@ -78,17 +81,19 @@ def get_farms_geojson(db: Session = Depends(get_db)):
                 continue
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[f.longitude, f.latitude]),
-                properties={"id": f.id, "name": f.name, "status": f.status}
+                properties={"id": f.id, "name": f.name, "status": f.status,
+                            "address": f.location, "lat": f.latitude, "lon": f.longitude}
             ))
         return GeoJSONFeatureCollection(features=features)
 
     from sqlalchemy import text
-    query = text("SELECT id, name, status, ST_X(geom) as lon, ST_Y(geom) as lat FROM farms")
+    query = text("SELECT id, name, status, location, ST_X(geom) as lon, ST_Y(geom) as lat FROM farms")
     rows = db.execute(query).fetchall()
     features = [
         GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[r.lon, r.lat]),
-            properties={"id": r.id, "name": r.name, "status": r.status}
+            properties={"id": r.id, "name": r.name, "status": r.status,
+                        "address": r.location, "lat": r.lat, "lon": r.lon}
         ) for r in rows
     ]
     return GeoJSONFeatureCollection(features=features)
@@ -105,7 +110,8 @@ def get_markets_geojson(db: Session = Depends(get_db)):
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[m.longitude, m.latitude]),
                 properties={"id": m.id, "name": m.name, "type": m.market_type,
-                            "phone": m.phone, "address": m.address, "description": m.description}
+                            "phone": m.phone, "address": m.address, "description": m.description,
+                            "lat": m.latitude, "lon": m.longitude}
             ))
         return GeoJSONFeatureCollection(features=features)
 
@@ -120,7 +126,8 @@ def get_markets_geojson(db: Session = Depends(get_db)):
         GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[r.lon, r.lat]),
             properties={"id": r.id, "name": r.name, "type": r.market_type,
-                        "phone": r.phone, "address": r.address, "description": r.description}
+                        "phone": r.phone, "address": r.address, "description": r.description,
+                        "lat": r.lat, "lon": r.lon}
         ) for r in rows
     ]
     return GeoJSONFeatureCollection(features=features)
@@ -132,37 +139,78 @@ def get_hives_geojson(db: Session = Depends(get_db)):
     from sqlalchemy import desc
 
     features = []
+    RING_RADIUS_DEG = 0.0003  # ~33 m — keeps hives visually distinct but near real location
 
+    # --- AnimalUnit hives (IoT-linked) ---
     bee_type = db.query(AnimalType).filter(AnimalType.species == "bee").first()
     if bee_type:
-        hives = db.query(AnimalUnit).filter(AnimalUnit.type_id == bee_type.id).all()
+        hives = [h for h in db.query(AnimalUnit).filter(AnimalUnit.type_id == bee_type.id).all()
+                 if h.farm and h.farm.latitude is not None and h.farm.longitude is not None]
+
+        # Group indices per farm for circular placement
+        farm_idx: dict = {}
+        farm_counts: dict = {}
         for h in hives:
-            if not h.farm or h.farm.latitude is None or h.farm.longitude is None:
-                continue
-            latest = db.query(TelemetryRecord).filter(TelemetryRecord.unit_id == h.id).order_by(desc(TelemetryRecord.timestamp)).first()
+            farm_counts[h.farm_id] = farm_counts.get(h.farm_id, 0) + 1
+
+        for h in hives:
+            latest = (db.query(TelemetryRecord)
+                      .filter(TelemetryRecord.unit_id == h.id)
+                      .order_by(desc(TelemetryRecord.timestamp))
+                      .first())
             metrics = latest.metrics if latest else {"weight": 0, "temperature": 0, "humidity": 0}
-            lat = h.farm.latitude + (hash(h.name) % 100 / 10000)
-            lon = h.farm.longitude + (hash(h.name) % 80 / 10000)
+
+            idx = farm_idx.get(h.farm_id, 0)
+            farm_idx[h.farm_id] = idx + 1
+            total = farm_counts[h.farm_id]
+
+            if total > 1:
+                angle = (idx * 2 * math.pi) / total
+                lat = h.farm.latitude + RING_RADIUS_DEG * math.sin(angle)
+                lon = h.farm.longitude + RING_RADIUS_DEG * math.cos(angle)
+            else:
+                lat, lon = h.farm.latitude, h.farm.longitude
+
             features.append(GeoJSONFeature(
                 geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
                 properties={"id": f"unit_{h.id}", "name": h.name, "status": h.status,
                             "metrics": metrics,
+                            "lat": lat, "lon": lon,
+                            "address": h.farm.location or h.farm.name,
                             "timestamp": latest.timestamp.isoformat() if latest else None,
                             "type": "unit"}
             ))
 
-    smart_hives = db.query(BeeHive).all()
+    # --- BeeHive management hives ---
+    smart_hives = [sh for sh in db.query(BeeHive).all()
+                   if sh.apiary and sh.apiary.latitude is not None and sh.apiary.longitude is not None]
+
+    apiary_idx: dict = {}
+    apiary_counts: dict = {}
     for sh in smart_hives:
-        if not sh.apiary or sh.apiary.latitude is None or sh.apiary.longitude is None:
-            continue
-        lat = sh.apiary.latitude + (hash(sh.identifier) % 100 / 10000)
-        lon = sh.apiary.longitude + (hash(sh.identifier) % 80 / 10000)
+        apiary_counts[sh.apiary_id] = apiary_counts.get(sh.apiary_id, 0) + 1
+
+    for sh in smart_hives:
+        idx = apiary_idx.get(sh.apiary_id, 0)
+        apiary_idx[sh.apiary_id] = idx + 1
+        total = apiary_counts[sh.apiary_id]
+
+        if total > 1:
+            angle = (idx * 2 * math.pi) / total
+            lat = sh.apiary.latitude + RING_RADIUS_DEG * math.sin(angle)
+            lon = sh.apiary.longitude + RING_RADIUS_DEG * math.cos(angle)
+        else:
+            lat, lon = sh.apiary.latitude, sh.apiary.longitude
+
+        region_label = sh.apiary.region or sh.apiary.flower_type or "Tunisie"
         features.append(GeoJSONFeature(
             geometry=GeoJSONGeometry(type="Point", coordinates=[lon, lat]),
             properties={"id": f"bee_{sh.id}",
                         "name": f"{sh.identifier} ({sh.apiary.name})",
                         "status": "healthy" if sh.health_score > 7 else ("warning" if sh.health_score > 4 else "critical"),
                         "metrics": {"weight": sh.honey_level, "temperature": 35.0, "humidity": 60.0},
+                        "lat": lat, "lon": lon,
+                        "address": f"{sh.apiary.name} — {region_label}",
                         "timestamp": sh.updated_at.isoformat() if sh.updated_at else None,
                         "type": "beehive"}
         ))

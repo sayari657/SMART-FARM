@@ -744,6 +744,27 @@ class WarehouseItem(Base):
     )
 
 
+class WarehouseAlert(Base):
+    """Alerte de stock entrepôt (rupture ou stock faible)."""
+    __tablename__ = "warehouse_alerts"
+
+    id            = Column(Integer,  primary_key=True, index=True)
+    item_id       = Column(Integer,  ForeignKey("warehouse_items.id", ondelete="SET NULL"), nullable=True)
+    item_name     = Column(String(200), nullable=False)
+    category_name = Column(String(200), nullable=True)
+    emoji         = Column(String(10),  nullable=True)
+    alert_type    = Column(String(50),  default="stock_out")   # stock_out | stock_low
+    message       = Column(Text,        nullable=False)
+    severity      = Column(String(20),  default="critical")    # critical | warning
+    is_resolved   = Column(Boolean,     default=False)
+    resolved_at   = Column(DateTime,    nullable=True)
+    created_at    = Column(DateTime,    default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        Index("ix_warehouse_alert_resolved", "is_resolved"),
+    )
+
+
 class BeePlanning(Base):
     """Mission planifiée pour une ruche."""
     __tablename__ = "bee_planning"

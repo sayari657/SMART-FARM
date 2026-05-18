@@ -89,6 +89,21 @@ async def app_lifespan(app_instance: FastAPI):
             "ALTER TABLE bee_expenses ADD COLUMN amount_planned REAL",
             # Warehouse category emoji
             "ALTER TABLE warehouse_categories ADD COLUMN emoji VARCHAR(10)",
+            # Warehouse alerts table (created via Base.metadata if not exists)
+            """CREATE TABLE IF NOT EXISTS warehouse_alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER REFERENCES warehouse_items(id) ON DELETE SET NULL,
+                item_name VARCHAR(200) NOT NULL,
+                category_name VARCHAR(200),
+                emoji VARCHAR(10),
+                alert_type VARCHAR(50) DEFAULT 'stock_out',
+                message TEXT NOT NULL,
+                severity VARCHAR(20) DEFAULT 'critical',
+                is_resolved BOOLEAN DEFAULT 0,
+                resolved_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_warehouse_alert_resolved ON warehouse_alerts (is_resolved)",
         ]
         with engine.connect() as _conn:
             for _stmt in _migrations:

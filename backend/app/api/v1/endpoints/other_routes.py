@@ -70,6 +70,12 @@ def resolve_alert(alert_id: int, body: AlertResolve, db: Session = Depends(get_d
     resolved_by = body.resolved_by or user.username
     return _serialize_alert(AlertService(db).resolve_alert(alert_id, resolved_by))
 
+@alert_router.delete("/{alert_id}", status_code=204)
+def delete_alert(alert_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    from app.models.domain import Alert
+    db.query(Alert).filter(Alert.id == alert_id).delete()
+    db.commit()
+
 @alert_router.get("/emergency")
 def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)):
     """Consolidated high-priority emergency monitoring data."""

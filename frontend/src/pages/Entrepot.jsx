@@ -5,7 +5,7 @@ import {
   Warehouse, Sprout, FlaskConical, ShieldAlert, Shovel,
   Droplets, Beef, Package, Wrench, HardHat, Layers,
   ChevronDown, ChevronUp, Search, X, Plus, Pencil, Trash2,
-  BarChart3, CheckCircle2, AlertTriangle, Save,
+  BarChart3, CheckCircle2, AlertTriangle, Save, Bot, Send,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { warehouseAPI } from '../services/api';
@@ -237,7 +237,7 @@ export default function Entrepot() {
   const [editing, setEditing]                 = useState(null);
   const [form, setForm]                       = useState(EMPTY_FORM);
   const [saving, setSaving]                   = useState(false);
-  const [confirmDelete, setConfirmDelete]     = useState(null);
+  const [confirmDelete, setConfirmDelete]     = useState(null); // stores full item object
   const [deleting, setDeleting]               = useState(false);
 
   // ── category CRUD ─────────────────────────────────────────────────────────
@@ -254,6 +254,29 @@ export default function Entrepot() {
   const emojiPickerRef                                 = useRef(null);
   const [showItemEmojiPicker, setShowItemEmojiPicker] = useState(false);
   const itemEmojiPickerRef                             = useRef(null);
+
+  // ── reseed ────────────────────────────────────────────────────────────────
+  const [showReseed, setShowReseed]   = useState(false);
+  const [reseeding, setReseeding]     = useState(false);
+
+  const handleReseed = async () => {
+    setReseeding(true);
+    try {
+      await warehouseAPI.reseed();
+      toast.success(rtl ? 'تم إعادة تهيئة المقالات' : 'Articles réinitialisés');
+      setShowReseed(false);
+      load();
+    } catch {
+      toast.error(rtl ? 'خطأ في الإعادة' : 'Erreur lors de la réinitialisation');
+    } finally { setReseeding(false); }
+  };
+
+  // ── AI assistant ──────────────────────────────────────────────────────────
+  const [showAI, setShowAI]         = useState(false);
+  const [aiInput, setAiInput]       = useState('');
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiLoading, setAiLoading]   = useState(false);
+  const aiChatRef                   = useRef(null);
 
   // ── quick qty ─────────────────────────────────────────────────────────────
   const [qtyEdit, setQtyEdit]   = useState(null);
@@ -293,18 +316,46 @@ export default function Entrepot() {
 
   useEffect(() => { load(); }, [load]);
 
+  const SEED_VERSION = 'warehouse_seed_v4';
+
   useEffect(() => {
-    if (!loading && categories.length === 0) {
+    if (loading) return;
+    const emptyCats  = categories.filter(c => (c.items?.length ?? 0) === 0);
+    const alreadyUp  = localStorage.getItem(SEED_VERSION);
+
+    if (categories.length === 0) {
+      // Fresh DB — full seed
       setSeeding(true);
-      warehouseAPI.seed().then(() => load()).catch(() => {}).finally(() => setSeeding(false));
+      warehouseAPI.seed()
+        .then(() => { localStorage.setItem(SEED_VERSION, '1'); load(); })
+        .catch(() => {}).finally(() => setSeeding(false));
+    } else if (!alreadyUp) {
+      // DB exists but emojis may be outdated — force reseed all default items
+      setSeeding(true);
+      warehouseAPI.reseed()
+        .then(() => { localStorage.setItem(SEED_VERSION, '1'); load(); })
+        .catch(() => {}).finally(() => setSeeding(false));
+    } else if (emptyCats.length > 0) {
+      // Some categories have no items (manually deleted) — fill them
+      setSeeding(true);
+      warehouseAPI.seedItems()
+        .then(() => load()).catch(() => {}).finally(() => setSeeding(false));
     }
-  }, [loading, categories.length, load]);
+  }, [loading, categories]); // eslint-disable-line
 
   // ── stats ─────────────────────────────────────────────────────────────────
-  const allItems     = useMemo(() => categories.flatMap(c => c.items || []), [categories]);
-  const totalItems   = allItems.length;
-  const availPct     = totalItems > 0 ? Math.round((allItems.filter(i => i.status === 'available').length / totalItems) * 100) : 0;
+  const allItems      = useMemo(() => categories.flatMap(c => c.items || []), [categories]);
+  const totalItems    = allItems.length;
+  const availPct      = totalItems > 0 ? Math.round((allItems.filter(i => i.status === 'available').length / totalItems) * 100) : 0;
   const lowStockCount = allItems.filter(i => i.status === 'limited').length;
+
+  // Alert items — out first, then low — drives alert strip + AI badge
+  const alertItems = useMemo(() =>
+    allItems
+      .filter(i => i.status === 'limited' || i.status === 'out')
+      .sort((a, b) => (a.status === 'out' ? 0 : 1) - (b.status === 'out' ? 0 : 1)),
+    [allItems]
+  );
 
   // ── search ────────────────────────────────────────────────────────────────
   const filteredCats = useMemo(() => {
@@ -341,6 +392,27 @@ export default function Entrepot() {
   };
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(EMPTY_FORM); setShowItemEmojiPicker(false); };
 
+  // ── auto stock alert ─────────────────────────────────────────────────────
+  const createStockAlert = useCallback(async (item, catName) => {
+    const isOut = Number(item.quantity) <= 0;
+    const isLow = !isOut && Number(item.quantity) <= Number(item.min_quantity || 5);
+    if (!isOut && !isLow) return;
+    const name = item.name_fr || item.name_ar;
+    try {
+      await warehouseAPI.alerts.create({
+        item_id:       item.id   || null,
+        item_name:     name,
+        category_name: catName   || '',
+        emoji:         item.emoji || '📦',
+        alert_type:    isOut ? 'stock_out' : 'stock_low',
+        severity:      isOut ? 'critical'  : 'warning',
+        message:       isOut
+          ? `Rupture de stock : ${name} — quantité = 0`
+          : `Stock faible : ${name} — ${item.quantity} ${item.unit || ''} restant(s)`,
+      });
+    } catch { /* silent — alert creation is non-blocking */ }
+  }, []); // eslint-disable-line
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.name_ar.trim()) { toast.error(T.toastNameReq); return; }
@@ -355,8 +427,11 @@ export default function Entrepot() {
       expiry_date:  form.expiry_date || null,
     };
     try {
-      if (editing) { await warehouseAPI.update(editing.id, payload); toast.success(T.toastSaved); }
-      else         { await warehouseAPI.create(payload);              toast.success(T.toastAdded); }
+      let saved;
+      if (editing) { const r = await warehouseAPI.update(editing.id, payload); saved = r.data; toast.success(T.toastSaved); }
+      else         { const r = await warehouseAPI.create(payload);              saved = r.data; toast.success(T.toastAdded); }
+      const catName = categories.find(c => c.id === Number(form.category_id))?.name_fr || '';
+      await createStockAlert({ ...payload, id: saved?.id }, catName);
       closeForm(); load();
     } catch { toast.error(T.toastSaveErr); }
     finally { setSaving(false); }
@@ -365,7 +440,7 @@ export default function Entrepot() {
   const handleDelete = async () => {
     if (!confirmDelete) return;
     setDeleting(true);
-    try { await warehouseAPI.delete(confirmDelete); toast.success(T.toastItemDel); setConfirmDelete(null); load(); }
+    try { await warehouseAPI.delete(confirmDelete.id); toast.success(T.toastItemDel); setConfirmDelete(null); load(); }
     catch { toast.error(T.toastItemDelErr); }
     finally { setDeleting(false); }
   };
@@ -373,9 +448,32 @@ export default function Entrepot() {
   const saveQty = async (item) => {
     const n = parseFloat(qtyValue);
     if (isNaN(n) || n < 0) { setQtyEdit(null); return; }
-    try { await warehouseAPI.update(item.id, { quantity: n }); toast.success(T.toastQtyUp); load(); }
+    try {
+      await warehouseAPI.update(item.id, { quantity: n });
+      toast.success(T.toastQtyUp);
+      const catName = categories.find(c => c.id === item.category_id)?.name_fr || '';
+      await createStockAlert({ ...item, quantity: n }, catName);
+      load();
+    }
     catch { toast.error(T.toastQtyErr); }
     finally { setQtyEdit(null); }
+  };
+
+  const sendAI = async (text) => {
+    const q = (text || aiInput).trim();
+    if (!q) return;
+    setAiInput('');
+    setAiMessages(prev => [...prev, { role: 'user', text: q }]);
+    setAiLoading(true);
+    try {
+      const res = await warehouseAPI.assistant(q, lang);
+      setAiMessages(prev => [...prev, { role: 'ai', text: res.data?.response || '—' }]);
+    } catch {
+      setAiMessages(prev => [...prev, { role: 'ai', text: rtl ? 'حدث خطأ في الاتصال.' : 'Erreur de connexion à STOKKY.' }]);
+    } finally {
+      setAiLoading(false);
+      setTimeout(() => aiChatRef.current?.scrollTo({ top: 99999, behavior: 'smooth' }), 50);
+    }
   };
 
   const fld = (key) => ({ value: form[key], onChange: e => setForm(p => ({ ...p, [key]: e.target.value })) });
@@ -387,8 +485,8 @@ export default function Entrepot() {
 
   const handleSaveCat = async (e) => {
     e.preventDefault();
-    const nameReq = rtl ? catForm.name_ar : catForm.name_fr;
-    if (!nameReq.trim()) { toast.error(T.toastNameReq); return; }
+    const nameReq = (catForm.name_fr || catForm.name_ar || '').trim();
+    if (!nameReq) { toast.error(T.toastNameReq); return; }
     setSavingCat(true);
     const payload = {
       ...catForm,
@@ -481,6 +579,72 @@ export default function Entrepot() {
           ))}
         </div>
 
+        {/* ── Alert Strip ── */}
+        {alertItems.length > 0 && (
+          <div style={{
+            marginBottom: 20, padding: '12px 16px',
+            background: 'rgba(239,68,68,0.04)',
+            border: '1.5px solid rgba(239,68,68,0.22)',
+            borderRadius: 'var(--radius-lg)',
+          }}>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={14} style={{ color: '#ef4444' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#ef4444' }}>
+                  {alertItems.filter(i => i.status === 'out').length > 0 && (
+                    <span style={{ marginRight: 6 }}>
+                      🔴 {alertItems.filter(i => i.status === 'out').length} {rtl ? 'نفاد' : 'rupture(s)'}
+                    </span>
+                  )}
+                  {alertItems.filter(i => i.status === 'limited').length > 0 && (
+                    <span style={{ color: '#f59e0b' }}>
+                      🟡 {alertItems.filter(i => i.status === 'limited').length} {rtl ? 'مخزون ناقص' : 'stock(s) faible'}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <button onClick={() => setShowAI(true)} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'linear-gradient(135deg,#7c3aed,#0ea5e9)',
+                color: '#fff', border: 'none', borderRadius: 8,
+                padding: '5px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              }}>
+                <Bot size={12} /> {rtl ? 'تحليل بالذكاء الاصطناعي' : 'Analyser avec l\'IA'}
+              </button>
+            </div>
+            {/* Scrollable chips */}
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+              {alertItems.map(item => {
+                const isOut = item.status === 'out';
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setOpenSections(prev => ({ ...prev, [item.category_id]: true }))}
+                    style={{
+                      flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8,
+                      background: isOut ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                      border: `1px solid ${isOut ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                      borderRadius: 10, padding: '7px 12px', cursor: 'pointer', textAlign: rtl ? 'right' : 'left',
+                    }}
+                  >
+                    <span style={{ fontSize: 18, lineHeight: 1 }}>{item.emoji}</span>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)', whiteSpace: 'nowrap' }}>
+                        {lang === 'ar' ? item.name_ar : item.name_fr}
+                      </div>
+                      <div style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', color: isOut ? '#ef4444' : '#f59e0b' }}>
+                        {item.quantity} {item.unit}
+                        {isOut ? (rtl ? ' — نفاد' : ' — Rupture') : (rtl ? ' — ناقص' : ' — Faible')}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* ── Search + Nouvelle catégorie ── */}
         <div className="control-row" style={{ marginBottom: 20 }}>
           <div className="control-item-search" style={{ flex: 1, position: 'relative' }}>
@@ -496,6 +660,34 @@ export default function Entrepot() {
               </button>
             )}
           </div>
+          <button onClick={() => setShowAI(p => !p)} title="STOKKY — Assistant Entrepôt" style={{
+            display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0, position: 'relative',
+            background: showAI ? '#7c3aed' : 'rgba(124,58,237,0.1)', color: showAI ? '#fff' : '#7c3aed',
+            border: '1px solid rgba(124,58,237,0.35)', borderRadius: 'var(--radius)', padding: '9px 14px',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s',
+          }}>
+            <Bot size={14} /> {rtl ? 'ستوكي' : 'STOKKY'}
+            {alertItems.length > 0 && (
+              <span style={{
+                position: 'absolute', top: -6, right: -6,
+                background: '#ef4444', color: '#fff', borderRadius: '50%',
+                width: 18, height: 18, fontSize: 10, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: '2px solid var(--color-surface)',
+              }}>
+                {alertItems.length}
+              </span>
+            )}
+          </button>
+          <button onClick={() => setShowReseed(true)} title={rtl ? 'إعادة تهيئة المقالات الافتراضية' : 'Réinitialiser les articles par défaut'} style={{
+            display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+            background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+            border: '1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--radius)', padding: '9px 12px',
+            fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>
+            <Save size={13} style={{ transform: 'rotate(180deg)' }} />
+            {rtl ? 'إعادة تهيئة' : 'Réinitialiser'}
+          </button>
           <button onClick={openCreateCat} style={{
             display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
             background: 'var(--color-primary, #16a34a)', color: '#fff',
@@ -517,6 +709,86 @@ export default function Entrepot() {
             <Search size={40} style={{ color: 'var(--color-text-3)', marginBottom: 12 }} />
             <h3>{T.noResult}</h3>
             <p style={{ fontSize: 13, color: 'var(--color-text-3)' }}>{T.noResultSub(search)}</p>
+          </div>
+        )}
+
+        {/* ── AI Assistant Panel ── */}
+        {showAI && (
+          <div style={{
+            background: 'var(--color-surface)', border: '1px solid rgba(124,58,237,0.35)',
+            borderRadius: 'var(--radius-lg)', marginBottom: 20,
+            boxShadow: '0 4px 24px rgba(124,58,237,0.12)',
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid rgba(124,58,237,0.15)' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bot size={16} style={{ color: '#7c3aed' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>
+                  STOKKY {rtl ? '— مساعد المستودع' : '— Assistant Entrepôt'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-3)' }}>
+                  {rtl ? 'اسألني عن المخزون، الانتهاء، التوصيات...' : 'Interrogez le stock, expirations, recommandations…'}
+                </div>
+              </div>
+              <button onClick={() => setShowAI(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)' }}><X size={16} /></button>
+            </div>
+
+            {/* Quick questions */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '10px 16px 0' }}>
+              {(rtl
+                ? ['ما هي المقالات المنتهية؟', 'ماذا يوجد في المخزون؟', 'ما الذي ينتهي قريبا؟', 'توصيات للتزود']
+                : ['Articles en rupture ?', 'État du stock global ?', 'Expirations proches ?', 'Recommandations réapprovisionnement']
+              ).map(q => (
+                <button key={q} onClick={() => sendAI(q)} style={{
+                  background: 'rgba(124,58,237,0.07)', color: '#7c3aed',
+                  border: '1px solid rgba(124,58,237,0.2)', borderRadius: 99,
+                  padding: '4px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                }}>{q}</button>
+              ))}
+            </div>
+
+            {/* Chat history */}
+            {aiMessages.length > 0 && (
+              <div ref={aiChatRef} style={{ maxHeight: 260, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {aiMessages.map((m, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, flexDirection: m.role === 'user' ? (rtl ? 'row' : 'row-reverse') : 'row' }}>
+                    <div style={{
+                      maxWidth: '80%', padding: '8px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5,
+                      background: m.role === 'user' ? '#7c3aed' : 'var(--color-surface-2, var(--color-bg))',
+                      color: m.role === 'user' ? '#fff' : 'var(--color-text)',
+                      border: m.role === 'ai' ? '1px solid var(--color-border)' : 'none',
+                    }}>{m.text}</div>
+                  </div>
+                ))}
+                {aiLoading && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ padding: '8px 14px', background: 'var(--color-surface-2, var(--color-bg))', border: '1px solid var(--color-border)', borderRadius: 10, fontSize: 12, color: '#7c3aed' }}>
+                      <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Input */}
+            <div style={{ display: 'flex', gap: 8, padding: '10px 16px 14px', alignItems: 'center' }}>
+              <input
+                className="form-input" style={{ flex: 1, fontSize: 13 }}
+                placeholder={rtl ? 'اكتب سؤالك...' : 'Posez votre question…'}
+                value={aiInput}
+                onChange={e => setAiInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendAI()}
+                disabled={aiLoading}
+              />
+              <button onClick={() => sendAI()} disabled={aiLoading || !aiInput.trim()} style={{
+                background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 'var(--radius)',
+                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: aiLoading || !aiInput.trim() ? 'not-allowed' : 'pointer',
+                opacity: aiLoading || !aiInput.trim() ? 0.5 : 1,
+              }}><Send size={14} /></button>
+            </div>
           </div>
         )}
 
@@ -621,7 +893,7 @@ export default function Entrepot() {
                             <span style={{ fontSize: 24 }}>{item.emoji}</span>
                             <div style={{ display: 'flex', gap: 4 }}>
                               <button onClick={() => openEdit(item)} style={{ background: 'rgba(14,165,233,0.1)', color: '#0ea5e9', border: '1px solid rgba(14,165,233,0.2)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Pencil size={12} /></button>
-                              <button onClick={() => setConfirmDelete(item.id)} style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                              <button onClick={() => setConfirmDelete(item)} style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Trash2 size={12} /></button>
                             </div>
                           </div>
 
@@ -775,25 +1047,13 @@ export default function Entrepot() {
             </div>
 
             <form onSubmit={handleSaveCat}>
-              {/* Nom principal (selon langue) */}
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="form-label">{rtl ? T.catNameAr.replace('(اختياري)', '*') : T.catNameFr}</label>
-                <input className="form-input" required
-                  placeholder={rtl ? T.catNameArPh : T.catNameFrPh}
-                  dir={rtl ? 'rtl' : 'ltr'}
-                  value={rtl ? catForm.name_ar : catForm.name_fr}
-                  onChange={e => setCatForm(p => rtl ? { ...p, name_ar: e.target.value } : { ...p, name_fr: e.target.value })}
-                />
-              </div>
-
-              {/* Nom secondaire */}
+              {/* Nom unique */}
               <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label">{rtl ? T.catNameFr.replace(' *','') : T.catNameAr}</label>
-                <input className="form-input"
-                  placeholder={rtl ? T.catNameFrPh : T.catNameArPh}
-                  dir={rtl ? 'ltr' : 'rtl'}
-                  value={rtl ? catForm.name_fr : catForm.name_ar}
-                  onChange={e => setCatForm(p => rtl ? { ...p, name_fr: e.target.value } : { ...p, name_ar: e.target.value })}
+                <label className="form-label">Nom *</label>
+                <input className="form-input" required
+                  placeholder="ex: Produits phytosanitaires"
+                  value={catForm.name_fr}
+                  onChange={e => setCatForm(p => ({ ...p, name_fr: e.target.value, name_ar: e.target.value }))}
                 />
               </div>
 
@@ -890,16 +1150,78 @@ export default function Entrepot() {
         </div>
       )}
 
+      {/* ══ RESEED CONFIRM ══════════════════════════════════════════════════ */}
+      {showReseed && (
+        <div onClick={e => e.target === e.currentTarget && setShowReseed(false)} style={overlay(1400)}>
+          <div style={{ ...modalBox(400), border: '2px solid rgba(239,68,68,0.4)', boxShadow: '0 20px 60px rgba(239,68,68,0.2)' }}>
+            <div style={{ fontSize: 38, textAlign: 'center', marginBottom: 14 }}>🔄</div>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#ef4444', textAlign: 'center', marginBottom: 10 }}>
+              {rtl ? 'إعادة تهيئة المقالات؟' : 'Réinitialiser les articles ?'}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--color-text-3)', textAlign: 'center', marginBottom: 6 }}>
+              {rtl
+                ? 'سيتم حذف جميع المقالات الحالية واستبدالها بالبيانات الافتراضية.'
+                : 'Tous les articles actuels seront supprimés et remplacés par les données par défaut.'}
+            </p>
+            <p style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, textAlign: 'center', marginBottom: 24 }}>
+              {T.delCat2Warn}
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowReseed(false)} className="farms-cancel-btn" style={{ flex: 1 }}>{T.cancel}</button>
+              <button onClick={handleReseed} disabled={reseeding} style={{
+                flex: 1, background: '#ef4444', color: '#fff', border: 'none',
+                borderRadius: 'var(--radius)', padding: '9px 0', fontWeight: 700,
+                cursor: reseeding ? 'not-allowed' : 'pointer', opacity: reseeding ? 0.7 : 1,
+              }}>
+                {reseeding ? (rtl ? 'جاري...' : 'En cours…') : (rtl ? 'إعادة التهيئة' : 'Réinitialiser')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══ DELETE ITEM CONFIRM ══════════════════════════════════════════════ */}
       {confirmDelete && (
         <div onClick={e => e.target === e.currentTarget && setConfirmDelete(null)} style={overlay(1100)}>
-          <div style={{ ...modalBox(360), border: '1px solid rgba(239,68,68,0.3)' }}>
-            <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 12 }}>🗑️</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', textAlign: 'center', marginBottom: 8 }}>{T.delItemTitle}</h3>
-            <p style={{ fontSize: 13, color: 'var(--color-text-3)', textAlign: 'center', marginBottom: 22 }}>{T.delItemSub}</p>
+          <div style={{ ...modalBox(380), border: '2px solid rgba(239,68,68,0.4)', boxShadow: '0 20px 60px rgba(239,68,68,0.25)' }}>
+
+            {/* Header rouge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#ef4444' }}>{T.delItemTitle}</h3>
+              <button onClick={() => setConfirmDelete(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-3)' }}><X size={18} /></button>
+            </div>
+
+            {/* Article à supprimer */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 16,
+            }}>
+              <span style={{ fontSize: 32, flexShrink: 0 }}>{confirmDelete.emoji}</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>
+                  {itemName(confirmDelete)}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--color-text-3)', marginTop: 2 }}>
+                  {confirmDelete.quantity} {confirmDelete.unit}
+                  {' · '}
+                  <span className={`badge ${(STATUS_MAP[confirmDelete.status] || STATUS_MAP.available).cls}`} style={{ fontSize: 10 }}>
+                    {rtl ? (STATUS_MAP[confirmDelete.status] || STATUS_MAP.available).ar : (STATUS_MAP[confirmDelete.status] || STATUS_MAP.available).fr}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--color-text-3)', marginBottom: 6 }}>{T.delItemSub}</p>
+            <p style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, marginBottom: 22 }}>{T.delCat2Warn}</p>
+
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setConfirmDelete(null)} className="farms-cancel-btn" style={{ flex: 1 }}>{T.cancel}</button>
-              <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 'var(--radius)', padding: '9px 0', fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}>
+              <button onClick={handleDelete} disabled={deleting} style={{
+                flex: 1, background: '#ef4444', color: '#fff', border: 'none',
+                borderRadius: 'var(--radius)', padding: '9px 0', fontWeight: 700,
+                cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1,
+              }}>
                 {deleting ? T.deleting : T.delItemBtn}
               </button>
             </div>

@@ -185,3 +185,94 @@
     background: #fee2e2;
     color: #991b1b;
 }
+
+.popup-addr {
+    margin: 4px 0 0 0;
+    font-size: 11px;
+    color: #475569;
+}
+
+.popup-coords {
+    margin-top: 8px;
+    font-size: 10px;
+    font-family: monospace;
+    color: #94a3b8;
+    letter-spacing: 0.3px;
+}
+
+.popup-maps-link {
+    display: block;
+    margin-top: 8px;
+    padding: 5px 10px;
+    background: #16a34a;
+    color: white;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.15s;
+}
+
+.popup-maps-link:hover {
+    background: #15803d;
+}
+
+/* ── Search Result Marker ─────────────────────────────── */
+.marker-search {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-marker-ring {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(124, 58, 237, 0.18);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: search-pulse 1.6s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes search-pulse {
+    0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2);   opacity: 0; }
+}
+
+.search-marker-pin {
+    width: 44px;
+    height: 44px;
+    border-radius: 50% 50% 50% 0;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid white;
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+    transform: rotate(-45deg);
+    transition: transform .2s;
+}
+
+.marker-search:hover .search-marker-pin {
+    transform: rotate(-45deg) scale(1.15);
+}
+
+.search-marker-pin svg {
+    transform: rotate(45deg);
+}
+
+/* Search popup accent */
+.search-tag {
+    color: #7c3aed !important;
+}
+
+.search-popup h3 {
+    color: #4c1d95 !important;
+}

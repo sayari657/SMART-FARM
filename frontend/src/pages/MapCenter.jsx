@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Shield, Search, Navigation, Phone, Info, X, Clock, Globe } from 'lucide-react';
+import { MapPin, Shield, Search, Navigation, Phone, Info, X, Clock, Globe, Crosshair } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import SovereignMap from '../components/Map/SovereignMap';
 import api, { externalAPI } from '../services/api';
@@ -39,6 +39,8 @@ const MapCenter = () => {
     const [selectedEntity, setSelectedEntity] = useState(null);
     const [viewCenter, setViewCenter] = useState([36.8065, 10.1815]);
     const [userPos, setUserPos] = useState(null);
+    const [userAccuracy, setUserAccuracy] = useState(null);
+    const [isLocating, setIsLocating] = useState(false);
     const [zoom, setZoom] = useState(7);
     const [isSearching, setIsSearching] = useState(false);
     const [isDiscovering, setIsDiscovering] = useState(false);
@@ -181,15 +183,27 @@ const MapCenter = () => {
 
     const handleLocateMe = () => {
         if (!navigator.geolocation) return;
-        navigator.geolocation.getCurrentPosition((pos) => {
-            const { latitude, longitude } = pos.coords;
-            setUserPos([latitude, longitude]);
-            setViewCenter([latitude, longitude]);
-            setZoom(11);
-            fetchGlobalDiscoveries(latitude, longitude);
-            fetchLocationInfo(latitude, longitude);
-            fetchOSMVets(latitude, longitude);
-        });
+        setIsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const { latitude, longitude, accuracy } = pos.coords;
+                setUserPos([latitude, longitude]);
+                setUserAccuracy(accuracy);
+                setViewCenter([latitude, longitude]);
+                // Zoom level based on accuracy: more precise = zoom in more
+                const preciseZoom = accuracy < 50 ? 16 : accuracy < 200 ? 15 : accuracy < 1000 ? 13 : 11;
+                setZoom(preciseZoom);
+                setIsLocating(false);
+                fetchGlobalDiscoveries(latitude, longitude);
+                fetchLocationInfo(latitude, longitude);
+                fetchOSMVets(latitude, longitude);
+            },
+            (err) => {
+                console.error('Geolocation error:', err);
+                setIsLocating(false);
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
     };
 
     const handleGlobalSearch = async (e) => {
@@ -376,12 +390,24 @@ const MapCenter = () => {
                         <span style={{ color: 'var(--color-border)' }}>·</span>
                         <Navigation size={11} color="var(--color-primary)" />
                         <span>{locationName}</span>
+                        {userAccuracy != null && (
+                            <>
+                                <span style={{ color: 'var(--color-border)' }}>·</span>
+                                <span style={{
+                                    fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 99,
+                                    background: userAccuracy < 50 ? '#dcfce7' : userAccuracy < 200 ? '#fef9c3' : '#fee2e2',
+                                    color: userAccuracy < 50 ? '#166534' : userAccuracy < 200 ? '#854d00' : '#991b1b',
+                                }}>
+                                    ±{userAccuracy < 1000 ? `${Math.round(userAccuracy)}m` : `${(userAccuracy / 1000).toFixed(1)}km`}
+                                </span>
+                            </>
+                        )}
                     </div>
                 )}
-                {isFetchingInfo && (
+                {(isFetchingInfo || isLocating) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-3)' }}>
                         <div className="loader" style={{ width: 12, height: 12 }} />
-                        {t('map_center.detecting')}
+                        {isLocating ? 'Localisation GPS…' : t('map_center.detecting')}
                     </div>
                 )}
 
@@ -389,11 +415,12 @@ const MapCenter = () => {
                 <button
                     onClick={handleLocateMe}
                     className="btn btn-secondary btn-sm"
-                    style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}
-                    title="Ma localisation"
+                    style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, opacity: isLocating ? 0.6 : 1 }}
+                    disabled={isLocating}
+                    title="Ma localisation précise"
                 >
                     <Navigation size={13} />
-                    <span style={{ fontSize: 12 }}>{t('map_center.locate')}</span>
+                    <span style={{ fontSize: 12 }}>{isLocating ? 'Localisation…' : t('map_center.locate')}</span>
                 </button>
             </div>
 
@@ -421,6 +448,7 @@ const MapCenter = () => {
                             hives={hives.filter(h => h.geometry?.coordinates ? haversine(userPos?.[0] ?? viewCenter[0], userPos?.[1] ?? viewCenter[1], h.geometry.coordinates[1], h.geometry.coordinates[0]) <= 1000 : false)}
                             markets={markets.filter(m => m.geometry?.coordinates ? haversine(userPos?.[0] ?? viewCenter[0], userPos?.[1] ?? viewCenter[1], m.geometry.coordinates[1], m.geometry.coordinates[0]) <= 1000 : false)}
                             userPos={userPos}
+                            userAccuracy={userAccuracy}
                             center={[viewCenter[1], viewCenter[0]]}
                             zoom={zoom}
                             height="100%"
@@ -490,83 +518,239 @@ const MapCenter = () => {
                         })}
                     </div>
 
-                    {/* Selected entity detail drawer */}
-                    {selectedEntity && selectedEntity.type !== 'search' && (
-                        <div style={{ borderTop: '1px solid var(--color-border)', padding: '14px 16px', flexShrink: 0, background: 'var(--color-surface-2)' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
-                                <div>
-                                    <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-primary)', letterSpacing: .5 }}>
-                                        {selectedEntity.type === 'hive' ? t('map_center.selected_hive') : selectedEntity.type === 'vet' ? t('map_center.vet_clinic') : t('map_center.farm')}
+                    {/* Search result detail card */}
+                    {selectedEntity?.type === 'search' && (() => {
+                        const [sLat, sLon] = selectedEntity.coords || [null, null];
+                        const hasCoords = sLat != null && sLon != null;
+                        return (
+                            <div style={{ borderTop: '1px solid var(--color-border)', padding: '14px 16px', flexShrink: 0, background: 'var(--color-surface-2)' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                                    <div>
+                                        <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: '#7c3aed', letterSpacing: .5 }}>
+                                            Résultat de recherche
+                                        </div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginTop: 2 }}>
+                                            {selectedEntity.name}
+                                        </div>
+                                        {selectedEntity.distance != null && (
+                                            <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginTop: 2 }}>
+                                                {selectedEntity.distance > 0 ? `${selectedEntity.distance.toFixed(1)} km de votre position` : 'À votre position'}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginTop: 2 }}>
-                                        {selectedEntity.nom || selectedEntity.properties?.name || selectedEntity.name}
-                                    </div>
+                                    <button
+                                        onClick={() => setSelectedEntity(null)}
+                                        style={{ background: 'var(--color-border)', border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                                    >
+                                        <X size={12} color="var(--color-text-2)" />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => setSelectedEntity(null)}
-                                    style={{ background: 'var(--color-border)', border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                                >
-                                    <X size={12} color="var(--color-text-2)" />
-                                </button>
-                            </div>
-
-                            {/* Vet details */}
-                            {selectedEntity.type === 'vet' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    {selectedEntity.properties?.specialty && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
-                                            <Shield size={12} color="var(--color-text-3)" style={{ flexShrink: 0 }} />
-                                            {selectedEntity.properties.specialty}
+                                {hasCoords && (
+                                    <div style={{ marginTop: 4, padding: '7px 10px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <Crosshair size={11} color="#7c3aed" style={{ flexShrink: 0 }} />
+                                            <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--color-text-2)', letterSpacing: .3 }}>
+                                                {sLat.toFixed(5)}, {sLon.toFixed(5)}
+                                            </span>
                                         </div>
-                                    )}
-                                    {selectedEntity.properties?.address && (
-                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
-                                            <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
-                                            {selectedEntity.properties.address}
-                                        </div>
-                                    )}
-                                    {selectedEntity.properties?.opening_hours && (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
-                                            <Clock size={12} color="var(--color-text-3)" style={{ flexShrink: 0 }} />
-                                            {selectedEntity.properties.opening_hours}
-                                        </div>
-                                    )}
-                                    {selectedEntity.properties?.website && (
-                                        <a href={selectedEntity.properties.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-primary)', textDecoration: 'none' }}>
-                                            <Globe size={12} style={{ flexShrink: 0 }} />
-                                            {t('map_center.website')}
-                                        </a>
-                                    )}
-                                    {selectedEntity.properties?.phone && (
-                                        <a href={`tel:${selectedEntity.properties.phone}`} style={{
+                                        <button
+                                            onClick={() => navigator.clipboard?.writeText(`${sLat.toFixed(6)}, ${sLon.toFixed(6)}`)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#7c3aed', padding: '2px 4px', borderRadius: 4 }}
+                                            title="Copier les coordonnées"
+                                        >
+                                            Copier
+                                        </button>
+                                    </div>
+                                )}
+                                {hasCoords && (
+                                    <a
+                                        href={`https://www.google.com/maps?q=${sLat.toFixed(6)},${sLon.toFixed(6)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
                                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                                            marginTop: 6, padding: '8px', borderRadius: 'var(--r-sm)',
-                                            background: 'var(--color-primary)', color: '#fff',
-                                            textDecoration: 'none', fontSize: 13, fontWeight: 600,
-                                        }}>
-                                            <Phone size={13} /> {selectedEntity.properties.phone}
-                                        </a>
-                                    )}
-                                </div>
-                            )}
+                                            marginTop: 8, padding: '8px', borderRadius: 'var(--r-sm)',
+                                            background: '#7c3aed', color: '#fff',
+                                            textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                                        }}
+                                    >
+                                        <Navigation size={13} /> Ouvrir dans Google Maps
+                                    </a>
+                                )}
+                            </div>
+                        );
+                    })()}
 
-                            {/* Hive metrics */}
-                            {selectedEntity.type === 'hive' && selectedEntity.metrics && (
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                                    {[
-                                        { label: t('map_center.weight'), value: `${selectedEntity.metrics.weight ?? '—'} kg` },
-                                        { label: t('map_center.temp'), value: `${selectedEntity.metrics.temperature ?? '—'}°C` },
-                                        { label: t('map_center.humidity'), value: `${selectedEntity.metrics.humidity ?? '—'}%` },
-                                    ].map(m => (
-                                        <div key={m.label} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--r-sm)', padding: '8px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 10, color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 600 }}>{m.label}</div>
-                                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginTop: 2 }}>{m.value}</div>
+                    {/* Selected entity detail drawer */}
+                    {selectedEntity && selectedEntity.type !== 'search' && (() => {
+                        const lat = selectedEntity.coords?.[0] ?? selectedEntity.properties?.lat;
+                        const lon = selectedEntity.coords?.[1] ?? selectedEntity.properties?.lon;
+                        const hasCoords = lat != null && lon != null;
+                        const mapsHref = hasCoords
+                            ? `https://www.google.com/maps?q=${lat.toFixed(6)},${lon.toFixed(6)}`
+                            : null;
+                        const typeLabel = selectedEntity.type === 'hive'
+                            ? t('map_center.selected_hive')
+                            : selectedEntity.type === 'vet'
+                                ? t('map_center.vet_clinic')
+                                : selectedEntity.type === 'market'
+                                    ? t('map_center.markets')
+                                    : t('map_center.farm');
+                        return (
+                            <div style={{ borderTop: '1px solid var(--color-border)', padding: '14px 16px', flexShrink: 0, background: 'var(--color-surface-2)' }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                                    <div>
+                                        <div style={{ fontSize: 10, textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-primary)', letterSpacing: .5 }}>
+                                            {typeLabel}
                                         </div>
-                                    ))}
+                                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginTop: 2 }}>
+                                            {selectedEntity.nom || selectedEntity.properties?.name || selectedEntity.name}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedEntity(null)}
+                                        style={{ background: 'var(--color-border)', border: 'none', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                                    >
+                                        <X size={12} color="var(--color-text-2)" />
+                                    </button>
                                 </div>
-                            )}
-                        </div>
-                    )}
+
+                                {/* Vet details */}
+                                {selectedEntity.type === 'vet' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {selectedEntity.properties?.specialty && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <Shield size={12} color="var(--color-text-3)" style={{ flexShrink: 0 }} />
+                                                {selectedEntity.properties.specialty}
+                                            </div>
+                                        )}
+                                        {selectedEntity.properties?.address && (
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                                {selectedEntity.properties.address}
+                                            </div>
+                                        )}
+                                        {selectedEntity.properties?.opening_hours && (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <Clock size={12} color="var(--color-text-3)" style={{ flexShrink: 0 }} />
+                                                {selectedEntity.properties.opening_hours}
+                                            </div>
+                                        )}
+                                        {selectedEntity.properties?.website && (
+                                            <a href={selectedEntity.properties.website} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-primary)', textDecoration: 'none' }}>
+                                                <Globe size={12} style={{ flexShrink: 0 }} />
+                                                {t('map_center.website')}
+                                            </a>
+                                        )}
+                                        {selectedEntity.properties?.phone && (
+                                            <a href={`tel:${selectedEntity.properties.phone}`} style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                marginTop: 6, padding: '8px', borderRadius: 'var(--r-sm)',
+                                                background: 'var(--color-primary)', color: '#fff',
+                                                textDecoration: 'none', fontSize: 13, fontWeight: 600,
+                                            }}>
+                                                <Phone size={13} /> {selectedEntity.properties.phone}
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Farm details */}
+                                {selectedEntity.type === 'farm' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {(selectedEntity.properties?.address || selectedEntity.properties?.location) && (
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                                {selectedEntity.properties.address || selectedEntity.properties.location}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Market details */}
+                                {selectedEntity.type === 'market' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {selectedEntity.properties?.address && (
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                                {selectedEntity.properties.address}
+                                            </div>
+                                        )}
+                                        {selectedEntity.properties?.phone && (
+                                            <a href={`tel:${selectedEntity.properties.phone}`} style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                                marginTop: 4, padding: '8px', borderRadius: 'var(--r-sm)',
+                                                background: 'var(--color-accent)', color: '#fff',
+                                                textDecoration: 'none', fontSize: 13, fontWeight: 600,
+                                            }}>
+                                                <Phone size={13} /> {selectedEntity.properties.phone}
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Hive metrics */}
+                                {selectedEntity.type === 'hive' && selectedEntity.metrics && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                                        {[
+                                            { label: t('map_center.weight'), value: `${selectedEntity.metrics.weight ?? '—'} kg` },
+                                            { label: t('map_center.temp'), value: `${selectedEntity.metrics.temperature ?? '—'}°C` },
+                                            { label: t('map_center.humidity'), value: `${selectedEntity.metrics.humidity ?? '—'}%` },
+                                        ].map(m => (
+                                            <div key={m.label} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--r-sm)', padding: '8px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: 10, color: 'var(--color-text-3)', textTransform: 'uppercase', fontWeight: 600 }}>{m.label}</div>
+                                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginTop: 2 }}>{m.value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Hive address */}
+                                {selectedEntity.type === 'hive' && selectedEntity.properties?.address && (
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)', marginTop: 8 }}>
+                                        <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                        {selectedEntity.properties.address}
+                                    </div>
+                                )}
+
+                                {/* Precise coordinates row */}
+                                {hasCoords && (
+                                    <div style={{ marginTop: 10, padding: '7px 10px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <Crosshair size={11} color="var(--color-text-3)" style={{ flexShrink: 0 }} />
+                                            <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'var(--color-text-2)', letterSpacing: .3 }}>
+                                                {lat.toFixed(5)}, {lon.toFixed(5)}
+                                            </span>
+                                        </div>
+                                        <button
+                                            onClick={() => navigator.clipboard?.writeText(`${lat.toFixed(6)}, ${lon.toFixed(6)}`)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: 'var(--color-primary)', padding: '2px 4px', borderRadius: 4 }}
+                                            title="Copier les coordonnées"
+                                        >
+                                            Copier
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Google Maps button */}
+                                {mapsHref && (
+                                    <a
+                                        href={mapsHref}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                            marginTop: 8, padding: '8px', borderRadius: 'var(--r-sm)',
+                                            background: '#16a34a', color: '#fff',
+                                            textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                                        }}
+                                    >
+                                        <Navigation size={13} /> Ouvrir dans Google Maps
+                                    </a>
+                                )}
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
         </div>
