@@ -1,11 +1,21 @@
 import logging
-import chromadb
-from chromadb.config import Settings as ChromaSettings
-from chromadb.utils import embedding_functions
 from typing import List, Dict
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Lazy/conditional imports of ChromaDB to support Lite Mode (no chromadb dependency)
+HAS_CHROMADB = False
+ChromaSettings = None
+embedding_functions = None
+
+try:
+    import chromadb
+    from chromadb.config import Settings as ChromaSettings
+    from chromadb.utils import embedding_functions
+    HAS_CHROMADB = True
+except ImportError:
+    logger.info("ChromaDB package not available. RAG will fall back to Expert Synthetic Mode.")
 
 class RAGService:
     """Service to handle Retrieval-Augmented Generation using local knowledge packs."""
@@ -13,9 +23,10 @@ class RAGService:
     def __init__(self):
         self.is_active = False
         self.collection = None
+        self.chroma_client = None
         
         # Skip heavy connection attempts in Lite Mode to prevent timeouts
-        if settings.LITE_MODE:
+        if settings.LITE_MODE or not HAS_CHROMADB:
             logger.info("Initializing RAG in Expert Synthetic Mode (Lite)...")
             return
 
@@ -33,7 +44,10 @@ class RAGService:
             self.chroma_client = None
             logger.warning(f"ChromaDB not found. Running RAG in Mock Mode. Error: {str(e)}")
 
-        self.embedding_function = embedding_functions.DefaultEmbeddingFunction()
+        if HAS_CHROMADB and embedding_functions:
+            self.embedding_function = embedding_functions.DefaultEmbeddingFunction()
+        else:
+            self.embedding_function = None
         self.collection_name = "sovereign_wisdom_v3"
         self._ensure_collection()
 
