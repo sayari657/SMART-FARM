@@ -1,5 +1,6 @@
 """Smart Farm AI - Auth Routes (with real Email & WhatsApp OTP)"""
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -25,9 +26,13 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 # ── Standard Auth ───────────────────────────────────────────────────────────
-@router.post("/register", response_model=UserResponse, status_code=201)
+@router.post("/register", status_code=201)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    return AuthService(db).register(user_in)
+    try:
+        return AuthService(db).register(user_in)
+    except Exception as e:
+        import traceback
+        return JSONResponse(status_code=400, content={"detail": f"Error: {type(e).__name__} - {str(e)}", "trace": traceback.format_exc()})
 
 @router.post("/login", response_model=Token)
 def login(creds: LoginRequest, db: Session = Depends(get_db)):
