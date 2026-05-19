@@ -9,12 +9,12 @@ services:
     autoDeploy: true
     healthCheckPath: /docs
     envVars:
-      - key: DATABASE_URL
-      - key: SECRET_KEY
-      - key: SMTP_EMAIL
-      - key: SMTP_PASSWORD
-      - key: GROQ_API_KEY
-      - key: CORS_ORIGINS
-      - key: WHATSAPP_TOKEN
-      - key: WHATSAPP_PHONE_ID
+      - {key: DATABASE_URL, value: ""}
+      - {key: SECRET_KEY, value: ""}
+      - {key: SMTP_EMAIL, value: ""}
+      - {key: SMTP_PASSWORD, value: ""}
+      - {key: GROQ_API_KEY, value: ""}
+      - {key: CORS_ORIGINS, value: ""}
+      - {key: WHATSAPP_TOKEN, value: ""}
+      - {key: WHATSAPP_PHONE_ID, value: ""}
       
