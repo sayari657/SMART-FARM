@@ -60,13 +60,16 @@ export default function Reports() {
   const downloadExcel = async () => {
     const token = localStorage.getItem('token');
     const h = token ? { Authorization: `Bearer ${token}` } : {};
-    const BEE = `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/bee/history`;
+    let apiEnv = import.meta.env.VITE_API_URL;
+    if (apiEnv) apiEnv = apiEnv.replace(/^["']+|["']+$/g, '');
+    const apiUrl = apiEnv || '/api/v1';
+    const BEE = `${apiUrl}/bee/history`;
     try {
       const [r1, r2, r3, r4] = await Promise.all([
         fetch(`${BEE}/hives`,       { headers: h }),
         fetch(`${BEE}/visits`,      { headers: h }),
         fetch(`${BEE}/productions`, { headers: h }),
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'}/bee/expenses`, { headers: h }),
+        fetch(`${apiUrl}/bee/expenses`, { headers: h }),
       ]);
       const [hives, visits, productions, depenses] = await Promise.all([
         r1.ok ? r1.json() : [], r2.ok ? r2.json() : [],

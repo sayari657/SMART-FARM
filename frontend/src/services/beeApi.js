@@ -1,4 +1,6 @@
-const ROOT    = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+let apiEnv = import.meta.env.VITE_API_URL;
+if (apiEnv) apiEnv = apiEnv.replace(/^["']+|["']+$/g, '');
+const ROOT    = apiEnv || '/api/v1';
 const HISTORY  = `${ROOT}/bee/history`;
 const EXPENSES = `${ROOT}/bee/expenses`;
 const PLANNING = `${ROOT}/bee/planning`;
