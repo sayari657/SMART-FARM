@@ -1,0 +1,295 @@
+@startuml FARM_AI_Sequence_Auth
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+skinparam ParticipantBorderColor #2C7BE5
+skinparam ParticipantBackgroundColor #EBF5FB
+skinparam SequenceArrowColor #34495E
+skinparam NoteBackgroundColor #FFFFF0
+skinparam NoteBorderColor #DAA520
+skinparam LifeLineBorderColor #AEB6BF
+
+title SD1 — Authentification Propriétaire (JWT)\nSmart Farm AI v3.0
+
+actor "Propriétaire" as Owner
+participant "Frontend\n(React)" as FE
+participant "FastAPI\n/auth/login" as API
+participant "AuthService" as AuthSvc
+database "PostgreSQL" as DB
+participant "JWT Library\n(python-jose)" as JWT
+
+Owner -> FE : Saisit email + mot de passe
+FE -> API : POST /api/v1/auth/login\n{email, password}
+activate API
+
+API -> AuthSvc : login(email, password)
+activate AuthSvc
+
+AuthSvc -> DB : SELECT * FROM users\nWHERE email = ?
+activate DB
+DB --> AuthSvc : User record
+deactivate DB
+
+alt Utilisateur non trouvé
+  AuthSvc --> API : UserNotFoundError
+  API --> FE : 401 Unauthorized\n{detail: "Invalid credentials"}
+  FE --> Owner : Message d'erreur
+else Mot de passe incorrect
+  AuthSvc -> AuthSvc : bcrypt.verify(password, hash) → False
+  AuthSvc --> API : InvalidPasswordError
+  API --> FE : 401 Unauthorized
+  FE --> Owner : Message d'erreur
+else Authentification réussie
+  AuthSvc -> AuthSvc : bcrypt.verify(password, hash) → True
+  AuthSvc -> JWT : create_access_token(\n  {sub: user_id, role: owner},\n  expire: 7 jours)
+  JWT --> AuthSvc : JWT Token (HS256)
+  AuthSvc --> API : {token, user_info}
+  deactivate AuthSvc
+  API --> FE : 200 OK\n{access_token, token_type, user}
+  deactivate API
+  FE -> FE : Stocker token\n(localStorage / AuthContext)
+  FE --> Owner : Redirection Dashboard
+end
+
+@enduml
+
+@startuml FARM_AI_Sequence_OTP
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+
+title SD2 — Authentification Ouvrier par OTP (WhatsApp)\nSmart Farm AI v3.0
+
+actor "Ouvrier" as Worker
+participant "PWA Mobile\n(React)" as PWA
+participant "FastAPI\n/auth/worker" as API
+participant "OTPService" as OTPSvc
+participant "WhatsApp\nCloud API" as WA
+database "PostgreSQL" as DB
+participant "JWT Library" as JWT
+
+Worker -> PWA : Saisit numéro de téléphone
+PWA -> API : POST /api/v1/auth/worker/request-otp\n{phone_number}
+activate API
+
+API -> DB : SELECT * FROM worker_assignments\nWHERE phone = ? AND is_active = true
+activate DB
+DB --> API : WorkerAssignment record
+deactivate DB
+
+API -> OTPSvc : generate_otp(phone_number)
+activate OTPSvc
+OTPSvc -> OTPSvc : Génère OTP 6 chiffres\n(TTL: 5 minutes)
+OTPSvc -> WA : POST /messages\n{to: phone, text: "Votre code: XXXXXX"}
+activate WA
+WA --> OTPSvc : 200 OK
+deactivate WA
+OTPSvc --> API : OTP envoyé
+deactivate OTPSvc
+API --> PWA : 200 OK\n{message: "OTP envoyé"}
+deactivate API
+
+PWA --> Worker : Écran saisie OTP
+
+Worker -> PWA : Saisit le code OTP
+PWA -> API : POST /api/v1/auth/worker/verify-otp\n{phone_number, otp_code}
+activate API
+
+API -> OTPSvc : verify_otp(phone, code)
+activate OTPSvc
+
+alt OTP expiré ou invalide
+  OTPSvc --> API : OTPInvalidError
+  API --> PWA : 401 Unauthorized\n{detail: "Code invalide"}
+  PWA --> Worker : Message d'erreur
+else OTP valide
+  OTPSvc --> API : Vérifié
+  deactivate OTPSvc
+  API -> JWT : create_access_token(\n  {sub: worker_id, role: worker,\n   farm_id: farm_id})
+  JWT --> API : JWT Token (HS256)
+  API --> PWA : 200 OK\n{access_token, worker_info, farm_id}
+  deactivate API
+  PWA -> PWA : Sync données ferme\n(Dexie IndexedDB offline)
+  PWA --> Worker : Accès tâches assignées
+end
+
+@enduml
+
+@startuml FARM_AI_Sequence_Telemetry
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+
+title SD3 — Pipeline Télémétrie IoT → Alerte Temps Réel\nSmart Farm AI v3.0
+
+participant "Capteur IoT\n(MQTT Client)" as Sensor
+participant "Mosquitto\nBroker MQTT" as MQTT
+participant "Backend Worker\n(paho-mqtt)" as Worker
+participant "Anomaly\nDetection\n(Isolation Forest)" as Anomaly
+database "PostgreSQL" as DB
+participant "WebSocket\nManager" as WS
+participant "Dashboard\n(React)" as FE
+
+Sensor -> MQTT : PUBLISH smart_farm/unit_001/telemetry\n{temp: 38.5, humidity: 62, weight: 24.3}
+activate MQTT
+MQTT -> Worker : Message reçu (topic subscribed)
+deactivate MQTT
+activate Worker
+
+Worker -> DB : INSERT INTO telemetry_records\n(unit_id, timestamp, metrics, source='mqtt')
+activate DB
+DB --> Worker : TelemetryRecord id=4521
+deactivate DB
+
+Worker -> Anomaly : detect_anomaly(unit_id, metrics)
+activate Anomaly
+Anomaly -> DB : SELECT last 100 records\nfor unit_id = 001
+DB --> Anomaly : Historical data
+Anomaly -> Anomaly : Isolation Forest score\n→ anomaly_score = 0.87
+
+alt Score > Seuil (0.75)
+  Anomaly -> DB : INSERT INTO anomalies\n(unit_id, severity='high',\nfeature_contributions)
+  DB --> Anomaly : Anomaly id=89
+  Anomaly -> DB : INSERT INTO alerts\n(unit_id, farm_id, type='temperature',\nmessage, severity='high')
+  DB --> Anomaly : Alert id=234
+  Anomaly --> Worker : {anomaly: true, alert_id: 234}
+  deactivate Anomaly
+
+  Worker -> WS : broadcast_to_farm(farm_id,\n{type:'alert', alert_id:234,\nmessage: 'Température critique!'})
+  activate WS
+  WS -> FE : WebSocket message\n{event: 'new_alert', data: {...}}
+  deactivate WS
+  FE -> FE : Affiche notification\nToast + mise à jour Dashboard
+
+  Worker -> DB : INSERT INTO recommendations\n(alert_id, probable_cause,\nrecommendation_text, urgency='high')
+  DB --> Worker : Recommendation créée
+else Score <= Seuil
+  Anomaly --> Worker : {anomaly: false}
+  deactivate Anomaly
+  Worker -> WS : broadcast_to_farm(farm_id,\n{type:'telemetry_update', data:{...}})
+  WS -> FE : Mise à jour graphique temps réel
+end
+
+deactivate Worker
+
+@enduml
+
+@startuml FARM_AI_Sequence_CV
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+
+title SD4 — Détection Maladie par Vision par Ordinateur (YOLO)\nSmart Farm AI v3.0
+
+actor "Propriétaire" as Owner
+participant "Frontend\n(React + Camera)" as FE
+participant "FastAPI\n/cv/detect" as API
+participant "CVService\n(YOLO Engine)" as CVSvc
+participant "YOLO Model\n(Ultralytics)" as YOLO
+participant "AI Agent\n(RAG + MLLM)" as AIAgent
+participant "ChromaDB\n(Knowledge Base)" as Chroma
+participant "Ollama\n(LLaVA)" as Ollama
+database "PostgreSQL" as DB
+participant "WebSocket" as WS
+
+Owner -> FE : Capture photo\n(feuille, fruit, animal)
+Owner -> FE : Sélectionne catégorie\n(feuilles / olive / insectes / abeilles / feu)
+FE -> API : POST /api/v1/cv/detect\n{image_base64, category, unit_id}
+activate API
+
+API -> CVSvc : detect(image_bytes, category)
+activate CVSvc
+
+CVSvc -> CVSvc : Charger modèle YOLO\n(cache chaud au démarrage)
+CVSvc -> YOLO : model.predict(image, conf=0.5)
+activate YOLO
+YOLO --> CVSvc : Detections:\n[{class:'leaf_blight',\nconf:0.89, bbox:[x,y,w,h]}]
+deactivate YOLO
+
+CVSvc -> DB : INSERT INTO cv_events\n(unit_id, object_class,\nconfidence, severity, bbox)
+DB --> CVSvc : CVEvent id=156
+
+CVSvc --> API : {detections, event_id: 156}
+deactivate CVSvc
+
+API -> AIAgent : generate_recommendation(\ncv_event_id, image, detections)
+activate AIAgent
+
+AIAgent -> Chroma : semantic_search(\n"leaf_blight treatment olives",\ntop_k=5)
+activate Chroma
+Chroma --> AIAgent : Relevant knowledge chunks\n(maladies, traitements, doses)
+deactivate Chroma
+
+AIAgent -> Ollama : chat_with_vision(\n  model='llava',\n  image=image,\n  context=knowledge,\n  prompt='Diagnostiquer et recommander')
+activate Ollama
+Ollama --> AIAgent : {probable_cause: "Cercosporiose",\nrecommendation: "Appliquer fongicide\ncuivre 0.5% ...", urgency: "high"}
+deactivate Ollama
+
+AIAgent -> DB : INSERT INTO recommendations\n(unit_id, probable_cause,\nrecommendation_text, urgency, confidence)
+DB --> AIAgent : Recommendation id=78
+
+alt Sévérité critique (feu / prédateur)
+  AIAgent -> DB : INSERT INTO alerts\n(unit_id, type='cv_critical',\nseverity='critical')
+  AIAgent -> WS : broadcast_urgent_alert(farm_id)
+  WS -> FE : Notification critique !
+end
+
+AIAgent --> API : {recommendation, alert_id?}
+deactivate AIAgent
+
+API --> FE : 200 OK\n{detections, recommendation, cv_event_id}
+deactivate API
+
+FE --> Owner : Affiche:\n- Bounding boxes sur image\n- Diagnostic IA\n- Recommandation urgente\n- Action à entreprendre
+
+@enduml
+
+@startuml FARM_AI_Sequence_BeeWorkflow
+!theme cerulean-outline
+skinparam backgroundColor #FAFAFA
+
+title SD5 — Flux de Gestion Apicole\n(Visite → Besoin → Planning → Stock)\nSmart Farm AI v3.0
+
+actor "Apiculteur" as Beekeeper
+participant "Frontend\n(AboutBee)" as FE
+participant "FastAPI\n/bee" as API
+database "PostgreSQL" as DB
+participant "BeePlanning\nService" as PlanSvc
+participant "BeeStock\nService" as StockSvc
+
+Beekeeper -> FE : Sélectionne ruche HIVE-0042
+FE -> API : GET /api/v1/bee/hives/42/details
+API -> DB : SELECT hive + last_visit + stock
+DB --> API : {hive_data, visit_history, stock}
+API --> FE : Profil ruche complet
+
+Beekeeper -> FE : Enregistre nouvelle visite
+FE -> API : POST /api/v1/bee/history\n{hive_id:42, visit_date,\nhealth_state:'poor',\nforce_level:3,\nharvest_kg:0,\nneeds_sirop:true,\nneeds_traitement:true,\nobservations:'Varroase détectée'}
+activate API
+
+API -> DB : INSERT INTO bee_visits\nUPDATE bee_hives SET\n  health_score=35,\n  force_score=3
+DB --> API : Visit id=891
+
+API -> PlanSvc : check_and_create_mission(hive_id, needs)
+activate PlanSvc
+PlanSvc -> DB : SELECT existing planned missions
+DB --> PlanSvc : No active mission
+PlanSvc -> DB : INSERT INTO bee_planning\n{type:'treatment',\ntitle:'Traitement Varroa HIVE-0042',\nscheduled_date: now+3days}
+DB --> PlanSvc : Planning id=44
+deactivate PlanSvc
+
+API -> StockSvc : check_stock_availability(traitement, sirop)
+activate StockSvc
+StockSvc -> DB : SELECT sirop_liters, traitement_units\nFROM bee_global_stock
+DB --> StockSvc : {sirop:12L, traitement:2units}
+
+alt Stock insuffisant (traitement < 5)
+  StockSvc -> DB : INSERT INTO warehouse_alerts\n{type:'low_stock',\nmessage:'Stock traitement Varroa faible'}
+  StockSvc --> API : {warning: 'Stock insuffisant'}
+else Stock OK
+  StockSvc --> API : {status: 'OK'}
+end
+deactivate StockSvc
+
+API --> FE : 201 Created\n{visit, planning_created:true, stock_warning?}
+deactivate API
+
+FE --> Beekeeper : Visite enregistrée\nMission planifiée dans 3 jours\nAvertissement stock si besoin
+
+@enduml

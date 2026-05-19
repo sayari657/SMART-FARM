@@ -1,0 +1,121 @@
+@startuml P1_Utilisateurs
+!theme cerulean-outline
+skinparam classBackgroundColor #EBF5FB
+skinparam classBorderColor #2C7BE5
+skinparam classHeaderBackgroundColor #1A5276
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #EBF5FB
+skinparam packageBorderColor #2C7BE5
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 1 / 7 — Utilisateurs & Contrôle d'Accès</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+package "Utilisateurs & Contrôle d'Accès" #F0F8FF {
+
+  class User {
+    <b>Identification</b>
+    + id           : Integer    <<PK, index>>
+    + username     : String(50) <<unique, index>>
+    + email        : String(255) <<unique, nullable>>
+    + phone_number : String(20)  <<unique, nullable>>
+    + full_name    : String(100) <<nullable>>
+    ..
+    <b>Sécurité</b>
+    + password_hash : String(255)
+    + role          : String(20)  {default: "operator"}
+    '  Valeurs : "owner" | "worker"
+    + is_active     : Boolean {default: True}
+    ..
+    <b>Horodatage</b>
+    + created_at : DateTime
+    + updated_at : DateTime
+  }
+
+  class WorkerAssignment {
+    + id          : Integer <<PK, index>>
+    + worker_id   : Integer <<FK→users.id CASCADE>>
+    + farm_id     : Integer <<FK→farms.id CASCADE>>
+    + pin_code    : String(255)
+    + is_active   : Boolean {default: True}
+    + assigned_at : DateTime
+  }
+
+  class WorkerTask {
+    <b>Identification</b>
+    + id         : Integer <<PK, index>>
+    + farm_id    : Integer <<FK→farms.id CASCADE>>
+    + worker_id  : Integer <<FK→users.id SET NULL, nullable>>
+    + animal_id  : Integer <<FK→animal_units.id SET NULL, nullable>>
+    + created_by : Integer <<FK→users.id SET NULL, nullable>>
+    ..
+    <b>Tâche</b>
+    + title       : String(200)
+    + category    : String(50) {default: "other"}
+    '  feeding | health | milking | cleaning
+    + description : Text
+    + due_date    : DateTime
+    ..
+    <b>Suivi</b>
+    + status   : String(50) {default: "pending"}
+    '  pending | done | blocked
+    + priority : String(50) {default: "normal"}
+    '  low | normal | urgent
+    + photo_url  : Text
+    + notes      : Text
+    + created_at : DateTime
+    + done_at    : DateTime
+  }
+
+  class WorkerReport {
+    + id         : Integer <<PK, index>>
+    + worker_id  : Integer <<FK→users.id SET NULL, nullable>>
+    + farm_id    : Integer <<FK→farms.id CASCADE, nullable>>
+    + type       : String(100) {default: "other"}
+    + notes      : Text
+    + photo_b64  : Text
+    + created_at : DateTime
+  }
+
+  class PushToken {
+    + id         : Integer <<PK, index>>
+    + user_id    : Integer <<FK→users.id CASCADE>>
+    + token      : Text
+    + platform   : String(50)
+    + created_at : DateTime
+  }
+}
+
+class Farm <<(P,#C8E6C9) voir Partie 2>> {
+  + id : Integer <<PK>>
+}
+class AnimalUnit <<(P,#C8E6C9) voir Partie 2>> {
+  + id : Integer <<PK>>
+}
+
+User       "1" *-down- "0..*" WorkerAssignment
+User       "1" *-down- "0..*" WorkerTask   : reçoit >
+User       "1" *-down- "0..*" WorkerReport : soumet >
+User       "1" *-down- "0..*" PushToken    : enregistre >
+Farm       "1" -right- "0..*" WorkerAssignment
+Farm       "1" -right- "0..*" WorkerTask
+Farm       "1" -right- "0..*" WorkerReport
+AnimalUnit "1" -right- "0..*" WorkerTask   : cible >
+
+note right of WorkerTask
+  <b>category</b> (pas task_type)
+  <b>done_at</b> (pas completed_at)
+  status: pending|done|blocked
+  Lié à un animal via animal_id
+end note
+
+note right of WorkerReport
+  <b>photo_b64 : Text</b>
+  Une seule photo en base64,
+  pas un tableau JSON.
+end note
+
+@enduml

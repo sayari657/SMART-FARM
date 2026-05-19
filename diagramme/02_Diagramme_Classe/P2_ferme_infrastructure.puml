@@ -1,0 +1,166 @@
+@startuml P2_Ferme_Infrastructure
+!theme cerulean-outline
+skinparam classBackgroundColor #E9F7EF
+skinparam classBorderColor #1E8449
+skinparam classHeaderBackgroundColor #1E8449
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #E9F7EF
+skinparam packageBorderColor #1E8449
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 2 / 7 — Ferme & Infrastructure</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+class User <<(P,#AED6F1) voir Partie 1>> {
+  + id   : Integer <<PK>>
+  + role : String
+}
+
+package "Ferme & Infrastructure" #F0FFF0 {
+
+  class Farm {
+    + id          : Integer <<PK, index>>
+    + owner_id    : Integer <<FK→users.id SET NULL, nullable>>
+    + name        : String(100)
+    + location    : String(255)
+    + description : Text
+    + latitude    : Float
+    + longitude   : Float
+    + geom        : Geometry(POINT,4326)
+    '  String(100) en mode SQLite
+    + status      : String(50) {default: "active"}
+    '  active | inactive | maintenance
+    + total_area_ha : Float
+    + created_at  : DateTime
+    + updated_at  : DateTime
+  }
+
+  class FarmOwner {
+    '<b>Co-propriété Farm ↔ User (M:M)</b>
+    + id       : Integer <<PK, index>>
+    + farm_id  : Integer <<FK→farms.id CASCADE>>
+    + owner_id : Integer <<FK→users.id CASCADE>>
+    '  ⚠ "owner_id" (pas "user_id")
+    + added_at : DateTime
+    ' ⚠ Pas de champ "role" dans le code
+    <<UniqueConstraint(farm_id, owner_id)>>
+  }
+
+  class FarmFinance {
+    + id       : Integer <<PK, index>>
+    + farm_id  : Integer <<FK→farms.id CASCADE>>
+    + type     : String(50)
+    '  expense | revenue
+    + category : String(100)
+    '  food | vet | sales | maintenance
+    + amount   : Float
+    + notes    : Text
+    + timestamp : DateTime
+    '  ⚠ "timestamp" (pas "date")
+  }
+
+  class AnimalType {
+    '<b>Catalogue des espèces</b>
+    + id               : Integer <<PK, index>>
+    + species          : String(50) <<unique>>
+    '  bee | cow | poultry | sheep | goat
+    + display_name     : String(100)
+    '  ⚠ "display_name" (pas "name")
+    + description      : Text
+    + telemetry_schema : JSON
+    + cv_classes       : JSON
+    + created_at       : DateTime
+  }
+
+  class AnimalUnit {
+    + id               : Integer <<PK, index>>
+    + farm_id          : Integer <<FK→farms.id CASCADE>>
+    + type_id          : Integer <<FK→animal_types.id RESTRICT>>
+    '  ⚠ "type_id" (pas "animal_type_id")
+    + name             : String(100)
+    + identifier       : String(50) <<nullable>>
+    + tag_id           : String(50) <<unique, nullable>>
+    ..
+    <b>Santé</b>
+    + status           : String(50) {default: "healthy"}
+    '  healthy | warning | critical | offline
+    + lifecycle_status : String(50) {default: "production"}
+    '  ⚠ production | rest | care | gestation
+    '  (pas active|quarantine|sold|deceased)
+    + health_score     : Float {default: 100.0}
+    + notes            : Text
+    + entry_date       : DateTime
+    + created_at       : DateTime
+    + updated_at       : DateTime
+    <<Index(farm_id, type_id)>>
+  }
+
+  class AnimalLog {
+    '<b>Registre historique FMIS</b>
+    + id          : Integer <<PK, index>>
+    + animal_id   : Integer <<FK→animal_units.id CASCADE>>
+    + recorded_by : Integer <<FK→users.id SET NULL, nullable>>
+    + type        : String(50)
+    '  milk_yield | health_event | feed_consumed
+    + value       : Float <<nullable>>
+    + unit        : String(20) <<nullable>>
+    '  L | kg | etc.
+    + notes       : Text
+    + timestamp   : DateTime <<index>>
+    <<Index(animal_id, timestamp)>>
+  }
+
+  class Settings {
+    + id             : Integer <<PK, index>>
+    + farm_id        : Integer <<FK→farms.id CASCADE, nullable>>
+    + animal_type_id : Integer <<FK→animal_types.id CASCADE, nullable>>
+    '  ⚠ champ additionnel vs diagramme initial
+    + key            : String(100)
+    + value          : JSON
+    '  ⚠ "value" (pas "value_json")
+    + description    : Text
+    + updated_at     : DateTime
+    <<Index(farm_id, animal_type_id, key)>>
+  }
+
+  class Report {
+    + id           : Integer <<PK, index>>
+    + farm_id      : Integer <<FK→farms.id CASCADE>>
+    + report_type  : String(50)
+    '  daily | weekly | monthly | custom
+    + title        : String(200)
+    + period_start : DateTime
+    + period_end   : DateTime
+    + summary      : JSON
+    '  ⚠ "summary" (pas "summary_json")
+    + file_url     : String(255)
+    + generated_by : String(100)
+    + created_at   : DateTime
+  }
+}
+
+User       "1"    *-down-  "0..*"  Farm         : possède >
+User       "0..*" --       "0..*"  Farm         : co-propriétaires\n(FarmOwner)
+Farm       "1"    *-right- "0..*"  AnimalUnit   : contient >
+Farm       "1"    *-down-  "0..*"  FarmFinance  : enregistre >
+Farm       "1"    *-down-  "0..*"  Report       : produit >
+Farm       "1"    *-down-  "0..*"  Settings     : configure >
+AnimalType "1"    --       "0..*"  AnimalUnit   : catégorise >
+AnimalUnit "1"    *-right- "0..*"  AnimalLog    : historise >
+AnimalType "1"    --       "0..*"  Settings     : seuils par espèce >
+
+note right of AnimalUnit
+  <b>lifecycle_status</b> :
+  production | rest | care | gestation
+  (⚠ pas active/sold/deceased)
+end note
+
+note right of FarmOwner
+  owner_id (pas user_id)
+  Pas de champ "role"
+end note
+
+@enduml

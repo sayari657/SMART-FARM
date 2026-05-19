@@ -1,0 +1,130 @@
+@startuml P4_IA_Surveillance
+!theme cerulean-outline
+skinparam classBackgroundColor #F5EEF8
+skinparam classBorderColor #7D3C98
+skinparam classHeaderBackgroundColor #7D3C98
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #F5EEF8
+skinparam packageBorderColor #7D3C98
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 4 / 7 — IA & Surveillance</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+class AnimalUnit <<(P,#C8E6C9) voir Partie 2>> {
+  + id      : Integer <<PK>>
+  + farm_id : Integer <<FK>>
+}
+class User <<(P,#AED6F1) voir Partie 1>> {
+  + id : Integer <<PK>>
+}
+class Anomaly <<(P,#FAD7A0) voir Partie 3>> {
+  + id : Integer <<PK>>
+}
+
+package "IA & Surveillance" #FFF0FF {
+
+  class CVEvent {
+    + id            : Integer  <<PK, index>>
+    + unit_id       : Integer  <<FK→animal_units.id CASCADE>>
+    + timestamp     : DateTime <<index>>
+    '  ⚠ "timestamp" (pas "detected_at")
+    + object_class  : String(50)
+    '  bee | predator | smoke | fire | cow | limping...
+    + confidence    : Float
+    + severity      : String(20) {default: "info"}
+    '  info | warning | critical
+    + thumbnail_url : String(255)
+    '  ⚠ "thumbnail_url" (pas "image_url")
+    + frame_metadata : JSON
+    '  ⚠ "frame_metadata" (pas "bbox_metadata")
+    '  {bbox, count, track_id}
+    + camera_id     : String(50)
+    '  ⚠ Pas de "model_version" dans le code
+    <<Index(unit_id, timestamp)>>
+  }
+
+  class Alert {
+    + id          : Integer  <<PK, index>>
+    + unit_id     : Integer  <<FK→animal_units.id CASCADE>>
+    '  ⚠ Pas de "farm_id" FK ici
+    + timestamp   : DateTime <<index>>
+    '  ⚠ "timestamp" (pas "created_at")
+    + alert_type  : String(100)
+    + message     : Text
+    + severity    : String(20) {default: "warning"}
+    '  info | warning | critical
+    '  ⚠ Pas de champ "source" dans le code
+    + is_resolved : Boolean {default: False}
+    + resolved_at : DateTime
+    + resolved_by : String(100)
+    <<Index(unit_id, severity)>>
+    <<Index(is_resolved)>>
+  }
+
+  class Recommendation {
+    + id                   : Integer  <<PK, index>>
+    + unit_id              : Integer  <<FK→animal_units.id CASCADE, nullable>>
+    + alert_id             : Integer  <<FK→alerts.id CASCADE, nullable>>
+    + timestamp            : DateTime
+    '  ⚠ "timestamp" (pas "created_at")
+    + probable_cause       : Text
+    + recommendation_text  : Text
+    + urgency_level        : String(20) {default: "medium"}
+    '  low | medium | high | critical
+    + confidence_score     : Float {default: 90.0}
+    + is_actioned          : Boolean {default: False}
+    '  ⚠ "is_actioned" (pas "is_applied")
+    <<Index(unit_id)>>
+  }
+
+  class DiagnosticHistory {
+    + id          : Integer  <<PK, index>>
+    + user_id     : Integer  <<FK→users.id CASCADE, nullable>>
+    '  ⚠ Pas de unit_id ici
+    + timestamp   : DateTime <<index>>
+    + category    : String(50)
+    '  ⚠ "category" (pas "diagnosis_type")
+    '  leaves | olive | insects | fire
+    + image_url   : Text <<nullable>>
+    + detections  : JSON <<nullable>>
+    '  ⚠ "detections" (pas "detection_json")
+    + chat_log    : JSON <<nullable>>
+    '  ⚠ "chat_log" (pas "chat_session")
+    + notes       : Text <<nullable>>
+    <<Index(user_id, timestamp)>>
+  }
+}
+
+AnimalUnit "1" *-down- "0..*" CVEvent           : surveille >
+AnimalUnit "1" *-down- "0..*" Alert             : déclenche >
+AnimalUnit "1" *-down- "0..*" Recommendation    : reçoit >
+Anomaly    "1" -right- "0..*" Alert             : engendre >
+CVEvent    "1" ..>     "0..1" Alert             : peut déclencher >
+Alert      "1" *-right- "0..*" Recommendation   : génère >
+User       "1" --      "0..*" DiagnosticHistory  : consulte >
+
+note right of CVEvent
+  ⚠ Corrections :
+  — detected_at → timestamp
+  — image_url → thumbnail_url
+  — bbox_metadata → frame_metadata
+  — model_version : supprimé
+end note
+
+note right of Alert
+  ⚠ farm_id : n'existe PAS
+  ⚠ source  : n'existe PAS
+  + resolved_by : String(100) ajouté
+end note
+
+note right of DiagnosticHistory
+  ⚠ unit_id : n'existe PAS
+  category : leaves|olive|insects|fire
+  (pas "diagnosis_type")
+end note
+
+@enduml

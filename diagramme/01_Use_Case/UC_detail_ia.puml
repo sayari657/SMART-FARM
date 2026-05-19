@@ -1,0 +1,52 @@
+@startuml UC_Detail_IA
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam UseCaseBorderColor #7D3C98
+skinparam UseCaseBackgroundColor #F5EEF8
+skinparam PackageBorderColor #7D3C98
+skinparam PackageBackgroundColor #FBF8FF
+skinparam ArrowColor #7D3C98
+skinparam defaultFontSize 13
+
+title <size:14><b>Détail — Intelligence Artificielle</b></size>\nSmart Farm AI v3.0
+
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+
+package "Intelligence Artificielle" {
+  usecase "Détecter Maladies Plantes\n(YOLO : feuilles / olive / agrumes)" as UC_Plant
+  usecase "Détecter Insectes &\nFeu / Fumée (YOLO)"                        as UC_Fire
+  usecase "Diagnostiquer Santé\n(Bétail / Volaille)"                        as UC_Diag
+  usecase "Consulter Recommandations\n(RAG + LLaVA)"                        as UC_Reco
+  usecase "Consulter Assistant IA\n(Chat multimodal — image + texte)"        as UC_Chat
+  usecase "Consulter Alertes IA"                                             as UC_AIAlert
+}
+
+Owner --> UC_Plant
+Owner --> UC_Fire
+Owner --> UC_Diag
+Owner --> UC_Reco
+Owner --> UC_Chat
+
+UC_Plant ..> UC_Reco    : <<include>>
+UC_Fire  ..> UC_AIAlert : <<include>>
+UC_Diag  ..> UC_Reco    : <<include>>
+
+note right of UC_Plant
+  <b>12 modèles YOLO spécialisés :</b>
+  bee, goat, cow, sheep, livestock,
+  leaves, olive, insects,
+  lemon, orange, fire, plants
+end note
+
+note right of UC_Reco
+  Pipeline :
+  1. ChromaDB (RAG sémantique)
+  2. LLaVA multimodal (Ollama)
+  3. Recommandation générée
+  4. Notifiée via WebSocket
+end note
+
+@enduml

@@ -1,0 +1,128 @@
+@startuml UC_Global
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #2C7BE5
+skinparam ActorBorderColor #1A5276
+skinparam ActorBackgroundColor #AED6F1
+skinparam UseCaseBorderColor #2C7BE5
+skinparam UseCaseBackgroundColor #EBF5FB
+skinparam PackageBorderColor #5D6D7E
+skinparam PackageBackgroundColor #F8F9FA
+skinparam defaultFontSize 13
+skinparam defaultTextAlignment center
+
+title <size:15><b>Diagramme de Cas d'Utilisation — Vue Globale</b></size>\nSmart Farm AI v3.0
+
+'══════════════════════════════════════
+'  ACTEURS
+'══════════════════════════════════════
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+actor "Ouvrier\n(PWA)" as Worker #27AE60
+
+'══════════════════════════════════════
+'  SOUS-SYSTÈMES (vue résumée)
+'══════════════════════════════════════
+
+package "Authentification\n& Sécurité" as S1 #EAF2FF {
+  usecase "S'authentifier (JWT)"         as UC_Login
+  usecase "Authentification OTP"         as UC_OTP
+  usecase "Vérifier PIN (hors-ligne)"    as UC_PIN
+}
+
+package "Gestion\ndes Fermes" as S2 #E9F7EF {
+  usecase "Gérer Fermes & Unités"        as UC_Farm
+  usecase "Gérer Ouvriers"              as UC_Workers
+  usecase "Visualiser Carte GIS"         as UC_Map
+}
+
+package "Surveillance\n& Télémétrie" as S3 #FEF5E7 {
+  usecase "Tableau de Bord"              as UC_Dash
+  usecase "Consulter Télémétrie"         as UC_Tele
+  usecase "Consulter Alertes"            as UC_Alert
+}
+
+package "Module\nApiculture" as S4 #FEFDE7 {
+  usecase "Gérer Ruches & Ruchers"       as UC_Hive
+  usecase "Enregistrer Visites"          as UC_Visit
+  usecase "Gérer Stock & Planning"       as UC_BeeStock
+  usecase "Consulter Marché Apicole"     as UC_Market
+}
+
+package "Module Aviculture\n(ERP)" as S5 #E8F8F5 {
+  usecase "Gérer Lots (Broiler/Layer)"   as UC_Batch
+  usecase "Enregistrer Production"       as UC_Prod
+  usecase "Gérer Santé & Ventes"         as UC_Health
+  usecase "Valider Logs (Data Contract)" as UC_Validate
+}
+
+package "Intelligence\nArtificielle" as S6 #F5EEF8 {
+  usecase "Détection CV (YOLO)"          as UC_CV
+  usecase "Consulter Recommandations"    as UC_Reco
+  usecase "Assistant IA (Chat)"          as UC_AI
+}
+
+package "Entrepôt\n& Rapports" as S7 #F2F3F4 {
+  usecase "Gérer Entrepôt"              as UC_Stock
+  usecase "Générer Rapports"            as UC_Report
+  usecase "Configurer Seuils"           as UC_Config
+}
+
+package "Module Ouvrier\n(PWA offline)" as S8 #E9F7EF {
+  usecase "Consulter Tâches"            as UC_Tasks
+  usecase "Soumettre Rapport Terrain"   as UC_Rpt
+  usecase "Scanner QR Code"             as UC_QR
+}
+
+'══════════════════════════════════════
+'  RELATIONS — Propriétaire
+'══════════════════════════════════════
+Owner --> UC_Login
+Owner --> UC_Farm
+Owner --> UC_Workers
+Owner --> UC_Map
+Owner --> UC_Dash
+Owner --> UC_Tele
+Owner --> UC_Alert
+Owner --> UC_Hive
+Owner --> UC_Visit
+Owner --> UC_BeeStock
+Owner --> UC_Market
+Owner --> UC_Batch
+Owner --> UC_Prod
+Owner --> UC_Health
+Owner --> UC_Validate
+Owner --> UC_CV
+Owner --> UC_Reco
+Owner --> UC_AI
+Owner --> UC_Stock
+Owner --> UC_Report
+Owner --> UC_Config
+
+'══════════════════════════════════════
+'  RELATIONS — Ouvrier
+'══════════════════════════════════════
+Worker --> UC_OTP
+Worker --> UC_PIN
+Worker --> UC_Tasks
+Worker --> UC_Rpt
+Worker --> UC_QR
+
+'══════════════════════════════════════
+'  INCLUDE / EXTEND principaux
+'══════════════════════════════════════
+UC_Login  ..> UC_OTP   : <<extend>>
+UC_Tele   ..> UC_Alert : <<include>>
+UC_CV     ..> UC_Reco  : <<include>>
+UC_Visit  ..> UC_BeeStock : <<extend>>
+
+note bottom
+  Voir les diagrammes détaillés par module :
+  UC_detail_auth | UC_detail_surveillance
+  UC_detail_bee  | UC_detail_poultry
+  UC_detail_ia   | UC_detail_ouvrier
+end note
+
+@enduml

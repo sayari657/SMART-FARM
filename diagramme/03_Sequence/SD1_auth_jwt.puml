@@ -1,0 +1,63 @@
+@startuml SD1_Auth_JWT
+!theme cerulean-outline
+skinparam backgroundColor #FFFFFF
+skinparam ParticipantBorderColor #1A5276
+skinparam ParticipantBackgroundColor #EAF2FF
+skinparam SequenceArrowColor #34495E
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam LifeLineBorderColor #AEB6BF
+skinparam shadowing false
+
+title <size:14><b>SD1 — Authentification Propriétaire (JWT)</b></size>\n<size:11>Source : backend/app/api/v1/endpoints/auth_routes.py</size>
+
+actor "Propriétaire" as Owner
+participant "Frontend\n(React)" as FE
+participant "FastAPI\nPOST /api/v1/auth/login" as API
+participant "AuthService\n(auth_service.py)" as AuthSvc
+database "SQLite / PostgreSQL" as DB
+participant "python-jose\n(JWT HS256)" as JWT
+
+Owner -> FE : Saisit username + mot de passe
+note right
+  ⚠ Champ : <b>username</b>
+  (pas email — corrigé)
+end note
+
+FE -> API : POST /api/v1/auth/login\n{username, password}
+activate API
+
+API -> AuthSvc : AuthService(db).login(\n  creds.username,\n  creds.password)
+activate AuthSvc
+
+AuthSvc -> DB : SELECT * FROM users\nWHERE username = ?
+activate DB
+DB --> AuthSvc : User record (ou null)
+deactivate DB
+
+alt Utilisateur non trouvé
+  AuthSvc --> API : HTTPException 401
+  API --> FE : 401 {"detail": "Invalid credentials"}
+  FE --> Owner : Message d'erreur
+else Utilisateur inactif (is_active = False)
+  AuthSvc --> API : HTTPException 403
+  API --> FE : 403 {"detail": "Account disabled"}
+  FE --> Owner : Compte désactivé
+else Mot de passe incorrect
+  AuthSvc -> AuthSvc : bcrypt.verify(password,\n  hash) → False
+  AuthSvc --> API : HTTPException 401
+  API --> FE : 401 Unauthorized
+  FE --> Owner : Message d'erreur
+else Authentification réussie
+  AuthSvc -> AuthSvc : bcrypt.verify(password,\n  hash) → True
+  AuthSvc -> JWT : create_access_token(\n  {sub: user.id,\n   role: user.role},\n  expire: 7 jours)
+  JWT --> AuthSvc : JWT Token (HS256)
+  AuthSvc --> API : Token(access_token, token_type)
+  deactivate AuthSvc
+  API --> FE : 200 OK\n{access_token, token_type: "bearer"}
+  deactivate API
+  FE -> FE : Stocker token\n(localStorage + AuthContext)
+  FE --> Owner : Redirection → Dashboard
+end
+
+@enduml

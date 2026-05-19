@@ -1,0 +1,66 @@
+@startuml UC_Detail_Poultry
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam UseCaseBorderColor #0E6655
+skinparam UseCaseBackgroundColor #E8F8F5
+skinparam PackageBorderColor #0E6655
+skinparam PackageBackgroundColor #F5FFFD
+skinparam ArrowColor #0E6655
+skinparam defaultFontSize 13
+
+title <size:14><b>Détail — Module Aviculture (ERP)</b></size>\nSmart Farm AI v3.0
+
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+
+package "Module Aviculture — ERP" {
+  usecase "Créer / Gérer Lots\n(Broiler / Layer / Breeder)" as UC_Batch
+  usecase "Enregistrer Consommation\nAlimentaire (FCR)"     as UC_Feed
+  usecase "Enregistrer Production\nd'Œufs (taux ponte)"    as UC_Egg
+  usecase "Suivre Santé & Mortalité\n(vaccinations)"        as UC_Health
+  usecase "Enregistrer Ventes\n(Volaille / Œufs)"          as UC_Sale
+  usecase "Gérer Inventaire\n(Aliments / Médicaments)"     as UC_Inv
+  usecase "Valider / Rejeter Logs\n(Data Contract)"         as UC_Validate
+  usecase "Consulter Analyse ML\n(FCR / Mortalité / Ponte)" as UC_ML
+}
+
+Owner --> UC_Batch
+Owner --> UC_Feed
+Owner --> UC_Egg
+Owner --> UC_Health
+Owner --> UC_Sale
+Owner --> UC_Inv
+Owner --> UC_Validate
+Owner --> UC_ML
+
+UC_Feed    ..> UC_Batch    : <<include>>
+UC_Egg     ..> UC_Batch    : <<include>>
+UC_Health  ..> UC_Batch    : <<include>>
+UC_Sale    ..> UC_Batch    : <<include>>
+UC_Validate ..> UC_Feed    : <<extend>>
+UC_Validate ..> UC_Egg     : <<extend>>
+UC_Validate ..> UC_Health  : <<extend>>
+UC_ML      ..> UC_Batch    : <<include>>
+
+note right of UC_Feed
+  Calcul automatique :
+  <b>FCR calculé</b> = kg aliment / kg gain poids
+  + average_weight_g (poids moyen)
+end note
+
+note right of UC_Validate
+  <b>Data Contract Pattern :</b>
+  PATCH /logs/{type}/{id}/validate
+  status : pending → validated | rejected
+  admin_notes, validation_timestamp
+end note
+
+note right of UC_ML
+  /poultry/ml-insights/{farm_id}
+  Analyse par lot :
+  FCR tendance, taux ponte, mortalité
+end note
+
+@enduml

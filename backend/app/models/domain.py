@@ -8,10 +8,11 @@ from sqlalchemy import (
     ForeignKey, DateTime, Text, JSON, Enum, Index, UniqueConstraint
 )
 try:
-    from geoalchemy2 import Geometry
+    from geoalchemy2 import Geometry  # type: ignore[import-untyped]
     HAS_GEOALCHEMY = True
 except ImportError:
     HAS_GEOALCHEMY = False
+    Geometry = None  # type: ignore[assignment,misc]
     
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -172,6 +173,7 @@ class WorkerTask(Base):
     farm = relationship("Farm")
     worker = relationship("User", foreign_keys=[worker_id])
     creator = relationship("User", foreign_keys=[created_by])
+    animal = relationship("AnimalUnit", foreign_keys=[animal_id])
 
 class WorkerReport(Base):
     __tablename__ = "worker_reports"
@@ -196,7 +198,10 @@ class PushToken(Base):
     platform = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User")# ---------------------------------------------------------------------------
+    user = relationship("User")
+
+
+# ---------------------------------------------------------------------------
 # Veterinarians (GIS Entities)
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,60 @@
+@startuml UC_Detail_Surveillance
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam UseCaseBorderColor #D35400
+skinparam UseCaseBackgroundColor #FEF5E7
+skinparam PackageBorderColor #D35400
+skinparam PackageBackgroundColor #FFFAF5
+skinparam ArrowColor #D35400
+skinparam defaultFontSize 13
+
+title <size:14><b>Détail — Surveillance & Télémétrie</b></size>\nSmart Farm AI v3.0
+
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+
+package "Surveillance & Télémétrie" {
+  usecase "Visualiser Tableau de Bord\nGET /api/v1/dashboard" as UC_Dash
+  usecase "Lire Télémétrie IoT\nGET /api/v1/iot/latest\nGET /api/v1/iot/history\n(Node A : sol | Node B : ruche)" as UC_IoT
+  usecase "Consulter Télémétrie Animaux\nGET /api/v1/telemetry/{unit_id}" as UC_Tele
+  usecase "Visualiser Anomalies\n(Isolation Forest)" as UC_Anomaly
+  usecase "Consulter Alertes\nGET /api/v1/alerts" as UC_Alert
+  usecase "Voir Événements CV\nGET /api/v1/cv/events" as UC_CV
+  usecase "Consulter Données Météo\n(Open-Meteo API)" as UC_Weather
+}
+
+Owner --> UC_Dash
+Owner --> UC_IoT
+Owner --> UC_Tele
+Owner --> UC_Alert
+Owner --> UC_CV
+Owner --> UC_Weather
+
+UC_Tele  ..> UC_Anomaly : <<include>>
+UC_Anomaly ..> UC_Alert  : <<include>>
+UC_Dash  ..> UC_Weather  : <<include>>
+UC_Dash  ..> UC_IoT      : <<include>>
+
+note right of UC_IoT
+  <b>Architecture réelle :</b>
+  IoT → POST /api/v1/iot/telemetry
+       → écrit dans iot_telemetry.csv
+  Frontend → GET /api/v1/iot/latest
+           → lit le CSV
+
+  Node A : soil, pressure, flow,
+           temp, pump, valve, fault
+  Node B : weight, hive_temp,
+           ext_temp, ext_hum
+end note
+
+note right of UC_Tele
+  Télémétrie standard (DB) :
+  GET /telemetry/{unit_id}
+  POST /telemetry (ingestion)
+  Source : mqtt|simulator|manual
+end note
+
+@enduml

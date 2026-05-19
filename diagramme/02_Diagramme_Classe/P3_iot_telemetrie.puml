@@ -1,0 +1,108 @@
+@startuml P3_IoT_Telemetrie
+!theme cerulean-outline
+skinparam classBackgroundColor #FEF5E7
+skinparam classBorderColor #D35400
+skinparam classHeaderBackgroundColor #D35400
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #FEF5E7
+skinparam packageBorderColor #D35400
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 3 / 7 — IoT & Télémétrie</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+class AnimalUnit <<(P,#C8E6C9) voir Partie 2>> {
+  + id      : Integer <<PK>>
+  + farm_id : Integer <<FK>>
+}
+
+package "IoT & Télémétrie" #FFF8F0 {
+
+  class Sensor {
+    + id          : Integer <<PK, index>>
+    + unit_id     : Integer <<FK→animal_units.id CASCADE>>
+    + sensor_type : String(50)
+    '  temperature | humidity | weight | camera
+    + sensor_id   : String(100) <<nullable>>
+    '  hardware ID / MQTT topic segment
+    '  ⚠ pas de "label" ni "mqtt_topic" ni "calibration_offset"
+    + is_active   : Boolean {default: True}
+    + last_seen   : DateTime
+    + metadata_   : JSON <<nullable>>
+    '  colonne DB nommée "metadata"
+    + created_at  : DateTime
+  }
+
+  class TelemetryRecord {
+    + id        : Integer  <<PK, index>>
+    + unit_id   : Integer  <<FK→animal_units.id CASCADE>>
+    '  ⚠ PAS de sensor_id FK ici
+    + timestamp : DateTime <<index, default: utcnow>>
+    + metrics   : JSON
+    '  ex: {temperature:34.2, humidity:62,
+    '       weight:24.3, honey_level:0.7}
+    + source    : String(50) {default: "mqtt"}
+    '  mqtt | simulator | manual
+    <<Index(unit_id, timestamp)>>
+  }
+
+  class Anomaly {
+    + id           : Integer  <<PK, index>>
+    + unit_id      : Integer  <<FK→animal_units.id CASCADE>>
+    + timestamp    : DateTime <<index>>
+    '  ⚠ "timestamp" (pas "detected_at")
+    + anomaly_type : String(100)
+    '  ⚠ champ absent du diagramme initial
+    + description  : Text
+    + severity     : String(20) {default: "warning"}
+    '  info | warning | critical
+    + isolation_score       : Float
+    '  ⚠ "isolation_score" (pas "anomaly_score")
+    + rules_triggered       : JSON
+    '  ⚠ champ absent du diagramme initial
+    + feature_contributions : JSON
+    + is_acknowledged       : Boolean {default: False}
+    '  ⚠ "is_acknowledged" (pas "resolved")
+    <<Index(unit_id, timestamp)>>
+  }
+}
+
+class Alert <<(P,#D7BDE2) voir Partie 4>> {
+  + id       : Integer <<PK>>
+  + severity : String
+}
+
+AnimalUnit "1" *-right- "0..*" Sensor          : équipé de >
+AnimalUnit "1" *-down-  "0..*" TelemetryRecord : génère >
+AnimalUnit "1" *-down-  "0..*" Anomaly         : déclenche >
+Anomaly    "1" -right-  "0..*" Alert           : engendre >
+
+note right of Sensor
+  ⚠ Champs SUPPRIMÉS du diagramme :
+  — label
+  — mqtt_topic
+  — calibration_offset
+  Champs AJOUTÉS (présents dans le code) :
+  + sensor_id (hardware ID)
+  + metadata_ (JSON)
+end note
+
+note right of TelemetryRecord
+  ⚠ <b>Pas de FK sensor_id</b>
+  Le lien se fait uniquement
+  via unit_id.
+end note
+
+note right of Anomaly
+  Algorithme : <b>Isolation Forest</b>
+  isolation_score > 0.75 → alerte
+  ⚠ Corrections :
+  — detected_at → timestamp
+  — anomaly_score → isolation_score
+  — resolved → is_acknowledged
+end note
+
+@enduml

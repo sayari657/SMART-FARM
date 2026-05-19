@@ -1,0 +1,203 @@
+@startuml FARM_AI_UseCaseDiagram
+!theme cerulean-outline
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FAFAFA
+skinparam ArrowColor #2C7BE5
+skinparam ActorBorderColor #1A5276
+skinparam UseCaseBorderColor #2C7BE5
+skinparam UseCaseBackgroundColor #EBF5FB
+skinparam PackageBorderColor #AEB6BF
+skinparam PackageBackgroundColor #F4F6F7
+skinparam NoteBackgroundColor #FFFFF0
+skinparam NoteBorderColor #DAA520
+skinparam defaultTextAlignment center
+
+title <size:16><b>Diagramme de Cas d'Utilisation</b></size>\nSmart Farm AI v3.0 — Système de Gestion Agricole Intelligente
+
+'════════════════════════════════════════════
+'  ACTEURS  (2 acteurs humains uniquement)
+'════════════════════════════════════════════
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+actor "Ouvrier\n(PWA mobile)"  as Worker #27AE60
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 1 — Authentification
+'════════════════════════════════════════════
+package "Authentification & Sécurité" as Auth {
+  usecase "S'authentifier (JWT)"             as UC_Login
+  usecase "S'inscrire"                       as UC_Register
+  usecase "Réinitialiser mot de passe"       as UC_ResetPwd
+  usecase "Authentification OTP\n(Email / WhatsApp)" as UC_OTP
+  usecase "Vérifier PIN\n(mode hors-ligne)"  as UC_PIN
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 2 — Gestion des Fermes
+'════════════════════════════════════════════
+package "Gestion des Fermes" as FarmMgmt {
+  usecase "Créer / Modifier Ferme"                         as UC_CreateFarm
+  usecase "Gérer Unités Animales\n(Ruches / Bétail / Volaille)" as UC_ManageUnits
+  usecase "Assigner / Gérer Ouvriers"                      as UC_AssignWorkers
+  usecase "Ajouter Co-Propriétaire"                        as UC_AddOwner
+  usecase "Gérer Finances de la Ferme"                     as UC_Finance
+  usecase "Visualiser Carte GIS\n(Fermes / Vétérinaires / Marchés)" as UC_Map
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 3 — Surveillance & Télémétrie
+'════════════════════════════════════════════
+package "Surveillance & Télémétrie" as Monitor {
+  usecase "Visualiser Tableau de Bord"          as UC_Dashboard
+  usecase "Consulter Télémétrie\n(Temp / Humidité / Poids)" as UC_Telemetry
+  usecase "Consulter Alertes"                   as UC_Alerts
+  usecase "Voir Événements CV\n(Détections IA)" as UC_CVEvents
+  usecase "Visualiser Anomalies"                as UC_Anomalies
+  usecase "Consulter Données Météo"             as UC_Weather
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 4 — Module Apiculture
+'════════════════════════════════════════════
+package "Module Apiculture" as Bee {
+  usecase "Gérer Ruchers & Ruches"                          as UC_ManageHives
+  usecase "Enregistrer Visite\nd'Inspection"                as UC_Visit
+  usecase "Suivre Production\n(Miel / Pollen)"              as UC_BeeProduction
+  usecase "Gérer Stock Apicole\n(Sirop / Pâte / Traitement)" as UC_BeeStock
+  usecase "Planifier Missions\n(Inspection / Traitement)"   as UC_BeePlanning
+  usecase "Gérer Dépenses Apicoles"                         as UC_BeeExpenses
+  usecase "Consulter Prévisions ML\n(Prédictif)"            as UC_BeePredictions
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 5 — Module Aviculture (ERP)
+'════════════════════════════════════════════
+package "Module Aviculture (ERP)" as Poultry {
+  usecase "Créer / Gérer Lots\n(Broiler / Layer)"          as UC_PoultryBatch
+  usecase "Enregistrer Consommation\nAlimentaire (FCR)"    as UC_FeedLog
+  usecase "Enregistrer Production\nd'Œufs"                 as UC_EggLog
+  usecase "Suivre Santé & Mortalité"                        as UC_PoultryHealth
+  usecase "Enregistrer Ventes\n(Volaille / Œufs)"          as UC_PoultrySales
+  usecase "Gérer Inventaire\n(Aliments / Médicaments)"     as UC_PoultryInventory
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 6 — Intelligence Artificielle
+'════════════════════════════════════════════
+package "Intelligence Artificielle" as AIModule {
+  usecase "Détecter Maladies Plantes\n(YOLO feuilles / olive)" as UC_PlantCV
+  usecase "Détecter Insectes &\nFeu / Fumée (YOLO)"            as UC_FireCV
+  usecase "Diagnostiquer Santé\n(Bétail / Volaille)"            as UC_Diagnostic
+  usecase "Consulter Recommandations\n(RAG + MLLM)"             as UC_Recommend
+  usecase "Consulter Assistant IA\n(Chat multimodal)"           as UC_AIChat
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 7 — Entrepôt & Rapports
+'════════════════════════════════════════════
+package "Gestion Entrepôt & Rapports" as WareReports {
+  usecase "Gérer Entrepôt\n(Catégories / Articles)" as UC_Warehouse
+  usecase "Alertes Stock Minimum"                    as UC_StockAlert
+  usecase "Générer Rapports\n(Quotidien / Hebdo / Mensuel)" as UC_Reports
+  usecase "Configurer Seuils\n(Télémétrie / Alertes)"       as UC_Settings
+}
+
+'════════════════════════════════════════════
+'  SOUS-SYSTÈME 8 — Module Ouvrier (PWA)
+'════════════════════════════════════════════
+package "Module Ouvrier (PWA)" as WorkerModule {
+  usecase "Consulter Tâches Assignées"         as UC_ViewTasks
+  usecase "Soumettre Rapport Terrain\n(+ Photos)" as UC_SubmitReport
+  usecase "Scanner QR Code\n(Ruche / Animal)"  as UC_Scan
+  usecase "Synchronisation Hors-ligne\n(Dexie IndexedDB)" as UC_OfflineSync
+}
+
+'════════════════════════════════════════════
+'  RELATIONS — Propriétaire / Admin
+'════════════════════════════════════════════
+Owner --> UC_Login
+Owner --> UC_Register
+Owner --> UC_ResetPwd
+
+Owner --> UC_CreateFarm
+Owner --> UC_ManageUnits
+Owner --> UC_AssignWorkers
+Owner --> UC_AddOwner
+Owner --> UC_Finance
+Owner --> UC_Map
+
+Owner --> UC_Dashboard
+Owner --> UC_Telemetry
+Owner --> UC_Alerts
+Owner --> UC_CVEvents
+Owner --> UC_Anomalies
+Owner --> UC_Weather
+
+Owner --> UC_ManageHives
+Owner --> UC_Visit
+Owner --> UC_BeeProduction
+Owner --> UC_BeeStock
+Owner --> UC_BeePlanning
+Owner --> UC_BeeExpenses
+Owner --> UC_BeePredictions
+
+Owner --> UC_PoultryBatch
+Owner --> UC_FeedLog
+Owner --> UC_EggLog
+Owner --> UC_PoultryHealth
+Owner --> UC_PoultrySales
+Owner --> UC_PoultryInventory
+
+Owner --> UC_PlantCV
+Owner --> UC_FireCV
+Owner --> UC_Diagnostic
+Owner --> UC_Recommend
+Owner --> UC_AIChat
+
+Owner --> UC_Warehouse
+Owner --> UC_StockAlert
+Owner --> UC_Reports
+Owner --> UC_Settings
+
+'════════════════════════════════════════════
+'  RELATIONS — Ouvrier
+'════════════════════════════════════════════
+Worker --> UC_OTP
+Worker --> UC_PIN
+Worker --> UC_ViewTasks
+Worker --> UC_SubmitReport
+Worker --> UC_Scan
+Worker --> UC_OfflineSync
+
+'════════════════════════════════════════════
+'  RELATIONS <<include>> / <<extend>>
+'════════════════════════════════════════════
+
+' Auth
+UC_Login    ..> UC_OTP  : <<extend>>\n(connexion ouvrier)
+
+' Surveillance
+UC_Telemetry  ..> UC_Anomalies : <<include>>
+UC_Anomalies  ..> UC_Alerts    : <<include>>
+UC_Dashboard  ..> UC_Weather   : <<include>>
+
+' IA → Alertes / Recommandations
+UC_Alerts     ..> UC_Recommend : <<include>>
+UC_PlantCV    ..> UC_Recommend : <<include>>
+UC_FireCV     ..> UC_Alerts    : <<include>>
+
+' Apiculture
+UC_Visit      ..> UC_BeeStock     : <<extend>>\n(si besoin détecté)
+UC_BeeStock   ..> UC_StockAlert   : <<include>>
+UC_BeePredictions ..> UC_Recommend : <<include>>
+
+' Entrepôt
+UC_Warehouse  ..> UC_StockAlert  : <<include>>
+
+' Rapports
+UC_Reports    ..> UC_Telemetry   : <<include>>
+
+' Ouvrier
+UC_OfflineSync ..> UC_ViewTasks  : <<include>>
+
+@enduml

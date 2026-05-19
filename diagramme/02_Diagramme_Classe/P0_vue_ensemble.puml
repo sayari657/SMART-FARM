@@ -1,0 +1,144 @@
+@startuml P0_Vue_Ensemble
+!theme cerulean-outline
+skinparam packageBackgroundColor #F4F6F7
+skinparam packageBorderColor #2C7BE5
+skinparam classBackgroundColor #EBF5FB
+skinparam classBorderColor #2C7BE5
+skinparam classHeaderBackgroundColor #1A5276
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #566573
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:16><b>Vue d'Ensemble — Smart Farm AI v3.0</b></size>\n<size:11>Diagramme simplifié · Source : backend/app/models/domain.py</size>
+
+legend right
+  |= Symbole   |= Signification  |
+  | *--        | Composition     |
+  | --         | Association     |
+  | ..>        | Dépendance      |
+endlegend
+
+package "P1 — Utilisateurs & Accès" #EAF2FF {
+  class User
+  class WorkerAssignment
+  class WorkerTask
+  class WorkerReport
+  class PushToken
+}
+
+package "P2 — Ferme & Infrastructure" #E9F7EF {
+  class Farm
+  class FarmOwner
+  class AnimalUnit
+  class AnimalType
+  class AnimalLog
+  class FarmFinance
+  class Report
+  class Settings
+}
+
+package "P3 — IoT & Télémétrie" #FEF5E7 {
+  class Sensor
+  class TelemetryRecord
+  class Anomaly
+}
+
+package "P4 — IA & Surveillance" #F5EEF8 {
+  class CVEvent
+  class Alert
+  class Recommendation
+  class DiagnosticHistory
+}
+
+package "P5 — Apiculture" #FEFDE7 {
+  class BeeApiary
+  class BeeHive
+  class BeeVisit
+  class BeeProduction
+  class BeeStockLog
+  class BeeGlobalStock
+  class BeeHiveStock
+  class BeeExpense
+  class BeePlanning
+  class BeePlanningTask
+}
+
+package "P6 — Aviculture ERP" #E8F8F5 {
+  class PoultryBatch
+  class PoultryFeedLog
+  class PoultryEggLog
+  class PoultryHealthLog
+  class PoultrySale
+  class PoultryInventory
+}
+
+package "P7 — Entrepôt & GIS" #F2F3F4 {
+  class WarehouseCategory
+  class WarehouseItem
+  class WarehouseAlert
+  class Veterinary
+  class Market
+}
+
+' P1 ↔ P2
+User          "1"    *--  "0..*"  Farm             : possède
+User          "0..*" --   "0..*"  Farm             : co-propriétaires\n(FarmOwner)
+User          "1"    *--  "0..*"  WorkerAssignment
+Farm          "1"    --   "0..*"  WorkerAssignment
+Farm          "1"    --   "0..*"  WorkerTask
+Farm          "1"    --   "0..*"  WorkerReport
+' P2 interne
+Farm          "1"    *--  "0..*"  AnimalUnit
+Farm          "1"    *--  "0..*"  FarmFinance
+Farm          "1"    *--  "0..*"  Report
+Farm          "1"    *--  "0..*"  Settings
+AnimalType    "1"    --   "0..*"  AnimalUnit
+AnimalUnit    "1"    *--  "0..*"  AnimalLog
+' P2 ↔ P3
+AnimalUnit    "1"    *--  "0..*"  Sensor
+AnimalUnit    "1"    *--  "0..*"  TelemetryRecord
+AnimalUnit    "1"    *--  "0..*"  Anomaly
+' P3 ↔ P4
+Anomaly       "1"    --   "0..*"  Alert
+' P2 ↔ P4
+AnimalUnit    "1"    *--  "0..*"  CVEvent
+AnimalUnit    "1"    *--  "0..*"  Alert
+AnimalUnit    "1"    *--  "0..*"  Recommendation
+User          "1"    --   "0..*"  DiagnosticHistory
+CVEvent       "1"    ..>  "0..1"  Alert
+Alert         "1"    *--  "0..*"  Recommendation
+' P5 interne
+BeeApiary     "1"    *--  "1..*"  BeeHive
+BeeHive       "1"    *--  "0..*"  BeeVisit
+BeeApiary     "1"    *--  "0..*"  BeeProduction
+BeeHive       "1"    --   "0..1"  BeeHiveStock
+BeeHive       "1"    *--  "0..*"  BeePlanning
+BeePlanning   "1"    *--  "0..*"  BeePlanningTask
+BeeGlobalStock ..          BeeHiveStock : alimente
+' P6 interne
+Farm          "1"    *--  "0..*"  PoultryBatch
+PoultryBatch  "1"    *--  "0..*"  PoultryFeedLog
+PoultryBatch  "1"    *--  "0..*"  PoultryEggLog
+PoultryBatch  "1"    *--  "0..*"  PoultryHealthLog
+PoultryBatch  "1"    *--  "0..*"  PoultrySale
+Farm          "1"    *--  "0..*"  PoultryInventory
+' P7 interne
+WarehouseCategory "1" *-- "0..*"  WarehouseItem
+WarehouseItem "1"   *-- "0..*"   WarehouseAlert
+
+note top of AnimalUnit
+  <b>Pivot IoT + IA</b>
+  Connecté à : Sensor, Telemetry,
+  Anomaly, CVEvent, Alert,
+  Recommendation
+end note
+
+note top of Farm
+  <b>Pivot central</b>
+  Connecté à tous les modules.
+end note
+
+@enduml

@@ -1,0 +1,90 @@
+@startuml SD2_Ouvrier_OTP
+!theme cerulean-outline
+skinparam backgroundColor #FFFFFF
+skinparam ParticipantBorderColor #1E8449
+skinparam ParticipantBackgroundColor #E9F7EF
+skinparam SequenceArrowColor #34495E
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam LifeLineBorderColor #AEB6BF
+skinparam shadowing false
+
+title <size:14><b>SD2 — Authentification Ouvrier par OTP (WhatsApp)</b></size>\n<size:11>Source : backend/app/api/v1/endpoints/auth_routes.py</size>
+
+actor "Ouvrier" as Worker
+participant "PWA Mobile\n(React)" as PWA
+participant "FastAPI\n/auth/worker" as API
+participant "AuthService\n(auth_service.py)" as AuthSvc
+participant "OTPService\n(otp_service.py)" as OTPSvc
+participant "WhatsApp\nCloud API" as WA
+database "SQLite / PostgreSQL" as DB
+participant "python-jose\n(JWT HS256)" as JWT
+
+== Étape 1 : Demande d'OTP ==
+
+Worker -> PWA : Saisit numéro de téléphone\n(format E.164 ex: +21621952358)
+PWA -> API : POST /api/v1/auth/worker/request-otp\n{phone_number}
+activate API
+
+API -> AuthSvc : worker_request_otp(phone_number)
+activate AuthSvc
+
+AuthSvc -> DB : SELECT * FROM users\nWHERE phone_number = ?
+activate DB
+DB --> AuthSvc : User record (worker)
+deactivate DB
+
+AuthSvc -> OTPSvc : send_otp_whatsapp(phone_number)
+activate OTPSvc
+OTPSvc -> OTPSvc : Génère OTP 6 chiffres\nStocke dans OTP_STORE\n(TTL : 5 min)
+OTPSvc -> WA : POST /v1/messages\n{to: phone, text:"Votre code: XXXXXX"}
+activate WA
+
+alt WhatsApp API configuré
+  WA --> OTPSvc : 200 OK
+else WhatsApp non configuré (dev)
+  OTPSvc -> OTPSvc : Fallback: OTP en mémoire\n(loggé en console serveur)
+end
+deactivate WA
+
+OTPSvc --> AuthSvc : OTP envoyé
+deactivate OTPSvc
+AuthSvc --> API : {"message": "OTP envoyé"}
+deactivate AuthSvc
+API --> PWA : 200 OK
+deactivate API
+PWA --> Worker : Écran de saisie OTP
+
+== Étape 2 : Vérification OTP ==
+
+Worker -> PWA : Saisit le code OTP reçu
+PWA -> API : POST /api/v1/auth/worker/verify-otp\n{phone_number, otp}
+activate API
+
+API -> AuthSvc : worker_verify_otp(\n  phone_number, otp)
+activate AuthSvc
+AuthSvc -> OTPSvc : verify_otp("whatsapp",\n  phone_number, otp)
+activate OTPSvc
+
+alt OTP invalide ou expiré
+  OTPSvc --> AuthSvc : False
+  AuthSvc --> API : HTTPException 401
+  deactivate OTPSvc
+  API --> PWA : 401 {"detail": "Code invalide ou expiré"}
+  deactivate API
+  deactivate AuthSvc
+  PWA --> Worker : Message d'erreur
+else OTP valide
+  OTPSvc --> AuthSvc : True
+  deactivate OTPSvc
+  AuthSvc -> JWT : create_access_token(\n  {sub: user.id, role:"worker"})
+  JWT --> AuthSvc : JWT Token
+  AuthSvc --> API : {access_token, worker_info}
+  deactivate AuthSvc
+  API --> PWA : 200 OK\n{access_token, token_type:"bearer"}
+  deactivate API
+  PWA -> PWA : Stocker JWT\nSync Dexie IndexedDB
+  PWA --> Worker : Accès tâches assignées\n(mode online + offline)
+end
+
+@enduml

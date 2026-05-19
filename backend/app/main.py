@@ -6,11 +6,10 @@ Modern Lifespan management for background warm-up.
 import logging
 import json
 import asyncio
-import io
 from contextlib import asynccontextmanager
 from typing import List
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -36,6 +35,23 @@ async def app_lifespan(app_instance: FastAPI):
                 
         Base.metadata.create_all(bind=engine)
         logger.info("[STARTUP] Database refreshed and synchronized.")
+
+        # Seed default admin on first run (fresh DB has no users)
+        from app.core.security import hash_password
+        from app.models.domain import User as _User
+        from app.core.database import SessionLocal as _SL
+        with _SL() as _seed_db:
+            if not _seed_db.query(_User).first():
+                _seed_db.add(_User(
+                    username="admin",
+                    email="admin@smartfarm.ai",
+                    full_name="Farm Admin",
+                    password_hash=hash_password("admin123"),
+                    role="owner",
+                    is_active=True,
+                ))
+                _seed_db.commit()
+                logger.info("[STARTUP] Default admin created → admin / admin123")
 
         # Incremental migrations (safe: each wrapped in try/except)
         _migrations = [

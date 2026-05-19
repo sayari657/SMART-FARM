@@ -1,0 +1,187 @@
+@startuml P6_Aviculture_ERP
+!theme cerulean-outline
+skinparam classBackgroundColor #E8F8F5
+skinparam classBorderColor #0E6655
+skinparam classHeaderBackgroundColor #0E6655
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #E8F8F5
+skinparam packageBorderColor #0E6655
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 6 / 7 — Module Aviculture (ERP)</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+class Farm <<(P,#C8E6C9) voir Partie 2>> {
+  + id : Integer <<PK>>
+}
+class User <<(P,#AED6F1) voir Partie 1>> {
+  + id : Integer <<PK>>
+}
+
+package "Module Aviculture — ERP" #F0FFFF {
+
+  class PoultryBatch {
+    + id               : Integer <<PK, index>>
+    + farm_id          : Integer <<FK→farms.id CASCADE>>
+    '  ⚠ farm_id manquait dans le diagramme initial
+    + name             : String(100)
+    + batch_type       : String(50)
+    '  broiler | layer | breeder
+    + breed            : String(100)
+    + supplier         : String(100)
+    + arrival_date     : DateTime
+    + initial_quantity : Integer
+    + current_quantity : Integer
+    + status           : String(50) {default: "active"}
+    '  ⚠ active | sold | vacuum | archived
+    '  (pas "closed")
+    + notes            : Text
+    + created_at       : DateTime
+  }
+
+  class PoultryFeedLog {
+    + id                   : Integer <<PK, index>>
+    + batch_id             : Integer <<FK→poultry_batches.id CASCADE>>
+    + date                 : DateTime
+    '  ⚠ "date" (pas "log_date")
+    + feed_type            : String(100)
+    '  Démarrage | Croissance | Finition
+    + quantity_kg          : Float
+    + average_weight_g     : Float
+    '  ⚠ champ absent du diagramme initial
+    + fcr_calculated       : Float
+    '  ⚠ "fcr_calculated" (pas "fcr_cumulative")
+    + cost_per_kg          : Float
+    + notes                : Text
+    ..
+    <b>Data Contract (validation)</b>
+    + status               : String(20) {default: "pending"}
+    '  pending | validated | rejected
+    + created_by_id        : Integer <<FK→users.id, nullable>>
+    + validated_by_id      : Integer <<FK→users.id, nullable>>
+    + validation_timestamp : DateTime
+    + admin_notes          : Text
+    '  ⚠ total_cost : N'EXISTE PAS
+  }
+
+  class PoultryEggLog {
+    + id               : Integer <<PK, index>>
+    + batch_id         : Integer <<FK→poultry_batches.id CASCADE>>
+    + date             : DateTime
+    '  ⚠ "date" (pas "log_date")
+    + total_eggs       : Integer
+    + broken_eggs      : Integer {default: 0}
+    + grade_a_count    : Integer {default: 0}
+    '  ⚠ "grade_a_count" (pas "grade_a")
+    + grade_b_count    : Integer {default: 0}
+    '  ⚠ "grade_b_count" (pas "grade_b")
+    + production_rate  : Float
+    '  % ponte = eggs / current_quantity * 100
+    + notes            : Text
+    ..
+    <b>Data Contract</b>
+    + status               : String(20) {default: "pending"}
+    + created_by_id        : Integer <<FK→users.id, nullable>>
+    + validated_by_id      : Integer <<FK→users.id, nullable>>
+    + validation_timestamp : DateTime
+    + admin_notes          : Text
+  }
+
+  class PoultryHealthLog {
+    + id             : Integer <<PK, index>>
+    + batch_id       : Integer <<FK→poultry_batches.id CASCADE>>
+    + date           : DateTime
+    '  ⚠ "date" (pas "log_date")
+    + event_type     : String(50)
+    '  ⚠ "event_type" (pas "vaccination_type")
+    '  vaccination | treatment | surgery | inspection
+    + description    : String(255)
+    '  ⚠ "description" (pas "cause_of_death")
+    + deaths_today   : Integer {default: 0}
+    '  ⚠ "deaths_today" (pas "deaths_count")
+    + medicine_used  : String(200)
+    '  ⚠ (pas "treatment_applied")
+    + dosage         : String(100)
+    + vet_name       : String(100)
+    + cost           : Float {default: 0.0}
+    + notes          : Text
+    ..
+    <b>Data Contract</b>
+    + status               : String(20) {default: "pending"}
+    + created_by_id        : Integer <<FK→users.id, nullable>>
+    + validated_by_id      : Integer <<FK→users.id, nullable>>
+    + validation_timestamp : DateTime
+    + admin_notes          : Text
+  }
+
+  class PoultrySale {
+    + id             : Integer <<PK, index>>
+    + batch_id       : Integer <<FK→poultry_batches.id CASCADE>>
+    + date           : DateTime
+    '  ⚠ "date" (pas "sale_date")
+    + product_type   : String(100)
+    '  Volailles vives | œufs | viande
+    + quantity       : Integer
+    '  ⚠ Integer (pas Float)
+    + unit_price     : Float
+    + total_amount   : Float
+    + customer_name  : String(150)
+    '  ⚠ "customer_name" (pas "buyer_name")
+    + invoice_number : String(50)
+    + notes          : Text
+    '  ⚠ "unit" : N'EXISTE PAS
+    ..
+    <b>Data Contract</b>
+    + status               : String(20) {default: "pending"}
+    + created_by_id        : Integer <<FK→users.id, nullable>>
+    + validated_by_id      : Integer <<FK→users.id, nullable>>
+    + validation_timestamp : DateTime
+    + admin_notes          : Text
+  }
+
+  class PoultryInventory {
+    + id            : Integer <<PK, index>>
+    + farm_id       : Integer <<FK→farms.id CASCADE>>
+    '  ⚠ farm_id manquait dans le diagramme initial
+    + item_name     : String(100)
+    + category      : String(50)
+    '  ⚠ "category" (pas "item_type")
+    '  feed | medicine | equipment
+    + quantity      : Float
+    + unit          : String(20)
+    + unit_price    : Float
+    '  ⚠ "unit_price" (pas "cost_per_unit")
+    + min_threshold : Float
+    '  ⚠ "min_threshold" (pas "min_quantity")
+    + supplier      : String(100)
+    + last_updated  : DateTime
+    '  ⚠ expiry_date : N'EXISTE PAS dans le code
+  }
+}
+
+Farm         "1"  *-down- "0..*"  PoultryBatch     : gère >
+Farm         "1"  *-down- "0..*"  PoultryInventory : stock >
+PoultryBatch "1"  *-down- "0..*"  PoultryFeedLog   : alimentation >
+PoultryBatch "1"  *-down- "0..*"  PoultryEggLog    : production >
+PoultryBatch "1"  *-right- "0..*" PoultryHealthLog : santé >
+PoultryBatch "1"  *-right- "0..*" PoultrySale      : ventes >
+User         "1"  --      "0..*"  PoultryFeedLog   : crée / valide >
+User         "1"  --      "0..*"  PoultryEggLog    : crée / valide >
+User         "1"  --      "0..*"  PoultryHealthLog : crée / valide >
+User         "1"  --      "0..*"  PoultrySale      : crée / valide >
+
+note right of PoultryHealthLog
+  <b>deaths_today</b> → décrémente
+  PoultryBatch.current_quantity
+end note
+
+note bottom of PoultryFeedLog
+  <b>Data Contract</b> : workflow de validation
+  pending → validated | rejected
+  Chaque log a un créateur et un validateur.
+end note
+
+@enduml

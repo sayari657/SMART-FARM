@@ -1,0 +1,581 @@
+@startuml FARM_AI_ClassDiagram
+!theme cerulean-outline
+skinparam classBackgroundColor #EBF5FB
+skinparam classBorderColor #2C7BE5
+skinparam classHeaderBackgroundColor #2C7BE5
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #F4F6F7
+skinparam packageBorderColor #AEB6BF
+skinparam NoteBackgroundColor #FFFFF0
+skinparam NoteBorderColor #DAA520
+skinparam linetype ortho
+
+title Diagramme de Classes — Smart Farm AI v3.0
+
+'==============================================
+' PACKAGE: Utilisateurs & Accès
+'==============================================
+package "Utilisateurs & Contrôle d'Accès" as UserPkg #F0F8FF {
+
+  class User {
+    + id : Integer <<PK>>
+    + username : String <<unique>>
+    + email : String <<unique>>
+    + phone_number : String
+    + full_name : String
+    + password_hash : String
+    + role : Enum {owner, worker, operator}
+    + is_active : Boolean
+    + created_at : DateTime
+    + updated_at : DateTime
+    --
+    + verify_password(pwd) : bool
+    + generate_token() : str
+  }
+
+  class WorkerAssignment {
+    + id : Integer <<PK>>
+    + user_id : Integer <<FK>>
+    + farm_id : Integer <<FK>>
+    + pin_code : String
+    + assigned_at : DateTime
+    + is_active : Boolean
+  }
+
+  class WorkerTask {
+    + id : Integer <<PK>>
+    + farm_id : Integer <<FK>>
+    + worker_id : Integer <<FK>>
+    + task_type : Enum {feeding,health,milking,cleaning}
+    + title : String
+    + description : Text
+    + due_date : Date
+    + status : Enum {pending,in_progress,done}
+    + photo_url : String
+    + completed_at : DateTime
+  }
+
+  class WorkerReport {
+    + id : Integer <<PK>>
+    + farm_id : Integer <<FK>>
+    + worker_id : Integer <<FK>>
+    + content : Text
+    + photos : JSON
+    + location : String
+    + created_at : DateTime
+  }
+
+  class PushToken {
+    + id : Integer <<PK>>
+    + user_id : Integer <<FK>>
+    + token : String
+    + platform : String
+    + created_at : DateTime
+  }
+}
+
+'==============================================
+' PACKAGE: Ferme & Infrastructure
+'==============================================
+package "Ferme & Infrastructure" as FarmPkg #F0FFF0 {
+
+  class Farm {
+    + id : Integer <<PK>>
+    + owner_id : Integer <<FK>>
+    + name : String
+    + location : String
+    + description : Text
+    + latitude : Float
+    + longitude : Float
+    + geom : Geometry(Point)
+    + status : Enum {active, inactive}
+    + total_area_ha : Float
+    + created_at : DateTime
+    --
+    + get_health_summary() : dict
+    + get_active_units() : List[AnimalUnit]
+  }
+
+  class FarmOwner {
+    + farm_id : Integer <<FK>>
+    + user_id : Integer <<FK>>
+    + role : String
+    + added_at : DateTime
+  }
+
+  class FarmFinance {
+    + id : Integer <<PK>>
+    + farm_id : Integer <<FK>>
+    + transaction_type : Enum {income, expense}
+    + category : String
+    + amount : Float
+    + description : String
+    + date : Date
+  }
+
+  class AnimalType {
+    + id : Integer <<PK>>
+    + name : String
+    + species : Enum {bee,cow,poultry,sheep,goat}
+    + telemetry_schema : JSON
+    + cv_classes : JSON
+    + description : String
+  }
+
+  class AnimalUnit {
+    + id : Integer <<PK>>
+    + farm_id : Integer <<FK>>
+    + animal_type_id : Integer <<FK>>
+    + name : String
+    + tag_id : String <<unique>>
+    + health_score : Float
+    + lifecycle_status : Enum {active,quarantine,sold,deceased}
+    + location_in_farm : String
+    + created_at : DateTime
+    --
+    + compute_health_score() : float
+    + get_latest_telemetry() : dict
+  }
+
+  class Settings {
+    + id : Integer <<PK>>
+    + farm_id : Integer <<FK>>
+    + key : String
+    + value_json : JSON
+    + updated_at : DateTime
+  }
+
+  class Report {
+    + id : Integer <<PK>>
+    + farm_id : Integer <<FK>>
+    + report_type : Enum {daily,weekly,monthly}
+    + period_start : Date
+    + period_end : Date
+    + summary_json : JSON
+    + file_url : String
+    + generated_at : DateTime
+  }
+}
+
+'==============================================
+' PACKAGE: IoT & Télémétrie
+'==============================================
+package "IoT & Télémétrie" as IotPkg #FFF8F0 {
+
+  class Sensor {
+    + id : Integer <<PK>>
+    + unit_id : Integer <<FK>>
+    + sensor_type : Enum {temperature,humidity,weight,camera,weight_scale}
+    + label : String
+    + mqtt_topic : String
+    + is_active : Boolean
+    + calibration_offset : Float
+    + last_seen : DateTime
+  }
+
+  class TelemetryRecord {
+    + id : Integer <<PK>>
+    + unit_id : Integer <<FK>>
+    + sensor_id : Integer <<FK>>
+    + timestamp : DateTime
+    + metrics : JSON
+    + source : Enum {mqtt,simulator,manual}
+    --
+    + get_metric(key) : float
+  }
+
+  class Anomaly {
+    + id : Integer <<PK>>
+    + unit_id : Integer <<FK>>
+    + detected_at : DateTime
+    + severity : Enum {low,medium,high,critical}
+    + anomaly_score : Float
+    + feature_contributions : JSON
+    + resolved : Boolean
+  }
+}
+
+'==============================================
+' PACKAGE: IA & Surveillance
+'==============================================
+package "IA & Surveillance" as AIPkg #FFF0FF {
+
+  class CVEvent {
+    + id : Integer <<PK>>
+    + unit_id : Integer <<FK>>
+    + camera_id : String
+    + detected_at : DateTime
+    + object_class : String
+    + confidence : Float
+    + severity : Enum {info,warning,critical}
+    + bbox_metadata : JSON
+    + image_url : String
+    + model_version : String
+  }
+
+  class Alert {
+    + id : Integer <<PK>>
+    + unit_id : Integer <<FK>>
+    + farm_id : Integer <<FK>>
+    + alert_type : String
+    + message : Text
+    + severity : Enum {low,medium,high,critical}
+    + source : Enum {telemetry,cv,anomaly,manual}
+    + is_resolved : Boolean
+    + created_at : DateTime
+    + resolved_at : DateTime
+    --
+    + resolve(by_user_id) : void
+  }
+
+  class Recommendation {
+    + id : Integer <<PK>>
+    + alert_id : Integer <<FK>>
+    + unit_id : Integer <<FK>>
+    + probable_cause : Text
+    + recommendation_text : Text
+    + urgency_level : Enum {low,medium,high,critical}
+    + confidence_score : Float
+    + is_applied : Boolean
+    + created_at : DateTime
+  }
+
+  class DiagnosticHistory {
+    + id : Integer <<PK>>
+    + unit_id : Integer <<FK>>
+    + user_id : Integer <<FK>>
+    + image_url : String
+    + detection_json : JSON
+    + chat_session : JSON
+    + diagnosis_type : Enum {plant,livestock}
+    + created_at : DateTime
+  }
+}
+
+'==============================================
+' PACKAGE: Apiculture
+'==============================================
+package "Module Apiculture" as BeePkg #FFFFF0 {
+
+  class BeeApiary {
+    + id : Integer <<PK>>
+    + name : String
+    + latitude : Float
+    + longitude : Float
+    + region : String
+    + flower_type : String
+    + season : String
+    + total_hives : Integer
+    + active_hives : Integer
+    + notes : Text
+    + created_at : DateTime
+  }
+
+  class BeeHive {
+    + id : Integer <<PK>>
+    + apiary_id : Integer <<FK>>
+    + identifier : String <<unique>>
+    + status : Enum {active,inactive,quarantine}
+    + health_score : Float
+    + honey_level : Float
+    + force_score : Float
+    + queen_present : Boolean
+    + queen_age_months : Integer
+    + frame_count : Integer
+    + created_at : DateTime
+    --
+    + needs_intervention() : bool
+    + get_production_summary() : dict
+  }
+
+  class BeeVisit {
+    + id : Integer <<PK>>
+    + hive_id : Integer <<FK>>
+    + apiary_id : Integer <<FK>>
+    + visit_date : Date
+    + health_state : Enum {excellent,good,average,poor,critical}
+    + force_level : Integer
+    + honey_frames : Integer
+    + harvest_kg : Float
+    + needs_sirop : Boolean
+    + needs_pate : Boolean
+    + needs_traitement : Boolean
+    + observations : Text
+    + inspector_id : Integer <<FK>>
+  }
+
+  class BeeProduction {
+    + id : Integer <<PK>>
+    + hive_id : Integer <<FK>>
+    + apiary_id : Integer <<FK>>
+    + production_date : Date
+    + honey_kg : Float
+    + pollen_kg : Float
+    + propolis_g : Float
+    + flower_type : String
+    + quality_grade : String
+  }
+
+  class BeeGlobalStock {
+    + id : Integer <<PK>>
+    + sirop_liters : Float
+    + pate_kg : Float
+    + traitement_units : Integer
+    + cadres_count : Integer
+    + hausse_count : Integer
+    + updated_at : DateTime
+    --
+    + check_alerts() : List[str]
+  }
+
+  class BeeHiveStock {
+    + id : Integer <<PK>>
+    + hive_id : Integer <<FK>> <<unique>>
+    + sirop_liters : Float
+    + pate_kg : Float
+    + traitement_units : Integer
+    + last_resupply : Date
+  }
+
+  class BeeExpense {
+    + id : Integer <<PK>>
+    + category : String
+    + description : String
+    + real_amount : Float
+    + planned_amount : Float
+    + expense_date : Date
+    + payment_status : Enum {paid,pending}
+  }
+
+  class BeePlanning {
+    + id : Integer <<PK>>
+    + mission_type : Enum {inspection,feeding,treatment,harvest}
+    + title : String
+    + scheduled_date : Date
+    + status : Enum {planned,in_progress,completed,cancelled}
+    + apiary_id : Integer <<FK>>
+    + notes : Text
+  }
+
+  class BeePlanningTask {
+    + id : Integer <<PK>>
+    + planning_id : Integer <<FK>>
+    + task_description : String
+    + is_completed : Boolean
+    + completed_at : DateTime
+  }
+}
+
+'==============================================
+' PACKAGE: Aviculture (ERP)
+'==============================================
+package "Module Aviculture — ERP" as PoultryPkg #F0FFFF {
+
+  class PoultryBatch {
+    + id : Integer <<PK>>
+    + name : String
+    + batch_type : Enum {broiler,layer,breeder}
+    + breed : String
+    + supplier : String
+    + arrival_date : Date
+    + initial_quantity : Integer
+    + current_quantity : Integer
+    + status : Enum {active,sold,closed}
+    + notes : Text
+    --
+    + calculate_mortality_rate() : float
+    + calculate_fcr() : float
+  }
+
+  class PoultryFeedLog {
+    + id : Integer <<PK>>
+    + batch_id : Integer <<FK>>
+    + log_date : Date
+    + feed_type : String
+    + quantity_kg : Float
+    + cost_per_kg : Float
+    + total_cost : Float
+    + fcr_cumulative : Float
+  }
+
+  class PoultryEggLog {
+    + id : Integer <<PK>>
+    + batch_id : Integer <<FK>>
+    + log_date : Date
+    + total_eggs : Integer
+    + broken_eggs : Integer
+    + grade_a : Integer
+    + grade_b : Integer
+    + production_rate : Float
+  }
+
+  class PoultryHealthLog {
+    + id : Integer <<PK>>
+    + batch_id : Integer <<FK>>
+    + log_date : Date
+    + deaths_count : Integer
+    + cause_of_death : String
+    + treatment_applied : String
+    + vaccination_type : String
+    + vet_name : String
+    + vet_contact : String
+  }
+
+  class PoultrySale {
+    + id : Integer <<PK>>
+    + batch_id : Integer <<FK>>
+    + sale_date : Date
+    + product_type : Enum {live_bird,dressed,eggs}
+    + quantity : Float
+    + unit : String
+    + unit_price : Float
+    + total_amount : Float
+    + buyer_name : String
+    + invoice_number : String
+  }
+
+  class PoultryInventory {
+    + id : Integer <<PK>>
+    + item_name : String
+    + item_type : Enum {feed,medicine,equipment}
+    + quantity : Float
+    + unit : String
+    + min_quantity : Float
+    + expiry_date : Date
+    + cost_per_unit : Float
+  }
+}
+
+'==============================================
+' PACKAGE: Entrepôt Général
+'==============================================
+package "Entrepôt Général" as WPkg #F5F5F5 {
+
+  class WarehouseCategory {
+    + id : Integer <<PK>>
+    + name_ar : String
+    + name_fr : String
+    + emoji : String
+    + color : String
+    + display_order : Integer
+  }
+
+  class WarehouseItem {
+    + id : Integer <<PK>>
+    + category_id : Integer <<FK>>
+    + name_ar : String
+    + name_fr : String
+    + quantity : Float
+    + unit : String
+    + min_quantity : Float
+    + expiry_date : Date
+    + cost_per_unit : Float
+    + supplier : String
+    + updated_at : DateTime
+    --
+    + is_low_stock() : bool
+    + is_expired() : bool
+  }
+
+  class WarehouseAlert {
+    + id : Integer <<PK>>
+    + item_id : Integer <<FK>>
+    + alert_type : Enum {low_stock, expired, out_of_stock}
+    + message : String
+    + is_resolved : Boolean
+    + created_at : DateTime
+  }
+}
+
+'==============================================
+' PACKAGE: GIS
+'==============================================
+package "Services Géospatiaux" as GisPkg #F8F8FF {
+
+  class Veterinary {
+    + id : Integer <<PK>>
+    + name : String
+    + specialty : String
+    + phone : String
+    + address : String
+    + latitude : Float
+    + longitude : Float
+    + geom : Geometry(Point)
+  }
+
+  class Market {
+    + id : Integer <<PK>>
+    + name : String
+    + market_type : Enum {bee,feed,equipment,livestock}
+    + address : String
+    + latitude : Float
+    + longitude : Float
+    + geom : Geometry(Point)
+    + working_hours : String
+  }
+}
+
+'==============================================
+' RELATIONS — Utilisateurs & Fermes
+'==============================================
+User "1" *-- "0..*" Farm : possède >
+User "1" *-- "0..*" WorkerAssignment : assigné à >
+User "1" *-- "0..*" WorkerTask : reçoit >
+User "1" *-- "0..*" WorkerReport : soumet >
+User "1" *-- "0..*" PushToken : enregistre >
+User "1" *-- "0..*" DiagnosticHistory : consulte >
+
+Farm "1" *-- "0..*" AnimalUnit : contient >
+Farm "1" *-- "0..*" WorkerAssignment : emploie >
+Farm "1" *-- "0..*" WorkerTask : génère >
+Farm "1" *-- "0..*" WorkerReport : reçoit >
+Farm "1" *-- "0..*" FarmFinance : enregistre >
+Farm "1" *-- "0..*" Report : produit >
+Farm "1" *-- "0..*" Settings : configure >
+Farm "0..*" -- "0..*" User : co-propriétaires >\nFarmOwner
+
+AnimalType "1" -- "0..*" AnimalUnit : catégorise >
+
+'==============================================
+' RELATIONS — IoT & IA
+'==============================================
+AnimalUnit "1" *-- "0..*" Sensor : équipé de >
+AnimalUnit "1" *-- "0..*" TelemetryRecord : génère >
+AnimalUnit "1" *-- "0..*" CVEvent : surveille >
+AnimalUnit "1" *-- "0..*" Anomaly : déclenche >
+AnimalUnit "1" *-- "0..*" Alert : déclenche >
+AnimalUnit "1" *-- "0..*" Recommendation : reçoit >
+AnimalUnit "1" *-- "0..*" DiagnosticHistory : diagnostiqué par >
+
+Sensor "1" -- "0..*" TelemetryRecord : produit >
+Anomaly "1" -- "0..*" Alert : engendre >
+Alert "1" -- "0..*" Recommendation : génère >
+CVEvent "1" -- "0..1" Alert : peut déclencher >
+
+'==============================================
+' RELATIONS — Apiculture
+'==============================================
+BeeApiary "1" *-- "1..*" BeeHive : regroupe >
+BeeHive "1" *-- "0..*" BeeVisit : inspecté par >
+BeeHive "1" *-- "0..*" BeeProduction : produit >
+BeeHive "1" -- "0..1" BeeHiveStock : stock alloué >
+BeeApiary "1" -- "0..*" BeeVisit : visite >
+BeeApiary "1" -- "0..*" BeePlanning : planifié >
+BeePlanning "1" *-- "0..*" BeePlanningTask : décompose >
+
+'==============================================
+' RELATIONS — Aviculture
+'==============================================
+PoultryBatch "1" *-- "0..*" PoultryFeedLog : alimentation >
+PoultryBatch "1" *-- "0..*" PoultryEggLog : production >
+PoultryBatch "1" *-- "0..*" PoultryHealthLog : santé >
+PoultryBatch "1" *-- "0..*" PoultrySale : ventes >
+
+'==============================================
+' RELATIONS — Entrepôt
+'==============================================
+WarehouseCategory "1" *-- "0..*" WarehouseItem : contient >
+WarehouseItem "1" *-- "0..*" WarehouseAlert : génère >
+
+@enduml

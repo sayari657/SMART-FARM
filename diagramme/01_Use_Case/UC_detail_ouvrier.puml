@@ -1,0 +1,71 @@
+@startuml UC_Detail_Ouvrier
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam UseCaseBorderColor #1E8449
+skinparam UseCaseBackgroundColor #E9F7EF
+skinparam PackageBorderColor #1E8449
+skinparam PackageBackgroundColor #F5FFF8
+skinparam ArrowColor #1E8449
+skinparam defaultFontSize 13
+
+title <size:14><b>Détail — Module Ouvrier (PWA hors-ligne)</b></size>\nSmart Farm AI v3.0
+
+actor "Ouvrier\n(PWA)" as Worker #27AE60
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+
+package "Module Ouvrier — PWA" {
+  usecase "Authentification OTP\n(WhatsApp uniquement)"     as UC_OTP
+  usecase "Consulter Tâches Assignées"                     as UC_Tasks
+  usecase "Soumettre Rapport Terrain\n(+ Photos base64)"   as UC_Report
+  usecase "Scanner QR Code\n(Ruche / Animal)"              as UC_QR
+  usecase "Synchronisation Hors-ligne\n(Dexie IndexedDB)"  as UC_Sync
+}
+
+package "Gestion Ouvriers\n(côté Admin)" {
+  usecase "Assigner Tâches\nà l'Ouvrier"    as UC_Assign
+  usecase "Consulter Rapports\nde Terrain"  as UC_ReadRpt
+}
+
+Worker --> UC_OTP
+Worker --> UC_Tasks
+Worker --> UC_Report
+Worker --> UC_QR
+Worker --> UC_Sync
+
+Owner  --> UC_Assign
+Owner  --> UC_ReadRpt
+
+UC_Sync   ..> UC_Tasks  : <<include>>
+UC_Assign ..> UC_Tasks  : <<include>>
+
+note right of UC_OTP
+  <b>POST /auth/worker/request-otp</b>
+  {phone_number} → WhatsApp
+  <b>POST /auth/worker/verify-otp</b>
+  {phone_number, otp} → JWT
+  ---
+  Mode hors-ligne : PIN local
+  stocké dans <b>Dexie IndexedDB</b>
+  (validation côté frontend uniquement,
+  pas de route serveur dédiée)
+end note
+
+note right of UC_Sync
+  Synchronisation automatique
+  au retour en ligne :
+  • Tâches ← GET /worker-tasks
+  • Rapports → POST /worker/reports
+  photo_b64 : Text (base64, 1 photo)
+end note
+
+note right of UC_QR
+  Scan du QR code de la ruche
+  ou de l'animal pour accéder
+  directement à sa fiche.
+  (tag_id unique dans animal_units)
+end note
+
+@enduml

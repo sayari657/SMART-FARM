@@ -1,0 +1,95 @@
+@startuml SD4_CV_Detection
+!theme cerulean-outline
+skinparam backgroundColor #FFFFFF
+skinparam ParticipantBorderColor #7D3C98
+skinparam ParticipantBackgroundColor #F5EEF8
+skinparam SequenceArrowColor #34495E
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam LifeLineBorderColor #AEB6BF
+skinparam shadowing false
+
+title <size:14><b>SD4 — Détection Maladie par Vision par Ordinateur (YOLO)</b></size>\n<size:11>Source : backend/app/api/v1/endpoints/cv_routes.py</size>
+
+actor "Propriétaire" as Owner
+participant "Frontend\n(React)" as FE
+participant "FastAPI\nPOST /api/v1/cv/detect" as API
+participant "CVService\n+ get_yolo_model()" as CVSvc
+participant "YOLO Model\n(Ultralytics)" as YOLO
+participant "Diagnostic / Agent\n(RAG + MLLM)" as AIAgent
+participant "ChromaDB" as Chroma
+participant "Ollama LLaVA" as Ollama
+database "SQLite / PostgreSQL" as DB
+participant "WebSocket\n/ws/events" as WS
+
+Owner -> FE : Upload photo + sélection catégorie
+note right
+  Catégories disponibles (MODEL_REGISTRY) :
+  bee | goat | cow | sheep | livestock
+  leaves | olive | insects | lemon
+  orange | fire | plants
+end note
+
+FE -> API : POST /api/v1/cv/detect\n{image_base64, category, unit_id}
+activate API
+
+API -> CVSvc : get_yolo_model(category)
+activate CVSvc
+CVSvc -> CVSvc : Vérifie cache _models[key]\nCharge YOLO si absent
+
+CVSvc -> YOLO : model.predict(image, conf=0.5)
+activate YOLO
+YOLO --> CVSvc : Detections :\n[{class, conf, bbox}]
+deactivate YOLO
+
+CVSvc -> DB : INSERT INTO cv_events\n(unit_id, timestamp,\n object_class, confidence,\n severity, thumbnail_url,\n frame_metadata, camera_id)
+note right
+  ⚠ Champs corrects :
+  thumbnail_url (pas image_url)
+  frame_metadata (pas bbox_metadata)
+end note
+DB --> CVSvc : CVEvent créé
+
+CVSvc --> API : {detections, event_id}
+deactivate CVSvc
+
+API -> AIAgent : generate_recommendation(\n  detections, image)
+activate AIAgent
+
+AIAgent -> Chroma : semantic_search(\n  object_class + context)
+activate Chroma
+Chroma --> AIAgent : Knowledge chunks
+deactivate Chroma
+
+AIAgent -> Ollama : chat(model='llava',\n  image, context)
+activate Ollama
+Ollama --> AIAgent : {probable_cause,\n recommendation_text,\n urgency_level}
+deactivate Ollama
+
+AIAgent -> DB : INSERT INTO recommendations\n(unit_id, alert_id,\n timestamp, probable_cause,\n recommendation_text,\n urgency_level,\n confidence_score,\n is_actioned=False)
+note right
+  ⚠ "is_actioned" (pas "is_applied")
+  ⚠ "timestamp" (pas "created_at")
+end note
+DB --> AIAgent : Recommendation créée
+
+alt Sévérité critique (fire / predator)
+  AIAgent -> DB : INSERT INTO alerts\n(unit_id, timestamp,\n alert_type, message,\n severity='critical',\n is_resolved=False)
+  note right
+    ⚠ Pas de farm_id dans alerts
+    ⚠ Pas de "source" dans alerts
+  end note
+  DB --> AIAgent : Alert créée
+  AIAgent -> WS : broadcast(tenant_id,\n {event:'new_alert',...})
+  WS -> FE : Notification urgente
+end
+
+AIAgent --> API : {recommendation, alert_id?}
+deactivate AIAgent
+
+API --> FE : 200 OK\n{detections, recommendation,\n cv_event_id}
+deactivate API
+
+FE --> Owner : Affiche bounding boxes +\ndiagnostic IA + recommandation
+
+@enduml

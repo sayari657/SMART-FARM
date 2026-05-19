@@ -1,0 +1,144 @@
+@startuml P7_Entrepot_GIS
+!theme cerulean-outline
+skinparam classBackgroundColor #F2F3F4
+skinparam classBorderColor #566573
+skinparam classHeaderBackgroundColor #566573
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #F2F3F4
+skinparam packageBorderColor #566573
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 7 / 7 — Entrepôt Général & Services GIS</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+package "Entrepôt Général" #F5F5F5 {
+
+  class WarehouseCategory {
+    + id            : Integer <<PK, index>>
+    + name_ar       : String(100)
+    + name_fr       : String(100)
+    + icon          : String(50) {default: "Package"}
+    '  ⚠ "icon" absent du diagramme initial (lucide icon name)
+    + emoji         : String(10) <<nullable>>
+    + color         : String(20) {default: "#16a34a"}
+    + display_order : Integer {default: 0}
+  }
+
+  class WarehouseItem {
+    + id           : Integer <<PK, index>>
+    + category_id  : Integer <<FK→warehouse_categories.id CASCADE>>
+    + name_ar      : String(150)
+    + name_fr      : String(150)
+    + emoji        : String(10) {default: "📦"}
+    '  ⚠ champ absent du diagramme initial
+    + description  : Text {default: ""}
+    '  ⚠ champ absent du diagramme initial
+    + quantity     : Float {default: 0.0}
+    + unit         : String(30) {default: "unités"}
+    + min_quantity : Float {default: 5.0}
+    + entry_date   : DateTime <<nullable>>
+    '  ⚠ champ absent du diagramme initial
+    + expiry_date  : DateTime <<nullable>>
+    + notes        : Text {default: ""}
+    + created_at   : DateTime
+    + updated_at   : DateTime
+    ..
+    <b>Propriété calculée</b>
+    + status @property : String
+    '  out (qty=0) | limited (qty≤min) | available
+    '  ⚠ "supplier" : N'EXISTE PAS dans le code
+    <<Index(category_id)>>
+  }
+
+  class WarehouseAlert {
+    + id            : Integer <<PK, index>>
+    + item_id       : Integer <<FK→warehouse_items.id SET NULL, nullable>>
+    + item_name     : String(200)
+    '  ⚠ dénormalisé — absent du diagramme initial
+    + category_name : String(200) <<nullable>>
+    '  ⚠ dénormalisé — absent du diagramme initial
+    + emoji         : String(10) <<nullable>>
+    '  ⚠ absent du diagramme initial
+    + alert_type    : String(50) {default: "stock_out"}
+    '  ⚠ stock_out | stock_low
+    '  (pas low_stock / expired / out_of_stock)
+    + message       : Text
+    + severity      : String(20) {default: "critical"}
+    '  ⚠ critical | warning — absent du diagramme initial
+    + is_resolved   : Boolean {default: False}
+    + resolved_at   : DateTime <<nullable>>
+    '  ⚠ absent du diagramme initial
+    + created_at    : DateTime <<index>>
+    <<Index(is_resolved)>>
+  }
+}
+
+package "Services Géospatiaux (GIS)" #F8F8FF {
+
+  class Veterinary {
+    + id         : Integer <<PK, index>>
+    + name       : String(100)
+    + specialty  : String(100)
+    + phone      : String(20)
+    + email      : String(255)
+    '  ⚠ "email" absent du diagramme initial
+    + address    : String(255)
+    + latitude   : Float
+    + longitude  : Float
+    + geom       : Geometry(POINT, 4326)
+    '  String(100) en mode SQLite
+    + is_active  : Boolean {default: True}
+    '  ⚠ "is_active" absent du diagramme initial
+    + created_at : DateTime
+  }
+
+  class Market {
+    + id           : Integer <<PK, index>>
+    + name         : String(100)
+    + market_type  : String(50) {default: "bee_market"}
+    '  ⚠ bee_market | feed_market | equipment
+    '  (pas bee/feed/equipment/livestock)
+    + description  : Text
+    '  ⚠ "description" absent du diagramme initial
+    + phone        : String(20)
+    '  ⚠ "phone" absent du diagramme initial
+    + address      : String(255)
+    + latitude     : Float
+    + longitude    : Float
+    + geom         : Geometry(POINT, 4326)
+    + is_active    : Boolean {default: True}
+    '  ⚠ "is_active" absent du diagramme initial
+    + created_at   : DateTime
+    '  ⚠ "working_hours" : N'EXISTE PAS dans le code
+  }
+}
+
+WarehouseCategory "1" *-down- "0..*" WarehouseItem  : contient >
+WarehouseItem     "1" *-right- "0..*" WarehouseAlert : génère >
+
+note right of WarehouseItem
+  status calculé :
+  qty = 0 → "out"
+  qty ≤ min_quantity → "limited"
+  sinon → "available"
+  ⚠ "supplier" n'existe pas
+end note
+
+note right of WarehouseAlert
+  ⚠ Corrections :
+  — alert_type : stock_out|stock_low
+  + item_name, category_name,
+    emoji, severity, resolved_at ajoutés
+end note
+
+note right of Market
+  ⚠ "working_hours" supprimé
+  market_type : bee_market|feed_market|equipment
+  PostGIS ST_DWithin pour
+  requêtes de proximité.
+end note
+
+@enduml

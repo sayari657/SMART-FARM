@@ -1,0 +1,67 @@
+@startuml UC_Detail_Bee
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam UseCaseBorderColor #B7950B
+skinparam UseCaseBackgroundColor #FEFDE7
+skinparam PackageBorderColor #B7950B
+skinparam PackageBackgroundColor #FFFFF8
+skinparam ArrowColor #B7950B
+skinparam defaultFontSize 13
+
+title <size:14><b>Détail — Module Apiculture</b></size>\nSmart Farm AI v3.0
+
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+
+package "Module Apiculture" {
+  usecase "Gérer Ruchers & Ruches"                          as UC_Hive
+  usecase "Enregistrer Visite\nd'Inspection"                as UC_Visit
+  usecase "Suivre Production\n(Miel / Pollen)"              as UC_Prod
+  usecase "Gérer Stock Apicole\n(Sirop / Pâte / Traitement / Cadres)" as UC_Stock
+  usecase "Planifier Missions\n(Inspection / Traitement)"   as UC_Plan
+  usecase "Gérer Dépenses Apicoles"                         as UC_Expense
+  usecase "Consulter Score Santé\n(Analytics Scientifique)" as UC_Predict
+  usecase "Consulter Marché Apicole\n(Prix Matériel — Haddad)" as UC_Market
+  usecase "Alertes Stock Minimum"                           as UC_StockAlert
+}
+
+Owner --> UC_Hive
+Owner --> UC_Visit
+Owner --> UC_Prod
+Owner --> UC_Stock
+Owner --> UC_Plan
+Owner --> UC_Expense
+Owner --> UC_Predict
+Owner --> UC_Market
+
+UC_Visit   ..> UC_Stock     : <<extend>>\n(si besoin détecté)
+UC_Visit   ..> UC_Plan      : <<extend>>\n(mission auto-créée)
+UC_Stock   ..> UC_StockAlert : <<include>>
+UC_Predict ..> UC_Plan      : <<include>>
+
+note right of UC_Visit
+  Observations enregistrées :
+  • État de santé : health|warning|urgent
+  • force_level (1–5)
+  • harvest_kg récolté
+  • Besoins : sirop (L) / pâte (kg) /
+    traitement varroa (doses) — Float
+end note
+
+note right of UC_Predict
+  /bee/analytics — score scientifique :
+  • Poids visite (40%) + fréquence (25%)
+  • Qualité reine (20%) + force (15%)
+  • Alertes COLOSS BeeBook
+end note
+
+note right of UC_Market
+  /api/v1/bee/market
+  Scraping apiculture-haddad.com
+  Prix en temps réel par catégorie :
+  sirop, pâte, traitement, cadres…
+end note
+
+@enduml

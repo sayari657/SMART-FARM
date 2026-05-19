@@ -1,0 +1,246 @@
+@startuml P5_Apiculture
+!theme cerulean-outline
+skinparam classBackgroundColor #FEFDE7
+skinparam classBorderColor #B7950B
+skinparam classHeaderBackgroundColor #B7950B
+skinparam classHeaderFontColor #FFFFFF
+skinparam ArrowColor #34495E
+skinparam packageBackgroundColor #FEFDE7
+skinparam packageBorderColor #B7950B
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam linetype ortho
+skinparam shadowing false
+
+title <size:15><b>Partie 5 / 7 — Module Apiculture</b></size>\n<size:11>Source : backend/app/models/domain.py</size>
+
+package "Module Apiculture" #FFFFF0 {
+
+  class BeeApiary {
+    + id          : Integer <<PK, index>>
+    + name        : String(100)
+    + latitude    : Float <<nullable>>
+    + longitude   : Float <<nullable>>
+    + flower_type : String(100) <<nullable>>
+    + season      : String(50) <<nullable>>
+    + region      : String(100) <<nullable>>
+    + notes       : Text <<nullable>>
+    + created_at  : DateTime
+    + updated_at  : DateTime
+    '  ⚠ total_hives / active_hives : NON stockés
+    '  ce sont des propriétés calculées
+  }
+
+  class BeeHive {
+    + id               : Integer <<PK, index>>
+    + apiary_id        : Integer <<FK→bee_apiaries.id CASCADE>>
+    + identifier       : String(50) <<unique>>
+    '  ex: HIVE-0042
+    + is_active        : Boolean {default: True}
+    '  ⚠ Boolean (pas Enum status)
+    + health_score     : Float {default: 10.0}  ' 1–10
+    + honey_level      : Float {default: 5.0}   ' 1–10
+    + force_level      : Float {default: 5.0}   ' 1–10
+    '  ⚠ "force_level" (pas "force_score")
+    + hive_type        : String(50) <<nullable>>
+    '  Langstroth | Dadant
+    + queen_year       : Integer <<nullable>>
+    '  ⚠ "queen_year" (pas "queen_age_months")
+    + has_queen        : Boolean {default: True}
+    '  ⚠ "has_queen" (pas "queen_present")
+    + queen_count      : Integer {default: 0}
+    '  Banque de reines stockées
+    + last_visit_date  : DateTime <<nullable>>
+    + notes            : Text <<nullable>>
+    + created_at       : DateTime
+    + updated_at       : DateTime
+    '  ⚠ frame_count : N'EXISTE PAS
+  }
+
+  class BeeVisit {
+    + id               : Integer <<PK, index>>
+    + hive_id          : Integer <<FK→bee_hives.id CASCADE, nullable>>
+    + apiary_id        : Integer <<FK→bee_apiaries.id CASCADE, nullable>>
+    + visit_date       : String(20)
+    '  ⚠ String (format fr-FR), pas Date
+    + gps_coords       : String(100) <<nullable>>
+    + health_state     : String(20) {default: "health"}
+    '  ⚠ health | warning | urgent
+    '  (pas excellent/good/average/poor/critical)
+    + health_score     : Float <<nullable>>
+    + force_level      : Float <<nullable>>
+    + temperature      : Float <<nullable>>
+    + honey_level      : String(20) {default: "Moyen"}
+    '  Abondant | Moyen | Faible
+    + needs_sirop      : Float {default: 0}
+    '  ⚠ Float (litres), pas Boolean
+    + needs_pate       : Float {default: 0}
+    '  ⚠ Float (kg), pas Boolean
+    + needs_traitement : Float {default: 0}
+    '  ⚠ Float (doses), pas Boolean
+    + harvest_kg       : Float {default: 0}
+    + pollen_kg        : Float {default: 0}
+    + notes            : Text <<nullable>>
+    + photo_url        : Text <<nullable>>
+    + created_at       : DateTime
+    '  ⚠ honey_frames : N'EXISTE PAS
+    '  ⚠ inspector_id : N'EXISTE PAS
+    <<Index(apiary_id, visit_date)>>
+  }
+
+  class BeeProduction {
+    + id              : Integer <<PK, index>>
+    + hive_id         : Integer <<FK→bee_hives.id SET NULL, nullable>>
+    + apiary_id       : Integer <<FK→bee_apiaries.id CASCADE, nullable>>
+    + flower_type     : String(100) <<nullable>>
+    + production_date : String(20)
+    '  ⚠ String (pas Date)
+    + honey_kg        : Float {default: 0.0}
+    + pollen_kg       : Float {default: 0.0}
+    + quality_notes   : Text <<nullable>>
+    '  ⚠ "quality_notes" (pas "quality_grade")
+    '  ⚠ propolis_g : N'EXISTE PAS
+    + created_at      : DateTime
+    <<Index(apiary_id, production_date)>>
+    <<Index(hive_id, production_date)>>
+  }
+
+  class BeeStockLog {
+    '<b>Snapshot journalier du stock (historisation)</b>
+    + id          : Integer <<PK, index>>
+    + log_date    : String(20) <<index>>
+    + sirop       : Float  {default: 0}
+    + pate        : Float  {default: 0}
+    + traitement  : Float  {default: 0}
+    + cadres      : Integer {default: 0}
+    + hausse      : Integer {default: 0}
+    + equipement  : Integer {default: 0}
+    + created_at  : DateTime
+  }
+
+  class BeeGlobalStock {
+    '<b>Entrepôt apicole singleton</b>
+    + id              : Integer <<PK, index>>
+    + sirop           : Float   {default: 0}
+    '  ⚠ "sirop" (pas "sirop_liters")
+    + pate            : Float   {default: 0}
+    '  ⚠ "pate" (pas "pate_kg")
+    + traitement      : Integer {default: 0}
+    '  ⚠ "traitement" (pas "traitement_units")
+    + cadres          : Integer {default: 0}
+    '  ⚠ "cadres" (pas "cadres_count")
+    + hausse          : Integer {default: 0}
+    '  ⚠ "hausse" (pas "hausse_count")
+    + equipement      : Integer {default: 0}
+    ..
+    <b>Seuils d'alerte</b>
+    + sirop_min       : Float   {default: 50}
+    + pate_min        : Float   {default: 20}
+    + traitement_min  : Integer {default: 10}
+    + cadres_min      : Integer {default: 20}
+    + updated_at      : DateTime
+  }
+
+  class BeeHiveStock {
+    '<b>Stock alloué à une ruche</b>
+    + id              : Integer <<PK, index>>
+    + hive_id         : Integer <<FK→bee_hives.id CASCADE, unique>>
+    + sirop           : Float   {default: 0}
+    + pate            : Float   {default: 0}
+    + traitement      : Integer {default: 0}
+    + cadres          : Integer {default: 0}
+    ..
+    <b>Seuils d'alerte ruche</b>
+    + sirop_min       : Float   {default: 2}
+    + pate_min        : Float   {default: 1}
+    + traitement_min  : Integer {default: 1}
+    + updated_at      : DateTime
+    '  ⚠ last_resupply : N'EXISTE PAS
+  }
+
+  class BeeExpense {
+    + id             : Integer <<PK, index>>
+    + hive_id        : Integer <<FK→bee_hives.id SET NULL, nullable>>
+    + apiary_id      : Integer <<FK→bee_apiaries.id SET NULL, nullable>>
+    + visit_id       : Integer <<FK→bee_visits.id SET NULL, nullable>>
+    '  ⚠ lien vers la visite associée
+    + expense_date   : String(20)
+    + amount         : Float
+    '  ⚠ "amount" (pas "real_amount")
+    + amount_planned : Float <<nullable>>
+    '  ⚠ "amount_planned" (pas "planned_amount")
+    + category       : String(50)
+    '  Alimentation|Traitement|Équipement|Transport
+    + description    : Text <<nullable>>
+    + created_at     : DateTime
+    '  ⚠ payment_status : N'EXISTE PAS
+    <<Index(hive_id, expense_date)>>
+    <<Index(apiary_id, expense_date)>>
+  }
+
+  class BeePlanning {
+    + id                  : Integer <<PK, index>>
+    + hive_id             : Integer <<FK→bee_hives.id CASCADE>>
+    '  ⚠ hive_id est OBLIGATOIRE
+    + apiary_id           : Integer <<FK→bee_apiaries.id CASCADE, nullable>>
+    + scheduled_date      : String(20)
+    '  ⚠ String (pas Date)
+    + status              : String(20) {default: "pending"}
+    '  pending | in_progress | done | cancelled
+    + action_type         : String(50) <<nullable>>
+    '  ⚠ "action_type" (pas "mission_type")
+    '  inspection|feeding|treatment|harvest
+    + notes               : Text <<nullable>>
+    ..
+    <b>Besoins prévisionnels (moteur ML)</b>
+    + predicted_sirop      : Float   {default: 0}
+    + predicted_pate       : Float   {default: 0}
+    + predicted_traitement : Integer {default: 0}
+    + predicted_cadres     : Integer {default: 0}
+    + created_at           : DateTime
+    '  ⚠ "title" : N'EXISTE PAS
+    <<Index(hive_id, scheduled_date)>>
+  }
+
+  class BeePlanningTask {
+    + id          : Integer <<PK, index>>
+    + planning_id : Integer <<FK→bee_planning.id CASCADE>>
+    + text        : String(500)
+    '  ⚠ "text" (pas "task_description")
+    + status      : String(20) {default: "todo"}
+    '  ⚠ todo | doing | done (pas Boolean is_completed)
+    + created_at  : DateTime
+    '  ⚠ completed_at : N'EXISTE PAS
+  }
+}
+
+BeeApiary   "1"  *-down-  "1..*"  BeeHive         : regroupe >
+BeeHive     "1"  *-down-  "0..*"  BeeVisit        : inspecté par >
+BeeApiary   "1"  -right-  "0..*"  BeeVisit        : concerne >
+BeeApiary   "1"  *-right- "0..*"  BeeProduction   : produit >
+BeeHive     "1"  --       "0..1"  BeeHiveStock    : stock alloué >
+BeeHive     "1"  *-right- "0..*"  BeePlanning     : planifié >
+BeePlanning "1"  *-down-  "0..*"  BeePlanningTask : décompose >
+BeeGlobalStock   ..              BeeHiveStock     : alimente >
+BeeApiary   "1"  --       "0..*"  BeeExpense      : finance >
+BeeHive     "1"  --       "0..*"  BeeExpense      : dépenses >
+BeeVisit    "1"  --       "0..1"  BeeExpense      : génère >
+
+note right of BeeHive
+  ⚠ Corrections majeures :
+  — status (Enum) → is_active (Boolean)
+  — queen_present → has_queen
+  — queen_age_months → queen_year
+  — force_score → force_level
+  — frame_count : supprimé
+  + queen_count, hive_type ajoutés
+end note
+
+note right of BeeVisit
+  ⚠ needs_sirop/pate/traitement
+  sont des <b>Float</b> (quantités),
+  pas des Boolean.
+  visit_date est un <b>String</b>.
+end note
+
+@enduml

@@ -1,0 +1,71 @@
+@startuml SD3_IoT_Telemetrie
+!theme cerulean-outline
+skinparam backgroundColor #FFFFFF
+skinparam ParticipantBorderColor #D35400
+skinparam ParticipantBackgroundColor #FEF5E7
+skinparam SequenceArrowColor #34495E
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam LifeLineBorderColor #AEB6BF
+skinparam shadowing false
+
+title <size:14><b>SD3 — Pipeline IoT Temps Réel</b></size>\n<size:11>Source : backend/app/main.py  (architecture réelle)</size>
+
+participant "Capteur IoT\n(Node A / Node B)" as Sensor
+participant "FastAPI\nPOST /api/v1/iot/telemetry" as IoTEndpoint
+participant "iot_telemetry.csv\n(fichier local)" as CSV
+participant "Frontend Dashboard\n(React)" as FE
+participant "FastAPI\nGET /api/v1/iot/latest" as LatestAPI
+participant "WebSocket\n/ws/telemetry" as WS
+
+note over Sensor, CSV
+  <b>Architecture réelle :</b>
+  IoT utilise REST → CSV (pas Mosquitto/MQTT broker)
+  Node A : sol (humidité, pression, débit, temp)
+  Node B : ruche (poids, temp couvain, temp ext, hum ext)
+end note
+
+== Envoi données capteur ==
+
+Sensor -> IoTEndpoint : POST /api/v1/iot/telemetry\n{node:"NODE_A", metric:"Poids Ruche", value:24.3}
+activate IoTEndpoint
+IoTEndpoint -> CSV : Append ligne\n[timestamp, NODE_B, weight, 24.3]
+CSV --> IoTEndpoint : OK
+IoTEndpoint --> Sensor : 200 {"status": "ok"}
+deactivate IoTEndpoint
+
+== Lecture par le Dashboard ==
+
+FE -> LatestAPI : GET /api/v1/iot/latest
+activate LatestAPI
+LatestAPI -> CSV : Lire CSV en sens inverse\n(scan jusqu'aux 7 métriques A\net 4 métriques B)
+CSV --> LatestAPI : Dernières valeurs par métrique
+
+LatestAPI -> LatestAPI : Mapper les noms :\n"Poids Ruche" → "weight"\n"Temp Couvain" → "hive_temp"\n"Humidité Sol" → "soil" ...
+
+LatestAPI --> FE : 200 OK\n{nodeA:{soil,pressure,flow,\n  temp,pump,valve,fault},\n nodeB:{weight,hive_temp,\n  ext_temp,ext_hum}}
+deactivate LatestAPI
+
+FE -> FE : Met à jour les jauges\ndu tableau de bord
+
+== Historique IoT ==
+
+FE -> LatestAPI : GET /api/v1/iot/history?limit=50
+activate LatestAPI
+LatestAPI -> CSV : Lire tout le CSV\nGrouper par timestamp
+CSV --> LatestAPI : Snapshots chronologiques
+LatestAPI --> FE : {nodeA:[...], nodeB:[...]}
+deactivate LatestAPI
+FE -> FE : Dessine graphiques Recharts
+
+== WebSocket (push temps réel) ==
+
+note over WS, FE
+  <b>WebSocket /ws/telemetry :</b>
+  Connexion ouverte par le Dashboard.
+  Le serveur broadcaste les alertes
+  et événements via ConnectionManager.
+  (Pas de flux MQTT côté main.py)
+end note
+
+@enduml

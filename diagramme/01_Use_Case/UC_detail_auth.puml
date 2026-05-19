@@ -1,0 +1,62 @@
+@startuml UC_Detail_Auth
+!theme cerulean-outline
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam backgroundColor #FFFFFF
+skinparam UseCaseBorderColor #1A5276
+skinparam UseCaseBackgroundColor #EAF2FF
+skinparam PackageBorderColor #1A5276
+skinparam PackageBackgroundColor #F8FBFF
+skinparam ArrowColor #1A5276
+skinparam defaultFontSize 13
+
+title <size:14><b>Détail — Authentification & Sécurité</b></size>\nSmart Farm AI v3.0
+
+actor "Propriétaire\n/ Admin" as Owner #2C7BE5
+actor "Ouvrier\n(PWA)" as Worker #27AE60
+
+package "Authentification & Sécurité" {
+  usecase "S'authentifier\nPOST /auth/login\n{username, password}" as UC_Login
+  usecase "S'inscrire\nPOST /auth/register" as UC_Register
+  usecase "Réinitialiser mot de passe\nvia Email ou WhatsApp" as UC_Reset
+  usecase "Demander OTP\nPOST /auth/worker/request-otp\n{phone_number}" as UC_ReqOTP
+  usecase "Vérifier OTP & obtenir JWT\nPOST /auth/worker/verify-otp\n{phone_number, otp}" as UC_VerOTP
+  usecase "Vérifier PIN hors-ligne\n(Dexie IndexedDB)" as UC_PIN
+  usecase "Enregistrer Token Push\nPOST /auth/push-token" as UC_Push
+}
+
+Owner  --> UC_Login
+Owner  --> UC_Register
+Owner  --> UC_Reset
+Owner  --> UC_Push
+
+Worker --> UC_ReqOTP
+Worker --> UC_VerOTP
+Worker --> UC_PIN
+
+UC_Reset ..> UC_ReqOTP : <<extend>>\n(canal WhatsApp)
+
+note right of UC_Login
+  ⚠ Utilise <b>username</b>
+  (pas email) :
+  POST {username, password}
+  → JWT HS256 (7 jours)
+end note
+
+note right of UC_Reset
+  Deux canaux disponibles :
+  • POST /auth/forgot-password/email
+  • POST /auth/forgot-password/whatsapp
+  Puis : POST /auth/reset-password
+  {channel, identifier, otp, new_password}
+end note
+
+note right of UC_ReqOTP
+  Cherche le worker par
+  phone_number → envoie OTP
+  via WhatsApp Cloud API
+  (TTL : 5 minutes)
+end note
+
+@enduml

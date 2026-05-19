@@ -1,0 +1,90 @@
+@startuml SD5_Bee_Workflow
+!theme cerulean-outline
+skinparam backgroundColor #FFFFFF
+skinparam ParticipantBorderColor #B7950B
+skinparam ParticipantBackgroundColor #FEFDE7
+skinparam SequenceArrowColor #34495E
+skinparam NoteBackgroundColor #FEF9E7
+skinparam NoteBorderColor #F39C12
+skinparam LifeLineBorderColor #AEB6BF
+skinparam shadowing false
+
+title <size:14><b>SD5 — Flux Gestion Apicole</b></size>\n<size:11>Visite → Besoin → Planning → Stock\nSource : backend/app/api/v1/endpoints/bee_history.py + bee_planning.py</size>
+
+actor "Apiculteur" as Beekeeper
+participant "Frontend\n(AboutBee)" as FE
+participant "FastAPI\n/bee/history\n/bee/planning" as API
+database "SQLite / PostgreSQL" as DB
+participant "BeePlanning\nService" as PlanSvc
+participant "BeeStock\nService" as StockSvc
+
+== Consulter le profil de la ruche ==
+
+Beekeeper -> FE : Sélectionne ruche HIVE-0042
+FE -> API : GET /api/v1/bee/hives/42
+activate API
+API -> DB : SELECT * FROM bee_hives\n  WHERE id = 42\nSELECT * FROM bee_visits\n  WHERE hive_id = 42\n  ORDER BY visit_date DESC LIMIT 5
+DB --> API : {hive, visits, stock}
+API --> FE : Profil complet de la ruche
+deactivate API
+
+== Enregistrer une visite ==
+
+Beekeeper -> FE : Remplit formulaire de visite
+FE -> API : POST /api/v1/bee/history\n{hive_id: 42,\n visit_date: "15/01/2026",\n health_state: "warning",\n force_level: 3.0,\n harvest_kg: 0,\n needs_sirop: 5.0,\n needs_traitement: 2.0,\n notes: "Varroase suspectée"}
+note right
+  ⚠ needs_sirop = <b>Float</b> (litres)
+  ⚠ needs_traitement = <b>Float</b> (doses)
+  ⚠ visit_date = <b>String</b> (format fr-FR)
+  ⚠ health_state : health|warning|urgent
+end note
+activate API
+
+API -> DB : INSERT INTO bee_visits\n(..., force_level=3.0,\n needs_sirop=5.0,\n needs_traitement=2.0)
+API -> DB : UPDATE bee_hives SET\n  health_score=35,\n  force_level=3.0,\n  last_visit_date=now()\nWHERE id=42
+note right
+  ⚠ "force_level" (pas "force_score")
+end note
+DB --> API : Visit id=891, Hive mis à jour
+
+API -> PlanSvc : check_and_create_planning\n(hive_id=42, needs)
+activate PlanSvc
+PlanSvc -> DB : SELECT * FROM bee_planning\n  WHERE hive_id=42\n  AND status='pending'
+DB --> PlanSvc : Aucune mission active
+PlanSvc -> DB : INSERT INTO bee_planning\n{hive_id: 42,\n apiary_id: 5,\n action_type: 'treatment',\n scheduled_date: '18/01/2026',\n predicted_traitement: 2,\n predicted_sirop: 5,\n status: 'pending'}
+note right
+  ⚠ "action_type" (pas "type")
+  ⚠ Pas de champ "title"
+  ⚠ scheduled_date = <b>String</b>
+end note
+DB --> PlanSvc : BeePlanning id=44
+deactivate PlanSvc
+
+API -> StockSvc : check_stock(sirop, traitement)
+activate StockSvc
+StockSvc -> DB : SELECT sirop, traitement,\n  sirop_min, traitement_min\nFROM bee_global_stock\nWHERE id=1
+note right
+  ⚠ Champs : "sirop" (pas "sirop_liters")
+  ⚠ Champs : "traitement" (pas "traitement_units")
+end note
+DB --> StockSvc : {sirop:12, sirop_min:50,\n traitement:2, traitement_min:10}
+
+alt Stock < seuil minimum
+  StockSvc -> DB : INSERT INTO warehouse_alerts\n{alert_type: 'stock_low',\n item_name: 'Traitement Varroa',\n severity: 'warning',\n message: 'Stock faible...'}
+  note right
+    ⚠ alert_type : "stock_low"
+    (pas "low_stock")
+  end note
+  DB --> StockSvc : WarehouseAlert créée
+  StockSvc --> API : {warning: "Stock traitement insuffisant"}
+else Stock OK
+  StockSvc --> API : {status: "OK"}
+end
+deactivate StockSvc
+
+API --> FE : 201 Created\n{visit_id: 891,\n planning_id: 44,\n stock_warning?: "..."}
+deactivate API
+
+FE --> Beekeeper : ✅ Visite enregistrée\n📅 Mission planifiée le 18/01/2026\n⚠ Alerte stock si besoin
+
+@enduml
