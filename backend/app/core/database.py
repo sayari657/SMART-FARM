@@ -15,7 +15,7 @@ if settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False, "timeout": 15}
     _extra_kwargs = {}
 else:
-    _effective_url = settings.DATABASE_URL
+    _effective_url = settings.DATABASE_URL.strip()
     connect_args = {}
     _extra_kwargs = {"pool_size": 10, "max_overflow": 20}
 
