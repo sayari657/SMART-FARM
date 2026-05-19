@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://farmai-backend.onrender.com/api/:path*" },
-    { "source": "/ws/:path*",  "destination": "https://farmai-backend.onrender.com/ws/:path*" },
+    { "source": "/api/:path*", "destination": "https://farmai-backend-r5gq.onrender.com/api/:path*" },
+    { "source": "/ws/:path*",  "destination": "https://farmai-backend-r5gq.onrender.com/ws/:path*" },
     { "source": "/(.*)",       "destination": "/index.html" }
   ],
   "headers": [
