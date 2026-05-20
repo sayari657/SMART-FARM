@@ -75,7 +75,7 @@ export default function Dashboard() {
   const [fireAlert, setFireAlert] = useState(null);
   const navigate = useNavigate();
 
-  /* ── Fire detection handler (unchanged) ─────────────────────────── */
+  /* ── Fire detection handler ──────────────────────────────────────── */
   const handleFireDetection = useCallback(({ detections, imageUrl }) => {
     if (!detections?.length) return;
     const fireLabels = detections.filter(d =>
@@ -88,9 +88,7 @@ export default function Dashboard() {
     const isSmoke = fireLabels.some(d => d.label?.toLowerCase().includes('smoke'));
     const maxConf = Math.round(Math.max(...fireLabels.map(d => d.confidence)) * 100);
     setFireAlert({ isFire, isSmoke, imageUrl, confidence: maxConf, timestamp: new Date() });
-    alertsAPI.list().catch(() => {});
-    navigate('/alerts');
-  }, [navigate]);
+  }, []);
 
   /* ── IoT polling (unchanged) ─────────────────────────────────────── */
   useEffect(() => {
@@ -560,31 +558,47 @@ export default function Dashboard() {
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
               {fireAlert ? (
                 <>
+                  {/* Detection card */}
                   <div style={{
-                    padding: '12px 16px', borderRadius: 10,
-                    background: fireAlert.isFire ? 'rgba(239,68,68,0.12)' : 'rgba(234,179,8,0.12)',
-                    border: `1px solid ${fireAlert.isFire ? '#ef4444' : '#eab308'}`,
-                    display: 'flex', alignItems: 'center', gap: 10,
+                    borderRadius: 12, overflow: 'hidden',
+                    border: `2px solid ${fireAlert.isFire ? '#ef4444' : '#eab308'}`,
+                    boxShadow: `0 6px 20px ${fireAlert.isFire ? 'rgba(239,68,68,0.18)' : 'rgba(234,179,8,0.18)'}`,
+                    position: 'relative',
                   }}>
-                    <Flame size={20} color={fireAlert.isFire ? '#ef4444' : '#eab308'} style={{ flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: fireAlert.isFire ? '#ef4444' : '#ca8a04' }}>
-                        {fireAlert.isFire ? "🔥 Risque d'incendie détecté" : '💨 Présence de fumée détectée'}
+                    {/* Badge */}
+                    <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, background: fireAlert.isFire ? '#ef4444' : '#eab308', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 900 }}>
+                      {fireAlert.isFire ? 'INCENDIE' : 'FUMÉE'}
+                    </div>
+                    {/* Confidence badge */}
+                    <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 900 }}>
+                      {fireAlert.confidence}%
+                    </div>
+                    {/* Image */}
+                    {fireAlert.imageUrl
+                      ? <img src={fireAlert.imageUrl} alt="Détection" style={{ width: '100%', height: 'clamp(140px,28vw,200px)', objectFit: 'cover', display: 'block' }} />
+                      : <div style={{ height: 140, background: 'linear-gradient(135deg,#000,#450a0a)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Flame color="#ef4444" size={48} /></div>
+                    }
+                    {/* Info bar */}
+                    <div style={{ padding: '10px 14px', background: fireAlert.isFire ? '#fef2f2' : '#fefce8' }}>
+                      <div style={{ fontWeight: 800, fontSize: 13, color: fireAlert.isFire ? '#991b1b' : '#92400e' }}>
+                        {fireAlert.isFire ? "🔥 Risque d'incendie détecté" : '💨 Présence de fumée'}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--color-text-3)', marginTop: 2 }}>
-                        Confiance: {fireAlert.confidence}% · {fireAlert.timestamp.toLocaleTimeString()}
+                      {/* Score bar */}
+                      <div style={{ marginTop: 6 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#666', marginBottom: 3 }}>
+                          <span>Score de confiance</span>
+                          <span style={{ fontWeight: 800, color: fireAlert.isFire ? '#ef4444' : '#d97706' }}>{fireAlert.confidence}%</span>
+                        </div>
+                        <div style={{ height: 4, background: '#e0e0e0', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${fireAlert.confidence}%`, background: fireAlert.isFire ? '#ef4444' : '#eab308', borderRadius: 2 }} />
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10, color: '#888', marginTop: 4 }}>
+                        {fireAlert.timestamp.toLocaleTimeString()}
                       </div>
                     </div>
                   </div>
-                  {fireAlert.imageUrl && (
-                    <div style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-3)', padding: '6px 10px', background: 'var(--color-surface-2)' }}>
-                        Image capturée — validation visuelle
-                      </div>
-                      <img src={fireAlert.imageUrl} alt="Détection feu/fumée" style={{ width: '100%', maxHeight: 'clamp(120px, 25vw, 180px)', objectFit: 'cover', display: 'block' }} />
-                    </div>
-                  )}
-                  <button className="btn btn-sm" onClick={() => navigate('/alerts')} style={{ background: '#ef4444', color: 'white', fontWeight: 700, fontSize: 12 }}>
+                  <button className="btn btn-sm" onClick={() => setTimeout(() => navigate('/alerts'), 300)} style={{ background: '#ef4444', color: 'white', fontWeight: 700, fontSize: 12 }}>
                     <AlertTriangle size={13} style={{ marginRight: 6 }} /> Voir le Centre d'Alertes
                   </button>
                 </>

@@ -6,7 +6,7 @@ import time
 import asyncio
 from datetime import datetime, timedelta
 from PIL import Image
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, File, UploadFile, HTTPException
 from sqlalchemy.orm import Session
@@ -93,6 +93,29 @@ def get_by_unit(unit_id: int, limit: int = Query(100, le=500), db: Session = Dep
 def ingest(data: CVEventCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
     e = CVService(db).ingest(data)
     return {"id": e.id, "unit_id": e.unit_id, "object_class": e.object_class}
+
+@router.delete("/events/{event_id}", status_code=204)
+def delete_event(event_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+    from app.models.domain import CVEvent
+    db.query(CVEvent).filter(CVEvent.id == event_id).delete()
+    db.commit()
+
+@router.delete("/events", status_code=200)
+def purge_events(
+    ids: str = Query(None, description="Comma-separated event IDs to delete"),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    """Bulk delete CV events by ID list, or all if no ids provided."""
+    from app.models.domain import CVEvent
+    q = db.query(CVEvent)
+    if ids:
+        id_list = [int(i) for i in ids.split(',') if i.strip().isdigit()]
+        q = q.filter(CVEvent.id.in_(id_list))
+    count = q.count()
+    q.delete(synchronize_session=False)
+    db.commit()
+    return {"deleted": count}
 
 @router.get("/models/{category}/metadata")
 def get_model_metadata(category: str):
@@ -204,7 +227,19 @@ async def detect_in_file(
             # Some models use numeric labels (0, 1, 2, 3, 4) for fire levels/zones
             priority_classes = ['fire', 'smoke', 'incendie', '0', '1', '2', '3', '4']
             high_priority_dets = [d for d in detections if d['label'].lower() in priority_classes]
-            
+
+            # Build compressed thumbnail once for all events of this image
+            thumbnail_b64 = None
+            try:
+                import base64
+                thumb = image.copy()
+                thumb.thumbnail((520, 390))
+                buf = io.BytesIO()
+                thumb.save(buf, format='JPEG', quality=72)
+                thumbnail_b64 = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode('utf-8')
+            except Exception:
+                pass
+
             if high_priority_dets and category == "fire":
                 from app.models.domain import AnimalUnit
                 from app.services.data_service import AlertService
@@ -217,14 +252,15 @@ async def detect_in_file(
                             label_display = det['label']
                             if label_display in ['0', '1', '2', '3', '4']:
                                 label_display = f"Zone/Niveau {label_display} (Feu)"
-                            
-                            # 1. Ingest CV Event
+
+                            # 1. Ingest CV Event with thumbnail in frame_metadata
                             CVService(db).ingest(CVEventCreate(
                                 unit_id=default_unit.id,
                                 object_class=label_display,
                                 confidence=det['confidence'],
                                 severity="critical",
-                                camera_id=category
+                                camera_id=category,
+                                frame_metadata={"thumbnail_b64": thumbnail_b64, "detections": detections} if thumbnail_b64 else {"detections": detections}
                             ))
                             # 2. Create System Alert
                             AlertService(db).create_alert(AlertCreate(

@@ -13,6 +13,9 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
+const SCAN_ALERT_KEY = 'farm_scan_alerts';
+const SCANNER_CRITICAL = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu', 'fumee', 'blight', 'rot', 'disease', '0', '1', '2', '3', '4']);
+
 /* ── Design Tokens ──────────────────────────────────────────────────────── */
 const C = {
   red: '#ef4444', redLt: '#fef2f2', orange: '#f97316',
@@ -117,6 +120,7 @@ export default function AlertsCenter() {
   const [warehouseAlerts, setWarehouseAlerts]  = useState([]);
   const [resolvedWAlerts, setResolvedWAlerts]  = useState([]);
   const [emergencyData, setEmergencyData]      = useState(null);
+  const [scannerAlerts, setScannerAlerts]      = useState([]);
   const [weatherRisks, setWeatherRisks]     = useState(null);
   const [loading, setLoading]               = useState(true);
   const [filter, setFilter]                 = useState('emergency');
@@ -167,6 +171,10 @@ export default function AlertsCenter() {
         } catch {}
       }
       setAlerts([...baseAlerts]);
+      try {
+        const stored = JSON.parse(localStorage.getItem(SCAN_ALERT_KEY) || '[]');
+        setScannerAlerts(stored);
+      } catch {}
     } catch (err) {
       console.error(err);
     } finally {
@@ -174,7 +182,16 @@ export default function AlertsCenter() {
     }
   }, [t]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const t = setTimeout(() => {
+      try {
+        const stored = JSON.parse(localStorage.getItem(SCAN_ALERT_KEY) || '[]');
+        setScannerAlerts(stored);
+      } catch {}
+    }, 700);
+    return () => clearTimeout(t);
+  }, [load]);
 
   /* ── Resolve helpers ────────────────────────────────────────────────────── */
   const resolve = async (id) => {
@@ -252,7 +269,7 @@ export default function AlertsCenter() {
     active:    alerts.filter(a => !a.is_resolved).length,
     critical:  alerts.filter(a => !a.is_resolved && a.severity === 'critical').length,
     resolved:  alerts.filter(a => a.is_resolved).length + resolvedWAlerts.length,
-    emergency: (emergencyData?.fire_events?.length || 0) + (emergencyData?.critical_alerts?.length || 0),
+    emergency: (emergencyData?.fire_events?.length || 0) + (emergencyData?.critical_alerts?.length || 0) + scannerAlerts.length,
     warehouse: warehouseAlerts.length,
   };
 
@@ -372,22 +389,37 @@ export default function AlertsCenter() {
                       background: '#fff', borderRadius: 16, border: `2px solid ${C.red}`,
                       overflow: 'hidden', boxShadow: '0 8px 24px rgba(239,68,68,0.15)', position: 'relative',
                     }}>
-                      <div style={{ height: 'clamp(120px,30vw,160px)', background: '#000', position: 'relative' }}>
-                        {e.thumbnail_url
-                          ? <img src={e.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="detection" />
+                      <div style={{ height: 'clamp(140px,30vw,200px)', background: '#000', position: 'relative' }}>
+                        {(e.thumbnail_url || e.frame_metadata?.thumbnail_b64)
+                          ? <img
+                              src={e.thumbnail_url || e.frame_metadata.thumbnail_b64}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                              alt="detection"
+                              onError={ev => { ev.target.style.display = 'none'; }}
+                            />
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(45deg,#000,#450a0a)' }}><Flame color={C.red} size={40} /></div>
                         }
-                        <div style={{ position: 'absolute', top: 12, right: 12, background: C.red, color: '#fff', padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 900 }}>CRITICAL</div>
+                        <div style={{ position: 'absolute', top: 12, left: 12, background: C.red, color: '#fff', padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 900 }}>INCENDIE</div>
+                        <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.65)', color: '#fff', padding: '4px 10px', borderRadius: 20, fontSize: 10, fontWeight: 900 }}>{Math.round(e.confidence * 100)}%</div>
                       </div>
                       <div style={{ padding: 16 }}>
                         <div style={{ fontSize: 14, fontWeight: 800, color: C.textPri, marginBottom: 4 }}>
                           {rtl ? 'كشف: ' : 'DÉTECTION: '}{e.object_class.toUpperCase()}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, color: C.slate }}>
-                          <Clock size={12} /> {new Date(e.timestamp).toLocaleTimeString()}
-                          <Activity size={12} style={{ marginLeft: 8 }} /> {L.confidence}: {Math.round(e.confidence * 100)}%
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.slate, marginBottom: 3 }}>
+                            <span>{L.confidence}</span>
+                            <span style={{ fontWeight: 800, color: C.red }}>{Math.round(e.confidence * 100)}%</span>
+                          </div>
+                          <div style={{ height: 4, background: '#f0f0f0', borderRadius: 2, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${Math.round(e.confidence * 100)}%`, background: C.red, borderRadius: 2 }} />
+                          </div>
                         </div>
-                        <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
+                        <div style={{ fontSize: 11, color: C.slate, marginBottom: 10 }}>
+                          <Clock size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                          {new Date(e.timestamp).toLocaleString()}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
                           {assignBtn({ id: e.id, item_name: e.object_class, message: `Feu/Fumée détecté — confiance ${Math.round(e.confidence*100)}%`, severity: 'critical' })}
                         </div>
                       </div>
@@ -459,6 +491,96 @@ export default function AlertsCenter() {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Scanner AI Detections */}
+            {scannerAlerts.length > 0 && (
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(124,58,237,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(124,58,237,0.2)' }}>
+                      <Activity color={C.purple} size={22} />
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: 18, fontWeight: 900, color: C.textPri, margin: 0 }}>
+                        {rtl ? 'كشوفات المسح الفوري' : 'Détections Scanner IA'}
+                      </h2>
+                      <p style={{ fontSize: 12, color: C.slate, margin: 0 }}>
+                        {rtl ? 'صور ممسوحة بالذكاء الاصطناعي' : 'Images analysées par vision artificielle'}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { localStorage.removeItem(SCAN_ALERT_KEY); setScannerAlerts([]); }}
+                    style={{ background: 'rgba(239,68,68,0.07)', color: C.red, border: `1px solid rgba(239,68,68,0.2)`, borderRadius: 8, padding: '7px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <Trash2 size={13} /> {rtl ? 'مسح الكل' : 'Effacer tout'}
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
+                  {scannerAlerts.map(sa => {
+                    const topDet = sa.detections?.[0];
+                    const score = topDet ? Math.round(topDet.confidence * 100) : 0;
+                    const isCrit = sa.category === 'fire' || SCANNER_CRITICAL.has(topDet?.label?.toLowerCase()) || SCANNER_CRITICAL.has(topDet?.label);
+                    return (
+                      <div key={sa.id} style={{
+                        background: '#fff', borderRadius: 14,
+                        border: `2px solid ${isCrit ? C.red : C.purple}`,
+                        overflow: 'hidden',
+                        boxShadow: `0 6px 20px ${isCrit ? 'rgba(239,68,68,0.12)' : 'rgba(124,58,237,0.1)'}`,
+                        position: 'relative',
+                      }}>
+                        <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, background: isCrit ? C.red : C.purple, color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 9, fontWeight: 900 }}>
+                          {sa.category === 'fire' ? 'INCENDIE' : isCrit ? 'CRITIQUE' : 'SCAN IA'}
+                        </div>
+                        <div style={{ height: 'clamp(140px, 28vw, 200px)', background: '#111', overflow: 'hidden' }}>
+                          <img src={sa.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} alt="scan" onError={e => { e.target.style.display='none'; }} />
+                        </div>
+                        <div style={{ padding: 12 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: C.textPri, marginBottom: 6 }}>
+                            {sa.category === 'fire'
+                              ? (rtl ? 'كشف حريق / دخان' : 'DÉTECTION FEU / FUMÉE')
+                              : (topDet?.label?.toUpperCase() || sa.category?.toUpperCase())}
+                          </div>
+                          <div style={{ marginBottom: 8 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.slate, marginBottom: 3 }}>
+                              <span>Score</span>
+                              <span style={{ fontWeight: 800, color: isCrit ? C.red : C.purple }}>{score}%</span>
+                            </div>
+                            <div style={{ height: 4, background: '#f0f0f0', borderRadius: 2, overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${score}%`, borderRadius: 2, background: isCrit ? C.red : C.purple }} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+                            {sa.detections?.slice(0, 4).map((det, i) => (
+                              <span key={i} style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#f8fafc', color: C.slate, border: `1px solid ${C.border}` }}>
+                                {det.label} {Math.round(det.confidence * 100)}%
+                              </span>
+                            ))}
+                          </div>
+                          <div style={{ fontSize: 10, color: C.slate, marginBottom: 8 }}>
+                            <Clock size={10} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                            {new Date(sa.timestamp).toLocaleTimeString()}
+                          </div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {assignBtn({ id: sa.id, item_name: topDet?.label || sa.category, message: `Détection IA: ${topDet?.label} (${score}%)`, severity: isCrit ? 'critical' : 'warning' })}
+                            <button
+                              onClick={() => {
+                                const updated = scannerAlerts.filter(a => a.id !== sa.id);
+                                setScannerAlerts(updated);
+                                localStorage.setItem(SCAN_ALERT_KEY, JSON.stringify(updated));
+                              }}
+                              style={{ background: 'rgba(239,68,68,0.07)', color: C.red, border: `1px solid rgba(239,68,68,0.2)`, borderRadius: 8, height: 34, padding: '0 10px', display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+                            >
+                              <X size={12} /> {rtl ? 'إزالة' : 'Retirer'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
             {/* Critical animal alerts */}

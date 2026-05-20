@@ -127,6 +127,10 @@ export const cvAPI = {
   recent: (limit = 50) => api.get(`/cv/events?limit=${limit}`),
   byUnit: (unitId, limit = 100) => api.get(`/cv/events/${unitId}?limit=${limit}`),
   ingest: (data) => api.post('/cv/events', data),
+  deleteEvent: (id) => api.delete(`/cv/events/${id}`),
+  purgeEvents: (ids) => ids?.length
+    ? api.delete(`/cv/events?ids=${ids.join(',')}`)
+    : api.delete('/cv/events'),
   getModelMetadata: (category) => api.get(`/cv/models/${category}/metadata`),
   plantStats: () => api.get('/cv/stats/plants'),
   recentPlantEvents: (limit = 20) => api.get(`/cv/events/plants/recent?limit=${limit}`),

@@ -85,11 +85,15 @@ def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)
     # 1. Critical Alerts (Animal/System)
     critical_alerts = db.query(Alert).filter(Alert.is_resolved == False, Alert.severity == "critical").order_by(desc(Alert.timestamp)).limit(10).all()
     
-    # 2. Fire/Smoke Detections (High Severity CV Events)
+    # 2. Fire/Smoke Detections — match text labels OR any critical fire-camera event
+    from sqlalchemy import or_, and_
     fire_events = db.query(CVEvent).filter(
-        CVEvent.object_class.in_(["fire", "smoke", "incendie"]),
+        or_(
+            CVEvent.object_class.in_(["fire", "smoke", "incendie"]),
+            and_(CVEvent.camera_id == "fire", CVEvent.severity == "critical")
+        ),
         CVEvent.timestamp >= datetime.utcnow() - timedelta(hours=24)
-    ).order_by(desc(CVEvent.timestamp)).all()
+    ).order_by(desc(CVEvent.timestamp)).limit(20).all()
     
     # 3. Critical Anomalies
     critical_anomalies = db.query(Anomaly).filter(
@@ -118,7 +122,9 @@ def _serialize_cv(e):
     return {
         "id": e.id, "unit_id": e.unit_id, "timestamp": e.timestamp.isoformat(),
         "object_class": e.object_class, "confidence": e.confidence,
-        "severity": e.severity, "camera_id": e.camera_id, "thumbnail_url": e.thumbnail_url
+        "severity": e.severity, "camera_id": e.camera_id,
+        "thumbnail_url": e.thumbnail_url,
+        "frame_metadata": e.frame_metadata,
     }
 
 

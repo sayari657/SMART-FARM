@@ -1,6 +1,35 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, Upload, Sparkles, RefreshCcw, Activity, History, Trash2, X, FileText, Loader2, ShieldAlert } from 'lucide-react';
 import { cvAPI, agentAPI } from '../services/api';
+import toast from 'react-hot-toast';
+
+const CRITICAL_LABELS = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu', 'fumee', 'blight', 'rot', 'disease']);
+const SCAN_ALERT_KEY = 'farm_scan_alerts';
+const SCAN_ALERT_MAX = 20;
+
+const compressImage = (dataUrl, maxWidth = 520, quality = 0.72) =>
+  new Promise((resolve) => {
+    if (!dataUrl?.startsWith('data:')) { resolve(dataUrl); return; }
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxWidth / img.width);
+      const c = document.createElement('canvas');
+      c.width  = Math.round(img.width  * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+
+const pushScanAlert = (card) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem(SCAN_ALERT_KEY) || '[]');
+    const updated = [card, ...existing].slice(0, SCAN_ALERT_MAX);
+    localStorage.setItem(SCAN_ALERT_KEY, JSON.stringify(updated));
+  } catch {}
+};
 
 /**
  * BboxMiniCard: renders image with bbox overlay for history cards.
@@ -76,8 +105,15 @@ const loadHistory = (category) => {
   catch { return []; }
 };
 const saveHistory = (category, history) => {
-  try { localStorage.setItem(`yolo_history_${category}`, JSON.stringify(history.slice(0, HISTORY_MAX))); }
-  catch {}
+  const key = `yolo_history_${category}`;
+  const data = history.slice(0, HISTORY_MAX);
+  // Retry with fewer items if quota is exceeded (newest images are first)
+  for (let limit = data.length; limit >= 1; limit--) {
+    try {
+      localStorage.setItem(key, JSON.stringify(data.slice(0, limit)));
+      return;
+    } catch {}
+  }
 };
 const loadReports = (category) => {
   try { return JSON.parse(localStorage.getItem(`yolo_reports_${category}`)) || []; }
@@ -136,6 +172,24 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
   const canvasRef    = useRef(null);
   const fileInputRef = useRef(null);
 
+  // Migrate old uncompressed history images to compressed format on first mount
+  useEffect(() => {
+    const raw = loadHistory(category);
+    if (!raw.length) return;
+    const hasLarge = raw.some(c => (c.imageUrl?.length || 0) > 80_000);
+    if (!hasLarge) return;
+    let alive = true;
+    Promise.all(raw.map(async c => ({
+      ...c,
+      imageUrl: (c.imageUrl?.length || 0) > 80_000 ? await compressImage(c.imageUrl) : c.imageUrl,
+    }))).then(compressed => {
+      if (!alive) return;
+      setDetectionHistory(compressed);
+      saveHistory(category, compressed);
+    });
+    return () => { alive = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 4. Implement Photo Capture (Moved up to be initialized before use)
   // 1. AI Logic
   const generateAIReport = useCallback(async (recentHistory) => {
@@ -165,8 +219,19 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
       const res = await cvAPI.detect(file, category);
       const dets = res.data.detections;
       setDetections(dets);
-      const card = { id: Date.now() + Math.random(), timestamp: new Date().toISOString(), imageUrl, detections: dets, category };
+
+      // Compress once — used for both history and alerts (prevents localStorage quota exhaustion)
+      const storedUrl = await compressImage(imageUrl);
+      const card = { id: Date.now() + Math.random(), timestamp: new Date().toISOString(), imageUrl: storedUrl, detections: dets, category };
       setDetectionHistory(prev => { const updated = [card, ...prev]; saveHistory(category, updated); return updated; });
+
+      const isCriticalScan = category === 'fire'
+        || dets.some(d => CRITICAL_LABELS.has(d.label?.toLowerCase()))
+        || dets.some(d => ['0','1','2','3','4'].includes(d.label));
+      if (isCriticalScan && dets.length > 0) {
+        pushScanAlert(card);
+        toast('🚨 Alerte ajoutée au moniteur', { duration: 2500, style: { background: '#fef2f2', color: '#991b1b', fontWeight: 700, fontSize: 13 } });
+      }
       const totalCount = incDetCount(category);
       if (totalCount % REPORT_EVERY === 0) {
         setTimeout(() => { setDetectionHistory(curr => { generateAIReport(curr.slice(0, REPORT_EVERY)); return curr; }); }, 300);
@@ -406,13 +471,35 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         <div style={{ padding: '15px' }}>
           {activeTab === 'cards' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-              {detectionHistory.slice(0, 10).map(card => (
-                <div key={card.id} style={{ background: '#f9fafb', border: `1px solid ${color}22`, borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
-                  <BboxMiniCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
-                  <div style={{ padding: '8px', fontSize: 10 }}>{new Date(card.timestamp).toLocaleTimeString()} · {card.detections.length} obj</div>
-                  <button onClick={() => deleteCard(card.id)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', color: 'white', width: 20, height: 20 }}><X size={10} /></button>
-                </div>
-              ))}
+              {detectionHistory.slice(0, 10).map(card => {
+                const hasCritical = card.detections.some(d => CRITICAL_LABELS.has(d.label?.toLowerCase()));
+                return (
+                  <div key={card.id} style={{ background: '#f9fafb', border: `1.5px solid ${hasCritical ? '#ef4444' : color}33`, borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
+                    <BboxMiniCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
+                    <div style={{ padding: '6px 8px' }}>
+                      <div style={{ fontSize: 9, color: '#888', marginBottom: 3 }}>
+                        {new Date(card.timestamp).toLocaleTimeString()}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                        {card.detections.slice(0, 3).map((det, i) => {
+                          const isCrit = CRITICAL_LABELS.has(det.label?.toLowerCase());
+                          return (
+                            <span key={i} style={{
+                              fontSize: 8, fontWeight: 700, padding: '2px 5px', borderRadius: 4,
+                              background: isCrit ? '#fef2f2' : '#f0fdf4',
+                              color: isCrit ? '#ef4444' : '#16a34a',
+                              border: `1px solid ${isCrit ? '#ef444430' : '#16a34a30'}`,
+                            }}>
+                              {det.label} {Math.round(det.confidence * 100)}%
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <button onClick={() => deleteCard(card.id)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', color: 'white', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={10} /></button>
+                  </div>
+                );
+              })}
             </div>
           )}
           {activeTab === 'reports' && (
