@@ -1,0 +1,19 @@
+[core]
+    autostage = true
+    analytics = false
+
+[feature]
+    machine = true
+
+['remote "s3"']
+    url = s3://smart-farm-ai-models/dvc
+    endpointurl = ${AWS_ENDPOINT_URL}
+
+['remote "gcs"']
+    url = gs://smart-farm-ai-dvc
+
+['remote "local"']
+    url = /tmp/dvc-cache
+
+[remote]
+    default = local

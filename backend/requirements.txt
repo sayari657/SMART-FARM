@@ -52,6 +52,7 @@ python-multipart>=0.0.7
 # MLOps
 mlflow>=2.10.0
 dvc>=3.45.0
+prometheus-fastapi-instrumentator>=6.1.0
 
 # External APIs
 duckduckgo-search>=6.0.0

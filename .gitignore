@@ -21,9 +21,11 @@ yarn-debug.log*
 yarn-error.log*
 .eslintcache
 
-# MLOps / MLflow
+# MLOps / MLflow / DVC
 mlruns/
 mlruns.db
+mlflow.db
+ai_assets/**/*.pt
 
 # Environment variables (never commit secrets)
 .env

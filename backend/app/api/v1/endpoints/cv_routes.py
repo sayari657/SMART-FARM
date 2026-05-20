@@ -117,6 +117,85 @@ def purge_events(
     db.commit()
     return {"deleted": count}
 
+@router.get("/stats/drift")
+def model_drift_stats(
+    days: int = Query(7, le=30),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user)
+):
+    """
+    MLOps drift detection: compare confidence distribution of the last N days
+    vs the previous N days for each model category.
+    A mean drop > 10pp or std increase > 50% flags a drift warning.
+    """
+    from app.models.domain import CVEvent
+    from sqlalchemy import func
+    now = datetime.now(timezone.utc)
+    window_end   = now
+    window_start = now - timedelta(days=days)
+    prev_end     = window_start
+    prev_start   = now - timedelta(days=days * 2)
+
+    categories = db.query(CVEvent.camera_id).distinct().all()
+    results = {}
+
+    for (cat,) in categories:
+        if not cat:
+            continue
+
+        def _stats(start, end):
+            rows = db.query(
+                func.avg(CVEvent.confidence).label("mean"),
+                func.count(CVEvent.id).label("count"),
+            ).filter(
+                CVEvent.camera_id == cat,
+                CVEvent.confidence.isnot(None),
+                CVEvent.timestamp >= start,
+                CVEvent.timestamp < end,
+            ).first()
+            mean  = round(float(rows.mean or 0) * 100, 2)
+            count = rows.count or 0
+
+            vals = [
+                r[0] for r in db.query(CVEvent.confidence).filter(
+                    CVEvent.camera_id == cat,
+                    CVEvent.confidence.isnot(None),
+                    CVEvent.timestamp >= start,
+                    CVEvent.timestamp < end,
+                ).all()
+            ]
+            if len(vals) > 1:
+                import statistics
+                std = round(statistics.stdev(vals) * 100, 2)
+            else:
+                std = 0.0
+            return {"mean_pct": mean, "std_pct": std, "count": count}
+
+        current  = _stats(window_start, window_end)
+        previous = _stats(prev_start, prev_end)
+
+        mean_delta = previous["mean_pct"] - current["mean_pct"]
+        std_delta  = (current["std_pct"] - previous["std_pct"]) if previous["std_pct"] else 0
+
+        drift = mean_delta > 10 or (previous["std_pct"] > 0 and std_delta / previous["std_pct"] > 0.5)
+        results[cat] = {
+            "current_window":  current,
+            "previous_window": previous,
+            "mean_drop_pp":    round(mean_delta, 2),
+            "std_increase_pp": round(std_delta, 2),
+            "drift_detected":  drift,
+            "status":          "DRIFT ⚠️" if drift else "STABLE ✅",
+        }
+
+    overall = any(v["drift_detected"] for v in results.values())
+    return {
+        "window_days":   days,
+        "overall_status": "DRIFT DETECTED" if overall else "ALL STABLE",
+        "categories":    results,
+        "evaluated_at":  now.isoformat(),
+    }
+
+
 @router.get("/models/health")
 def models_health():
     """MLOps health check — which models are loaded and ready."""

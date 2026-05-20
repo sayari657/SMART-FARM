@@ -90,6 +90,32 @@ class TestCVEvents:
         assert "disease_alerts_7d" in data
         assert "avg_confidence_pct" in data
 
+    def test_drift_stats_empty(self, client, auth_headers):
+        r = client.get("/api/v1/cv/stats/drift?days=7", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert "overall_status" in data
+        assert "categories" in data
+        assert "window_days" in data
+        assert data["window_days"] == 7
+
+    def test_drift_stats_with_data(self, client, auth_headers):
+        uid = self._unit_id(client, auth_headers)
+        for conf in [0.80, 0.75, 0.90, 0.60, 0.85]:
+            client.post("/api/v1/cv/events", json={
+                "unit_id": uid, "object_class": "fire",
+                "confidence": conf, "severity": "critical", "camera_id": "fire",
+            }, headers=auth_headers)
+
+        r = client.get("/api/v1/cv/stats/drift?days=7", headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()
+        assert "fire" in data["categories"]
+        fire = data["categories"]["fire"]
+        assert "drift_detected" in fire
+        assert "current_window" in fire
+        assert fire["current_window"]["count"] >= 5
+
 
 # ── Alerts ─────────────────────────────────────────────────────────────────────
 

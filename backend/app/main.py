@@ -7,12 +7,14 @@ import logging
 import json
 import asyncio
 import os
+import uuid
 from contextlib import asynccontextmanager
 from typing import List
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -45,8 +47,20 @@ logger = logging.getLogger("smart_farm")
 async def app_lifespan(app_instance: FastAPI):
     """Handles startup and shutdown safely (Lifespan Pattern)"""
     # -- STARTUP --
+
+    # a. Secrets validation — warn if placeholder values are still in use
+    _PLACEHOLDER_PATTERNS = ("CHANGE_ME", "REPLACE_WITH", "your@email", "gsk_5jVI")
+    _secrets_to_check = {
+        "SECRET_KEY": settings.SECRET_KEY,
+        "GROQ_API_KEY": getattr(settings, "GROQ_API_KEY", ""),
+        "WHATSAPP_TOKEN": getattr(settings, "WHATSAPP_TOKEN", ""),
+    }
+    for key, val in _secrets_to_check.items():
+        if any(p in str(val) for p in _PLACEHOLDER_PATTERNS):
+            logger.warning(f"[SECURITY] {key} appears to use a default/placeholder value — rotate before production.")
+
     try:
-        # a. Database Sync (with One-Time Reset for Diagnostic History)
+        # b. Database Sync
         import app.models.domain  # noqa: F401
         Base.metadata.create_all(bind=engine)
         logger.info("[STARTUP] Database refreshed and synchronized.")
@@ -69,7 +83,7 @@ async def app_lifespan(app_instance: FastAPI):
                 logger.info("[STARTUP] Default admin created → admin / admin123")
 
     except Exception as e:
-        logger.error(f"[STARTUP] DB Error: {e}")
+        logger.error(f"[STARTUP] DB/Startup Error: {e}")
 
     # b. AI Background Warm-up (Floating task)
     async def _async_warmup():
@@ -103,12 +117,22 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 4. Middleware & Handlers
+
+class CorrelationIDMiddleware(BaseHTTPMiddleware):
+    """Attach a unique X-Request-ID to every request for distributed tracing."""
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+app.add_middleware(CorrelationIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
 )
 
 @app.exception_handler(Exception)
@@ -116,7 +140,18 @@ async def global_exception_handler(request, exc):
     logger.error(f"Global error: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
-# 5. Routing
+# 5. Prometheus metrics — /metrics endpoint (MLOps observability)
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator(
+        should_group_status_codes=True,
+        excluded_handlers=["/health", "/metrics"],
+    ).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    logger.info("[MLOps] Prometheus /metrics endpoint active.")
+except ImportError:
+    logger.warning("[MLOps] prometheus-fastapi-instrumentator not installed — /metrics disabled.")
+
+# 6. Routing
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 from pydantic import BaseModel
