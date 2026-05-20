@@ -12,7 +12,6 @@ from typing import List
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -34,8 +33,6 @@ async def app_lifespan(app_instance: FastAPI):
     try:
         # a. Database Sync (with One-Time Reset for Diagnostic History)
         import app.models.domain  # noqa: F401
-        from sqlalchemy import text
-                
         Base.metadata.create_all(bind=engine)
         logger.info("[STARTUP] Database refreshed and synchronized.")
 
@@ -55,102 +52,6 @@ async def app_lifespan(app_instance: FastAPI):
                 ))
                 _seed_db.commit()
                 logger.info("[STARTUP] Default admin created → admin / admin123")
-
-        # Incremental migrations (safe: each wrapped in try/except)
-        _migrations = [
-            # Poultry feed logs
-            "ALTER TABLE poultry_feed_logs ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
-            "ALTER TABLE poultry_feed_logs ADD COLUMN created_by_id INTEGER",
-            "ALTER TABLE poultry_feed_logs ADD COLUMN validated_by_id INTEGER",
-            "ALTER TABLE poultry_feed_logs ADD COLUMN validation_timestamp DATETIME",
-            "ALTER TABLE poultry_feed_logs ADD COLUMN admin_notes TEXT",
-            # Poultry egg logs
-            "ALTER TABLE poultry_egg_logs ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
-            "ALTER TABLE poultry_egg_logs ADD COLUMN created_by_id INTEGER",
-            "ALTER TABLE poultry_egg_logs ADD COLUMN validated_by_id INTEGER",
-            "ALTER TABLE poultry_egg_logs ADD COLUMN validation_timestamp DATETIME",
-            "ALTER TABLE poultry_egg_logs ADD COLUMN admin_notes TEXT",
-            # Poultry health logs
-            "ALTER TABLE poultry_health_logs ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
-            "ALTER TABLE poultry_health_logs ADD COLUMN created_by_id INTEGER",
-            "ALTER TABLE poultry_health_logs ADD COLUMN validated_by_id INTEGER",
-            "ALTER TABLE poultry_health_logs ADD COLUMN validation_timestamp DATETIME",
-            "ALTER TABLE poultry_health_logs ADD COLUMN admin_notes TEXT",
-            # Poultry sales
-            "ALTER TABLE poultry_sales ADD COLUMN status VARCHAR(20) DEFAULT 'pending'",
-            "ALTER TABLE poultry_sales ADD COLUMN created_by_id INTEGER",
-            "ALTER TABLE poultry_sales ADD COLUMN validated_by_id INTEGER",
-            "ALTER TABLE poultry_sales ADD COLUMN validation_timestamp DATETIME",
-            "ALTER TABLE poultry_sales ADD COLUMN admin_notes TEXT",
-            # Poultry batches
-            "ALTER TABLE poultry_batches ADD COLUMN created_at DATETIME",
-            # Poultry health logs — mortalité persistée
-            "ALTER TABLE poultry_health_logs ADD COLUMN deaths_today INTEGER DEFAULT 0",
-            # Bee Hives
-            "ALTER TABLE bee_hives ADD COLUMN has_queen BOOLEAN DEFAULT 1",
-            "ALTER TABLE bee_hives ADD COLUMN queen_count INTEGER DEFAULT 0",
-            # Bee Visits
-            "ALTER TABLE bee_visits ADD COLUMN health_score REAL",
-            "ALTER TABLE bee_visits ADD COLUMN force_level REAL",
-            # Bee Productions
-            "ALTER TABLE bee_productions ADD COLUMN hive_id INTEGER",
-            "ALTER TABLE bee_productions ADD COLUMN flower_type VARCHAR(100)",
-            # Bee Planning (Fixes stuck loading)
-            "ALTER TABLE bee_planning ADD COLUMN apiary_id INTEGER",
-            "ALTER TABLE bee_planning ADD COLUMN predicted_sirop FLOAT DEFAULT 0",
-            "ALTER TABLE bee_planning ADD COLUMN predicted_pate FLOAT DEFAULT 0",
-            "ALTER TABLE bee_planning ADD COLUMN predicted_traitement INTEGER DEFAULT 0",
-            "ALTER TABLE bee_planning ADD COLUMN predicted_cadres INTEGER DEFAULT 0",
-            # Bee Expenses (Fixes stuck loading)
-            "ALTER TABLE bee_expenses ADD COLUMN apiary_id INTEGER",
-            "ALTER TABLE bee_expenses ADD COLUMN visit_id INTEGER",
-            # Bee Expenses — budget prévisionnel
-            "ALTER TABLE bee_expenses ADD COLUMN amount_planned REAL",
-            # Warehouse category emoji
-            "ALTER TABLE warehouse_categories ADD COLUMN emoji VARCHAR(10)",
-            # Warehouse alerts table (created via Base.metadata if not exists)
-            """CREATE TABLE IF NOT EXISTS warehouse_alerts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                item_id INTEGER REFERENCES warehouse_items(id) ON DELETE SET NULL,
-                item_name VARCHAR(200) NOT NULL,
-                category_name VARCHAR(200),
-                emoji VARCHAR(10),
-                alert_type VARCHAR(50) DEFAULT 'stock_out',
-                message TEXT NOT NULL,
-                severity VARCHAR(20) DEFAULT 'critical',
-                is_resolved BOOLEAN DEFAULT 0,
-                resolved_at DATETIME,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )""",
-            "CREATE INDEX IF NOT EXISTS ix_warehouse_alert_resolved ON warehouse_alerts (is_resolved)",
-        ]
-        with engine.connect() as _conn:
-            for _stmt in _migrations:
-                try:
-                    _conn.execute(text(_stmt))
-                    _conn.commit()
-                except Exception:
-                    pass  # column already exists
-
-            # Handle column renaming for Planning/Expenses (if old schema)
-            try:
-                _conn.execute(text("ALTER TABLE bee_planning RENAME COLUMN planned_date TO scheduled_date"))
-                _conn.commit()
-            except Exception: pass
-            try:
-                _conn.execute(text("ALTER TABLE bee_expenses RENAME COLUMN date TO expense_date"))
-                _conn.commit()
-            except Exception: pass
-            try:
-                _conn.execute(text("ALTER TABLE bee_expenses RENAME COLUMN expense_type TO category"))
-                _conn.commit()
-            except Exception: pass
-            try:
-                _conn.execute(text("ALTER TABLE bee_expenses RENAME COLUMN note TO description"))
-                _conn.commit()
-            except Exception: pass
-
-
 
     except Exception as e:
         logger.error(f"[STARTUP] DB Error: {e}")
