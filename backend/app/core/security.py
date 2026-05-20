@@ -80,11 +80,11 @@ def require_roles(*roles: str):
 
 
 def get_ws_tenant_id(token: Optional[str]) -> str:
-    """Helper for WebSocket auth. Returns tenant_id (or 'public' if no token)."""
+    """Helper for WebSocket auth. Raises HTTPException if token is absent or invalid."""
     if not token:
-        return "public"
+        raise HTTPException(status_code=403, detail="WebSocket requires authentication")
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return str(payload.get("tenant_id", "public"))
-    except:
-        return "public"
+        return str(payload.get("tenant_id", payload.get("sub", "unknown")))
+    except Exception:
+        raise HTTPException(status_code=403, detail="Invalid WebSocket token")

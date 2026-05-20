@@ -1,7 +1,9 @@
 """Smart Farm AI - Auth Routes (with real Email & WhatsApp OTP)"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.auth_service import AuthService
@@ -11,6 +13,7 @@ from app.services import otp_service
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+limiter = Limiter(key_func=get_remote_address)
 
 # ── Schemas ────────────────────────────────────────────────────────────────
 class ForgotEmailRequest(BaseModel):
@@ -35,7 +38,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         return JSONResponse(status_code=400, content={"detail": f"Error: {type(e).__name__} - {str(e)}", "trace": traceback.format_exc()})
 
 @router.post("/login", response_model=Token)
-def login(creds: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, creds: LoginRequest, db: Session = Depends(get_db)):
     return AuthService(db).login(creds.username, creds.password)
 
 # ── Worker Auth: Étape 1 — Demander OTP via WhatsApp ─────────────────────────
@@ -72,7 +76,8 @@ def register_push_token(req: PushTokenRequest, db: Session = Depends(get_db), cu
 # ── OTP: Step 1 — Request OTP ───────────────────────────────────────────────
 
 @router.post("/forgot-password/email")
-def forgot_by_email(req: ForgotEmailRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_by_email(request: Request, req: ForgotEmailRequest, db: Session = Depends(get_db)):
     """Send OTP to user's registered email. Falls back to in-memory dev OTP when SMTP not configured."""
     user = db.query(User).filter(User.email == req.email).first()
     if not user:
@@ -90,7 +95,8 @@ def forgot_by_email(req: ForgotEmailRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/forgot-password/whatsapp")
-def forgot_by_whatsapp(req: ForgotWhatsAppRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_by_whatsapp(request: Request, req: ForgotWhatsAppRequest, db: Session = Depends(get_db)):
     """Send OTP to user's registered phone via WhatsApp. Falls back to in-memory dev OTP when API not configured."""
     user = db.query(User).filter(User.phone_number == req.phone_number).first()
     if not user:

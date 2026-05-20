@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL", 
         "postgresql+psycopg2://admin:password@localhost:5432/smart_farm"
-    )
+    ).strip()
 
     # Sovereign Intelligence (v3.0)
     CHROMA_HOST: str = os.getenv("CHROMA_HOST", "localhost")

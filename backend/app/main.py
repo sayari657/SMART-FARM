@@ -13,6 +13,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Absolute Imports
 from app.core.config import settings
@@ -172,12 +175,16 @@ async def app_lifespan(app_instance: FastAPI):
     logger.info("[SHUTDOWN] Cleaning up...")
 
 # 3. Initialize FastAPI App
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     lifespan=app_lifespan,
     docs_url="/docs",
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 4. Middleware & Handlers
 app.add_middleware(

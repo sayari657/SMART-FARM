@@ -1,25 +1,32 @@
 """
 Smart Farm AI - OTP Notification Service
 Supports Email (Gmail SMTP) and WhatsApp (Meta Cloud API)
-100% Real, Professional, Enterprise-grade delivery.
 """
+import secrets
 import smtplib
 import requests
-import random
 import logging
+from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# In-memory OTP store: { "email:user@gmail.com": "481920", "whatsapp:+21655...": "391020" }
+# OTP_STORE: { key: {"otp": str, "expires": datetime} }
 OTP_STORE: dict = {}
+OTP_TTL_MINUTES = 10
 
 
 def _generate_otp() -> str:
-    """Generate a 6-digit OTP."""
-    return str(random.randint(100000, 999999))
+    return str(secrets.randbelow(900000) + 100000)
+
+
+def _store_otp(key: str, otp: str) -> None:
+    OTP_STORE[key] = {
+        "otp": otp,
+        "expires": datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES),
+    }
 
 
 # ─────────────────────────────────────────────────────────────
@@ -29,7 +36,7 @@ def _generate_otp() -> str:
 def send_otp_email(email: str) -> str:
     """Send a real OTP email via Gmail SMTP. Returns the OTP."""
     otp = _generate_otp()
-    OTP_STORE[f"email:{email}"] = otp
+    _store_otp(f"email:{email}", otp)
 
     if not settings.SMTP_EMAIL or not settings.SMTP_PASSWORD:
         raise RuntimeError("SMTP_EMAIL and SMTP_PASSWORD not configured in .env")
@@ -86,7 +93,7 @@ def send_otp_email(email: str) -> str:
 def send_otp_whatsapp(phone: str) -> str:
     """Send a real OTP via WhatsApp (Meta Cloud API v25.0). Returns the OTP."""
     otp = _generate_otp()
-    OTP_STORE[f"whatsapp:{phone}"] = otp
+    _store_otp(f"whatsapp:{phone}", otp)
 
     if not settings.WHATSAPP_TOKEN or not settings.WHATSAPP_PHONE_ID:
         raise RuntimeError("WHATSAPP_TOKEN and WHATSAPP_PHONE_ID not configured in .env")
@@ -98,12 +105,6 @@ def send_otp_whatsapp(phone: str) -> str:
         "Content-Type": "application/json",
     }
 
-    def _post(payload):
-        return requests.post(url, headers=headers, json=payload, timeout=15)
-
-    # ── Forcer l'envoi de l'OTP via un template pré-approuvé par Meta ────────
-    # Meta bloque les textes libres si le client n'a pas initié la discussion.
-    # On utilise le template par défaut "jaspers_market..." pour glisser notre OTP.
     payload = {
         "messaging_product": "whatsapp",
         "to": phone,
@@ -115,22 +116,22 @@ def send_otp_whatsapp(phone: str) -> str:
                 {
                     "type": "body",
                     "parameters": [
-                        {"type": "text", "text": "Ouvrier Smart Farm"},  # Param 1: Nom
-                        {"type": "text", "text": otp},                   # Param 2: Code OTP !
-                        {"type": "text", "text": "Valid for 10 minutes"} # Param 3: Date
-                    ]
+                        {"type": "text", "text": "Ouvrier Smart Farm"},
+                        {"type": "text", "text": otp},
+                        {"type": "text", "text": "Valid for 10 minutes"},
+                    ],
                 }
-            ]
-        }
+            ],
+        },
     }
-    
-    r = _post(payload)
+
+    r = requests.post(url, headers=headers, json=payload, timeout=15)
     if r.status_code not in (200, 201):
         err = r.json().get("error", {})
         logger.error(f"WhatsApp OTP template failed {r.status_code}: {r.text}")
         raise RuntimeError(f"WhatsApp API Error: {err.get('message', r.text)}")
 
-    logger.info(f"OTP WhatsApp (via Jaspers template) sent successfully to {phone}. OTP: {otp}")
+    logger.info(f"OTP WhatsApp sent successfully to {phone}")
 
     return otp
 
@@ -140,10 +141,15 @@ def send_otp_whatsapp(phone: str) -> str:
 # ─────────────────────────────────────────────────────────────
 
 def verify_otp(channel: str, identifier: str, otp: str) -> bool:
-    """Verify an OTP. Returns True if valid, False otherwise. Clears OTP on success."""
+    """Verify OTP with TTL check. Deletes entry on success or expiry."""
     key = f"{channel}:{identifier}"
-    stored = OTP_STORE.get(key)
-    if stored and stored == otp:
+    entry = OTP_STORE.get(key)
+    if not entry:
+        return False
+    if datetime.utcnow() > entry["expires"]:
+        del OTP_STORE[key]
+        return False
+    if entry["otp"] == otp:
         del OTP_STORE[key]
         return True
     return False
