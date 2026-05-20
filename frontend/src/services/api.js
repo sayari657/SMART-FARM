@@ -133,8 +133,9 @@ export const cvAPI = {
   detect: (file, category = 'livestock') => {
     const formData = new FormData();
     formData.append('file', file);
+    // Ne PAS forcer Content-Type — axios+FormData génère automatiquement
+    // le bon header avec la boundary : multipart/form-data; boundary=...
     return api.post(`/cv/detect?category=${category}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 60000,
     });
   },
