@@ -93,7 +93,13 @@ def create_farm(data: FarmCreate, db: Session = Depends(get_db), user=Depends(ge
     if not existing:
         db.add(FarmOwner(farm_id=farm.id, owner_id=user.id))
         db.commit()
-    return farm
+    return {
+        "id": farm.id, "name": farm.name, "location": farm.location,
+        "description": farm.description, "status": farm.status,
+        "latitude": farm.latitude, "longitude": farm.longitude,
+        "total_area_ha": farm.total_area_ha, "owner_id": farm.owner_id,
+        "created_at": farm.created_at.isoformat() if farm.created_at else None,
+    }
 
 
 @router.get("/{farm_id}")

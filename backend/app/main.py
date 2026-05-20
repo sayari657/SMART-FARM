@@ -26,7 +26,7 @@ from app.api.v1.api import api_router
 def _configure_logging() -> None:
     log_level = logging.DEBUG if os.getenv("DEBUG") else logging.INFO
     try:
-        from pythonjsonlogger import jsonlogger
+        from pythonjsonlogger import json as jsonlogger
         handler = logging.StreamHandler()
         handler.setFormatter(jsonlogger.JsonFormatter(
             fmt="%(asctime)s %(name)s %(levelname)s %(message)s",

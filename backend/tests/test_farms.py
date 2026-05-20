@@ -25,6 +25,8 @@ class TestFarms:
     def test_create_farm(self, client, auth_headers):
         r = self._create(client, auth_headers)
         assert r.status_code in (200, 201)
+        assert "id" in r.json()
+        assert r.json()["id"] > 0
 
     def test_list_farms(self, client, auth_headers):
         self._create(client, auth_headers, "Farm A")
