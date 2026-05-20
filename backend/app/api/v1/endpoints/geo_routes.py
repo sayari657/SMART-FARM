@@ -1,9 +1,11 @@
 import math
-from fastapi import APIRouter, Depends
+import httpx
+from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
-from app.models.domain import Farm, Veterinary, Market, BeeHive, BeeApiary
+from app.models.domain import Farm, Veterinary, Market, BeeHive
 from pydantic import BaseModel
 from app.core.config import settings
 
@@ -25,7 +27,8 @@ class GeoJSONFeatureCollection(BaseModel):
 
 
 def _use_sqlite() -> bool:
-    return settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite")
+    # Also use the float lat/lon path in LITE_MODE: geom column is String(100), not PostGIS Geometry
+    return settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite") or settings.LITE_MODE
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -247,3 +250,28 @@ def find_nearby_vets(lat: float, lon: float, radius_km: float = 100, db: Session
              "phone": r.phone, "address": r.address,
              "coords": [r.lat, r.lon], "distance_km": round(r.distance_km, 2)}
             for r in rows]
+
+
+_OVERPASS_MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+]
+
+@router.post("/overpass")
+async def overpass_proxy(payload: dict):
+    """Proxy Overpass API calls from the frontend to avoid browser CORS restrictions."""
+    query = payload.get("query", "")
+    if not query:
+        raise HTTPException(status_code=400, detail="Missing 'query' field")
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        for mirror in _OVERPASS_MIRRORS:
+            try:
+                resp = await client.post(mirror, data={"data": query})
+                resp.raise_for_status()
+                return JSONResponse(content=resp.json())
+            except Exception:
+                continue
+
+    raise HTTPException(status_code=502, detail="All Overpass mirrors unreachable")

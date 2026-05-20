@@ -52,7 +52,7 @@ const getGroup       = (cat) => PHYTO_CATS.includes(cat) ? 'phyto' : 'agronomie'
 
 const loadCnt  = (g)     => +(localStorage.getItem(`pb_${g}_cnt`) || 0);
 const saveCnt  = (g, n)  => localStorage.setItem(`pb_${g}_cnt`, n);
-const loadReps = (g)     => { try { return JSON.parse(localStorage.getItem(`pb_${g}_reps`) || '[]'); } catch { return []; } };
+const loadReps = (g)     => { try { const p = JSON.parse(localStorage.getItem(`pb_${g}_reps`) || '[]'); return Array.isArray(p) ? p : []; } catch { return []; } };
 const saveReps = (g, rs) => localStorage.setItem(`pb_${g}_reps`, JSON.stringify(rs));
 
 /* ══════════════════════════════════════════════════════════
@@ -479,7 +479,8 @@ export default function ArbresPlantations() {
   const fetchStats = async () => {
     try {
       const [s,e] = await Promise.all([cvAPI.plantStats(), cvAPI.recentPlantEvents(20)]);
-      setPlantStats(s.data); setRecentEvents(e.data);
+      setPlantStats(s.data);
+      setRecentEvents(Array.isArray(e.data) ? e.data : []);
     } catch {}
   };
   const fetchHistory = async () => {
@@ -732,7 +733,7 @@ export default function ArbresPlantations() {
             </div>
 
             <div className="arb-scroll" style={{padding:14,display:'flex',flexDirection:'column',gap:7,maxHeight:320,overflowY:'auto'}}>
-              {recentEvents.length===0 ? (
+              {!Array.isArray(recentEvents) || recentEvents.length===0 ? (
                 <div style={{padding:'32px 0',textAlign:'center',color:T.textMut,fontSize:11,display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
                   <Eye size={28} color={T.textMut} style={{opacity:0.25}}/> {t('trees.no_events')}
                 </div>

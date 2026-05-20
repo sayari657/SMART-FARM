@@ -5,11 +5,6 @@ import Navbar from '../components/Navbar';
 import SovereignMap from '../components/Map/SovereignMap';
 import api, { externalAPI } from '../services/api';
 
-const OVERPASS_MIRRORS = [
-    'https://overpass-api.de/api/interpreter',
-    'https://lz4.overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter'
-];
 
 const CATEGORIES = (t) => [
     { id: 'all', label: t('map_center.all'), emoji: null },
@@ -122,13 +117,9 @@ const MapCenter = () => {
         setIsFetchingOSMVets(true);
         try {
             const query = `[out:json][timeout:30];(node["amenity"="veterinary"](around:100000,${lat},${lon});way["amenity"="veterinary"](around:100000,${lat},${lon}););out center;`;
-            let data = null;
-            for (const mirror of OVERPASS_MIRRORS) {
-                try {
-                    const res = await fetch(mirror, { method: 'POST', body: `data=${encodeURIComponent(query)}` });
-                    if (res.ok) { data = await res.json(); break; }
-                } catch { continue; }
-            }
+            // Use backend proxy to avoid browser CORS restrictions on Overpass API
+            const res = await api.post('/geo/overpass', { query });
+            const data = res.data;
             if (!data) return;
             const parsed = (data.elements || [])
                 .filter(el => el.lat != null || el.center != null)
