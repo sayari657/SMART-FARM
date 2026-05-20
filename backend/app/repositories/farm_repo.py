@@ -78,6 +78,7 @@ class AnimalUnitRepository(BaseRepository[AnimalUnit]):
     def get_by_species(self, species: str) -> List[AnimalUnit]:
         return (
             self.db.query(AnimalUnit)
+            .options(joinedload(AnimalUnit.animal_type), joinedload(AnimalUnit.farm))
             .join(AnimalType)
             .filter(AnimalType.species == species)
             .all()

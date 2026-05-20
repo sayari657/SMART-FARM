@@ -398,12 +398,25 @@ def get_farm_ml_insights(farm_id: int, db: Session = Depends(get_db)):
     if not batches:
         return {"farm_id": farm_id, "active_batches": 0, "insights": [], "farm_health_score": 100}
 
+    batch_ids = [b.id for b in batches]
+    feed_map: dict = {}
+    health_map: dict = {}
+    egg_map: dict = {}
+    for log in db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id.in_(batch_ids)).all():
+        feed_map.setdefault(log.batch_id, []).append(log)
+    for log in db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id.in_(batch_ids)).all():
+        health_map.setdefault(log.batch_id, []).append(log)
+    for log in db.query(PoultryEggLog).filter(PoultryEggLog.batch_id.in_(batch_ids)).all():
+        egg_map.setdefault(log.batch_id, []).append(log)
+
     results = []
     for batch in batches:
-        feed_logs   = db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id == batch.id).all()
-        health_logs = db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id == batch.id).all()
-        egg_logs    = db.query(PoultryEggLog).filter(PoultryEggLog.batch_id == batch.id).all()
-        results.append(generate_ml_insights(batch, feed_logs, health_logs, egg_logs))
+        results.append(generate_ml_insights(
+            batch,
+            feed_map.get(batch.id, []),
+            health_map.get(batch.id, []),
+            egg_map.get(batch.id, []),
+        ))
 
     # Farm-level aggregation
     health_scores = [r["summary"]["health_score"] for r in results]

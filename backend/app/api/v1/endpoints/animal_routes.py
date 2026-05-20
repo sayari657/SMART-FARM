@@ -45,7 +45,9 @@ def list_animals(
     
     # Also include BeeHives from the Smart Bee module
     if species is None or species == "bee":
-        hives = db.query(BeeHive).all()
+        from sqlalchemy.orm import joinedload as _jl
+        from app.models.domain import BeeApiary
+        hives = db.query(BeeHive).options(_jl(BeeHive.apiary)).all()
         for h in hives:
             serialized.append({
                 "id": f"bee_{h.id}", 
