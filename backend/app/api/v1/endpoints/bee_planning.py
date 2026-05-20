@@ -5,7 +5,7 @@ Visites planifiées · Tâches · Intégration prédictions
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -30,7 +30,7 @@ class TaskOut(BaseModel):
     text: str
     status: str
     created_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PlanningIn(BaseModel):
@@ -59,7 +59,7 @@ class PlanningOut(BaseModel):
     predicted_cadres: int
     created_at: datetime
     tasks: List[TaskOut] = []
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ─── Prévision logistique ────────────────────────────────────────────────────

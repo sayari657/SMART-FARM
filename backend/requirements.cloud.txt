@@ -40,6 +40,9 @@ groq>=0.4.0
 # Rate limiting
 slowapi>=0.1.9
 
+# Structured logging
+python-json-logger>=2.0.7
+
 # Utilities
 python-dotenv>=1.0.0
 python-multipart>=0.0.7

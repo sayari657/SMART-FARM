@@ -5,7 +5,7 @@ Apiaries · Hives · Visits (avec preview/apply) · Productions (ruche-level) ·
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -33,7 +33,7 @@ class ApiaryIn(BaseModel):
 class ApiaryOut(ApiaryIn):
     id: int
     created_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HiveIn(BaseModel):
@@ -52,7 +52,7 @@ class HiveIn(BaseModel):
 class HiveOut(HiveIn):
     id: int
     created_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class VisitIn(BaseModel):
@@ -76,7 +76,7 @@ class VisitIn(BaseModel):
 class VisitOut(VisitIn):
     id: int
     created_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ProductionIn(BaseModel):
@@ -91,7 +91,7 @@ class ProductionIn(BaseModel):
 class ProductionOut(ProductionIn):
     id: int
     created_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class StockIn(BaseModel):
@@ -106,7 +106,7 @@ class StockIn(BaseModel):
 class StockOut(StockIn):
     id: int
     created_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ─── Apiaries ────────────────────────────────────────────────────────────────

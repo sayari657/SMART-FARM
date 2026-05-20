@@ -6,7 +6,7 @@ Déductions · Alertes niveaux bas · Réapprovisionnement
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -34,7 +34,7 @@ class GlobalStockIn(BaseModel):
 class GlobalStockOut(GlobalStockIn):
     id: int
     updated_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class HiveStockIn(BaseModel):
@@ -50,7 +50,7 @@ class HiveStockOut(HiveStockIn):
     id: int
     hive_id: int
     updated_at: datetime
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DeductIn(BaseModel):

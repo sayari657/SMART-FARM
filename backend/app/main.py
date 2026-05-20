@@ -6,6 +6,7 @@ Modern Lifespan management for background warm-up.
 import logging
 import json
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from typing import List
 
@@ -21,8 +22,22 @@ from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.v1.api import api_router
 
-# 1. Initialize Logging
-logging.basicConfig(level=logging.INFO)
+# 1. Initialize Logging — JSON format in production, plain text in dev/test
+def _configure_logging() -> None:
+    log_level = logging.DEBUG if os.getenv("DEBUG") else logging.INFO
+    try:
+        from pythonjsonlogger import jsonlogger
+        handler = logging.StreamHandler()
+        handler.setFormatter(jsonlogger.JsonFormatter(
+            fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
+            datefmt="%Y-%m-%dT%H:%M:%SZ",
+        ))
+        logging.root.handlers = [handler]
+        logging.root.setLevel(log_level)
+    except ImportError:
+        logging.basicConfig(level=log_level)
+
+_configure_logging()
 logger = logging.getLogger("smart_farm")
 
 # 2. Modern Lifespan Manager

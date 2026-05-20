@@ -3,7 +3,7 @@ Smart Farm AI - Pydantic Schemas
 Complete request/response schemas for all API endpoints.
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List, Any, Dict
 from datetime import datetime
 
@@ -70,8 +70,7 @@ class UserResponse(UserBase):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -105,8 +104,7 @@ class FarmResponse(FarmBase):
     active_alerts: Optional[int] = 0
     avg_health_score: Optional[float] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -127,8 +125,7 @@ class AnimalTypeResponse(AnimalTypeBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -159,8 +156,7 @@ class AnimalUnitResponse(AnimalUnitBase):
     species: Optional[str] = None       # from joined animal_type
     farm_name: Optional[str] = None     # from joined farm
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -181,8 +177,7 @@ class SensorResponse(SensorBase):
     last_seen: Optional[datetime] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -202,8 +197,7 @@ class TelemetryResponse(BaseModel):
     metrics: Dict[str, Any]
     source: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TelemetryLatest(BaseModel):
     unit_id: int
@@ -239,8 +233,7 @@ class CVEventResponse(BaseModel):
     camera_id: Optional[str] = None
     unit_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -259,8 +252,7 @@ class AnomalyResponse(BaseModel):
     feature_contributions: Optional[Dict[str, Any]] = None
     is_acknowledged: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -286,8 +278,7 @@ class AlertResponse(BaseModel):
     unit_name: Optional[str] = None
     farm_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AlertResolve(BaseModel):
     resolved_by: Optional[str] = "system"
@@ -317,8 +308,7 @@ class RecommendationResponse(BaseModel):
     is_actioned: bool
     unit_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -345,8 +335,7 @@ class ReportResponse(BaseModel):
     created_at: datetime
     farm_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -373,8 +362,7 @@ class SettingResponse(BaseModel):
     description: Optional[str] = None
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -411,8 +399,7 @@ class DiagnosticRead(BaseModel):
     chat_log: Optional[Any] = None
     notes: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -437,8 +424,7 @@ class PoultryBatchResponse(PoultryBatchBase):
     id: int
     farm_id: int
     created_at: Optional[datetime] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PoultryBatchUpdate(BaseModel):
     current_quantity: Optional[int] = None
@@ -465,8 +451,7 @@ class PoultryFeedLogResponse(PoultryFeedLogBase):
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
     admin_notes: Optional[str] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PoultryEggLogBase(BaseModel):
     date: datetime = Field(default_factory=datetime.utcnow)
@@ -488,8 +473,7 @@ class PoultryEggLogResponse(PoultryEggLogBase):
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
     admin_notes: Optional[str] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ===========================================================================
@@ -544,8 +528,7 @@ class PoultryHealthLogResponse(PoultryHealthLogBase):
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
     admin_notes: Optional[str] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PoultrySaleBase(BaseModel):
     date: datetime = Field(default_factory=datetime.utcnow)
@@ -568,8 +551,7 @@ class PoultrySaleResponse(PoultrySaleBase):
     validated_by_id: Optional[int] = None
     validation_timestamp: Optional[datetime] = None
     admin_notes: Optional[str] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PoultryFeedLogUpdate(BaseModel):
     feed_type: Optional[str] = None
@@ -623,8 +605,7 @@ class PoultryInventoryUpdate(BaseModel):
 class PoultryInventoryResponse(PoultryInventoryBase):
     id: int
     last_updated: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- NEW: Validation Contract ---
 class PoultryLogValidation(BaseModel):
