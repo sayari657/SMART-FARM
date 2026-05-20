@@ -1,7 +1,7 @@
 """Smart Farm AI — Entrepôt de la Ferme (Warehouse CRUD + STOKKY Assistant)"""
 import logging
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -169,7 +169,7 @@ def update_item(
         raise HTTPException(status_code=404, detail="Article introuvable")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
-    item.updated_at = datetime.utcnow()
+    item.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(item)
     return _ser_item(item)
@@ -435,7 +435,7 @@ def resolve_warehouse_alert(alert_id: int, db: Session = Depends(get_db), _=Depe
     if not alert:
         raise HTTPException(status_code=404, detail="Alerte introuvable")
     alert.is_resolved = True
-    alert.resolved_at = datetime.utcnow()
+    alert.resolved_at = datetime.now(timezone.utc)
     db.commit()
     return _ser_walert(alert)
 
@@ -466,7 +466,7 @@ async def warehouse_assistant(
     # Build inventory snapshot grouped by category
     inventory_lines: list[str] = []
     alerts_lines:    list[str] = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for cat in cats:
         cat_items = [i for i in items if i.category_id == cat.id]

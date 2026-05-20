@@ -10,7 +10,7 @@ Real ML models (sklearn/numpy) for:
 """
 
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
 
@@ -368,7 +368,7 @@ def generate_ml_insights(batch, feed_logs, health_logs, egg_logs) -> dict:
     if arrival:
         try:
             arr_dt = datetime.fromisoformat(str(arrival))
-            batch_day = max(1, (datetime.utcnow() - arr_dt).days + 1)
+            batch_day = max(1, (datetime.now(timezone.utc) - arr_dt).days + 1)
         except Exception:
             pass
 
@@ -410,7 +410,7 @@ def generate_ml_insights(batch, feed_logs, health_logs, egg_logs) -> dict:
         "batch_id": batch.id,
         "batch_day": batch_day,
         "batch_type": batch_type,
-        "computed_at": datetime.utcnow().isoformat(),
+        "computed_at": datetime.now(timezone.utc).isoformat(),
         "models": {
             "fcr_forecast": {
                 **fcr_pred,

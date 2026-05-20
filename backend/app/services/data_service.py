@@ -3,7 +3,7 @@ Smart Farm AI - Telemetry, CV, Anomaly, Alert, Recommendation, Report, Settings 
 """
 
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException
@@ -44,7 +44,7 @@ class TelemetryService:
     def ingest(self, data: TelemetryCreate):
         payload = data.model_dump()
         if not payload.get("timestamp"):
-            payload["timestamp"] = datetime.utcnow()
+            payload["timestamp"] = datetime.now(timezone.utc)
         return self.repo.create(payload)
 
     def get_range(self, unit_id: int, start: datetime, end: datetime):
@@ -64,7 +64,7 @@ class CVService:
     def ingest(self, data: CVEventCreate):
         payload = data.model_dump()
         if not payload.get("timestamp"):
-            payload["timestamp"] = datetime.utcnow()
+            payload["timestamp"] = datetime.now(timezone.utc)
         return self.repo.create(payload)
 
 
@@ -99,7 +99,7 @@ class AlertService:
 
     def create_alert(self, data: AlertCreate):
         payload = data.model_dump()
-        payload["timestamp"] = datetime.utcnow()
+        payload["timestamp"] = datetime.now(timezone.utc)
         return self.repo.create(payload)
 
     def resolve_alert(self, alert_id: int, resolved_by: str = "system"):
@@ -132,7 +132,7 @@ class RecommendationService:
 
     def create(self, data: RecommendationCreate):
         payload = data.model_dump()
-        payload["timestamp"] = datetime.utcnow()
+        payload["timestamp"] = datetime.now(timezone.utc)
         return self.repo.create(payload)
 
     def get_all(self, limit: int = 200):
@@ -245,8 +245,8 @@ class ReportService:
             farm_id=farm_id,
             report_type=report_type,
             title=title,
-            period_start=datetime.utcnow() - timedelta(days=7),
-            period_end=datetime.utcnow(),
+            period_start=datetime.now(timezone.utc) - timedelta(days=7),
+            period_end=datetime.now(timezone.utc),
             summary={"ai_insight": summary_text, **stats},
             generated_by="AI Agent",
         )
@@ -299,7 +299,7 @@ class DashboardService:
             Alert.is_resolved == False, Alert.severity == "critical"
         ).scalar() or 0
         avg_health = self.db.query(func.avg(AnimalUnit.health_score)).scalar()
-        cutoff = datetime.utcnow() - timedelta(hours=24)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
         recent_anomalies = self.db.query(func.count(Anomaly.id)).filter(
             Anomaly.timestamp >= cutoff
         ).scalar() or 0

@@ -4,7 +4,7 @@ import io
 import logging
 import time
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from PIL import Image
 from typing import Optional
 
@@ -117,6 +117,21 @@ def purge_events(
     db.commit()
     return {"deleted": count}
 
+@router.get("/models/health")
+def models_health():
+    """MLOps health check — which models are loaded and ready."""
+    statuses = {}
+    for key, path in MODEL_REGISTRY.items():
+        if key == "plants":
+            continue
+        statuses[key] = {
+            "loaded": key in _models,
+            "path_exists": os.path.exists(path),
+            "path": path,
+        }
+    all_ready = all(v["path_exists"] for v in statuses.values())
+    return {"status": "ready" if all_ready else "degraded", "models": statuses}
+
 @router.get("/models/{category}/metadata")
 def get_model_metadata(category: str):
     model = get_yolo_model(category)
@@ -133,8 +148,8 @@ def plant_cv_stats(
     from app.models.domain import CVEvent
     from sqlalchemy import func
     plant_cats = ["leaves", "olive", "insects", "lemon", "orange"]
-    cutoff_7d  = datetime.utcnow() - timedelta(days=7)
-    cutoff_30d = datetime.utcnow() - timedelta(days=30)
+    cutoff_7d  = datetime.now(timezone.utc) - timedelta(days=7)
+    cutoff_30d = datetime.now(timezone.utc) - timedelta(days=30)
 
     total = db.query(func.count(CVEvent.id)).filter(
         CVEvent.camera_id.in_(plant_cats)

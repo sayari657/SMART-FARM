@@ -7,7 +7,7 @@ Inserts demo data: 2 farms, hives, cows, poultry, telemetry, alerts, recommendat
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../"))
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 from app.core.database import SessionLocal, engine, Base
 from app.core.security import hash_password
@@ -152,7 +152,7 @@ def seed():
                 for st in sensor_types.get(unit.type_id, ["temperature"]):
                     db.add(Sensor(unit_id=unit.id, sensor_type=st,
                                   sensor_id=f"{unit.identifier}_{st}", is_active=True,
-                                  last_seen=datetime.utcnow()))
+                                  last_seen=datetime.now(timezone.utc)))
         db.commit()
         print("✓ Sensors seeded")
 
@@ -165,7 +165,7 @@ def seed():
 
         if not db.query(TelemetryRecord).filter(TelemetryRecord.unit_id == units[0].id).first():
             records = []
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             for hours_ago in range(48, 0, -1):
                 ts = now - timedelta(hours=hours_ago)
                 noise = lambda s=1.0: random.gauss(0, s)
@@ -209,21 +209,21 @@ def seed():
 
         if not db.query(CVEvent).filter(CVEvent.unit_id == hive_alpha.id).first():
             cv_events = [
-                CVEvent(unit_id=hive_alpha.id, timestamp=datetime.utcnow()-timedelta(hours=6),
+                CVEvent(unit_id=hive_alpha.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=6),
                         object_class="bee", confidence=0.97, severity="info", camera_id="cam_hive01"),
-                CVEvent(unit_id=hive_alpha.id, timestamp=datetime.utcnow()-timedelta(hours=3),
+                CVEvent(unit_id=hive_alpha.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=3),
                         object_class="predator", confidence=0.89, severity="critical", camera_id="cam_hive01",
                         frame_metadata={"type": "hornet", "bbox": [120, 80, 200, 150]}),
-                CVEvent(unit_id=hive_beta.id, timestamp=datetime.utcnow()-timedelta(hours=12),
+                CVEvent(unit_id=hive_beta.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=12),
                         object_class="smoke", confidence=0.92, severity="warning", camera_id="cam_hive02"),
-                CVEvent(unit_id=hive_beta.id, timestamp=datetime.utcnow()-timedelta(hours=2),
+                CVEvent(unit_id=hive_beta.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=2),
                         object_class="predator", confidence=0.78, severity="warning", camera_id="cam_hive02"),
-                CVEvent(unit_id=poultry_house.id, timestamp=datetime.utcnow()-timedelta(hours=8),
+                CVEvent(unit_id=poultry_house.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=8),
                         object_class="dead_bird", confidence=0.94, severity="critical", camera_id="cam_poultry02"),
-                CVEvent(unit_id=poultry_house.id, timestamp=datetime.utcnow()-timedelta(hours=4),
+                CVEvent(unit_id=poultry_house.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=4),
                         object_class="crowding", confidence=0.85, severity="warning", camera_id="cam_poultry02",
                         frame_metadata={"crowding_zone": "feeder_area", "density": "high"}),
-                CVEvent(unit_id=poultry_house.id, timestamp=datetime.utcnow()-timedelta(hours=1),
+                CVEvent(unit_id=poultry_house.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=1),
                         object_class="dead_bird", confidence=0.96, severity="critical", camera_id="cam_poultry02"),
             ]
             db.add_all(cv_events)
@@ -235,19 +235,19 @@ def seed():
         # ------------------------------------------------------------------
         if not db.query(Anomaly).filter(Anomaly.unit_id == hive_beta.id).first():
             anomalies = [
-                Anomaly(unit_id=hive_beta.id, timestamp=datetime.utcnow()-timedelta(hours=10),
+                Anomaly(unit_id=hive_beta.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=10),
                         anomaly_type="predation_risk", severity="critical",
                         description="Predator detected combined with unusual activity drop",
                         isolation_score=-0.32,
                         rules_triggered=["predator_detected", "activity_drop_30pct"],
                         feature_contributions={"sound_level": 0.45, "hive_weight": 0.30, "temperature": 0.25}),
-                Anomaly(unit_id=hive_alpha.id, timestamp=datetime.utcnow()-timedelta(hours=5),
+                Anomaly(unit_id=hive_alpha.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=5),
                         anomaly_type="heat_stress_risk", severity="warning",
                         description="Hive temperature above threshold with humidity drop",
                         isolation_score=-0.18,
                         rules_triggered=["high_temperature", "low_humidity"],
                         feature_contributions={"temperature": 0.65, "humidity": 0.35}),
-                Anomaly(unit_id=poultry_house.id, timestamp=datetime.utcnow()-timedelta(hours=7),
+                Anomaly(unit_id=poultry_house.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=7),
                         anomaly_type="flock_health_decline", severity="critical",
                         description="Multiple dead birds detected, ammonia elevated",
                         isolation_score=-0.55,
@@ -263,26 +263,26 @@ def seed():
         # ------------------------------------------------------------------
         if not db.query(Alert).filter(Alert.unit_id == hive_beta.id).first():
             alerts = [
-                Alert(unit_id=hive_beta.id, timestamp=datetime.utcnow()-timedelta(hours=10),
+                Alert(unit_id=hive_beta.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=10),
                       alert_type="predation_risk", severity="critical",
                       message="⚠️ Hornet predator detected at Hive Beta entrance. Immediate inspection required.",
                       is_resolved=False),
-                Alert(unit_id=hive_alpha.id, timestamp=datetime.utcnow()-timedelta(hours=5),
+                Alert(unit_id=hive_alpha.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=5),
                       alert_type="heat_stress", severity="warning",
                       message="Hive Alpha internal temperature reached 37.8°C — possible heat stress.",
                       is_resolved=False),
-                Alert(unit_id=poultry_house.id, timestamp=datetime.utcnow()-timedelta(hours=8),
+                Alert(unit_id=poultry_house.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=8),
                       alert_type="flock_mortality", severity="critical",
                       message="🚨 Dead birds detected in Poultry House 02. Veterinary inspection needed urgently.",
                       is_resolved=False),
-                Alert(unit_id=poultry_house.id, timestamp=datetime.utcnow()-timedelta(hours=6),
+                Alert(unit_id=poultry_house.id, timestamp=datetime.now(timezone.utc)-timedelta(hours=6),
                       alert_type="ammonia_spike", severity="warning",
                       message="Ammonia level at 28 ppm — dangerously high. Ventilate immediately.",
                       is_resolved=False),
-                Alert(unit_id=hive_beta.id, timestamp=datetime.utcnow()-timedelta(days=2),
+                Alert(unit_id=hive_beta.id, timestamp=datetime.now(timezone.utc)-timedelta(days=2),
                       alert_type="weight_drop", severity="warning",
                       message="Hive Beta weight dropped by 2.1 kg in 24h — possible swarming.",
-                      is_resolved=True, resolved_at=datetime.utcnow()-timedelta(days=1), resolved_by="manager"),
+                      is_resolved=True, resolved_at=datetime.now(timezone.utc)-timedelta(days=1), resolved_by="manager"),
             ]
             db.add_all(alerts)
             db.commit()

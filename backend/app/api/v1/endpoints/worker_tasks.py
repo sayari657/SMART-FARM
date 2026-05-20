@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -125,7 +125,7 @@ def update_task_status(
     if update.done_at:
         task.done_at = update.done_at
     elif update.status == "done":
-        task.done_at = datetime.utcnow()
+        task.done_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(task)
     return task

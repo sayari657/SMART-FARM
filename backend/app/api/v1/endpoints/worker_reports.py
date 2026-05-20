@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -49,7 +49,7 @@ def create_report(
         type=report_in.type,
         notes=report_in.notes,
         photo_b64=report_in.photo_b64,
-        created_at=report_in.created_at or datetime.utcnow(),
+        created_at=report_in.created_at or datetime.now(timezone.utc),
     )
     db.add(report)
     db.commit()

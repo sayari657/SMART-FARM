@@ -12,7 +12,7 @@ Scientific model references:
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -83,7 +83,7 @@ def compute_hive_health(
     Compute a composite health index (0-10) for a single hive using
     weighted multi-factor scoring.
     """
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
 
     # — Factor 1: Visit health state (40%) —
     state = last_visit.health_state if last_visit else None
@@ -152,7 +152,7 @@ def generate_alerts(
 ) -> List[dict]:
     """Generate actionable alerts for a hive based on scientific thresholds."""
     alerts = []
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
 
     hi = health_data["health_index"]
     days_since = health_data["days_since_visit"]
@@ -265,7 +265,7 @@ def generate_recommendations(
 ) -> List[dict]:
     """Produce ordered, prioritized recommendations for the beekeeper."""
     recs = []
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
     month = today.month
     season = apiary.season if apiary else None
 
@@ -367,7 +367,7 @@ def analytics_dashboard(db: Session = Depends(get_db)):
     - Consolidated alert list
     - Production analytics
     """
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
     hives = db.query(BeeHive).all()
     apiaries = {a.id: a for a in db.query(BeeApiary).all()}
     productions = db.query(BeeProduction).all()
@@ -513,7 +513,7 @@ def hive_scientific_report(hive_id: int, db: Session = Depends(get_db)):
             "is_active": hive.is_active,
             "hive_type": hive.hive_type,
             "queen_year": hive.queen_year,
-            "queen_age": (datetime.utcnow().year - hive.queen_year) if hive.queen_year else None,
+            "queen_age": (datetime.now(timezone.utc).year - hive.queen_year) if hive.queen_year else None,
         },
         "health": {
             **health_data,
@@ -597,7 +597,7 @@ def predict_visit_needs(hive_id: int, db: Session = Depends(get_db)):
     pred_traitement = round(avg_traitement * mults["traitement"])
 
     # Cadres : si colonie forte en printemps/été, on anticipe besoin hausse
-    today_month = datetime.utcnow().month
+    today_month = datetime.now(timezone.utc).month
     need_cadres = 0
     if (hive.force_level or 5) >= 7 and today_month in (3, 4, 5, 6, 7):
         need_cadres = 2
@@ -628,7 +628,7 @@ def colony_strength_overview(db: Session = Depends(get_db)):
     Returns strength distribution across all hives.
     """
     hives = db.query(BeeHive).filter(BeeHive.is_active == True).all()
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
 
     distribution = {"faible": 0, "moyenne": 0, "forte": 0, "tres_forte": 0}
     for h in hives:

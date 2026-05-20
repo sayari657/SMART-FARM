@@ -1,6 +1,6 @@
 """Smart Farm AI - Anomaly, Alert, Recommendation, Report, Settings, Dashboard Routes"""
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -92,21 +92,21 @@ def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)
             CVEvent.object_class.in_(["fire", "smoke", "incendie"]),
             and_(CVEvent.camera_id == "fire", CVEvent.severity == "critical")
         ),
-        CVEvent.timestamp >= datetime.utcnow() - timedelta(hours=24)
+        CVEvent.timestamp >= datetime.now(timezone.utc) - timedelta(hours=24)
     ).order_by(desc(CVEvent.timestamp)).limit(20).all()
     
     # 3. Critical Anomalies
     critical_anomalies = db.query(Anomaly).filter(
         Anomaly.severity == "critical",
         Anomaly.is_acknowledged == False,
-        Anomaly.timestamp >= datetime.utcnow() - timedelta(hours=48)
+        Anomaly.timestamp >= datetime.now(timezone.utc) - timedelta(hours=48)
     ).order_by(desc(Anomaly.timestamp)).limit(10).all()
     
     # 4. Tree Diseases (Critical from CV)
     tree_diseases = db.query(CVEvent).filter(
         CVEvent.camera_id.in_(["leaves", "olive", "lemon", "orange"]),
         CVEvent.severity == "critical",
-        CVEvent.timestamp >= datetime.utcnow() - timedelta(days=7)
+        CVEvent.timestamp >= datetime.now(timezone.utc) - timedelta(days=7)
     ).order_by(desc(CVEvent.timestamp)).limit(10).all()
 
     return {
@@ -115,7 +115,7 @@ def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)
         "critical_anomalies": [_serialize_anomaly(a) for a in critical_anomalies],
         "tree_diseases": [_serialize_cv(e) for e in tree_diseases],
         "system_status": "emergency" if (fire_events or critical_alerts) else "stable",
-        "last_update": datetime.utcnow().isoformat()
+        "last_update": datetime.now(timezone.utc).isoformat()
     }
 
 def _serialize_cv(e):
@@ -235,7 +235,7 @@ def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_
     """Full analytics: telemetry averages per day, anomaly counts, alert severity breakdown."""
     from app.models.domain import TelemetryRecord, Anomaly, Alert, AnimalUnit, AnimalType
     from sqlalchemy import func, cast, Date
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     daily_anomalies = (
         db.query(

@@ -3,7 +3,7 @@ Smart Farm AI - Telemetry, CV, Anomaly, Alert, Recommendation, Report, Settings 
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc
 from app.repositories.base import BaseRepository
@@ -119,7 +119,7 @@ class AnomalyRepository(BaseRepository[Anomaly]):
 
     def count_recent(self, hours: int = 24) -> int:
         from datetime import timedelta
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         return (
             self.db.query(func.count(Anomaly.id))
             .filter(Anomaly.timestamp >= cutoff)
@@ -163,7 +163,7 @@ class AlertRepository(BaseRepository[Alert]):
         alert = self.get(alert_id)
         if alert:
             alert.is_resolved = True
-            alert.resolved_at = datetime.utcnow()
+            alert.resolved_at = datetime.now(timezone.utc)
             alert.resolved_by = resolved_by
             self.db.commit()
             self.db.refresh(alert)

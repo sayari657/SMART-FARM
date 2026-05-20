@@ -1,7 +1,7 @@
 import sys
 import os
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Path setup
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -81,7 +81,7 @@ def bootstrap_live_telemetry():
             telemetry = TelemetryRecord(
                 unit_id=hive_unit.id,
                 metrics=metrics,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 source="simulator"
             )
             db.add(telemetry)

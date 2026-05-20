@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -445,7 +445,7 @@ def create_visit(body: VisitIn, db: Session = Depends(get_db)):
     if body.hive_id:
         hive = db.query(BeeHive).filter(BeeHive.id == body.hive_id).first()
         if hive:
-            hive.last_visit_date = datetime.utcnow()
+            hive.last_visit_date = datetime.now(timezone.utc)
     db.commit()
     db.refresh(obj)
     return obj

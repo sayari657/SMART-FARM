@@ -16,7 +16,7 @@ from app.schemas.domain import (
     PoultryInventoryCreate, PoultryInventoryResponse, PoultryInventoryUpdate,
     PoultryLogValidation
 )
-from datetime import datetime
+from datetime import datetime, timezone
 from app.services.poultry_ml_service import generate_ml_insights
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
@@ -321,7 +321,7 @@ def get_farm_poultry_stats(farm_id: int, db: Session = Depends(get_db)):
     active    = [b for b in batches if b.status == 'active']
     batch_ids = [b.id for b in batches]
 
-    today_str    = datetime.utcnow().strftime("%Y-%m-%d")
+    today_str    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     egg_logs     = db.query(PoultryEggLog).filter(PoultryEggLog.batch_id.in_(batch_ids)).all()
     health_logs  = db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id.in_(batch_ids)).all()
     feed_logs    = db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id.in_(batch_ids)).all()
@@ -352,7 +352,7 @@ def evaluate_rules(data: dict, db: Session):
     ]
     for rule in rules:
         if rule["condition"](data):
-            db.add(Alert(unit_id=None, alert_type=rule["id"], message=rule["msg"], severity=rule["severity"], timestamp=datetime.utcnow()))
+            db.add(Alert(unit_id=None, alert_type=rule["id"], message=rule["msg"], severity=rule["severity"], timestamp=datetime.now(timezone.utc)))
     db.commit()
 
 @router.get("/predict/{batch_id}")
@@ -430,7 +430,7 @@ def get_farm_ml_insights(farm_id: int, db: Session = Depends(get_db)):
         "farm_health_score": farm_health,
         "critical_batches": critical_count,
         "insights": results,
-        "computed_at": datetime.utcnow().isoformat(),
+        "computed_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -465,6 +465,6 @@ def validate_log(
     db_obj.status = obj_in.status
     db_obj.admin_notes = obj_in.admin_notes
     db_obj.validated_by_id = current_user.id
-    db_obj.validation_timestamp = datetime.utcnow()
+    db_obj.validation_timestamp = datetime.now(timezone.utc)
     db.commit()
     return {"message": f"Log {log_id} marked as {obj_in.status}"}

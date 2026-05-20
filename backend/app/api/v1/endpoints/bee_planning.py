@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -93,7 +93,7 @@ def logistics_preview(apiary_id: int, date: Optional[str] = None, db: Session = 
     if any(f in flower for f in ["oranger", "eucalyptus", "lavande", "colza"]):
         mults["sirop"] = max(0.5, mults["sirop"] - 0.3)
 
-    today_month = datetime.utcnow().month
+    today_month = datetime.now(timezone.utc).month
     hive_results = []
 
     for hive in hives:
@@ -312,7 +312,7 @@ def planning_summary(db: Session = Depends(get_db)):
     cancelled  = [m for m in all_missions if m.status == "cancelled"]
 
     # Missions en retard (date passée + non terminée)
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     overdue = [
         m for m in pending + in_prog
         if m.scheduled_date < today

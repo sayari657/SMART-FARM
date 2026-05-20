@@ -119,10 +119,10 @@ class TestResetPassword:
             "username": "resetuser", "email": "reset@farm.ai",
             "password": "oldpass123", "full_name": "R"
         })
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         otp_service.OTP_STORE["email:reset@farm.ai"] = {
             "otp": "654321",
-            "expires": datetime.utcnow() + timedelta(minutes=5),
+            "expires": datetime.now(timezone.utc) + timedelta(minutes=5),
         }
         r = client.post("/api/v1/auth/reset-password", json={
             "channel": "email",

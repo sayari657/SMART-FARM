@@ -6,7 +6,7 @@ import secrets
 import smtplib
 import requests
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from app.core.config import settings
@@ -25,7 +25,7 @@ def _generate_otp() -> str:
 def _store_otp(key: str, otp: str) -> None:
     OTP_STORE[key] = {
         "otp": otp,
-        "expires": datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES),
+        "expires": datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES),
     }
 
 
@@ -146,7 +146,7 @@ def verify_otp(channel: str, identifier: str, otp: str) -> bool:
     entry = OTP_STORE.get(key)
     if not entry:
         return False
-    if datetime.utcnow() > entry["expires"]:
+    if datetime.now(timezone.utc) > entry["expires"]:
         del OTP_STORE[key]
         return False
     if entry["otp"] == otp:
