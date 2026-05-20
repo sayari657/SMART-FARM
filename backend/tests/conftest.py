@@ -38,6 +38,12 @@ def db():
 
 @pytest.fixture()
 def client(db):
+    from app.api.v1.endpoints.auth_routes import limiter as auth_limiter
+    s = auth_limiter._storage
+    s.storage.clear()
+    s.expirations.clear()
+    s.events.clear()
+
     def override_get_db():
         try:
             yield db
