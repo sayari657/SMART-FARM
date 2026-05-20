@@ -1,49 +1,54 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import { usePinLock, PinLockScreen } from './components/PinLock';
+import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './layouts/MainLayout';
-
-// Pages
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Farms from './pages/Farms';
-import FarmDetails from './pages/FarmDetails';
-import Animals from './pages/Animals';
-import AnimalDetails from './pages/AnimalDetails';
-import TelemetryAnalysis from './pages/TelemetryAnalysis';
-import CVMonitoring from './pages/CVMonitoring';
-import AlertsCenter from './pages/AlertsCenter';
-import Recommendations from './pages/Recommendations';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
-import AboutBee from './pages/AboutBee';
-import AboutCows from './pages/AboutCows';
-import AboutPoultry from './pages/AboutPoultry';
-import AboutSheep from './pages/AboutSheep';
-import AboutGoats from './pages/AboutGoats';
-import AboutRabbit from './pages/AboutRabbit';
-import SovereignAssistant from './pages/SovereignAssistant';
-import AboutProject from './pages/AboutProject';
-import ArbresPlantations from './pages/ArbresPlantations';
-import MapCenter from './pages/MapCenter';
-import Entrepot from './pages/Entrepot';
-import NotFound from './pages/NotFound';
-
-// Worker Pages (PWA)
-import WorkerLogin from './pages/WorkerLogin';
 import WorkerLayout from './layouts/WorkerLayout';
-import WorkerHome from './pages/worker/WorkerHome';
-import WorkerTasks from './pages/worker/WorkerTasks';
-import WorkerScan from './pages/worker/WorkerScan';
-import WorkerReport from './pages/worker/WorkerReport';
-import WorkerSettings from './pages/worker/WorkerSettings';
-import WorkerInstructions from './pages/worker/WorkerInstructions';
+
+// Pages — lazy-loaded for code splitting
+const Landing             = lazy(() => import('./pages/Landing'));
+const Login               = lazy(() => import('./pages/Login'));
+const Register            = lazy(() => import('./pages/Register'));
+const Dashboard           = lazy(() => import('./pages/Dashboard'));
+const Farms               = lazy(() => import('./pages/Farms'));
+const FarmDetails         = lazy(() => import('./pages/FarmDetails'));
+const Animals             = lazy(() => import('./pages/Animals'));
+const AnimalDetails       = lazy(() => import('./pages/AnimalDetails'));
+const TelemetryAnalysis   = lazy(() => import('./pages/TelemetryAnalysis'));
+const CVMonitoring        = lazy(() => import('./pages/CVMonitoring'));
+const AlertsCenter        = lazy(() => import('./pages/AlertsCenter'));
+const Recommendations     = lazy(() => import('./pages/Recommendations'));
+const Reports             = lazy(() => import('./pages/Reports'));
+const Settings            = lazy(() => import('./pages/Settings'));
+const AboutBee            = lazy(() => import('./pages/AboutBee'));
+const AboutCows           = lazy(() => import('./pages/AboutCows'));
+const AboutPoultry        = lazy(() => import('./pages/AboutPoultry'));
+const AboutSheep          = lazy(() => import('./pages/AboutSheep'));
+const AboutGoats          = lazy(() => import('./pages/AboutGoats'));
+const AboutRabbit         = lazy(() => import('./pages/AboutRabbit'));
+const SovereignAssistant  = lazy(() => import('./pages/SovereignAssistant'));
+const AboutProject        = lazy(() => import('./pages/AboutProject'));
+const ArbresPlantations   = lazy(() => import('./pages/ArbresPlantations'));
+const MapCenter           = lazy(() => import('./pages/MapCenter'));
+const Entrepot            = lazy(() => import('./pages/Entrepot'));
+const NotFound            = lazy(() => import('./pages/NotFound'));
+const WorkerLogin         = lazy(() => import('./pages/WorkerLogin'));
+const WorkerHome          = lazy(() => import('./pages/worker/WorkerHome'));
+const WorkerTasks         = lazy(() => import('./pages/worker/WorkerTasks'));
+const WorkerScan          = lazy(() => import('./pages/worker/WorkerScan'));
+const WorkerReport        = lazy(() => import('./pages/worker/WorkerReport'));
+const WorkerSettings      = lazy(() => import('./pages/worker/WorkerSettings'));
+const WorkerInstructions  = lazy(() => import('./pages/worker/WorkerInstructions'));
+
+const PageLoader = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f1117' }}>
+    <div style={{ color: '#22c55e', fontSize: 14, fontFamily: 'Inter, sans-serif' }}>Chargement…</div>
+  </div>
+);
 
 function OwnerRoute({ children }) {
   const { user } = useAuth();
@@ -128,7 +133,11 @@ function AppWithPin() {
       {locked && <PinLockScreen onUnlock={unlock} />}
       <OfflineBanner />
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppRoutes />
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <AppRoutes />
+          </Suspense>
+        </ErrorBoundary>
       </Router>
       <Toaster
         position="top-right"

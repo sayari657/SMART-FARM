@@ -10,7 +10,7 @@ import Navbar from '../components/Navbar';
 import KPIBox from '../components/KPIBox';
 import AlertCard from '../components/AlertCard';
 import TelemetryChart from '../components/TelemetryChart';
-import { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
+import api, { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
 import AIScanner from '../components/AIScanner';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
 
@@ -95,9 +95,8 @@ export default function Dashboard() {
   /* ── IoT polling (unchanged) ─────────────────────────────────────── */
   useEffect(() => {
     const fetchIot = () => {
-      fetch('/api/v1/iot/latest')
-        .then(res => res.json())
-        .then(data => { if (data?.nodeA && data?.nodeB) setIotData(data); })
+      api.get('/iot/latest')
+        .then(res => { if (res.data?.nodeA && res.data?.nodeB) setIotData(res.data); })
         .catch(err => console.error('IoT fetch error:', err));
     };
     fetchIot();
