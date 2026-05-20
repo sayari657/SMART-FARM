@@ -3,7 +3,7 @@ import os
 import io
 import logging
 import time
-import threading
+import asyncio
 from datetime import datetime, timedelta
 from PIL import Image
 from typing import List, Optional
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/cv", tags=["Computer Vision"])
 
 # -- Global Inference Lock --
-inference_lock = threading.Lock()
+inference_lock = asyncio.Lock()
 
 # ── Model Registry ────────────────────────────────────────────────────────────
 MODEL_REGISTRY = {
@@ -169,7 +169,7 @@ async def detect_in_file(
     _=Depends(get_current_user)
 ):
     from starlette.concurrency import run_in_threadpool
-    with inference_lock:
+    async with inference_lock:
         try:
             model = await run_in_threadpool(get_yolo_model, category)
             if not model:

@@ -75,7 +75,7 @@ async def app_lifespan(app_instance: FastAPI):
     async def _async_warmup():
         from starlette.concurrency import run_in_threadpool
         from app.api.v1.endpoints.cv_routes import get_yolo_model
-        cats = ["leaves", "olive", "insects"]
+        cats = ["bee", "leaves", "olive", "insects", "fire"]
         logger.info(f"[WARM-UP] Sequentially loading models: {cats}")
         for cat in cats:
             try:
