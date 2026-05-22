@@ -16,17 +16,30 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// On 401 — redirect to role-appropriate login page
+// Response interceptor — handles auth + backend-offline errors
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    const status = err.response?.status;
+
+    // 401 — token expired / invalid → redirect to login
+    if (status === 401) {
       let user = {};
       try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) {}
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = user?.role === 'worker' ? '/worker-login' : '/login';
     }
+
+    // 503 or network error (ECONNREFUSED) — backend is offline
+    if (status === 503 || !err.response) {
+      const detail = err.response?.data?.detail || 'Le serveur backend est hors ligne.';
+      console.error('[API] Backend offline:', detail);
+      // Enrich the error so callers can show a friendly message
+      err.isBackendOffline = true;
+      err.friendlyMessage = 'Serveur backend hors ligne — lancez le backend avec start.bat puis réessayez.';
+    }
+
     return Promise.reject(err);
   }
 );

@@ -82,7 +82,18 @@ export default defineConfig({
     host: true,
     allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
     proxy: {
-      '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            if (res && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ detail: 'Backend offline', code: err.code }));
+            }
+          });
+        },
+      },
       '/ws': { target: 'ws://127.0.0.1:8000', ws: true, changeOrigin: true },
     },
   },
@@ -91,17 +102,35 @@ export default defineConfig({
     host: true,
     allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
     proxy: {
-      // REST API — all /api calls go through backend. No CORS needed.
+      // REST API — all /api calls forwarded to FastAPI backend on :8000
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy) => {
+          proxy.on('error', (err, _req, res) => {
+            // Backend not running → return clean JSON 503 instead of crashing
+            console.warn(`[proxy] Backend unreachable (${err.code}). Start the backend: cd backend && python -m uvicorn app.main:app --reload`);
+            if (res && !res.headersSent) {
+              res.writeHead(503, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                detail: 'Backend server is offline. Run: cd backend && python -m uvicorn app.main:app --reload',
+                code: err.code,
+              }));
+            }
+          });
+        },
       },
       // WebSocket — live telemetry & alerts
       '/ws': {
         target: 'ws://127.0.0.1:8000',
         ws: true,
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.warn(`[proxy/ws] Backend WebSocket unreachable (${err.code})`);
+          });
+        },
       },
       // Local vector tile server (optional, 503 if offline — fallback to OSM)
       '/map-tiles': {

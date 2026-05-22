@@ -34,6 +34,7 @@ export function AuthProvider({ children }) {
       } catch { /* non-blocking */ }
       return { ok: true };
     } catch (e) {
+      if (e.isBackendOffline) return { ok: false, error: e.friendlyMessage, offline: true };
       return { ok: false, error: e.response?.data?.detail || 'Login failed' };
     } finally {
       setLoading(false);

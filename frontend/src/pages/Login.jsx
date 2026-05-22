@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle, Shield, Cpu, Wifi } from 'lucide-react';
+import { Leaf, Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle, Shield, Cpu, Wifi, ServerOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
@@ -9,6 +9,7 @@ export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' });
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
+  const [offline, setOffline] = useState(false);
   const [msg, setMsg] = useState('');
   const [loading2, setLoading2] = useState(false);
 
@@ -33,12 +34,13 @@ export default function Login() {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); setError('');
+    e.preventDefault(); setError(''); setOffline(false);
     const res = await login(form.username, form.password);
     if (res.ok) {
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
       navigate(savedUser?.role === 'worker' ? '/worker' : '/dashboard');
     } else {
+      if (res.offline) setOffline(true);
       setError(res.error);
     }
   };
@@ -138,7 +140,22 @@ export default function Login() {
 
 
               {msg && <div className="alert-banner success" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{msg}</div></div>}
-              {error && <div className="alert-banner warning" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{error}</div></div>}
+
+              {/* Backend offline banner */}
+              {offline && (
+                <div style={{ display:'flex', alignItems:'flex-start', gap:10, background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:8, padding:'12px 14px', marginBottom:12 }}>
+                  <ServerOff size={18} style={{ color:'#dc2626', flexShrink:0, marginTop:2 }} />
+                  <div>
+                    <p style={{ margin:0, fontWeight:600, color:'#dc2626', fontSize:13 }}>Backend hors ligne</p>
+                    <p style={{ margin:'4px 0 0', color:'#7f1d1d', fontSize:12 }}>
+                      Lancez le backend&nbsp;:&nbsp;<code style={{ background:'#fee2e2', padding:'1px 5px', borderRadius:4 }}>cd backend &amp;&amp; python -m uvicorn app.main:app --reload</code>
+                      &nbsp;ou double-cliquez <strong>start.bat</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {error && !offline && <div className="alert-banner warning" style={{ marginBottom: 16 }}><div className="alert-banner-msg">{error}</div></div>}
 
               <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div className="form-group">
