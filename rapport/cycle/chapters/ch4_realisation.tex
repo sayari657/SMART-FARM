@@ -1,41 +1,122 @@
-\chapter{Réalisation et Validation Industrielle}
-\section*{Introduction}
-\addcontentsline{toc}{section}{Introduction}
-Ce dernier chapitre décrit l'environnement de développement, l'architecture
-de déploiement Docker, les tests de validation et les résultats de la
-validation terrain sur 7 fermes pilotes tunisiennes.
+\chapter{Réalisation}
 
-% ── 4.1 Environnement de développement ──────────────────────
-\section{Environnement de développement}
+Ce chapitre présente la réalisation concrète de Smart Farm AI v3.0.
+Nous décrivons d'abord l'environnement de travail — matériel, logiciel et
+langages de programmation — puis les interfaces des neuf modules fonctionnels
+de la plateforme, et enfin les résultats des tests et de la validation terrain
+sur 7 fermes pilotes tunisiennes.
 
-\begin{table}[H]
+% ── 4.1 Introduction ─────────────────────────────────────────
+\section{Introduction}
+
+Ce chapitre clôt le mémoire en présentant la réalisation industrielle de
+Smart Farm AI v3.0. Il couvre l'environnement de développement matériel et
+logiciel, les langages et outils retenus, les interfaces réalisées pour
+chacun des modules fonctionnels (Vision IA, Apiculture, Aviculture ERP,
+Cartographie GIS, Agent Darija, Télémétrie IoT, PWA Worker), ainsi que les
+résultats des tests de validation et de la campagne terrain sur
+7 fermes pilotes tunisiennes (décembre 2025 -- avril 2026).
+
+% ── 4.2 Environnement de travail ─────────────────────────────
+\section{Environnement de travail}
+
+L'environnement de développement de Smart Farm AI se compose de trois
+dimensions complémentaires~: le matériel physique (station de développement
+et nœuds IoT embarqués), les logiciels (IDE, conteneurisation, bases de données,
+inférence LLM, MLOps) et les langages de programmation (Python, JavaScript,
+SQL, YAML).
+
+% ── 4.2.1 Environnement matériel ────────────────────────────
+\subsection{Environnement matériel}
+
+La station de développement est équipée d'un processeur Intel Core i7-12700H
+(20 threads, fréquence boost 4.7\,GHz), de 32\,Go de RAM DDR5 et d'un GPU
+NVIDIA GeForce RTX 3060 (6\,Go VRAM), permettant l'entraînement YOLOv11n
+et l'inférence locale Ollama Labess-7B sans dépendance cloud.
+L'environnement de développement repose sur Ubuntu 22.04\,LTS avec
+compatibilité Windows~11 via WSL2. Deux nœuds IoT ESP32-WROOM-32 sont
+utilisés~: le Nœud A pilote l'irrigation (capteur de débit YF-S201 et
+humidité DHT22) tandis que le Nœud B surveille la ruche (balance HX711
+et température DHT22). La mise en production s'effectue sur un VPS
+Ubuntu 22.04\,LTS orchestré par Docker~25.0.3.
+
+\begin{figure}[H]
 \centering
-\caption{Environnement de développement}
-\label{tab:env_dev}
-\begin{tabularx}{\linewidth}{llX}
-\toprule
-\textbf{Niveau} & \textbf{Composant} & \textbf{Détails} \\
-\midrule
-Matériel & Station de dev & Intel Core i7-12700H, 32 GB RAM, GPU NVIDIA RTX 3060 \\
-         & Appareils IoT  & 2$\times$ ESP32-WROOM-32, capteurs DHT22, HX711, YF-S201 \\
-OS       & Développement  & Ubuntu 22.04 LTS + Windows 11 (WSL2) \\
-         & Production     & Ubuntu 22.04 LTS (VPS) \\
-Runtime  & Python         & 3.11.8 (venv isolé) \\
-         & Node.js        & 20.11 LTS \\
-         & Docker         & 25.0.3 + Compose v2.24 \\
-IDE      & Backend        & VS Code + Pylance, Black, Ruff \\
-         & Frontend       & VS Code + ESLint, Prettier \\
-VCS      & Git            & GitHub (branche main + feature branches) \\
-MLOps    & MLflow         & $\geq$2.10.0 (tracking server local) \\
-         & DVC            & $\geq$3.45.0 (artefacts modèles) \\
-\bottomrule
-\end{tabularx}
-\end{table}
+\resizebox{0.90\textwidth}{!}{%
+\begin{tikzpicture}[
+  bloc/.style={draw, rounded corners=5pt, minimum width=5.8cm,
+               minimum height=0.95cm, text centered,
+               font=\small\bfseries, fill=#1},
+  lbl/.style={font=\scriptsize, text=gray!70},
+  arr/.style={->, thick, >=stealth, gray!60}
+]
+  % Titre
+  \node[draw, rounded corners=4pt, fill=gray!15, minimum width=15cm,
+        minimum height=0.75cm, font=\small\bfseries] (titre) at (7.5,6.2)
+    {Environnement matériel --- Smart Farm AI v3.0};
 
-% ── 4.2 Architecture de déploiement ─────────────────────────
-\section{Architecture de déploiement Docker}
+  % Station dev
+  \node[bloc=blue!15] (station) at (3.5,4.8)
+    {Station de développement};
+  \node[lbl, align=center] at (3.5,4.1)
+    {Intel Core i7-12700H (20T, 4.7\,GHz) \\ 32\,Go RAM DDR5 · NVIDIA RTX 3060 6\,Go};
 
-Le fichier \code{docker-compose.yml} orchestre 3 services actifs (+ Caddy optionnel HTTPS) :
+  % OS
+  \node[bloc=blue!10] (os) at (3.5,3.0)
+    {Système d'exploitation};
+  \node[lbl, align=center] at (3.5,2.3)
+    {Ubuntu 22.04\,LTS (principal) \\ Windows 11 + WSL2 (compatibilité)};
+
+  % IoT Noeud A
+  \node[bloc=teal!20] (iotA) at (8.5,4.8)
+    {Nœud IoT A — Irrigation};
+  \node[lbl, align=center] at (8.5,4.1)
+    {ESP32-WROOM-32 · YF-S201 (débit) \\ DHT22 (humidité sol/air)};
+
+  % IoT Noeud B
+  \node[bloc=teal!20] (iotB) at (13.5,4.8)
+    {Nœud IoT B — Ruche};
+  \node[lbl, align=center] at (13.5,4.1)
+    {ESP32-WROOM-32 · HX711 (poids) \\ DHT22 (temp. couvain)};
+
+  % Production
+  \node[bloc=orange!20] (prod) at (3.5,1.2)
+    {Serveur de production};
+  \node[lbl, align=center] at (3.5,0.5)
+    {VPS Ubuntu 22.04\,LTS \\ Docker 25.0.3 + Compose v2.24};
+
+  % Flèches
+  \draw[arr] (station) -- (os);
+  \draw[arr] (os) -- (prod);
+  \draw[arr] (iotA.south) -- ++(0,-0.5) -| (station.north);
+  \draw[arr] (iotB.south) -- ++(0,-0.5) -| (station.north);
+\end{tikzpicture}
+}%
+\caption{Caractéristiques de l'environnement matériel --- station de développement,
+nœuds IoT ESP32 et serveur de production.}
+\label{fig:env_materiel}
+\end{figure}
+
+% ── 4.2.2 Environnement logiciel ────────────────────────────
+\subsection{Environnement logiciel}
+
+L'environnement logiciel de Smart Farm AI couvre l'ensemble du cycle de
+développement~: édition du code, conteneurisation, persistance des données,
+inférence IA locale et traçabilité MLOps.
+
+\paragraph{Visual Studio Code.}
+VS Code constitue l'unique IDE du projet, utilisé aussi bien pour le backend
+Python (extensions Pylance, Black, Ruff pour le formatage) que pour le
+frontend JavaScript (ESLint, Prettier). Le débogueur intégré permet
+d'inspecter les requêtes FastAPI et les réponses du modèle YOLO en temps réel.
+
+\paragraph{Docker Desktop 25.0.3.}
+Docker Compose orchestre 3 services actifs (+ Caddy optionnel HTTPS) :
+\texttt{db} (PostgreSQL 16-alpine), \texttt{backend} (Python 3.11-slim + Uvicorn
+2 workers) et \texttt{frontend} (Nginx 1.27-alpine servant le build React/Vite).
+Les dépendances de démarrage sont gérées par \texttt{healthcheck}~:
+\texttt{postgres} doit être \texttt{healthy} avant \texttt{backend} ;
+\texttt{backend} avant \texttt{frontend}.
 
 \begin{figure}[H]
 \centering
@@ -108,58 +189,290 @@ Le fichier \code{docker-compose.yml} orchestre ces services :
 {\small \textit{Note :} Caddy activé si \code{DOMAIN=} configuré dans \code{.env.production}.}
 \end{table}
 
-Les dépendances de démarrage sont gérées par \code{healthcheck} :
-\code{postgres} doit être \code{healthy} avant \code{backend} ;
-\code{backend} doit être \code{healthy} avant \code{frontend}.
+\paragraph{PostgreSQL 16 + PostGIS.}
+PostgreSQL 16-alpine héberge les 38 modèles SQLAlchemy du projet.
+L'extension PostGIS (GeoAlchemy2 $\geq$0.14.7) permet les requêtes
+géospatiales (\texttt{ST\_DWithin}, SRID 4326) pour le module cartographique.
+Un fallback SQLite WAL est activé en mode \texttt{LITE\_MODE} pour les
+déploiements à ressources limitées.
 
-% ── 4.3 Interfaces et fonctionnalités ───────────────────────
-\section{Interfaces réalisées}
+\paragraph{Ollama ($\geq$0.1.7).}
+Ollama fournit un serveur d'inférence LLM local sur \texttt{localhost:11434}.
+Il héberge le modèle Labess-7B (GGUF Q4\_K\_M, $\sim$4\,Go RAM) pour
+l'assistant Darija et LLaVA-7B pour la vision multi-modale.
+Un fallback Groq Cloud (llama-3.3-70b-versatile) est déclenché si Ollama
+est indisponible, puis une réponse statique Darija en dernier recours.
 
-\subsection{Dashboard principal (Owner)}
+\paragraph{MLflow + DVC.}
+MLflow ($\geq$2.10.0) assure la traçabilité des expériences d'entraînement
+(hyperparamètres, métriques, artefacts). DVC ($\geq$3.45.0) versionne les
+datasets et les modèles entraînés (\texttt{best.pt}) via des pipelines
+reproductibles (\texttt{dvc.yaml}).
 
-Le tableau de bord principal agrège :
-\begin{itemize}
-  \item KPIs temps réel : nombre d'animaux actifs, alertes non lues,
-        température moyenne IoT, production du jour ;
-  \item Graphiques de tendance (Recharts) : FCR sur 42 jours, courbe de
-        mortalité cumulée, production d'œufs hebdomadaire ;
-  \item Carte GIS (Leaflet/MapLibre) : localisation fermes, vétérinaires
-        dans un rayon paramétrable ;
-  \item Flux alertes WebSocket temps réel : badge animé, toasts critiques.
-\end{itemize}
+\paragraph{GitHub.}
+Le code source est versionné sur GitHub (branche \texttt{main} + branches
+\textit{feature}). Les pipelines CI/CD vérifient la qualité du code
+(Ruff, ESLint) et lancent la suite de tests pytest à chaque push.
 
-\subsection{Scanner IA (AIScanner)}
+\begin{figure}[H]
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[
+  badge/.style={draw, rounded corners=5pt, minimum width=3.8cm,
+                minimum height=1.5cm, text centered, font=\small\bfseries,
+                fill=#1},
+  ver/.style={font=\tiny, text=gray!60}
+]
+  \node[badge=blue!15]    (vscode) at (0,   3.0) {VS Code};
+  \node[ver] at (0,   2.5) {Pylance · Black · Ruff · ESLint};
+  \node[badge=cyan!20]    (docker) at (4.5, 3.0) {Docker 25.0.3};
+  \node[ver] at (4.5, 2.5) {Compose v2.24 · nginx · uvicorn};
+  \node[badge=orange!20]  (pg)     at (9.0, 3.0) {PostgreSQL 16};
+  \node[ver] at (9.0, 2.5) {PostGIS · GeoAlchemy2 · Alembic};
+  \node[badge=violet!20]  (ollama) at (0,   0.8) {Ollama ≥0.1.7};
+  \node[ver] at (0,   0.3) {Labess-7B GGUF · LLaVA · Groq};
+  \node[badge=green!20]   (mlops)  at (4.5, 0.8) {MLflow + DVC};
+  \node[ver] at (4.5, 0.3) {≥2.10.0 · ≥3.45.0 · artefacts};
+  \node[badge=gray!20]    (github) at (9.0, 0.8) {GitHub};
+  \node[ver] at (9.0, 0.3) {main · feature branches · CI/CD};
+\end{tikzpicture}
+}%
+\caption{Environnement logiciel --- 6 outils principaux du cycle de développement
+Smart Farm AI (IDE, conteneurisation, BDD, LLM local, MLOps, VCS).}
+\label{fig:env_logiciel}
+\end{figure}
 
-L'interface AIScanner permet :
-\begin{itemize}
-  \item Upload ou capture caméra directe ;
-  \item Affichage des bounding boxes YOLO sur l'image ;
-  \item Panel de réponse Darija avec niveau de confiance coloré ;
-  \item Historique des diagnostics (DiagnosticHistory) scrollable.
-\end{itemize}
+% ── 4.2.3 Langages de programmation ─────────────────────────
+\subsection{Langage de programmation}
 
-\subsection{ERP Aviculture}
+Quatre langages ou formats sont utilisés dans le projet, couvrant le backend,
+le frontend, la couche données et l'infrastructure.
 
-Le module ERP avicole comprend 6 vues fonctionnelles :
-tableau de bord lot avec graphiques FCR/mortalité en temps réel,
-formulaire d'enregistrement alimentation, journal de ponte,
-registre sanitaire, ventes et inventaire stock.
+\paragraph{Python 3.11.}
+Python est le langage principal du backend. Il porte les 151 endpoints
+FastAPI, les services d'inférence YOLO (Ultralytics), l'agent RAG
+(ChromaDB + sentence-transformers), les 5 modèles avicoles (scikit-learn),
+le client MQTT (paho-mqtt) et les pipelines MLOps (MLflow, DVC).
+Le runtime Python 3.11 est choisi pour ses performances \textit{asyncio}
+améliorées (PEP 654 — groupes d'exceptions) et sa compatibilité avec
+PyTorch 2.2.0.
 
-\subsection{PWA Worker (mobile)}
+\paragraph{JavaScript / React 18.}
+Le frontend est entièrement développé en JavaScript (ES2022) avec React~18.2.
+Il comprend 36 pages, 24 composants réutilisables, la gestion d'état avec
+Zustand et TanStack Query, la cartographie 3D avec Three.js et MapLibre GL,
+et le mode hors-ligne via Dexie IndexedDB. Le bundler Vite~5.1 assure
+un HMR ($< 50$\,ms) et génère le build PWA via \texttt{vite-plugin-pwa}.
 
-L'application mobile Worker est installable sur Android/iOS via le
-manifest PWA. Elle fonctionne \textit{intégralement hors ligne} grâce à :
-\begin{itemize}
-  \item Dexie IndexedDB pour le stockage local des tâches assignées ;
-  \item Service Worker pour la mise en cache des assets statiques ;
-  \item Sync différée : les actions terrain (rapport tâche, télémétrie manuelle)
-        sont enqueued et synchronisées au rétablissement de la connexion.
-\end{itemize}
+\paragraph{SQL — PostgreSQL.}
+Les 38 modèles de données sont définis avec SQLAlchemy 2.0 (ORM async)
+et migrés via Alembic. Les requêtes géospatiales utilisent le dialecte
+PostGIS (\texttt{ST\_DWithin}, \texttt{ST\_Distance}, \texttt{ST\_MakePoint})
+avec le système de référence SRID~4326.
 
-% ── 4.4 Captures d'écran ─────────────────────────────────────
-\section{Captures d'écran de l'application}
+\paragraph{YAML — Docker Compose / DVC.}
+L'infrastructure est codifiée en YAML~: \texttt{docker-compose.yml}
+déclare les 3 services et leurs dépendances de santé~; \texttt{dvc.yaml}
+définit les étapes du pipeline d'entraînement (préparation → entraînement →
+évaluation → export \texttt{best.pt}).
 
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  snap/.style={draw, rounded corners=4pt, minimum width=5.0cm,
+               minimum height=3.2cm, fill=#1, font=\ttfamily\tiny,
+               text width=4.8cm, align=left, inner sep=6pt},
+  hdr/.style={font=\small\bfseries, fill=#1, rounded corners=3pt,
+              minimum width=5.0cm, minimum height=0.6cm, text centered}
+]
+  % Python
+  \node[hdr=blue!25] (ph) at (2.5,5.1) {Python 3.11 — FastAPI};
+  \node[snap=blue!8, anchor=north] at (2.5,4.8) {%
+    @router.get("/farms")\\
+    async def list\_farms(\\
+    \quad db: Session = Depends(get\_db),\\
+    \quad user = Depends(get\_current)):\\
+    \quad\quad return crud.get\_farms(db,\\
+    \quad\quad\quad\quad tenant\_id=user.id)
+  };
+
+  % JavaScript
+  \node[hdr=yellow!35] (jh) at (8.5,5.1) {JavaScript — React 18};
+  \node[snap=yellow!10, anchor=north] at (8.5,4.8) {%
+    const \{ data: farms \} =\\
+    \quad useQuery(\{\\
+    \quad\quad queryKey: ['farms'],\\
+    \quad\quad queryFn: farmAPI.list,\\
+    \quad\quad staleTime: 30\_000,\\
+    \quad \});
+  };
+
+  % SQL
+  \node[hdr=orange!25] (sh) at (2.5,0.8) {SQL — PostGIS};
+  \node[snap=orange!8, anchor=north] at (2.5,0.5) {%
+    SELECT v.*, ST\_Distance(\\
+    \quad v.geom::geography,\\
+    \quad ST\_MakePoint(:lon,:lat)\\
+    \quad\quad ::geography) AS dist\_m\\
+    FROM veterinary v\\
+    WHERE ST\_DWithin(..., :radius)\\
+    ORDER BY dist\_m;
+  };
+
+  % YAML
+  \node[hdr=green!25] (yh) at (8.5,0.8) {YAML — Docker Compose};
+  \node[snap=green!8, anchor=north] at (8.5,0.5) {%
+    services:\\
+    \quad db:\\
+    \quad\quad image: postgres:16-alpine\\
+    \quad backend:\\
+    \quad\quad depends\_on:\\
+    \quad\quad\quad db: \{ condition:\\
+    \quad\quad\quad\quad service\_healthy \}
+  };
+\end{tikzpicture}
+}%
+\caption{Snippets représentatifs des 4 langages utilisés dans Smart Farm AI ---
+Python/FastAPI (backend), JavaScript/React (frontend), SQL/PostGIS (géospatial)
+et YAML/Docker Compose (infrastructure).}
+\label{fig:env_langages}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  layer/.style={draw, rounded corners=5pt, minimum width=18cm, minimum height=1.1cm,
+                text centered, font=\small\bfseries, fill=#1},
+  item/.style={draw, rounded corners=3pt, minimum width=2.6cm, minimum height=0.8cm,
+               text centered, font=\scriptsize\bfseries, fill=#1},
+  arr/.style={->, thick, >=stealth, gray!60},
+  lbl/.style={font=\scriptsize\itshape, text=gray!60}
+]
+  % Couche Matériel
+  \node[layer=blue!15] at (9,6.5) {Couche MATÉRIEL};
+  \node[item=blue!10]  at (2.5,5.5) {Station dev\\i7-12700H};
+  \node[item=blue!10]  at (6.0,5.5) {32\,Go RAM\\RTX 3060};
+  \node[item=teal!15]  at (9.5,5.5) {ESP32 Nœud A\\Irrigation};
+  \node[item=teal!15]  at (13.0,5.5){ESP32 Nœud B\\Ruche};
+  \node[item=orange!15] at (16.5,5.5){VPS Ubuntu\\Docker 25};
+
+  % Couche Logiciel
+  \node[layer=violet!12] at (9,3.8) {Couche LOGICIEL};
+  \node[item=blue!15]   at (1.5,2.8) {VS Code\\IDE};
+  \node[item=cyan!20]   at (4.3,2.8) {Docker\\25.0.3};
+  \node[item=orange!20] at (7.1,2.8) {PostgreSQL\\16 + PostGIS};
+  \node[item=violet!20] at (9.9,2.8) {Ollama\\Labess-7B};
+  \node[item=green!20]  at (12.7,2.8){MLflow\\+ DVC};
+  \node[item=gray!25]   at (15.5,2.8){GitHub\\CI/CD};
+
+  % Couche Langage
+  \node[layer=green!12] at (9,1.0) {Couche LANGAGE};
+  \node[item=blue!20]   at (3.5,0.0) {Python\\3.11};
+  \node[item=yellow!30] at (7.5,0.0) {JavaScript\\React 18};
+  \node[item=orange!20] at (11.5,0.0){SQL\\PostGIS};
+  \node[item=green!20]  at (15.5,0.0){YAML\\Docker/DVC};
+
+  % Flèches verticales
+  \draw[arr] (9,4.9) -- (9,4.2) node[midway,right,lbl]{outillage};
+  \draw[arr] (9,2.2) -- (9,1.5) node[midway,right,lbl]{implémentation};
+\end{tikzpicture}
+}%
+\caption{Composants de l'environnement de développement Smart Farm AI ---
+trois couches complémentaires (Matériel, Logiciel, Langage) et leurs interactions.}
+\label{fig:env_dev_global}
+\end{figure}
+
+% ── 4.3 Réalisation ──────────────────────────────────────────
+\section{Réalisation}
+
+La plateforme Smart Farm AI comprend 36 pages React organisées en deux
+profils d'accès~: le \textbf{Propriétaire} (interface web SPA, accès complet)
+et l'\textbf{Ouvrier PWA} (application mobile offline-first, accès terrain restreint).
+Nous présentons ci-après les interfaces des neuf modules fonctionnels principaux,
+chacun accompagné d'une figure représentative de son interface.
+
+% ── 4.3.1 Page de connexion ──────────────────────────────────
+\subsection{Page de connexion et authentification}
+
+La plateforme propose deux flux d'authentification distincts.
+Le \textbf{Propriétaire} se connecte via un formulaire email/mot de passe qui
+génère un token JWT HS256 valable 7 jours (10\,080 minutes, bcrypt rounds~=~12).
+L'\textbf{Ouvrier PWA} utilise un flux en deux étapes~: saisie d'un code PIN
+à 4 chiffres, puis validation d'un OTP à 6 chiffres envoyé via WhatsApp Business
+API (TTL 5 minutes). Le contrôle RBAC (\textit{owner} / \textit{worker}) est
+appliqué sur chaque endpoint REST.
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=5pt,thick,blue!50,fill=gray!3](0,0)rectangle(5.8,6.0);
+  \fill[blue!65](0,5.4)rectangle(5.8,6.0);
+  \node[white,font=\small\bfseries]at(2.9,5.7){Smart Farm AI — Connexion};
+  \node[gray!60]at(2.9,5.1){Propriétaire};
+  \foreach \y/\lbl/\ph in {
+    4.5/{Email}/{proprietaire@ferme.tn},
+    3.8/{Mot de passe}/{••••••••}}{
+    \node[anchor=west,gray!70]at(0.35,\y+0.25){\lbl};
+    \fill[white,draw=gray!40,rounded corners=2pt](0.3,\y-0.05)rectangle(5.5,\y+0.45);
+    \node[gray!50]at(2.9,\y+0.2){\ph};}
+  \fill[blue!60,rounded corners=3pt](1.0,3.1)rectangle(4.8,3.55);
+  \node[white,font=\scriptsize\bfseries]at(2.9,3.32){Se connecter};
+  \fill[blue!10,rounded corners=2pt](0.3,2.5)rectangle(5.5,2.95);
+  \node[font=\tiny]at(2.9,2.72){JWT HS256 · 7 jours · bcrypt(12)};
+  \draw[gray!30,thin](0.3,2.3)--(5.5,2.3);
+  \node[gray!50]at(2.9,2.0){ou connexion Ouvrier PWA →};
+  \fill[teal!15,rounded corners=2pt](0.5,1.4)rectangle(5.3,1.9);
+  \node[teal!60!black]at(2.9,1.65){Accès Ouvrier (PIN + OTP)};
+  \node[gray!40,font=\tiny]at(2.9,0.9){Smart Farm AI v3.0 · Tunisie};
+  \node[gray!40,font=\tiny]at(2.9,0.6){Souverain · Open-source · Hors-ligne};
+\end{tikzpicture}
+\caption{Connexion Propriétaire (JWT)}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=5pt,thick,teal!50,fill=gray!3](0,0)rectangle(5.8,6.0);
+  \fill[teal!60](0,5.4)rectangle(5.8,6.0);
+  \node[white,font=\small\bfseries]at(2.9,5.7){Connexion Ouvrier PWA};
+  \node[gray!60]at(2.9,5.1){Authentification en 2 étapes};
+  \node[anchor=west,gray!70]at(0.35,4.7){Étape 1 — Numéro WhatsApp};
+  \fill[white,draw=gray!40,rounded corners=2pt](0.3,4.2)rectangle(5.5,4.65);
+  \node[gray!50]at(2.9,4.42){+216 XX XXX XXX};
+  \fill[teal!55,rounded corners=2pt](1.2,3.65)rectangle(4.6,4.1);
+  \node[white,font=\scriptsize\bfseries]at(2.9,3.87){Envoyer OTP WhatsApp};
+  \draw[gray!30,thin](0.3,3.45)--(5.5,3.45);
+  \node[anchor=west,gray!70]at(0.35,3.2){Étape 2 — Code OTP reçu};
+  \foreach \i in {0,...,5}{
+    \fill[gray!12,rounded corners=1pt](0.28+\i*0.88,2.5)rectangle(1.08+\i*0.88,3.1);
+    \pgfmathtruncatemacro{\d}{\i==0?8:(\i==1?4:(\i==2?2:0))}
+    \node[font=\small\bfseries,gray!60]at(0.68+\i*0.88,2.8){\d};}
+  \node[gray!50]at(2.9,2.2){TTL 5 min · 6 chiffres};
+  \fill[teal!55,rounded corners=2pt](1.2,1.6)rectangle(4.6,2.05);
+  \node[white,font=\scriptsize\bfseries]at(2.9,1.82){Valider et accéder};
+  \fill[blue!8,rounded corners=2pt](0.3,1.0)rectangle(5.5,1.5);
+  \node[font=\tiny]at(2.9,1.25){JWT 7j · RBAC worker · HTTPS};
+\end{tikzpicture}
+\caption{Connexion Ouvrier (PIN + OTP WhatsApp)}
+\end{subfigure}
+\caption{Page d'authentification --- connexion Propriétaire (JWT HS256) et
+Ouvrier PWA (OTP WhatsApp à 6 chiffres, TTL 5 minutes).}
+\label{fig:screen_login}
+\end{figure}
+
+% ── 4.3.2 Dashboard principal ────────────────────────────────
 \subsection{Dashboard principal}
+
+Le tableau de bord principal agrège en une seule vue les indicateurs clés
+de l'exploitation~: KPIs temps réel (animaux actifs, alertes non lues,
+température moyenne IoT, production du jour), graphiques de tendance
+Recharts (FCR sur 42~jours, courbe de mortalité, production d'œufs), carte
+GIS Leaflet/MapLibre avec localisation des fermes et vétérinaires proches,
+et flux d'alertes WebSocket en temps réel (badge animé, toasts critiques).
 
 \begin{figure}[H]
 \centering
@@ -321,7 +634,18 @@ couvain = 34.2\,°C — tous dans les plages opérationnelles normales.}
 \label{fig:iot_telemetry}
 \end{figure}
 
-\subsection{Scanner IA (AIScanner)}
+% ── 4.3.3 Scanner IA ─────────────────────────────────────────
+\subsection{Scanner IA (CVMonitoring)}
+
+Le module \textit{CVMonitoring} (\texttt{/cv}) permet l'upload ou la capture
+directe d'une image depuis la caméra, l'envoi à l'endpoint
+\texttt{POST /api/v1/cv/detect} qui exécute l'inférence YOLOv11n (11 classes,
+$\leq 180$\,ms CPU) ou yolo26n-obb pour les ruches.
+Le résultat affiche les boîtes englobantes colorées par classe, le score de
+confiance, et déclenche l'assistant Darija (Labess-7B via Ollama) pour
+une recommandation contextuelle en dialecte tunisien. L'historique des
+diagnostics (\texttt{DiagnosticHistory}) est consultable sous forme de
+liste scrollable.
 
 \begin{figure}[H]
 \centering
@@ -418,7 +742,17 @@ couvain = 34.2\,°C — tous dans les plages opérationnelles normales.}
 \label{fig:screen_scanner_workflow}
 \end{figure}
 
+% ── 4.3.5 ERP Aviculture ─────────────────────────────────────
 \subsection{ERP Aviculture}
+
+Le module ERP avicole (\texttt{/aboutpoultry}) fournit une gestion complète
+des lots de poulets de chair et de poules pondeuses en 6 vues~: tableau de
+bord lot (KPIs FCR, mortalité, poids moyen, jours restants + graphiques
+Recharts), formulaire d'enregistrement alimentation journalier, journal de
+mortalité cumulée, registre de ponte hebdomadaire, suivi sanitaire
+(vaccinations, traitements) et gestion des ventes avec calcul automatique
+du chiffre d'affaires. Le modèle FCR polynomial deg.~2 prédit en temps réel
+le taux de conversion alimentaire ($R^2 = 0.891 \pm 0.024$).
 
 \begin{figure}[H]
 \centering
@@ -520,7 +854,8 @@ couvain = 34.2\,°C — tous dans les plages opérationnelles normales.}
 \label{fig:screen_erp_subfigs}
 \end{figure}
 
-\subsection{Tableau de bord Apiculture}
+% ── 4.3.4 Module Apiculture ──────────────────────────────────
+\subsection{Module Apiculture}
 
 Le module Apiculture intègre le protocole scientifique \textbf{COLOSS BeeBook}
 pour le scoring de santé des ruches. Lors de chaque visite, le \textit{health score}
@@ -718,10 +1053,16 @@ $\Delta\text{poids} > 2$\,kg/60\,min (seuil ESP32 Node B).
 \label{fig:screen_apiculture_detail}
 \end{figure}
 
-\subsection{Carte GIS}
+% ── 4.3.6 Carte GIS (MapCenter) ─────────────────────────────
+\subsection{Carte GIS (MapCenter)}
 
-Le module GIS expose 5 endpoints GeoJSON REST (\code{/geo/\{farms,vets,markets,hives,nearby-vets\}})
-avec une double stratégie de calcul de distance géographique :
+Le module cartographique (\texttt{/map}) est bâti sur MapLibre GL v5 (WebGL)
+et expose 6 endpoints GeoJSON REST
+(\code{/geo/\{farms,hives,vets,markets,nearby-vets,overpass\}}) permettant
+d'afficher fermes, ruches IoT, vétérinaires et marchés agricoles.
+Le géocodage s'appuie sur Photon (Komoot, autocomplete, debounce 300\,ms)
+et Nominatim (OSM, reverse). La distance géographique est calculée selon
+deux stratégies complémentaires :
 
 \begin{itemize}
   \item \textbf{Mode PostgreSQL} : requête PostGIS \code{ST\_DWithin(geom::geography, ST\_MakePoint(\ldots)::geography, radius)} avec résultat trié par \code{ST\_Distance}.
@@ -822,7 +1163,95 @@ recherche de proximité via Haversine (SQLite) ou \texttt{ST\_DWithin} (PostGIS)
 \label{fig:screen_gis}
 \end{figure}
 
-\subsection{PWA Worker mobile}
+% ── 4.3.7 Agent Darija (SovereignAssistant) ──────────────────
+\subsection{Agent Darija (SovereignAssistant)}
+
+La page \texttt{/assistant} implémente un assistant conversationnel multi-modal
+en dialecte tunisien Darija. Le pipeline traite une image ou un texte en
+4 étapes séquentielles~: (1) Vision LLaVA (Ollama local) ou Groq-Vision
+pour décrire l'image~; (2) OCR Tesseract (\texttt{fra+ara+eng}) sur les
+documents téléversés~; (3) enrichissement de la requête par le contexte extrait~;
+(4) récupération ChromaDB top-3 (collection \texttt{sovereign\_wisdom\_v3},
+HNSW, cosine similarity) et génération par Labess-7B (fallback Groq
+llama-3.3-70b). L'historique des conversations est persisté dans
+\texttt{DiagnosticHistory} pour auditabilité.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=6pt,thick,violet!40,fill=gray!3](0,0)rectangle(13,7.5);
+  \fill[violet!55](0,6.9)rectangle(13,7.5);
+  \node[white,font=\small\bfseries]at(6.5,7.2){Agent Darija — SovereignAssistant (Labess-7B + RAG)};
+  % Chat history (left panel)
+  \fill[gray!8,draw=gray!30,rounded corners=3pt](0.3,0.4)rectangle(5.5,6.7);
+  \node[gray!60,font=\scriptsize\bfseries]at(2.9,6.5){Historique conversations};
+  \foreach \y/\q/\clr in {
+    5.9/{Kif naamel b5eer ma3a el-bovins?}/{blue!15},
+    5.1/{El-ruche mte3i poids baisse...}/{blue!15},
+    4.3/{FCR lot 12 kbir, chna9es?}/{blue!15}}{
+    \fill[\clr,rounded corners=2pt](0.5,\y-0.25)rectangle(5.3,\y+0.25);
+    \node[font=\tiny,align=left,anchor=west]at(0.65,\y){\q};}
+  % Input area
+  \fill[white,draw=blue!30,rounded corners=2pt](0.4,0.5)rectangle(5.4,1.0);
+  \node[gray!50]at(2.9,0.75){Écrire en Darija ou FR...};
+  % Right panel - current response
+  \fill[violet!5,draw=violet!30,rounded corners=3pt](5.8,0.4)rectangle(12.7,6.7);
+  \node[violet!60!black,font=\scriptsize\bfseries]at(9.25,6.5){Réponse Labess-7B — Darija};
+  \fill[gray!12,rounded corners=2pt](6.0,4.6)rectangle(12.5,6.3);
+  \node[font=\tiny,align=left,anchor=north west]at(6.15,6.25)
+    {«\,Ruche-ek, el-poids bahas bel-normal fi fasel el-kharif.};
+  \node[font=\tiny,anchor=west]at(6.15,5.8){Lazem teraqeb el-wazen kol yawm. Itha};
+  \node[font=\tiny,anchor=west]at(6.15,5.5){bahas bi 2\,kg fi sa3a, ya3ni essiyem.};
+  \node[font=\tiny,anchor=west]at(6.15,5.2){Stanna mtetfaredha w raqeb\,»};
+  % Sources RAG
+  \fill[blue!8,rounded corners=2pt](6.0,3.8)rectangle(12.5,4.5);
+  \node[blue!60!black,font=\tiny\bfseries,anchor=west]at(6.15,4.35){Sources ChromaDB (top-3)~:};
+  \node[font=\tiny,anchor=west]at(6.15,4.0){AVFA Guide Apicole p.47 · COLOSS BeeBook §3.2 · Fiche vét. Sfax};
+  % Pipeline badges
+  \fill[blue!15,rounded corners=2pt](6.0,0.5)rectangle(7.8,1.2);
+  \node[blue!60!black,font=\tiny\bfseries]at(6.9,0.95){Vision LLaVA};
+  \node[font=\tiny]at(6.9,0.72){OCR tesseract};
+  \fill[green!15,rounded corners=2pt](8.0,0.5)rectangle(9.8,1.2);
+  \node[green!60!black,font=\tiny\bfseries]at(8.9,0.95){ChromaDB};
+  \node[font=\tiny]at(8.9,0.72){top-3 HNSW};
+  \fill[violet!15,rounded corners=2pt](10.0,0.5)rectangle(12.5,1.2);
+  \node[violet!60!black,font=\tiny\bfseries]at(11.25,0.95){Labess-7B GGUF};
+  \node[font=\tiny]at(11.25,0.72){Fallback~: Groq 70B};
+  % Scores
+  \fill[green!20,rounded corners=2pt](6.0,1.4)rectangle(12.5,1.9);
+  \node[green!60!black,font=\scriptsize]at(9.25,1.65){BLEU-4\,=\,0.68 · ROUGE-L\,=\,0.72 · Cohen's κ\,=\,0.76};
+\end{tikzpicture}
+\caption{Interface SovereignAssistant --- historique conversations Darija (gauche),
+réponse Labess-7B avec sources RAG ChromaDB (droite) et pipeline multi-modal
+(Vision + OCR + RAG + LLM).}
+\label{fig:screen_assistant}
+\end{figure}
+
+% ── 4.3.8 Télémétrie IoT ─────────────────────────────────────
+\subsection{Tableau de bord Télémétrie IoT}
+
+Le module Télémétrie (\texttt{/telemetry}) affiche en temps réel les séries
+temporelles des deux nœuds ESP32. Le Nœud A transmet toutes les 30\,s
+l'humidité du sol (DHT22) et le débit d'irrigation (YF-S201)~; le Nœud B
+transmet toutes les 10\,s le poids de la ruche (HX711) et la température du
+couvain (DHT22). Un seuil d'humidité configurable ($< 30\,\%$) déclenche
+automatiquement la pompe d'irrigation et génère une alerte WebSocket.
+L'alerte d'essaimage est levée si $\Delta\text{poids} > 2$\,kg/60\,min.
+La figure~\ref{fig:iot_telemetry} illustre un extrait de télémétrie réelle
+(Nœud~A + Nœud~B, ferme pilote P1, 28 avril 2026).
+
+% ── 4.3.9 PWA Worker mobile ──────────────────────────────────
+\subsection{Application PWA Worker mobile}
+
+L'application mobile Worker (\texttt{/worker/*}) est installable sur Android
+et iOS via le manifest PWA. Elle fonctionne \textit{intégralement hors-ligne}
+grâce à Dexie IndexedDB (cache des tâches assignées, rapports terrain, photos)
+et un Service Worker (mise en cache des assets statiques). Les actions
+effectuées hors-ligne (validation de tâche, saisie de rapport, lecture de
+capteur manuelle) sont enqueued dans IndexedDB et synchronisées automatiquement
+avec le backend FastAPI au rétablissement de la connexion réseau.
+L'authentification repose sur le flux OTP WhatsApp (PIN~4 chiffres + OTP~6 chiffres,
+TTL~5\,min) sans mot de passe mémorisé sur l'appareil.
 
 % ── fig:screen_pwa — 3 écrans PWA mobile ─────────────────────────────────────
 \begin{figure}[H]

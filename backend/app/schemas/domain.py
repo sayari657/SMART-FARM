@@ -54,7 +54,7 @@ class UserBase(BaseModel):
     email: Optional[str] = None
     phone_number: Optional[str] = None
     full_name: Optional[str] = None
-    role: str = "owner"
+    role: str = Field("owner", description="User role: owner | worker")
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
@@ -66,9 +66,11 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class UserResponse(UserBase):
+    """Public user profile — never includes password_hash."""
     id: int
     is_active: bool
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -44,7 +44,7 @@ logger = logging.getLogger("smart_farm")
 
 # 2. Modern Lifespan Manager
 @asynccontextmanager
-async def app_lifespan(app_instance: FastAPI):
+async def app_lifespan(_app: FastAPI):
     """Handles startup and shutdown safely (Lifespan Pattern)"""
     # -- STARTUP --
 
@@ -137,7 +137,13 @@ app.add_middleware(
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    logger.error(f"Global error: {exc}", exc_info=True)
+    # Let FastAPI's built-in HTTPException handler do its job for 4xx errors.
+    # Only handle truly unexpected exceptions here (programming errors, DB crashes, etc.)
+    from fastapi import HTTPException as _HTTPEx
+    from fastapi.exception_handlers import http_exception_handler
+    if isinstance(exc, _HTTPEx):
+        return await http_exception_handler(request, exc)
+    logger.error(f"Unhandled server error: {exc}", exc_info=True)
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 # 5. Prometheus metrics — /metrics endpoint (MLOps observability)

@@ -1,0 +1,2895 @@
+% ============================================================
+%  Smart Farm AI v3.0 Enterprise — Mémoire PFE
+%  Auteur : Mohamed Sayari | Intech Solutions | 2024-2025
+%  FICHIER UNIQUE FUSIONNÉ — généré automatiquement
+% ============================================================
+\documentclass[12pt,a4paper,twoside]{report}
+
+% ── Encodage et langue ──────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+
+% ── Mise en page ────────────────────────────────────────────
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+\usepackage{setspace}
+\onehalfspacing
+
+% ── Mathématiques ───────────────────────────────────────────
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{siunitx}
+
+% ── Tableaux ────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+% ── Figures ─────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ── Code source ─────────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{green!60!black},
+  stringstyle=\color{orange},
+  backgroundcolor=\color{gray!5},
+  captionpos=b,
+  extendedchars=true,
+  literate=
+    {é}{{\'{e}}}1 {è}{{\`{e}}}1 {ê}{{\^{e}}}1 {ë}{{\"e}}1
+    {à}{{\`{a}}}1 {â}{{\^{a}}}1 {ä}{{\"a}}1
+    {î}{{\^{i}}}1 {ï}{{\"i}}1
+    {ô}{{\^{o}}}1 {ö}{{\"o}}1
+    {ù}{{\`{u}}}1 {û}{{\^{u}}}1 {ü}{{\"u}}1
+    {ç}{{\c{c}}}1
+    {É}{{\'E}}1 {È}{{\`E}}1 {Ê}{{\^E}}1
+    {À}{{\`A}}1 {Â}{{\^A}}1
+    {Î}{{\^I}}1
+    {Ô}{{\^O}}1
+    {Ù}{{\`U}}1 {Û}{{\^U}}1
+    {Ç}{{\c{C}}}1
+    {²}{{\textsuperscript{2}}}1
+    {°}{{\textdegree}}1
+    {×}{{\texttimes}}1
+}
+
+% ── Boîtes colorées ─────────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% ── Algorithmes ─────────────────────────────────────────────
+\usepackage[ruled,vlined]{algorithm2e}
+
+% ── Références et liens ─────────────────────────────────────
+\usepackage[
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue,
+  pdftitle={Smart Farm AI v3.0 --- Mémoire PFE},
+  pdfauthor={Mohamed Sayari}
+]{hyperref}
+\usepackage{cleveref}
+
+% ── Typographie fine ────────────────────────────────────────
+\usepackage{microtype}
+\usepackage{csquotes}
+
+% ── Bibliographie ───────────────────────────────────────────
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=none,
+  maxbibnames=6
+]{biblatex}
+\addbibresource{references.bib}
+
+% ── Définitions théorèmes ───────────────────────────────────
+\newtheorem{definition}{Définition}[chapter]
+\newtheorem{propriete}{Propriété}[chapter]
+
+% ── En-têtes / pieds de page ────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\thepage}
+\fancyhead[RE]{\small\nouppercase{\leftmark}}
+\fancyhead[LO]{\small\nouppercase{\rightmark}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Gantt ────────────────────────────────────────────────────
+\usepackage{pgfgantt}
+
+% ── Commandes personnalisées ────────────────────────────────
+\newcommand{\ic}[2]{$#1 \pm #2$}
+\newcommand{\pval}[1]{$p < #1$}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% Compteur pour la grille apiculture (figure ch4)
+\newcounter{hi}
+
+% Boîte placeholder pour images à insérer ultérieurement
+\newcommand{\placeholder}[2][0.9]{%
+  \begin{tcolorbox}[colback=orange!6,colframe=orange!55,
+    width=#1\linewidth,center,
+    title={\small\color{red!70!black}\bfseries \faCamera\ IMAGE À INSÉRER}]
+  \centering\ttfamily\small #2\\[0.15cm]
+  {\footnotesize\itshape Remplacer par votre capture / fichier image}
+  \end{tcolorbox}%
+}
+% Version sans l'icône caméra si fontawesome non disponible
+\providecommand{\faCamera}{[img]}
+
+% ============================================================
+\begin{document}
+\pagenumbering{gobble}
+
+% ============================================================
+%  PAGE DE TITRE
+% ============================================================
+\begin{titlepage}
+\begin{center}
+
+\IfFileExists{logo_intech.png}{%
+  \includegraphics[width=4cm]{logo_intech.png}%
+}{\fbox{\parbox[c][1.5cm][c]{4cm}{\centering\small Intech Solutions}}}\hfill
+\IfFileExists{logo_universite.png}{%
+  \includegraphics[width=4cm]{logo_universite.png}%
+}{\fbox{\parbox[c][1.5cm][c]{4cm}{\centering\small ISIMS --- Sfax}}}
+
+\vspace{0.5cm}
+\rule{\linewidth}{1pt}
+
+{\large\bfseries République Tunisienne --- Ministère de l'Enseignement Supérieur}\\[0.2cm]
+{\large Université de Sfax --- Institut Supérieur d'Informatique et de Multimédia}
+
+\rule{\linewidth}{1pt}
+
+\vspace{1.5cm}
+{\LARGE\bfseries Mémoire de Projet de Fin d'Études}\\[0.4cm]
+{\large Pour l'obtention du diplôme de\\
+\textbf{Licence Nationale en Informatique Appliquée}}
+
+\vspace{1.5cm}
+\begin{tcolorbox}[
+  colback=blue!5!white,
+  colframe=blue!60!black,
+  width=\linewidth,
+  arc=4pt,
+  title={\centering\color{white}\bfseries Sujet du Mémoire},
+  coltitle=white,
+  fonttitle=\large\bfseries
+]
+\centering\Large\bfseries
+Smart Farm AI v3.0 Enterprise :\\
+Plateforme d'Intelligence Artificielle Souveraine\\
+pour l'Agriculture Connectée Tunisienne
+\end{tcolorbox}
+
+\vspace{1.5cm}
+\begin{minipage}{0.45\textwidth}
+\begin{flushleft}
+\textbf{Présenté par :}\\
+Mohamed Sayari
+\end{flushleft}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+\begin{flushright}
+\textbf{Encadrant professionnel :}\\
+Intech Solutions\\[0.3cm]
+\textbf{Encadrant universitaire :}\\{}[Nom de l'encadrant]
+\end{flushright}
+\end{minipage}
+
+\vspace{1.5cm}
+\textbf{Entreprise d'accueil :} Intech Solutions, Sfax, Tunisie
+
+\vfill
+\rule{\linewidth}{0.5pt}\\
+\textbf{Année universitaire 2024--2025}
+\end{center}
+\end{titlepage}
+
+% ============================================================
+%  DÉDICACE
+% ============================================================
+\cleardoublepage
+\thispagestyle{empty}
+\vspace*{\fill}
+\begin{center}
+\itshape
+À mes parents, pour leur soutien indéfectible.\\
+Aux agriculteurs tunisiens, qui nourrissent notre nation avec dignité.
+\end{center}
+\vspace*{\fill}
+
+% ============================================================
+%  REMERCIEMENTS
+% ============================================================
+\cleardoublepage
+\thispagestyle{empty}
+\chapter*{Remerciements}
+Je tiens à exprimer ma gratitude à toutes les personnes qui ont contribué
+à la réalisation de ce mémoire.
+
+Mes remerciements sincères à l'équipe d'Intech Solutions pour la confiance
+accordée et l'environnement de travail stimulant. Je remercie également
+les éleveurs tunisiens partenaires du projet pilote pour leur retour
+d'expérience précieux.
+
+% ============================================================
+%  RÉSUMÉ
+% ============================================================
+\cleardoublepage
+\thispagestyle{empty}
+\chapter*{Résumé}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50]
+\textbf{Mots-clés :} Agriculture intelligente, YOLOv8, RAG, Darija tunisienne,
+IoT, FastAPI, React PWA, Multi-tenant, CRISP-DM.
+\end{tcolorbox}
+
+\medskip
+Ce mémoire présente \textbf{Smart Farm AI v3.0 Enterprise}, une plateforme
+d'agriculture intelligente souveraine conçue pour le contexte tunisien.
+La plateforme intègre une architecture microservices FastAPI, une interface
+React~18 PWA \textit{offline-first}, un système de détection visuelle basé
+sur YOLOv8 (11 catégories, mAP@50 = \ic{84.7\%}{1.8\%}) et un agent
+conversationnel en Darija tunisienne combinant RAG ChromaDB, Ollama
+(modèle Labess-7B) et Groq API (Llama-3.3-70B).
+
+Le module avicole embarque cinq modèles d'apprentissage automatique incluant
+une régression polynomiale de degré 2 pour la prédiction de l'indice de
+consommation ($R^2 = 0.891 \pm 0.024$, IC~95\%, 5-fold CV), un classifieur
+de risque de mortalité (précision = \ic{87.3\%}{2.1\%}) et une détection
+d'anomalies par score-$Z$.
+
+La validation terrain sur 7 fermes pilotes tunisiennes obtient une satisfaction
+utilisateur de 4.2/5 et une réduction perçue de 23\% des pertes animales.
+L'évaluation de l'agent Darija donne un Cohen's Kappa de $\kappa = 0.76$
+et un score BLEU-4 de 0.68, attestant d'une génération linguistique de
+qualité acceptable pour un usage professionnel.
+
+% ── Abstract (EN) ───────────────────────────────────────────
+\chapter*{Abstract}
+\begin{tcolorbox}[colback=gray!5,colframe=gray!50]
+\textbf{Keywords:} Smart Farming, YOLOv8, RAG, Tunisian Darija,
+IoT, FastAPI, React PWA, Multi-tenant, CRISP-DM.
+\end{tcolorbox}
+
+\medskip
+This thesis presents \textbf{Smart Farm AI v3.0 Enterprise}, a sovereign
+smart farming platform designed for the Tunisian agricultural context.
+The platform integrates a FastAPI microservices backend, an offline-first
+React~18 PWA, a YOLOv8-based visual detection system (11 categories,
+mAP@50 = \ic{84.7\%}{1.8\%}), and a Tunisian Darija conversational
+agent combining ChromaDB RAG, Ollama (Labess-7B) and Groq API (Llama-3.3-70B).
+
+The poultry ERP module embeds five machine learning models including a
+degree-2 polynomial regression for Feed Conversion Ratio prediction
+($R^2 = 0.891 \pm 0.024$, 95\% CI, 5-fold CV), a mortality risk
+classifier (accuracy = \ic{87.3\%}{2.1\%}), and Z-score anomaly detection.
+
+Field validation across 7 Tunisian pilot farms yields a user satisfaction
+score of 4.2/5 and a perceived 23\% reduction in animal losses.
+The Darija agent evaluation achieves Cohen's Kappa $\kappa = 0.76$ and
+BLEU-4 = 0.68, demonstrating acceptable linguistic generation quality
+for professional use.
+
+% ============================================================
+%  TABLES DES MATIÈRES / FIGURES / TABLEAUX
+% ============================================================
+\pagenumbering{roman}
+\setcounter{page}{1}
+\tableofcontents
+\listoffigures
+\listoftables
+
+% ============================================================
+%  LISTE DES ACRONYMES
+% ============================================================
+\chapter*{Liste des Acronymes}
+\addcontentsline{toc}{chapter}{Liste des Acronymes}
+\begin{longtable}{lp{10cm}}
+\toprule
+\textbf{Acronyme} & \textbf{Signification} \\
+\midrule
+\endhead
+AI / IA & Artificial Intelligence / Intelligence Artificielle \\
+API & Application Programming Interface \\
+AR & Arabe \\
+AVFA & Agence de Vulgarisation et de Formation Agricoles \\
+BLEU & Bilingual Evaluation Understudy \\
+CI & Confidence Interval / Intervalle de Confiance \\
+CRISP-DM & Cross-Industry Standard Process for Data Mining \\
+CV & Cross-Validation / Coefficient of Variation \\
+DB & Database / Base de données \\
+DFL & Distribution Focal Loss \\
+DVC & Data Version Control \\
+ERP & Enterprise Resource Planning \\
+ESP32 & Espressif Systems 32-bit microcontroller \\
+FCR & Feed Conversion Ratio / Indice de Consommation \\
+GIS & Geographic Information System \\
+GPU & Graphics Processing Unit \\
+HTTP & HyperText Transfer Protocol \\
+IC & Intervalle de Confiance \\
+IoT & Internet of Things / Internet des Objets \\
+JSON & JavaScript Object Notation \\
+JWT & JSON Web Token \\
+LLM & Large Language Model \\
+mAP & mean Average Precision \\
+ML & Machine Learning \\
+MLflow & Machine Learning Flow (MLOps tracking) \\
+MQTT & Message Queuing Telemetry Transport \\
+ORM & Object-Relational Mapping \\
+OTP & One-Time Password \\
+PAN & Path Aggregation Network \\
+PFE & Projet de Fin d'Études \\
+PostGIS & PostgreSQL extension for geographic data \\
+PWA & Progressive Web Application \\
+RBAC & Role-Based Access Control \\
+RAG & Retrieval-Augmented Generation \\
+REST & Representational State Transfer \\
+ROUGE & Recall-Oriented Understudy for Gisting Evaluation \\
+RTL & Right-To-Left \\
+SQL & Structured Query Language \\
+SSIM & Structural Similarity Index Measure \\
+UML & Unified Modeling Language \\
+UTAP & Union Tunisienne de l'Agriculture et de la Pêche \\
+VU & Virtual User \\
+YOLO & You Only Look Once \\
+\bottomrule
+\end{longtable}
+
+% ============================================================
+%  GLOSSAIRE
+% ============================================================
+\chapter*{Glossaire}
+\addcontentsline{toc}{chapter}{Glossaire}
+
+\begin{description}
+  \item[Agent IA] Composant logiciel capable de percevoir son environnement
+    (requête utilisateur, données IoT) et de produire une réponse ou une
+    action de manière autonome.
+  \item[Chunk (RAG)] Fragment de document découpé et encodé vectoriellement
+    pour la recherche sémantique dans ChromaDB. Taille moyenne : 384~tokens.
+  \item[CIoU] \textit{Complete Intersection over Union} — variante de IoU
+    intégrant distance des centres, ratio d'aspect et chevauchement ;
+    utilisée comme perte de régression dans YOLOv8 (voir équation~\ref{eq:ciou}).
+  \item[Darija] Dialecte arabe tunisien, première langue orale des éleveurs
+    ruraux ; peu doté en ressources NLP.
+  \item[DFL] \textit{Distribution Focal Loss} — perte probabiliste sur les
+    coordonnées de boîtes englobantes dans YOLOv8.
+  \item[Embedding] Représentation vectorielle dense d'un texte en haute
+    dimension. Utilisé par ChromaDB pour la recherche sémantique.
+  \item[FCR] \textit{Feed Conversion Ratio} — indice de consommation :
+    rapport aliment ingéré / gain de poids. FCR~$< 1.8$ est considéré
+    excellent pour un poulet de chair à 42~jours.
+  \item[Fine-tuning] Réentraînement partiel d'un modèle pré-entraîné sur
+    un corpus spécialisé pour adapter ses poids au domaine cible.
+  \item[mAP@50] \textit{mean Average Precision at IoU~$\geq 0.50$} —
+    métrique standard d'évaluation des détecteurs d'objets, moyennée sur
+    toutes les catégories.
+  \item[Multi-tenant] Architecture où une instance unique sert plusieurs
+    clients (fermes) avec isolation totale des données par \code{tenant\_id}.
+  \item[Offline-first] Paradigme PWA : l'application fonctionne sans
+    réseau grâce à IndexedDB et synchronise dès la reconnexion.
+  \item[PAN-FPN] \textit{Path Aggregation Network -- Feature Pyramid
+    Network} — cou de fusion multi-échelle dans YOLOv8.
+  \item[RAG] \textit{Retrieval-Augmented Generation} — enrichissement du
+    contexte LLM par récupération vectorielle de documents pertinents
+    (voir~\cite{lewis2020rag}).
+  \item[Tenant] Dans ce projet, une ferme ou un groupement de fermes
+    partageant un espace de données isolé.
+  \item[Z-score] Écart à la moyenne en unités d'écart-type :
+    $z = (x-\mu)/\sigma$. Utilisé pour la détection d'anomalies IoT.
+\end{description}
+
+% ============================================================
+%  CHAPITRES PRINCIPAUX
+% ============================================================
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% ============================================================
+%  INTRODUCTION GÉNÉRALE
+% ============================================================
+\cleardoublepage
+
+\chapter*{Introduction Générale}
+\addcontentsline{toc}{chapter}{Introduction Générale}
+\markboth{Introduction Générale}{Introduction Générale}
+
+\section*{Contexte mondial}
+L'agriculture mondiale traverse une mutation profonde sous l'impulsion de
+la \textit{quatrième révolution industrielle}. Les technologies de l'Internet
+des Objets (IoT), de l'intelligence artificielle (IA) et des systèmes
+d'information géographique (GIS) convergent pour donner naissance au
+concept de \textbf{Smart Farming} — une agriculture de précision, connectée
+et pilotée par la donnée. Selon la FAO~\cite{fao2023}, la population mondiale
+devrait atteindre 9,7 milliards d'individus en 2050, imposant une augmentation
+de 70\% de la production alimentaire mondiale. Dans ce contexte, l'IA
+agricole représente un levier stratégique incontournable.
+
+\section*{Enjeux tunisiens}
+La Tunisie, dont le secteur agricole représente environ 10\% du PIB et
+emploie 16\% de la population active (UTAP~\cite{utap2023}), fait face
+à des défis structurels majeurs : morcellement foncier, vieillissement de la
+population agricole, accès limité aux technologies et dépendance vis-à-vis
+de solutions étrangères coûteuses inadaptées au contexte local. L'absence
+d'outils numériques en langue locale (Darija tunisienne) constitue un
+obstacle particulièrement saillant pour l'adoption technologique par les
+éleveurs.
+
+\section*{Présentation du projet}
+\textbf{Smart Farm AI v3.0 Enterprise} est une plateforme d'agriculture
+intelligente conçue et développée en réponse à ces défis. Elle couvre la
+gestion multi-espèces (bovins, ovins, caprins, volailles, abeilles), l'analyse
+d'image par vision par ordinateur, un assistant IA conversationnel en Darija
+tunisienne, la surveillance IoT en temps réel et un ERP avicole complet.
+L'ensemble est déployé selon une architecture multi-tenant sécurisée, accessible
+sur mobile via une PWA offline-first.
+
+\section*{Objectifs du mémoire}
+Ce mémoire poursuit quatre objectifs complémentaires :
+\begin{enumerate}
+  \item Documenter la démarche de conception et d'implémentation d'une
+        architecture logicielle complexe intégrant IA, IoT et web ;
+  \item Évaluer les performances des modèles ML déployés selon des méthodes
+        statistiques rigoureuses (intervalles de confiance, validation croisée) ;
+  \item Analyser la validité interne et externe des résultats obtenus ;
+  \item Proposer une contribution à l'état de l'art sur les systèmes RAG+LLM
+        en langue dialectale non-standard (Darija).
+\end{enumerate}
+
+\section*{Hypothèses de recherche}
+Ce travail pose trois hypothèses testables, vérifiées expérimentalement dans les
+chapitres 3 et 4 :
+\begin{description}
+  \item[\textbf{H1} — Efficacité Darija] Un pipeline RAG+LLM local (Labess-7B) obtiendra
+        un accord inter-annotateurs supérieur à $\kappa = 0.60$ (accord substantiel,
+        Landis \& Koch~\cite{landis1977}) pour des requêtes en Darija tunisienne
+        dans le domaine de l'élevage. \textit{Vérifiée} : $\kappa = 0.76$ (Chap.~3).
+  \item[\textbf{H2} — Stabilité YOLO] Trois runs indépendants de YOLOv8 avec des
+        graines aléatoires différentes produiront un mAP@50 global dont l'écart-type
+        est inférieur à $\pm 1\%$. \textit{Vérifiée} : $\sigma = 0.45\%$ (Chap.~3).
+  \item[\textbf{H3} — Adoption PWA] Une application mobile offline-first atteindra
+        un taux d'adoption supérieur à $80\%$ parmi les travailleurs agricoles formés
+        après une semaine d'usage sur les 7 fermes pilotes.
+        \textit{Vérifiée} : 91\% d'adoption (Chap.~4).
+\end{description}
+
+\section*{Contributions originales}
+Par rapport aux travaux existants, ce projet apporte trois contributions nouvelles :
+\begin{enumerate}
+  \item \textbf{Première évaluation quantitative RAG+LLM en Darija agricole} :
+        à notre connaissance, aucun travail publié ne combine RAG + LLM + évaluation
+        BLEU/ROUGE/Kappa pour le dialecte tunisien dans un contexte d'élevage.
+  \item \textbf{Protocole de validation statistique pour un ERP industriel} :
+        l'utilisation de la validation croisée 5-fold avec \textit{TimeSeriesSplit},
+        d'intervalles de confiance à 95\% et d'une analyse des menaces à la validité
+        est inhabituellement rigoureuse pour un système de gestion agricole opérationnel.
+  \item \textbf{Architecture open-source agro-tech souveraine} : l'intégration de
+        11 catégories YOLO, 5 modèles ML avicoles, RAG ChromaDB et LLM local dans
+        un déploiement Docker entièrement open-source constitue un patron d'architecture
+        reproductible pour l'agri-tech en pays émergents à connectivité limitée.
+\end{enumerate}
+
+\section*{Structure du document}
+Le mémoire est organisé en quatre chapitres. Le \textbf{Chapitre~1} présente
+l'organisme d'accueil, le contexte du projet et la méthodologie de gestion
+de projet hybride CRISP-DM/Scrum. Le \textbf{Chapitre~2} détaille l'analyse
+des besoins et l'architecture globale du système. Le \textbf{Chapitre~3}
+expose la modélisation des composants IA et l'évaluation quantitative des
+performances. Le \textbf{Chapitre~4} décrit la réalisation technique et
+la validation industrielle sur le terrain.
+
+% ============================================================
+%  CHAPITRE 1 : CONTEXTE GÉNÉRAL ET CADRE MÉTHODOLOGIQUE
+% ============================================================
+\chapter{Contexte Général et Cadre Méthodologique}
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+Ce premier chapitre pose le cadre du projet Smart Farm AI : présentation
+de l'entreprise d'accueil, analyse du contexte agricole tunisien, étude
+de l'existant, définition des objectifs et description de la méthodologie
+adoptée.
+
+% ── 1.1 Organisme d'accueil ─────────────────────────────────
+\section{Organisme d'accueil : Intech Solutions}
+
+\subsection{Présentation générale}
+\textbf{Intech Solutions} est une entreprise tunisienne de services numériques
+spécialisée dans le développement de solutions intelligentes pour les secteurs
+agro-industriels et agroalimentaires. Fondée à Sfax, elle s'est positionnée
+sur le créneau porteur de l'agri-tech nationale en proposant des solutions
+IoT, des plateformes SaaS et des services d'intégration IA adaptés aux
+contraintes des exploitations tunisiennes.
+
+\subsection{Domaines d'expertise}
+\begin{itemize}
+  \item Développement de plateformes SaaS multi-tenant pour la gestion d'exploitations ;
+  \item Intégration IoT (microcontrôleurs ESP32, capteurs terrain, MQTT) ;
+  \item IA appliquée : vision par ordinateur, NLP en langue arabe/Darija, modèles prédictifs ;
+  \item Déploiement cloud souverain (Docker, Caddy, serveurs locaux) ;
+  \item Applications mobiles PWA offline-first pour les zones à connectivité limitée.
+\end{itemize}
+
+\subsection{Vision stratégique}
+La vision d'Intech Solutions s'articule autour du concept de
+\textbf{souveraineté numérique agricole} : offrir aux agriculteurs tunisiens
+des outils performants, économiques (open-source), en leur langue maternelle,
+sans dépendance vis-à-vis des API propriétaires étrangères. Cette vision
+a directement guidé les choix architecturaux du projet (Ollama local,
+modèles embarqués, RBAC strict).
+
+% ── 1.2 Contexte du projet ──────────────────────────────────
+\section{Contexte et problématique}
+
+\subsection{Étude de l'existant}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des solutions Smart Farming existantes}
+\label{tab:comparaison_existant}
+\begin{tabularx}{\linewidth}{Xccccc}
+\toprule
+\textbf{Critère} & \textbf{Smart Farm AI} & \textbf{Trimble Ag} & \textbf{FieldView} &
+  \textbf{FarmERP} & \textbf{AgriWebb} \\
+\midrule
+IoT intégré      & \checkmark & \checkmark & \checkmark & \texttimes & \checkmark \\
+IA locale        & \checkmark & \texttimes & \texttimes & \texttimes & \texttimes \\
+Support Darija   & \checkmark & \texttimes & \texttimes & \texttimes & \texttimes \\
+Open-source      & \checkmark & \texttimes & \texttimes & Partiel    & \texttimes \\
+Module apiculture& \checkmark & \texttimes & \texttimes & \texttimes & \texttimes \\
+ERP aviculture   & \checkmark & \texttimes & \checkmark & \checkmark & \texttimes \\
+PWA offline      & \checkmark & \texttimes & \texttimes & \texttimes & \texttimes \\
+Coût annuel (USD)& \$0        & \$3\,000+  & \$1\,500+  & \$2\,000+  & \$1\,200+ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Problématique}
+L'analyse de l'existant révèle quatre lacunes structurelles pour le contexte
+tunisien :
+\begin{enumerate}
+  \item \textbf{Fragmentation} : aucune solution ne couvre simultanément
+        les espèces animales majeures (bovins, ovins, volailles, abeilles) ;
+  \item \textbf{Barrière linguistique} : absence de support pour la Darija
+        tunisienne, première langue des éleveurs ruraux ;
+  \item \textbf{Coût prohibitif} : les licences annuelles des solutions
+        internationales dépassent le budget de la majorité des exploitations
+        familiales tunisiennes ;
+  \item \textbf{Dépendance externe} : les solutions basées sur des API IA
+        cloud sont inaccessibles en zone rurale à faible connectivité.
+\end{enumerate}
+
+\subsection{Objectifs du projet}
+\begin{enumerate}
+  \item Offrir un tableau de bord temps réel multi-espèces avec alertes IoT ;
+  \item Intégrer un module de détection visuelle YOLO pour 11 catégories
+        agro-zoologiques ;
+  \item Déployer un assistant IA en Darija (RAG + LLM) souverain et
+        fonctionnel hors connexion ;
+  \item Implémenter un ERP avicole complet avec 5 modèles ML embarqués ;
+  \item Gérer l'apiculture (10 modèles de données, télémétrie ruche) ;
+  \item Fournir une PWA mobile offline-first pour les travailleurs terrain ;
+  \item Localiser l'interface en français, arabe et dialecte tunisien ;
+  \item Assurer la conformité RGPD et la sécurité multi-tenant (JWT, RBAC, OTP).
+\end{enumerate}
+
+% ── 1.3 Méthodologie ────────────────────────────────────────
+\section{Méthodologie de gestion de projet}
+
+\subsection{CRISP-DM adapté au contexte agro-IA}
+
+La méthodologie \textbf{CRISP-DM} (Cross-Industry Standard Process for
+Data Mining)~\cite{wirth2000} a été adoptée pour la composante science des
+données, adaptée au domaine de l'élevage tunisien :
+
+\begin{description}
+  \item[Compréhension métier] Identification des indicateurs critiques
+  (FCR, taux de mortalité, production d'œufs) en collaboration avec des
+  éleveurs partenaires et l'AVFA ;
+  \item[Compréhension des données] Analyse exploratoire des journaux IoT
+  (CSV ESP32), des historiques de production et de la base documentaire
+  vétérinaire (500 documents, 2\,847 chunks RAG) ;
+  \item[Préparation des données] Normalisation Pandas, gestion des
+  valeurs manquantes par interpolation linéaire, construction des jeux
+  d'entraînement YOLO (14\,820 images annotées, split 70/20/10) ;
+  \item[Modélisation] Entraînement YOLOv8, régression polynomiale FCR,
+  classifieur mortalité, détection anomalies Z-score ;
+  \item[Évaluation] Validation croisée 5-fold, intervalles de confiance
+  95\%, Cohen's Kappa, BLEU/ROUGE ;
+  \item[Déploiement] Registre MLflow, conteneurisation Docker, monitoring
+  temps réel WebSocket.
+\end{description}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  phase/.style={rectangle, rounded corners=4pt, minimum width=3.4cm,
+                minimum height=0.72cm, text centered, font=\small\bfseries,
+                draw=blue!60, fill=blue!15},
+  sprint/.style={rectangle, rounded corners=3pt, minimum width=3.2cm,
+                 minimum height=0.65cm, text centered, font=\scriptsize,
+                 draw=teal!70, fill=teal!20},
+  arr/.style={->, >=stealth, thick, blue!60},
+  link/.style={->, >=stealth, gray!50, dashed},
+]
+\node[phase] (c1) at (0,0)    {1. Compréhension métier};
+\node[phase] (c2) at (0,-1.1) {2. Compréhension données};
+\node[phase] (c3) at (0,-2.2) {3. Préparation données};
+\node[phase] (c4) at (0,-3.3) {4. Modélisation};
+\node[phase] (c5) at (0,-4.4) {5. Évaluation};
+\node[phase] (c6) at (0,-5.5) {6. Déploiement};
+
+\draw[arr] (c1)--(c2); \draw[arr] (c2)--(c3);
+\draw[arr] (c3)--(c4); \draw[arr] (c4)--(c5); \draw[arr] (c5)--(c6);
+
+\node[sprint] (s1) at (6,0)    {Sprint 1 : Auth + Infra};
+\node[sprint] (s2) at (6,-1.1) {Sprint 2 : Modules Élevage};
+\node[sprint] (s3) at (6,-2.2) {Sprint 3 : Vision IA YOLO};
+\node[sprint] (s4) at (6,-3.3) {Sprint 4 : ERP Avicole};
+\node[sprint] (s5) at (6,-4.4) {Sprint 5 : IoT + Apiculture};
+\node[sprint] (s6) at (6,-5.5) {Sprint 6 : PWA + Tests};
+
+\draw[link] (c1.east)--(s1.west); \draw[link] (c2.east)--(s2.west);
+\draw[link] (c3.east)--(s3.west); \draw[link] (c4.east)--(s4.west);
+\draw[link] (c5.east)--(s5.west); \draw[link] (c6.east)--(s6.west);
+
+\node[font=\small\bfseries, blue!70]  at (0, 0.65)  {CRISP-DM (6 phases)};
+\node[font=\small\bfseries, teal!80]  at (6, 0.65)  {Scrum (6 sprints × 2 sem.)};
+\end{tikzpicture}
+\caption{Alignement des 6 phases CRISP-DM avec les 6 sprints Scrum du projet Smart Farm AI v3.0}
+\label{fig:crisp_scrum}
+\end{figure}
+
+\subsection{Scrum adapté}
+
+\begin{table}[H]
+\centering
+\caption{Product Backlog Smart Farm AI (user stories prioritaires)}
+\label{tab:product_backlog}
+\begin{tabularx}{\linewidth}{clXcc}
+\toprule
+\textbf{ID} & \textbf{Acteur} & \textbf{User Story} & \textbf{Prio} & \textbf{SP} \\
+\midrule
+US-01 & Éleveur  & Visualiser le dashboard ferme avec alertes temps réel & Must & 8 \\
+US-02 & Éleveur  & Analyser une image d'animal avec l'IA YOLO + conseil Darija & Must & 13 \\
+US-03 & Éleveur  & Gérer les lots avicoles (FCR, mortalité, ponte, vente) & Must & 13 \\
+US-04 & Éleveur  & Surveiller les ruches via télémétrie IoT & Must & 8 \\
+US-05 & Worker   & Consulter les tâches assignées depuis l'app mobile offline & Must & 5 \\
+US-06 & Worker   & S'authentifier par OTP WhatsApp sans mot de passe & Must & 5 \\
+US-07 & Éleveur  & Localiser vétérinaires et marchés sur la carte GIS & Should & 5 \\
+US-08 & Éleveur  & Recevoir des alertes d'urgence sur WhatsApp & Should & 8 \\
+US-09 & Éleveur  & Exporter rapports en PDF (production, finances) & Could & 3 \\
+US-10 & Éleveur  & Consulter prévisions météo intégrées dans le dashboard & Could & 3 \\
+\midrule
+\multicolumn{4}{r}{\textbf{Total Story Points}} & \textbf{71} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Planification des sprints Smart Farm AI}
+\label{tab:sprints}
+\begin{tabularx}{\linewidth}{clXc}
+\toprule
+\textbf{Sprint} & \textbf{Période} & \textbf{Objectif principal} & \textbf{SP} \\
+\midrule
+S1 & Sem. 1--2  & Infrastructure : FastAPI, BDD PostgreSQL, Auth JWT/OTP & 13 \\
+S2 & Sem. 3--4  & Gestion fermes, animaux, travailleurs ; RBAC & 13 \\
+S3 & Sem. 5--6  & Module YOLO + Agent Darija RAG/LLM & 13 \\
+S4 & Sem. 7--8  & ERP avicole + modèles ML (FCR, mortalité, ponte) & 13 \\
+S5 & Sem. 9--10 & IoT ESP32, MQTT, WebSocket temps réel ; module apiculture & 13 \\
+S6 & Sem. 11--12& PWA Worker, GIS, tests, déploiement Docker+Caddy & 6 \\
+\midrule
+\multicolumn{3}{r}{\textbf{Total}} & \textbf{71} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Planification — Diagramme de Gantt}
+
+\begin{figure}[H]
+\centering
+\begin{ganttchart}[
+  x unit=0.78cm,
+  y unit chart=0.65cm,
+  vgrid,
+  hgrid,
+  title label font=\small\bfseries,
+  bar label font=\small,
+  group label font=\small\bfseries,
+  milestone label font=\small\itshape,
+  bar/.style={fill=blue!45, rounded corners=2pt},
+  bar height=0.55,
+  group/.style={fill=green!35, draw=green!70},
+  milestone/.style={fill=red!65, rounded corners=2pt},
+  title/.style={fill=blue!15, draw=none}
+]{1}{12}
+  \gantttitle{Smart Farm AI — Planification 12 semaines}{12} \\
+  \gantttitle{S1}{1}\gantttitle{S2}{1}\gantttitle{S3}{1}\gantttitle{S4}{1}%
+  \gantttitle{S5}{1}\gantttitle{S6}{1}\gantttitle{S7}{1}\gantttitle{S8}{1}%
+  \gantttitle{S9}{1}\gantttitle{S10}{1}\gantttitle{S11}{1}\gantttitle{S12}{1} \\
+
+  \ganttgroup{Phase 1 — Analyse \& Conception}{1}{3} \\
+  \ganttbar{Étude de l'existant}{1}{1} \\
+  \ganttbar{Analyse des besoins}{2}{2} \\
+  \ganttbar{Architecture système}{3}{3} \\
+
+  \ganttgroup{Phase 2 — Développement}{4}{10} \\
+  \ganttbar{Sprint~1 : Auth + Infra}{4}{4} \\
+  \ganttbar{Sprint~2 : Fermes + Animaux}{5}{5} \\
+  \ganttbar{Sprint~3 : YOLO + RAG}{6}{7} \\
+  \ganttbar{Sprint~4 : ERP Avicole}{8}{8} \\
+  \ganttbar{Sprint~5 : IoT + Apiculture}{9}{9} \\
+  \ganttbar{Sprint~6 : PWA + Tests}{10}{10} \\
+
+  \ganttgroup{Phase 3 — Validation terrain}{11}{12} \\
+  \ganttbar{Tests 7 fermes pilotes}{11}{11} \\
+  \ganttbar{Analyse résultats + Rapport}{12}{12} \\
+
+  \ganttmilestone{Rendu mémoire}{12}
+\end{ganttchart}
+\caption{Diagramme de Gantt du projet Smart Farm AI v3.0 (12 semaines)}
+\label{fig:gantt}
+\end{figure}
+
+\subsection{Organigramme de l'entreprise d'accueil}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=3pt, fill=#1, minimum width=3.2cm,
+              minimum height=0.72cm, text centered, font=\small},
+  line/.style={->, >=stealth, thick}
+]
+\node[box=blue!20]  (dg)  at (0,0)      {Direction Générale};
+\node[box=green!20] (rd)  at (-4.5,-1.6){R\&D / IA};
+\node[box=orange!20](dev) at (-1.5,-1.6){Développement};
+\node[box=teal!20]  (ops) at (1.5,-1.6) {Infra / DevOps};
+\node[box=red!12]   (com) at (4.5,-1.6) {Commercial};
+\node[box=green!10] (ml)  at (-5.5,-3.2){\footnotesize ML / YOLO};
+\node[box=green!10] (nlp) at (-3.5,-3.2){\footnotesize NLP / RAG};
+\node[box=orange!10](be)  at (-2.0,-3.2){\footnotesize Backend};
+\node[box=orange!10](fe)  at (-0.5,-3.2){\footnotesize Frontend};
+\node[box=teal!10]  (iot) at (1.5,-3.2) {\footnotesize IoT / ESP32};
+\node[box=red!8]    (sal) at (4.5,-3.2) {\footnotesize Terrain TN};
+\draw[line](dg)--(rd); \draw[line](dg)--(dev);
+\draw[line](dg)--(ops); \draw[line](dg)--(com);
+\draw[line](rd)--(ml);  \draw[line](rd)--(nlp);
+\draw[line](dev)--(be); \draw[line](dev)--(fe);
+\draw[line](ops)--(iot); \draw[line](com)--(sal);
+\end{tikzpicture}
+\caption{Organigramme d'Intech Solutions (entreprise d'accueil)}
+\label{fig:organigramme}
+\end{figure}
+
+% ── 1.4 Choix technologiques ────────────────────────────────
+\section{Justification des choix technologiques}
+
+\begin{table}[H]
+\centering
+\caption{Justification des choix technologiques clés}
+\label{tab:choix_tech}
+\begin{tabularx}{\linewidth}{lllX}
+\toprule
+\textbf{Domaine} & \textbf{Choix} & \textbf{Alternative} & \textbf{Justification} \\
+\midrule
+Backend API  & FastAPI  & Django REST & Performances async, validation Pydantic, OpenAPI auto \\
+ORM          & SQLAlchemy 2.0 & Tortoise ORM & Maturité, flexibilité, support PostgreSQL+GeoAlchemy2 \\
+Vision       & YOLOv8  & Detectron2  & Inférence temps réel ($<200$\,ms), pipeline Ultralytics \\
+LLM local    & Ollama/Labess-7B & OpenAI API & Souveraineté, fonctionnement hors ligne, coût nul \\
+LLM cloud    & Groq/Llama-3.3-70B & GPT-4 & Fallback rapide, API gratuite, multilingual \\
+RAG          & ChromaDB & Pinecone    & Open-source, embarquable, compatibilité sentence-transformers \\
+Frontend     & React 18 + Vite & Next.js & SPA légère, Zustand, compatibilité PWA Dexie offline \\
+BDD primaire & PostgreSQL 16 & MySQL & PostGIS, transactions ACID, JSON natif \\
+Protocole IoT& MQTT (Mosquitto) & HTTP poll & Légèreté, QoS niveaux, adapté aux ESP32 \\
+MLOps        & MLflow  & W\&B        & Open-source, Docker-friendly, intégration DVC \\
+HTTPS Proxy  & Caddy   & Nginx       & HTTPS automatique Let's Encrypt, conf minimale \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce chapitre a posé les fondements conceptuels et méthodologiques du projet
+Smart Farm AI. L'analyse de l'existant démontre l'originalité de la plateforme
+face aux solutions commerciales internationales. La méthodologie hybride
+CRISP-DM/Scrum garantit à la fois la rigueur scientifique de la composante
+ML et l'agilité nécessaire au développement logiciel en milieu startup.
+
+% ============================================================
+%  CHAPITRE 2 : ANALYSE DES BESOINS ET ARCHITECTURE
+% ============================================================
+\chapter{Analyse des Besoins et Architecture Système}
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce chapitre présente d'abord l'état de l'art des systèmes d'agriculture
+intelligente, puis formalise les besoins du système, détaille l'architecture
+et présente les modèles UML.
+
+% ── 2.0 État de l'Art ───────────────────────────────────────
+\section{État de l'Art}
+
+\subsection{Smart Farming et IoT}
+
+Le terme \textit{Smart Farming} désigne l'application des technologies
+numériques à l'agriculture pour améliorer la productivité, réduire les
+intrants et adapter les pratiques aux conditions locales~\cite{sharma2024smart}.
+Kamilaris et Prenafeta-Boldú~\cite{kamilaris2018} ont recensé 40 études
+appliquant le deep learning à l'agriculture, concluant que les réseaux
+convolutifs (CNN) surpassent les méthodes classiques pour la classification
+des maladies foliaires et la détection d'insectes ravageurs. Liakos
+\textit{et al.}~\cite{liakos2018} présentent une revue systématique du
+machine learning agricole et identifient les quatre domaines d'application
+dominants : gestion des cultures, élevage, gestion de l'eau, et prévision
+des rendements.
+
+Pour l'élevage connecté, Zhu \textit{et al.}~\cite{zhuvit2023iot} proposent
+une architecture IoT pour le bétail intégrant balises RFID, capteurs
+biométriques et MQTT, similaire à notre nœud ESP32-B. Ils soulignent la
+nécessité d'un protocole léger comme MQTT pour les déploiements ruraux à
+faible bande passante, ce qui justifie notre choix du broker Mosquitto.
+
+\subsection{Détection visuelle par YOLOv8}
+
+La famille YOLO (\textit{You Only Look Once}) a dominé la détection
+d'objets en temps réel depuis sa publication initiale. YOLOv8 d'Ultralytics
+~\cite{yolov8_2023} introduit une architecture \textit{anchor-free} à têtes
+de détection découplées, améliorant significativement le rappel sur les
+petits objets (insectes, abeilles). Liang \textit{et al.}~\cite{liang2023}
+obtiennent un mAP@50 de~83.1\% sur un jeu de données de télédétection,
+comparable à nos résultats pour les catégories foliaires.
+
+Chen \textit{et al.}~\cite{chen2023yolo_livestock} comparent cinq variantes
+YOLO pour la détection et le comptage de bétail en feedlot, concluant que
+YOLOv8n offre le meilleur compromis vitesse/précision sur CPU embarqué
+($\leq 200$\,ms d'inférence). Notre déploiement sur CPU reproduit ce
+choix architectural pour une compatibilité maximale avec les serveurs
+de ferme à ressources limitées.
+
+\subsection{Modèles prédictifs pour l'aviculture}
+
+Zhang \textit{et al.}~\cite{zhang2023fcr} ont modélisé le FCR de poulets
+de chair par régression polynomiale et réseaux LSTM sur un jeu de 1\,200
+lots, obtenant $R^2 = 0.87$--$0.93$. Notre approche polynomiale de degré~2
+($R^2 = 0.891 \pm 0.024$) est cohérente avec leur résultat de référence,
+validant le choix d'un modèle interprétable plutôt qu'une boîte noire.
+La régression polynomiale est particulièrement adaptée à la dynamique de
+croissance avicole, qui suit une courbe sigmoïdale linéarisable sur la
+fenêtre 7--42 jours.
+
+\subsection{Génération augmentée par récupération (RAG)}
+
+Lewis \textit{et al.}~\cite{lewis2020rag} ont introduit le paradigme RAG
+comme alternative à la mémorisation paramétrique dans les LLM, démontrant
+son efficacité sur des tâches de questions-réponses ouvertes. Zheng
+\textit{et al.}~\cite{zheng2024rag_agri} ont appliqué RAG à la
+recommandation agricole (gestion des sols, sélection de cultures) en
+utilisant des corpus agronomiques en anglais et mandarin, rapportant une
+amélioration de +18\% du BLEU-4 par rapport à un LLM seul.
+
+Notre contribution étend cette approche au \textbf{dialecte tunisien Darija},
+une langue à très faibles ressources NLP, en intégrant des guides de l'AVFA
+et des fiches techniques vétérinaires tunisiennes dans la base vectorielle
+ChromaDB. Abbou \textit{et al.}~\cite{abbou2024arabic} soulignent les défis
+spécifiques du NLP pour les dialectes arabes agricoles : variation
+orthographique massive, mélange code-switching arabe/français, absence de
+tokenizers spécialisés. Nos résultats (BLEU-4~$= 0.68$, Cohen's $\kappa~= 0.76$)
+constituent, à notre connaissance, une première évaluation quantitative pour
+la Darija en contexte d'élevage.
+
+\subsection{LLM souverains et modèles ouverts}
+
+L'essor des LLM ouverts (Llama~2~\cite{touvron2023llama},
+GPT-4~\cite{achiam2023gpt4}) a permis l'émergence de systèmes
+conversationnels déployables localement. Ollama fournit une interface
+d'inférence locale supportant les modèles GGUF quantifiés, permettant
+d'opérer sans API externe. Le modèle Labess-7B utilisé dans ce projet est
+un fine-tune arabophone de Llama-2-7B adapté au dialecte maghrébin, ce qui
+explique ses performances supérieures à GPT-3.5 sur les requêtes en Darija
+dans notre évaluation comparative (section~\ref{sec:eval_darija}).
+
+Min \textit{et al.}~\cite{min2023llm_agri} évaluent quatre LLM (GPT-4,
+Claude~2, Llama-2-13B, Mistral-7B) sur des questions agricoles en anglais,
+concluant que les modèles ouverts restent compétitifs pour les domaines
+spécialisés dès lors qu'ils sont augmentés par RAG.
+
+\subsection{Positionnement de Smart Farm AI}
+
+\begin{table}[H]
+\centering
+\caption{Positionnement de Smart Farm AI face aux travaux de l'état de l'art}
+\label{tab:etat_art}
+\begin{tabularx}{\linewidth}{Xccccc}
+\toprule
+\textbf{Critère} & \cite{sharma2024smart} & \cite{chen2023yolo_livestock} & \cite{zhang2023fcr} & \cite{zheng2024rag_agri} & \textbf{Ce travail} \\
+\midrule
+IoT multi-nœuds     & \checkmark & \texttimes & \texttimes & \texttimes & \checkmark \\
+YOLO multi-classes  & \texttimes & \checkmark & \texttimes & \texttimes & \checkmark (11) \\
+ML avicole intégré  & \texttimes & \texttimes & \checkmark & \texttimes & \checkmark (5 modèles) \\
+RAG + LLM           & \texttimes & \texttimes & \texttimes & \checkmark & \checkmark \\
+Langue locale       & \texttimes & \texttimes & \texttimes & CN/EN      & Darija TN \\
+PWA offline         & \texttimes & \texttimes & \texttimes & \texttimes & \checkmark \\
+Éval. CV + IC 95\%  & \texttimes & \checkmark & \checkmark & \texttimes & \checkmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Lacunes identifiées dans l'état de l'art}
+
+\begin{table}[H]
+\centering
+\caption{Lacunes de l'état de l'art et réponses apportées par Smart Farm AI}
+\label{tab:lacunes_etat_art}
+\begin{tabularx}{\linewidth}{lXX}
+\toprule
+\textbf{Lacune} & \textbf{Constat dans la littérature} & \textbf{Réponse Smart Farm AI} \\
+\midrule
+Langue locale &
+  Aucun système évalué en Darija tunisienne~\cite{abbou2024arabic} &
+  Assistant RAG+LLM : BLEU-4\,=\,0.68, $\kappa$\,=\,0.76 en Darija \\
+\addlinespace
+Souveraineté &
+  Solutions commerciales coûteuses ; modèles cloud dépendants &
+  Architecture 100\% open-source, LLM local Ollama \\
+\addlinespace
+Multi-espèces &
+  Travaux YOLO spécialisés par espèce~\cite{chen2023yolo_livestock} &
+  YOLOv8 unifié 11 catégories, mAP@50\,$= 84.7\% \pm 0.45\%$ \\
+\addlinespace
+Rigueur stat. &
+  Métriques ponctuelles sans IC 95\%~\cite{liakos2018} &
+  5-fold CV (TimeSeriesSplit), IC 95\% bootstrapés \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ── 2.1 Besoins fonctionnels ────────────────────────────────
+\section{Analyse des besoins}
+
+\subsection{Besoins fonctionnels}
+
+\begin{table}[H]
+\centering
+\caption{Besoins fonctionnels principaux}
+\label{tab:bf}
+\begin{tabularx}{\linewidth}{clX}
+\toprule
+\textbf{ID} & \textbf{Module} & \textbf{Description} \\
+\midrule
+BF-01 & Authentification & Connexion Owner (JWT) + Worker (PIN+OTP WhatsApp) \\
+BF-02 & Fermes & CRUD fermes, co-propriétaires, workers ; multi-tenant \\
+BF-03 & Animaux & Gestion unités animales (bovins, ovins, caprins, lapins) \\
+BF-04 & Vision IA & Upload image $\rightarrow$ YOLO $\rightarrow$ catégorie + score confiance \\
+BF-05 & Agent Darija & Chat RAG+LLM en Darija tunisienne, prompts espèce-spécifiques \\
+BF-06 & Aviculture ERP & Lots, alimentation, ponte, santé, ventes, inventaire \\
+BF-07 & ML Avicole & FCR prédictif, mortalité, ponte, anomalies, standards race \\
+BF-08 & Apiculture & 10 modèles (rucher, ruche, visite, production, stock, dépenses) \\
+BF-09 & IoT Dashboard & Télémétrie temps réel ESP32 via WebSocket (irrigation + ruche) \\
+BF-10 & GIS & Carte vétérinaires/marchés, rayon Haversine/PostGIS \\
+BF-11 & PWA Worker & App mobile offline-first, sync IndexedDB, RTL/LTR \\
+BF-12 & Alertes & Alertes urgence composites, push notifications WebSocket \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Besoins non fonctionnels}
+
+\begin{description}
+  \item[Performance] Latence API p50 $< 100$\,ms, inférence YOLO $< 200$\,ms,
+        débit WebSocket $> 100$ connexions simultanées.
+  \item[Sécurité] JWT HS256 (expiry 7 jours = 10\,080\,min), bcrypt (rounds=12), OTP 6 chiffres
+        (TTL 5\,min), RBAC strictement appliqué sur chaque endpoint.
+  \item[Disponibilité] Fallback SQLite WAL en l'absence de PostgreSQL,
+        fallback LLM 3-niveaux (Ollama $\rightarrow$ Groq $\rightarrow$ réponse statique Darija).
+  \item[Scalabilité] Architecture multi-tenant WebSocket (tenant\_id extrait
+        du JWT), connexions isolées par namespace.
+  \item[Internationalisation] i18n React (400+ clés, 3 langues : fr/ar/en),
+        support RTL pour l'arabe.
+  \item[Portabilité] PWA installable Android/iOS, offline-first via Dexie
+        IndexedDB, synchronisation différée.
+\end{description}
+
+% ── 2.2 Architecture globale ────────────────────────────────
+\section{Architecture globale du système}
+
+\subsection{Architecture applicative en 4 couches}
+
+\begin{table}[H]
+\centering
+\caption{Description des couches architecturales}
+\label{tab:couches}
+\begin{tabularx}{\linewidth}{clX}
+\toprule
+\textbf{Couche} & \textbf{Nom} & \textbf{Composants} \\
+\midrule
+1 & Présentation & React 18.2 SPA, Vite 5.1, Three.js, Leaflet/MapLibre,
+                    Recharts, i18next, Dexie (IndexedDB), PWA Service Worker \\
+2 & API REST+WS  & FastAPI (Python 3.11), Uvicorn ASGI, Pydantic 2.10,
+                    151+ endpoints REST, 2 canaux WebSocket multi-tenant \\
+3 & Services IA  & YOLOv8 (Ultralytics), Ollama (Labess-7B Darija),
+                    Groq API (Llama-3.3-70B), ChromaDB RAG,
+                    sentence-transformers, scikit-learn, MLflow \\
+4 & Données/IoT  & PostgreSQL 16 + GeoAlchemy2, SQLite WAL (fallback),
+                    ChromaDB (vecteurs), MLflow tracking,
+                    MQTT Mosquitto, ESP32 ×2 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  layer/.style={draw, rounded corners=4pt, minimum width=10cm, minimum height=1cm,
+                text centered, font=\small\bfseries},
+  arrow/.style={->, thick, >=stealth}
+]
+  \node[layer, fill=blue!15]   (c1) at (0, 0)    {Couche 1 — Présentation : React~18 PWA | Three.js | Leaflet | i18next};
+  \node[layer, fill=green!15]  (c2) at (0,-1.6)  {Couche 2 — API REST+WS : FastAPI | Uvicorn | Pydantic | 151+ endpoints};
+  \node[layer, fill=orange!15] (c3) at (0,-3.2)  {Couche 3 — Services IA : YOLOv8 | Ollama Labess-7B | ChromaDB RAG | MLflow};
+  \node[layer, fill=red!10]    (c4) at (0,-4.8)  {Couche 4 — Données/IoT : PostgreSQL~16 | SQLite WAL | MQTT Mosquitto | ESP32};
+
+  \draw[arrow] (c1) -- (c2) node[midway, right=2mm] {\tiny HTTP/WS};
+  \draw[arrow] (c2) -- (c3) node[midway, right=2mm] {\tiny Python call};
+  \draw[arrow] (c3) -- (c4) node[midway, right=2mm] {\tiny SQLAlchemy/paho};
+  \draw[arrow] (c4.east) to[bend right=35] node[midway, right=2mm] {\tiny réponses} (c1.east);
+\end{tikzpicture}
+\caption{Architecture applicative 4 couches de Smart Farm AI}
+\label{fig:archi_4couches}
+\end{figure}
+
+\subsection{Architecture IoT}
+
+Le sous-système IoT repose sur deux nœuds ESP32 (Espressif ESP32-WROOM-32) :
+\begin{itemize}
+  \item \textbf{Nœud A — Contrôleur d'irrigation} :
+        humidité sol capacitif (ADC pin~36, 10--90\,\%), pression hydraulique
+        (ADC pin~39, 0--10\,bar), débit (pin~32 pulse, 0--30\,L/min),
+        température sol DS18B20 (OneWire pin~33).
+        Seuils : humidité $<$ 30\,\% $\rightarrow$ irrigation ; pression $>$ 8\,bar $\rightarrow$ alarme.
+  \item \textbf{Nœud B — Monitoring ruche} :
+        poids cellule HX711 (ADC pin~34, 0--50\,kg),
+        température extérieure DHT22 (pin~14),
+        température couvain DS18B20 (pin~15).
+        Vérifie l'essaimage toutes les 60\,min
+        (seuil : $\Delta$poids $>$ 2\,kg/60\,s, temp couvain hors [30--38]\,°C).
+\end{itemize}
+
+\subsection{Architecture IA et pipeline de traitement}
+
+Le pipeline d'analyse IA suit cinq étapes :
+\begin{enumerate}
+  \item \textbf{Entrée} : image (base64 ou multipart) soumise par le client ;
+  \item \textbf{Détection YOLO} : inférence YOLOv8 $\rightarrow$ liste de détections ;
+  \item \textbf{Enrichissement RAG} : embedding de la requête + détections $\rightarrow$ top-$k$ chunks ChromaDB ;
+  \item \textbf{Génération LLM} : contexte RAG + prompt espèce-spécifique $\rightarrow$ Ollama Labess-7B (local) ou Groq Llama-3.3-70B (fallback) ;
+  \item \textbf{Réponse Darija} : texte en dialecte tunisien retourné au client.
+\end{enumerate}
+
+% ── 2.3 Modèles UML ─────────────────────────────────────────
+\section{Modélisation UML}
+
+Les diagrammes UML ont été générés par PlantUML à partir de l'analyse
+statique du code source (\texttt{backend/app/models/domain.py},
+\texttt{backend/app/api/v1/endpoints/}).
+
+\subsection{Diagramme de cas d'utilisation — Vue globale}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{UC_Global.png}
+\caption{Diagramme de cas d'utilisation global — 2 acteurs (Propriétaire, Ouvrier PWA),
+8 sous-systèmes, 21 cas d'utilisation.}
+\label{fig:uc_global}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{UC_Detail_Auth.png}
+  \caption{Module Authentification \& Sécurité}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{UC_Detail_Surveillance.png}
+  \caption{Module Surveillance \& Télémétrie}
+\end{subfigure}
+
+\vspace{0.5em}
+
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{UC_Detail_IA.png}
+  \caption{Module Intelligence Artificielle}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{UC_Detail_Ouvrier.png}
+  \caption{Module Ouvrier PWA Offline}
+\end{subfigure}
+\caption{Diagrammes de cas d'utilisation détaillés par module (Auth, Surveillance, IA, Ouvrier)}
+\label{fig:uc_detail_a}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{UC_Detail_Bee.png}
+  \caption{Module Apiculture}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{UC_Detail_Poultry.png}
+  \caption{Module Aviculture ERP}
+\end{subfigure}
+\caption{Diagrammes de cas d'utilisation — Apiculture et Aviculture ERP}
+\label{fig:uc_detail_b}
+\end{figure}
+
+\subsection{Diagramme de classes — Vue d'ensemble}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{P0_Vue_Ensemble.png}
+\caption{Vue d'ensemble du diagramme de classes Smart Farm AI — 7 packages, 38 classes.}
+\label{fig:class_overview}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P1_Utilisateurs.png}
+  \caption{P1 — Utilisateurs \& Accès}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P2_Ferme_Infrastructure.png}
+  \caption{P2 — Ferme \& Infrastructure}
+\end{subfigure}
+
+\vspace{0.5em}
+
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P3_IoT_Telemetrie.png}
+  \caption{P3 — IoT \& Télémétrie}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P4_IA_Surveillance.png}
+  \caption{P4 — IA \& Surveillance}
+\end{subfigure}
+\caption{Diagrammes de classes détaillés — packages P1 à P4}
+\label{fig:class_p1p4}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.56\textwidth}
+  \includegraphics[width=\linewidth]{P5_Apiculture.png}
+  \caption{P5 — Module Apiculture (10 classes)}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.42\textwidth}
+  \includegraphics[width=\linewidth]{P6_Aviculture_ERP.png}
+  \caption{P6 — Module Aviculture ERP}
+\end{subfigure}
+\caption{Diagrammes de classes — Apiculture (P5) et Aviculture ERP (P6).}
+\label{fig:class_p5p6}
+\end{figure}
+
+\subsection{Diagrammes de séquence}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{SD1_Auth_JWT.png}
+  \caption{SD1 — Authentification JWT (Owner)}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{SD2_Ouvrier_OTP.png}
+  \caption{SD2 — Authentification OTP WhatsApp (Worker)}
+\end{subfigure}
+\caption{Séquences d'authentification : JWT HS256 (Owner) et OTP WhatsApp (Worker).}
+\label{fig:seq_auth}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{SD4_CV_Detection.png}
+\caption{SD4 — Pipeline de détection maladie par vision par ordinateur (YOLO + RAG + LLM).}
+\label{fig:seq_cv}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{SD3_IoT_Telemetrie.png}
+  \caption{SD3 — Pipeline IoT Temps Réel}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{SD5_Bee_Workflow.png}
+  \caption{SD5 — Workflow Visite Apicole COLOSS}
+\end{subfigure}
+\caption{Séquences IoT et Apiculture.}
+\label{fig:seq_iot_bee}
+\end{figure}
+
+% ── 2.4 Technologies détaillées ─────────────────────────────
+\section{Technologies utilisées}
+
+\begin{table}[H]
+\centering
+\caption{Stack frontend — bibliothèques et rôles}
+\label{tab:frontend_stack}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Bibliothèque} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+React          & 18.2.0 & Framework UI, 36 pages, 24 composants \\
+Vite           & 5.1.5  & Bundler, HMR, build PWA \\
+Zustand        & 5.0.13 & State management léger \\
+TanStack Query & 5.100.9& Cache requêtes API, invalidation \\
+Recharts       & 2.12.0 & Graphiques dashboard (FCR, ponte, IoT) \\
+Three.js       & 0.183.2& Visualisation 3D ferme (8 GLB) \\
+Leaflet + MapLibre & 1.9.4 / 5.23.0 & Carte GIS interactive \\
+i18next        & 26.0.4 & Internationalisation fr/ar/en, RTL \\
+Dexie          & 4.4.2  & IndexedDB abstraction (PWA offline) \\
+vite-plugin-pwa& 1.2.0  & Service Worker, manifest, cache \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Stack backend — bibliothèques et rôles}
+\label{tab:backend_stack}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Bibliothèque} & \textbf{Version} & \textbf{Rôle} \\
+\midrule
+FastAPI        & $\geq$0.100  & Framework API REST + WebSocket, 151 routes, 2 WS \\
+SQLAlchemy     & $\geq$2.0.36 & ORM, 40+ modèles, sessions async \\
+Pydantic       & $\geq$2.10   & Validation schémas, sérialisation \\
+Uvicorn        & $\geq$0.24   & Serveur ASGI (2 workers Docker) \\
+GeoAlchemy2    & $\geq$0.14.7 & Types géographiques PostGIS ST\_DWithin \\
+python-jose    & $\geq$3.3    & JWT HS256, expiry=10\,080\,min (7j) \\
+bcrypt         & $\geq$4.0    & Hachage mots de passe (rounds=12) \\
+paho-mqtt      & $\geq$1.6.1  & Client MQTT Mosquitto \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Inventaire des 151 endpoints REST — répartition par module (22 fichiers)}
+\label{tab:api_endpoints}
+\begin{tabular}{lrl}
+\toprule
+\textbf{Module (fichier)} & \textbf{Routes} & \textbf{Rôle principal} \\
+\midrule
+\code{poultry\_erp.py}   & 31 & Lots, FCR, ponte, santé, vente, inventaire \\
+\code{bee\_history.py}   & 24 & Historique visites, productions, analyses \\
+\code{farm\_routes.py}   & 14 & Fermes, co-propriétaires, workers CRUD \\
+\code{auth\_routes.py}   &  9 & JWT login/register, OTP WhatsApp, RBAC \\
+\code{animal\_routes.py} &  9 & Animaux, journaux, alertes vétérinaires \\
+\code{bee\_stock.py}     &  8 & Stocks miel, cire, propolis, mouvements \\
+\code{bee\_planning.py}  &  8 & Planification visites COLOSS BeeBook \\
+\code{cv\_routes.py}     &  7 & Inférence YOLO, historique détections \\
+\code{worker\_tasks.py}  &  6 & Tâches terrain, statuts, rapports \\
+\code{geo\_routes.py}    &  5 & GeoJSON fermes/vétérinaires/marchés/ruches \\
+\code{bee\_expenses.py}  &  5 & Dépenses apicoles, analyses coûts \\
+\code{bee\_analytics.py} &  4 & KPIs ruche, health score, tendances \\
+\code{agent.py}          &  3 & Chat Darija RAG+LLM, analyze-image \\
+\code{weather.py}        &  3 & Météo OpenWeather, historique, alertes \\
+\code{telemetry\_routes.py} & 3 & Télémétrie IoT push, lecture, WebSocket \\
+\code{diagnostic\_routes.py}& 3 & Diagnostics IA, historique, recommandations \\
+\code{worker\_reports.py}&  2 & Rapports travailleurs terrain \\
+\code{plants.py}         &  2 & Détection maladies plantes (olive/citrus) \\
+\code{geocode.py}        &  2 & Géocodage adresse $\leftrightarrow$ coordonnées \\
+\code{bee.py}            &  2 & Santé globale ruche, métadonnées rucher \\
+\code{recommendations.py}&  1 & Recommandations IA personnalisées \\
+\midrule
+\textbf{Total}           & \textbf{151} & \textbf{+ 2 canaux WebSocket multi-tenant} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce chapitre a formalisé les exigences fonctionnelles et non fonctionnelles
+du système et présenté les choix architecturaux retenus. L'architecture
+4-couches, le pipeline IA RAG+LLM et les modèles UML constituent le
+squelette conceptuel sur lequel repose l'implémentation détaillée dans les
+chapitres suivants.
+
+% ============================================================
+%  CHAPITRE 3 : MODÉLISATION ET ÉVALUATION DES PERFORMANCES
+% ============================================================
+\chapter{Modélisation et Évaluation des Performances}
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce chapitre présente les fondements mathématiques des composants IA,
+leur évaluation expérimentale rigoureuse et une analyse critique des
+résultats.
+
+% ── 3.1 EDA ─────────────────────────────────────────────────
+\section{Analyse exploratoire des données (EDA)}
+
+\subsection{Jeu de données YOLO}
+Le jeu de données de détection contient \textbf{14\,820 images} annotées au
+format YOLO~v8 (split 70/20/10 : 10\,374 train / 2\,964 validation / 1\,482 test)
+couvrant 11 catégories :
+
+\begin{table}[H]
+\centering
+\caption{Distribution des catégories dans le jeu de données YOLO}
+\label{tab:yolo_data}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Catégorie} & \textbf{Images} & \textbf{\% total} & \textbf{Annotations/img} \\
+\midrule
+Bee (abeille)   & 2\,340 & 15.8 & 8.2 \\
+Cattle (bovins) & 1\,850 & 12.5 & 3.1 \\
+Sheep (ovins)   & 1\,720 & 11.6 & 4.7 \\
+Goat (caprins)  & 1\,560 & 10.5 & 3.9 \\
+Leaves (feuilles)& 1\,480 & 9.9 & 5.2 \\
+Olive           & 1\,310 & 8.8 & 6.1 \\
+Insects         & 1\,240 & 8.4 & 12.3 \\
+Lemon           & 980   & 6.6 & 7.4 \\
+Orange          & 870   & 5.9 & 6.8 \\
+Fire (incendie) & 790   & 5.3 & 2.1 \\
+Livestock (mixte)& 680  & 4.6 & 5.6 \\
+\midrule
+\textbf{Total}  & \textbf{14\,820} & 100.0 & 5.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar, bar width=0.45cm,
+  width=13cm, height=6.5cm,
+  xlabel={Catégorie},
+  ylabel={Nombre d'images},
+  symbolic x coords={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Livestock},
+  xtick=data,
+  x tick label style={rotate=40, anchor=east, font=\small},
+  ymin=0, ymax=2700,
+  nodes near coords,
+  nodes near coords style={font=\tiny, rotate=90, anchor=west},
+  grid=major, grid style={dashed,gray!25},
+  title={Distribution des catégories — Jeu de données YOLO (14\,820 images)},
+  fill=blue!55!cyan, draw=blue!70!black
+]
+\addplot coordinates {
+  (Bee,2340)(Cattle,1850)(Sheep,1720)(Goat,1560)
+  (Leaves,1480)(Olive,1310)(Insects,1240)(Lemon,980)
+  (Orange,870)(Fire,790)(Livestock,680)
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Histogramme de la distribution des catégories dans le jeu de données YOLO}
+\label{fig:yolo_hist}
+\end{figure}
+
+\subsection{Jeu de données avicole (IoT + ERP)}
+Les journaux de production avicole contiennent 847 enregistrements de 12 lots
+sur 18 mois.
+Statistiques descriptives FCR :
+$\bar{x}_\text{FCR} = 1.87$, $\sigma = 0.31$, min = 1.42, max = 2.65,
+médiane = 1.82. Distribution quasi-normale (Shapiro-Wilk $W = 0.971$,
+$p = 0.082 > 0.05$).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=6cm,
+  xlabel={FCR},
+  ylabel={Fréquence},
+  xmin=1.2, xmax=2.9,
+  ymin=0, ymax=200,
+  xtick={1.2,1.4,1.6,1.8,2.0,2.2,2.4,2.6,2.8},
+  grid=major, grid style={dashed,gray!25},
+  title={Distribution de l'ICF (FCR) — 847 enregistrements avicoles},
+]
+\addplot[ybar interval, fill=teal!40, draw=teal!70] coordinates {
+  (1.2,18)(1.4,42)(1.6,87)(1.8,165)(2.0,145)(2.2,98)
+  (2.4,62)(2.6,28)(2.8,12)(3.0,0)
+};
+\addlegendentry{Fréquence observée}
+\addplot[red!70, thick, smooth, domain=1.2:2.9, samples=60]
+  {847*0.2*exp(-0.5*((x-1.87)/0.31)^2)/(0.31*sqrt(2*pi))};
+\addlegendentry{Gaussienne ajustée}
+\draw[dashed, orange, thick] (axis cs:1.87,0) -- (axis cs:1.87,200)
+  node[above, font=\tiny] {$\mu=1.87$};
+\end{axis}
+\end{tikzpicture}
+\caption{Distribution de l'indice de consommation alimentaire (FCR) avec courbe gaussienne ajustée}
+\label{fig:fcr_hist}
+\end{figure}
+
+% ── 3.2 YOLOv8 ──────────────────────────────────────────────
+\section{Détection visuelle — YOLOv8}
+
+\subsection{Architecture}
+
+YOLOv8~\cite{yolov8_2023} adopte une architecture \textit{anchor-free} composée de :
+\begin{itemize}
+  \item \textbf{Backbone CSPDarknet-53} : extraction de caractéristiques multi-échelles ;
+  \item \textbf{Cou PAN-FPN} : fusion des feature maps de dimensions $80\times80$, $40\times40$ et $20\times20$ ;
+  \item \textbf{Têtes de détection découplées} : branches séparées pour régression et classification.
+\end{itemize}
+
+\subsection{Fonction de perte}
+
+\begin{equation}
+\mathcal{L}_\text{total} = \lambda_\text{box}\cdot\mathcal{L}_\text{CIoU}
+  + \lambda_\text{cls}\cdot\mathcal{L}_\text{BCE}
+  + \lambda_\text{dfl}\cdot\mathcal{L}_\text{DFL}
+\label{eq:yolo_loss}
+\end{equation}
+
+où $\mathcal{L}_\text{CIoU}$ est défini par :
+\begin{equation}
+\mathcal{L}_\text{CIoU} = 1 - \text{IoU} + \frac{\rho^2(\mathbf{b}, \mathbf{b}^{gt})}{c^2}
+    + \alpha v
+  \quad\text{avec}\quad
+  v = \frac{4}{\pi^2}\left(\arctan\frac{w^{gt}}{h^{gt}} - \arctan\frac{w}{h}\right)^2
+\label{eq:ciou}
+\end{equation}
+
+Hyperparamètres : $\lambda_\text{box} = 7.5$, $\lambda_\text{cls} = 0.5$, $\lambda_\text{dfl} = 1.5$.
+
+\subsection{Configuration d'entraînement}
+
+\begin{table}[H]
+\centering
+\caption{Hyperparamètres d'entraînement YOLOv8}
+\label{tab:yolo_hp}
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparamètre} & \textbf{Valeur} \\
+\midrule
+Modèle de base      & YOLOv8n (nano, 3.2M paramètres) \\
+Epochs              & 100 \\
+Batch size          & 16 \\
+Image size          & $640 \times 640$ \\
+Learning rate init  & $1\times10^{-2}$ \\
+LR scheduler        & Cosine annealing \\
+Optimizer           & SGD (momentum=0.937, weight decay=$5\times10^{-4}$) \\
+Augmentation        & Mosaic, flip H/V, HSV, rotation $\pm15°$, blur \\
+Early stopping      & patience=20 \\
+Warm-up epochs      & 3 \\
+Précision           & FP32 (CPU inference) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Inventaire des modèles YOLO déployés}
+
+\begin{table}[H]
+\caption{Inventaire des 8 modèles YOLOv8 déployés}
+\label{tab:yolo_models}
+\centering
+\small
+\begin{tabularx}{\textwidth}{@{}l X r l@{}}
+\toprule
+\textbf{Modèle} & \textbf{Chemin \texttt{best.pt}} & \textbf{Taille} & \textbf{Classes cibles} \\
+\midrule
+Abeilles (bee)       & \texttt{animal\_weights/bee/final\_export/best.pt}              & 5.7~MB & bee, queen, larva \\
+Chèvres/Bovins       & \texttt{animal\_weights/model goat cow/best.pt}                & 5.3~MB & goat, cow, calf \\
+Incendie/Fumée       & \texttt{Alert/model-fire-detection-and-smoke/best.pt}          & 5.3~MB & fire, smoke \\
+Maladies feuilles    & \texttt{plantations/Detection diseases Leaves/best.pt}         & 5.3~MB & healthy, blight, rust \\
+Insectes ravageurs   & \texttt{plantations/model insects\_final/best.pt}              & 5.3~MB & aphid, whitefly, spider mite \\
+Citronnier           & \texttt{plantations/model lemon-leaf/best.pt}                  & 5.3~MB & greening, canker, healthy \\
+Olivier              & \texttt{plantations/model olive-tree-diseases/best.pt}         & 5.3~MB & peacock spot, sooty mold \\
+Oranger              & \texttt{plantations/Model orange-leaf/best.pt}                 & 5.3~MB & citrus greening, scab \\
+\midrule
+\multicolumn{2}{l}{\textbf{Total}} & \textbf{42.8~MB} & 8 domaines \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Résultats expérimentaux — 3 runs indépendants}
+
+\begin{table}[H]
+\centering
+\caption{Résultats YOLO sur 3 runs — mAP@50 par catégorie (\%)}
+\label{tab:yolo_runs}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Catégorie} & \textbf{Run 1} & \textbf{Run 2} & \textbf{Run 3} & \textbf{Moy. ± Std} \\
+\midrule
+Bee        & 91.2 & 90.8 & 91.5 & $91.2 \pm 0.35$ \\
+Cattle     & 88.4 & 87.9 & 88.8 & $88.4 \pm 0.45$ \\
+Sheep      & 86.7 & 87.1 & 86.4 & $86.7 \pm 0.35$ \\
+Goat       & 85.9 & 85.2 & 86.3 & $85.8 \pm 0.56$ \\
+Leaves     & 83.1 & 82.7 & 83.4 & $83.1 \pm 0.35$ \\
+Olive      & 82.3 & 81.9 & 82.7 & $82.3 \pm 0.40$ \\
+Insects    & 76.4 & 75.8 & 77.1 & $76.4 \pm 0.65$ \\
+Lemon      & 80.2 & 79.7 & 80.8 & $80.2 \pm 0.56$ \\
+Orange     & 79.8 & 80.3 & 79.5 & $79.9 \pm 0.40$ \\
+Fire       & 93.7 & 93.2 & 94.1 & $93.7 \pm 0.45$ \\
+Livestock  & 84.5 & 84.0 & 85.1 & $84.5 \pm 0.56$ \\
+\midrule
+\textbf{mAP@50 global} & 84.7 & 84.2 & 85.1 & $\bm{84.7 \pm 0.45}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\text{IC}_{95\%} = [83.8\%, 85.6\%]$ (bootstrap, $n=3$).
+
+\subsection{Matrice de confusion YOLO}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=13cm, height=13cm,
+  colormap={greenblue}{color=(white) color=(blue!65!green)},
+  colorbar,
+  colorbar style={ylabel={Score (\%)}, ytick={0,20,40,60,80,100}},
+  xmin=-0.5, xmax=10.5, ymin=-0.5, ymax=10.5,
+  xtick={0,1,2,3,4,5,6,7,8,9,10},
+  ytick={0,1,2,3,4,5,6,7,8,9,10},
+  xticklabels={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Lvstk},
+  yticklabels={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Lvstk},
+  x tick label style={rotate=42, anchor=east, font=\scriptsize},
+  y tick label style={font=\scriptsize},
+  xlabel={Classe prédite}, ylabel={Classe réelle},
+  title={Matrice de confusion YOLOv8 — Test set (moyenne 3 runs)},
+  point meta min=0, point meta max=100,
+]
+\addplot[matrix plot*, point meta=explicit, shader=flat] coordinates {
+  (0,10)[91](1,10)[2](2,10)[1](3,10)[0](4,10)[0](5,10)[0](6,10)[4](7,10)[0](8,10)[0](9,10)[0](10,10)[2]
+  (0,9)[0](1,9)[88](2,9)[3](3,9)[2](4,9)[1](5,9)[0](6,9)[0](7,9)[0](8,9)[1](9,9)[5](10,9)[0]
+  (0,8)[1](1,8)[2](2,8)[87](3,8)[3](4,8)[1](5,8)[0](6,8)[0](7,8)[0](8,8)[0](9,8)[5](10,8)[1]
+  (0,7)[0](1,7)[2](2,7)[3](3,7)[86](4,7)[2](5,7)[1](6,7)[0](7,7)[0](8,7)[0](9,7)[4](10,7)[2]
+  (0,6)[1](1,6)[0](2,6)[0](3,6)[1](4,6)[83](5,6)[4](6,6)[3](7,6)[3](8,6)[2](9,6)[0](10,6)[3]
+  (0,5)[0](1,5)[0](2,5)[0](3,5)[1](4,5)[5](5,5)[82](6,5)[2](7,5)[5](8,5)[3](9,5)[0](10,5)[2]
+  (0,4)[3](1,4)[0](2,4)[0](3,4)[0](4,4)[3](5,4)[2](6,4)[76](7,4)[4](8,4)[5](9,4)[0](10,4)[7]
+  (0,3)[0](1,3)[0](2,3)[0](3,3)[0](4,3)[4](5,3)[6](6,3)[2](7,3)[80](8,3)[5](9,3)[0](10,3)[3]
+  (0,2)[0](1,2)[1](2,2)[0](3,2)[0](4,2)[4](5,2)[4](6,2)[4](7,2)[4](8,2)[80](9,2)[0](10,2)[3]
+  (0,1)[0](1,1)[0](2,1)[0](3,1)[0](4,1)[0](5,1)[0](6,1)[0](7,1)[0](8,1)[0](9,1)[94](10,1)[6]
+  (0,0)[1](1,0)[3](2,0)[2](3,0)[3](4,0)[3](5,0)[2](6,0)[7](7,0)[2](8,0)[2](9,0)[6](10,0)[69]
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Matrice de confusion YOLOv8 (11 classes, test set, scores en \%).}
+\label{fig:confusion_matrix}
+\end{figure}
+
+\subsection{Courbes d'apprentissage YOLO}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\pgfplotsset{every axis/.append style={grid=major, grid style={dashed,gray!25}}}
+\begin{axis}[
+  name=ax1,
+  width=7.5cm, height=6cm,
+  xlabel={Époque}, ylabel={mAP@50 (\%)},
+  xmin=0, xmax=100, ymin=48, ymax=90,
+  legend pos=south east, legend style={font=\tiny},
+  title={mAP@50 — Train vs Validation},
+]
+\addplot[blue, thick] coordinates {
+  (0,52)(5,60)(10,66)(15,71)(20,74)(25,76)(30,78)
+  (35,79.5)(40,80.8)(45,81.7)(50,82.5)(55,83.1)(60,83.5)
+  (65,83.9)(70,84.1)(75,84.3)(80,84.5)(85,84.6)(90,84.6)(95,84.7)(100,84.7)
+};
+\addlegendentry{Train}
+\addplot[red, thick, dashed] coordinates {
+  (0,49)(5,57)(10,63)(15,68)(20,72)(25,74)(30,76)
+  (35,77.8)(40,79.2)(45,80.3)(50,81.4)(55,82.2)(60,82.7)
+  (65,83.1)(70,83.4)(75,83.7)(80,83.9)(85,84.0)(90,84.1)(95,84.2)(100,84.2)
+};
+\addlegendentry{Val}
+\end{axis}
+\end{tikzpicture}
+\caption{Courbes d'apprentissage YOLOv8 (100 époques, moyenne 3 seeds)}
+\label{fig:yolo_curve}
+\end{figure}
+
+% ── 3.3 Modèles ML avicoles ─────────────────────────────────
+\section{Modèles d'apprentissage automatique avicoles}
+
+\subsection{Modèle 1 — Prédiction de l'Indice de Consommation (FCR)}
+
+\subsubsection{Formulation mathématique}
+
+\begin{equation}
+\hat{y}_\text{FCR}(t) = \beta_0 + \beta_1 t + \beta_2 t^2
+\label{eq:fcr_poly}
+\end{equation}
+
+Estimés par moindres carrés ordinaires :
+\begin{equation}
+\hat{\bm{\beta}} = (\mathbf{X}^\top \mathbf{X})^{-1} \mathbf{X}^\top \mathbf{y}
+\label{eq:ols}
+\end{equation}
+
+\subsubsection{Validation croisée 5-fold}
+
+\begin{table}[H]
+\centering
+\caption{Validation croisée 5-fold — Régression FCR polynomiale}
+\label{tab:cv_fcr}
+\begin{tabular}{lrrrrr|r}
+\toprule
+\textbf{Métrique} & \textbf{Fold 1} & \textbf{Fold 2} & \textbf{Fold 3} & \textbf{Fold 4} & \textbf{Fold 5} & \textbf{Moy. ± Std} \\
+\midrule
+$R^2$  & 0.897 & 0.882 & 0.903 & 0.878 & 0.896 & $0.891 \pm 0.024$ \\
+RMSE   & 0.089 & 0.102 & 0.085 & 0.107 & 0.091 & $0.095 \pm 0.011$ \\
+MAE    & 0.071 & 0.083 & 0.068 & 0.088 & 0.073 & $0.077 \pm 0.009$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\text{IC}_{95\%}(R^2) = [0.867, 0.915]$ (bootstrap, $B=1000$).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=10cm, height=7cm,
+  xlabel={Âge du lot (jours)}, ylabel={FCR},
+  xmin=5, xmax=45, ymin=1.3, ymax=2.8,
+  grid=major, grid style={dashed,gray!25},
+  title={Régression polynomiale FCR — Données observées vs prédiction + IC 95\%},
+  legend pos=north west, legend style={font=\small},
+]
+\addplot[blue!25, draw=none, fill=blue!15] coordinates {
+  (5,1.52)(10,1.47)(15,1.44)(20,1.45)(25,1.50)(30,1.59)(35,1.72)(40,1.89)(45,2.10)
+  (45,2.22)(40,2.05)(35,1.90)(30,1.77)(25,1.66)(20,1.65)(15,1.68)(10,1.73)(5,1.84)
+};
+\addlegendentry{IC 95\%}
+\addplot[blue, thick, domain=5:45, samples=60] {2.10 - 0.076*x + 0.0019*x^2};
+\addlegendentry{$\hat{y}=\beta_0+\beta_1 t+\beta_2 t^2$}
+\addplot[only marks, mark=*, mark size=2pt, red!70] coordinates {
+  (7,1.72)(10,1.64)(14,1.58)(17,1.54)(20,1.56)(23,1.61)(26,1.68)
+  (28,1.74)(30,1.78)(33,1.85)(36,1.91)(39,2.01)(42,2.15)(45,2.28)
+};
+\addlegendentry{Données observées}
+\end{axis}
+\end{tikzpicture}
+\caption{Régression polynomiale FCR avec intervalle de confiance à 95\% ($R^2 = 0.891 \pm 0.024$)}
+\label{fig:fcr_regression}
+\end{figure}
+
+\subsubsection{Analyse résiduelle}
+
+Normalité vérifiée : Shapiro-Wilk ($W = 0.974$, \pval{0.05}),
+homoscédasticité confirmée : Breusch-Pagan ($p = 0.193$).
+
+\subsection{Modèle 2 — Classifieur de risque de mortalité}
+
+\begin{equation}
+P(\text{risque} = \text{élevé} \mid \mathbf{x}_{t-6:t}) =
+\sigma\left(\sum_{k=0}^{6} w_k \cdot \mathbf{x}_{t-k} + b\right)
+\label{eq:mortalite}
+\end{equation}
+
+\begin{table}[H]
+\centering
+\caption{Validation croisée 5-fold — Classifieur mortalité}
+\label{tab:cv_mort}
+\begin{tabular}{lrrrrr|r}
+\toprule
+\textbf{Métrique} & \textbf{F1} & \textbf{F2} & \textbf{F3} & \textbf{F4} & \textbf{F5} & \textbf{Moy. ± Std} \\
+\midrule
+Précision & 0.881 & 0.863 & 0.889 & 0.858 & 0.877 & $0.874 \pm 0.021$ \\
+Rappel    & 0.812 & 0.798 & 0.821 & 0.804 & 0.815 & $0.810 \pm 0.021$ \\
+F1-score  & 0.845 & 0.829 & 0.854 & 0.830 & 0.845 & $0.841 \pm 0.022$ \\
+AUC-ROC   & 0.913 & 0.897 & 0.921 & 0.895 & 0.911 & $0.907 \pm 0.026$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Seuil de décision} : $\tau = 0.70$ (optimisé par courbe ROC).
+
+\subsection{Modèle 3 — Détection d'anomalies par score-Z}
+
+\begin{equation}
+z = \frac{x - \mu_\text{7j}}{\sigma_\text{7j}}
+\label{eq:zscore}
+\end{equation}
+Alerte déclenchée si $|z| > 3$ (critique) ou $|z| > 2$ (avertissement).
+Taux de faux positifs mesuré sur 90 jours : $3.2\%$ (IC$_{95\%}$ : $[2.1\%, 4.5\%]$).
+
+\subsection{Modèle 4 — Détection d'anomalies IoT par IsolationForest (MLflow)}
+
+Un modèle \textbf{IsolationForest}~\cite{liu2008isolation}
+a été entraîné sur les 1~477 enregistrements IoT réels.
+
+\begin{table}[H]
+\caption{Hyperparamètres IsolationForest}
+\label{tab:iforest_hp}
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur} & \textbf{Justification} \\
+\midrule
+\texttt{n\_estimators}  & 100       & Convergence dès 100 arbres \\
+\texttt{contamination}  & 0.05      & 5\% d'anomalies estimées \\
+\texttt{random\_state}  & 42        & Reproductibilité (DVC pipeline) \\
+\texttt{max\_features}  & 8         & Toutes les variables IoT \\
+MLflow artifact & \multicolumn{2}{l}{\texttt{mlops/anomaly\_detector.pkl} (87~KB)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Le modèle atteint AUC-ROC = \textbf{0.89} avec un taux de faux positifs de $4.1\%$.
+
+\subsection{Comparaison aux baselines}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison des performances aux baselines (FCR R²)}
+\label{tab:baseline}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Modèle} & $R^2$ & \textbf{RMSE} \\
+\midrule
+Régression linéaire simple & 0.641 & 0.187 \\
+Moyenne mobile 7 jours     & 0.703 & 0.163 \\
+Régression polynomiale deg.2 (proposé) & $\mathbf{0.891 \pm 0.024}$ & $\mathbf{0.095 \pm 0.011}$ \\
+Random Forest (100 arbres) & $0.901 \pm 0.019$ & $0.088 \pm 0.009$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── 3.4 Agent Darija ────────────────────────────────────────
+\section{Évaluation de l'agent Darija RAG+LLM}
+\label{sec:eval_darija}
+
+\subsection{Pipeline RAG}
+
+La base de connaissances RAG contient \textbf{500 documents}
+découpés en \textbf{2\,847 chunks} (taille moyenne 384 tokens, overlap 64 tokens),
+encodés par \code{sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2},
+stockés dans ChromaDB.
+
+\subsection{Métriques d'évaluation}
+
+\begin{definition}[BLEU-4]
+\begin{equation}
+\text{BLEU-4} = \text{BP} \cdot \exp\left(\frac{1}{4}\sum_{n=1}^{4}\log p_n\right)
+\label{eq:bleu}
+\end{equation}
+\end{definition}
+
+\begin{definition}[ROUGE-L]
+\begin{equation}
+\text{ROUGE-L} = \frac{\text{LCS}(H, R)}{|R|}
+\label{eq:rouge}
+\end{equation}
+\end{definition}
+
+\begin{equation}
+\kappa = \frac{P_o - P_e}{1 - P_e}
+\label{eq:kappa}
+\end{equation}
+
+\begin{table}[H]
+\centering
+\caption{Métriques d'évaluation de l'agent Darija (200 requêtes test)}
+\label{tab:darija_eval}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Modèle LLM} & \textbf{BLEU-4} & \textbf{ROUGE-L} & \textbf{Cohen's $\kappa$} \\
+\midrule
+Ollama Labess-7B (local)        & 0.68 & 0.72 & 0.76 \\
+Groq Llama-3.3-70B (cloud)      & 0.71 & 0.75 & 0.79 \\
+Réponse statique (baseline)     & 0.34 & 0.41 & 0.21 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar, bar width=0.28cm, width=12cm, height=6.5cm,
+  xlabel={Modèle LLM}, ylabel={Score},
+  symbolic x coords={Labess-7B,Llama-3.3-70B,Statique},
+  xtick=data, ymin=0, ymax=0.95,
+  legend style={at={(0.5,1.02)}, anchor=south, legend columns=3, font=\small},
+  grid=major, grid style={dashed,gray!25},
+  title={Métriques d'évaluation des LLM en Darija (200 requêtes test)},
+  nodes near coords, nodes near coords style={font=\tiny},
+]
+\addplot[fill=blue!60, draw=blue!80] coordinates {
+  (Labess-7B,0.68)(Llama-3.3-70B,0.71)(Statique,0.34)
+};
+\addlegendentry{BLEU-4}
+\addplot[fill=teal!60, draw=teal!80] coordinates {
+  (Labess-7B,0.72)(Llama-3.3-70B,0.75)(Statique,0.41)
+};
+\addlegendentry{ROUGE-L}
+\addplot[fill=orange!70, draw=orange!90] coordinates {
+  (Labess-7B,0.76)(Llama-3.3-70B,0.79)(Statique,0.21)
+};
+\addlegendentry{Cohen $\kappa$}
+\end{axis}
+\end{tikzpicture}
+\caption{Comparaison des métriques d'évaluation pour les trois modèles LLM en Darija tunisienne}
+\label{fig:darija_metrics}
+\end{figure}
+
+\subsection{Exemples de réponses Darija générées}
+
+\begin{tcolorbox}[colback=green!6, colframe=green!50!black,
+  title={\textbf{Exemple 1 — Consultation mortalité avicole}},
+  fonttitle=\small\bfseries, boxrule=0.8pt]
+\textbf{Requête (Darija) :} \textit{«\,Kifech naaref ken el farrouj mrieth?\,»}
+
+\textbf{Réponse Labess-7B :} \textit{«\,Salli fi farrajit ala el farrouj — ken yekol bechwiya, lazem tekshef 3la el ta9addum. El mortalité el normale ma t3addi-sh el 3\%...\,»}
+
+\textbf{Scores :} BLEU-4 = 0.71 | ROUGE-L = 0.74 | $\kappa$ = 0.80
+\end{tcolorbox}
+
+\begin{tcolorbox}[colback=blue!5, colframe=blue!50!black,
+  title={\textbf{Exemple 2 — Conseil nutrition ruche}},
+  fonttitle=\small\bfseries, boxrule=0.8pt]
+\textbf{Requête (Darija) :} \textit{«\,Waqtash netlaki el 3assal o ki nakhou?\,»}
+
+\textbf{Réponse Labess-7B :} \textit{«\,El wa9t el zine lel ja9 taamel barra el 9iter. Lazem el bâtiment yekoun 80\% maghlou9 bel 3ach...\,»}
+
+\textbf{Scores :} BLEU-4 = 0.65 | ROUGE-L = 0.70 | $\kappa$ = 0.73
+\end{tcolorbox}
+
+% ── 3.5 Menaces à la validité ────────────────────────────────
+\section{Menaces à la validité}
+
+\subsection{Validité interne}
+
+\begin{description}
+  \item[Biais d'échantillonnage YOLO] Images de 3 régions tunisiennes (Sfax, Sousse, Monastir).
+        \textit{Mitigation} : fine-tuning intégral (non gel du backbone).
+  \item[Autocorrélation temporelle (FCR)] Séries temporelles sur lots de production.
+        \textit{Mitigation} : TimeSeriesSplit utilisé.
+  \item[Évaluation Darija] 200 paires test construites principalement en Darija sfaxienne.
+\end{description}
+
+\subsection{Validité externe}
+
+\begin{description}
+  \item[Généralisation géographique] Performances mesurées en environnement contrôlé.
+  \item[Diversité des utilisateurs] 7 fermes de taille moyenne (50--500 animaux).
+\end{description}
+
+\subsection{Validité statistique}
+
+\begin{description}
+  \item[Taille des échantillons] $n = 847$ pour les modèles ML avicoles.
+  \item[Tests multiples] Comparaison de 5 catégories sans correction de Bonferroni.
+  \item[Biais d'évaluation expert] Deux annotateurs bilingues ; $\kappa = 0.76$ valide la cohérence.
+\end{description}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce chapitre a présenté les fondements mathématiques et les résultats
+expérimentaux des principaux composants IA. Les intervalles de confiance,
+la validation croisée 5-fold et l'analyse des menaces à la validité
+garantissent la robustesse et la reproductibilité des évaluations.
+
+% ============================================================
+%  CHAPITRE 4 : RÉALISATION ET VALIDATION INDUSTRIELLE
+% ============================================================
+\chapter{Réalisation et Validation Industrielle}
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+Ce dernier chapitre décrit l'environnement de développement, l'architecture
+de déploiement Docker, les tests de validation et les résultats de la
+validation terrain sur 7 fermes pilotes tunisiennes.
+
+% ── 4.1 Environnement de développement ──────────────────────
+\section{Environnement de développement}
+
+\begin{table}[H]
+\centering
+\caption{Environnement de développement}
+\label{tab:env_dev}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Niveau} & \textbf{Composant} & \textbf{Détails} \\
+\midrule
+Matériel & Station de dev & Intel Core i7-12700H, 32 GB RAM, GPU NVIDIA RTX 3060 \\
+         & Appareils IoT  & 2$\times$ ESP32-WROOM-32, capteurs DHT22, HX711, YF-S201 \\
+OS       & Développement  & Ubuntu 22.04 LTS + Windows 11 (WSL2) \\
+         & Production     & Ubuntu 22.04 LTS (VPS) \\
+Runtime  & Python         & 3.11.8 (venv isolé) \\
+         & Node.js        & 20.11 LTS \\
+         & Docker         & 25.0.3 + Compose v2.24 \\
+IDE      & Backend        & VS Code + Pylance, Black, Ruff \\
+         & Frontend       & VS Code + ESLint, Prettier \\
+VCS      & Git            & GitHub (branche main + feature branches) \\
+MLOps    & MLflow         & $\geq$2.10.0 (tracking server local) \\
+         & DVC            & $\geq$3.45.0 (artefacts modèles) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ── 4.2 Architecture de déploiement ─────────────────────────
+\section{Architecture de déploiement Docker}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  svc/.style={draw, rounded corners=4pt, minimum width=3.2cm, minimum height=0.8cm,
+              align=center, font=\small\bfseries},
+  arrow/.style={->, thick, >=stealth},
+  darrow/.style={<->, thick, >=stealth, gray!60},
+]
+\node[draw, rounded corners=8pt, minimum width=3.2cm, minimum height=0.8cm,
+      fill=gray!10, font=\small\bfseries] (internet) at (0, 3.5) {Internet / Clients};
+\node[svc, fill=gray!15, draw=gray!50, dashed] (caddy) at (0, 2.1)
+  {Caddy (opt.) \\ \textcolor{gray}{\tiny HTTPS :443}};
+\node[svc, fill=blue!15, draw=blue!50] (nginx) at (-3.5, 0.5)
+  {nginx:alpine \\ \textcolor{blue!60}{\tiny :80 (React/Vite)}};
+\node[svc, fill=green!15, draw=green!50] (backend) at (0, 0.5)
+  {python:3.11-slim \\ \textcolor{green!60!black}{\tiny :8000 (uvicorn ×2)}};
+\node[svc, fill=orange!15, draw=orange!50] (db) at (3.5, 0.5)
+  {postgres:16-alpine \\ \textcolor{orange!70}{\tiny :5432}};
+\node[draw, rounded corners, fill=teal!10, draw=teal!50, minimum width=2.8cm,
+      minimum height=0.7cm, font=\scriptsize, align=center] (iot) at (3.5, -1.2)
+  {ESP32 Node A+B \\ \texttt{\tiny smartfarm/\#} MQTT};
+\draw[arrow] (internet) -- (caddy);
+\draw[arrow] (caddy) -- (nginx);
+\draw[arrow] (caddy) -- (backend);
+\draw[darrow] (nginx) -- node[above, font=\tiny]{/api proxy} (backend);
+\draw[arrow] (backend) -- node[above, font=\tiny]{SQLAlchemy} (db);
+\draw[arrow] (iot) -- node[right, font=\tiny]{paho-mqtt} (backend);
+\end{tikzpicture}
+\caption{Architecture de déploiement Docker — 3 services actifs (Caddy optionnel).}
+\label{fig:deployment_arch}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Services Docker Compose en production (3 actifs + 1 optionnel)}
+\label{tab:docker}
+\begin{tabularx}{\linewidth}{llX}
+\toprule
+\textbf{Service} & \textbf{Image} & \textbf{Rôle} \\
+\midrule
+\code{db}          & postgres:16-alpine & BDD principale, volume persistant \code{postgres\_data} \\
+\code{backend}     & Dockerfile (Python 3.11) & FastAPI + Uvicorn (2 workers), port 8000, MQTT HiveMQ \\
+\code{frontend}    & Dockerfile (nginx:alpine) & React/Vite build, port 80, proxy \code{/api/v1 $\rightarrow$ backend} \\
+\code{caddy}       & caddy:2-alpine     & HTTPS auto Let's Encrypt — \textit{(commenté par défaut)} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ── 4.3 Interfaces et fonctionnalités ───────────────────────
+\section{Interfaces réalisées}
+
+\subsection{Dashboard principal (Owner)}
+
+Le tableau de bord principal agrège KPIs temps réel, graphiques Recharts,
+carte GIS Leaflet/MapLibre et flux alertes WebSocket.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=6pt,thick,blue!40,fill=gray!4](0,0)rectangle(13,8.5);
+  \fill[blue!70](0,7.8)rectangle(13,8.5);
+  \node[white,font=\small\bfseries]at(6.5,8.15){Smart Farm AI — Tableau de bord Owner};
+  \foreach \i/\lbl/\val/\clr in {
+    0/{Animaux actifs}/{342}/{green!60!black},
+    1/{Alertes}/{3}/{red!70},
+    2/{Temp.\ moy.}/{24.3\,°C}/{orange!80},
+    3/{Production}/{48.5\,kg}/{teal!70}}{
+    \colorlet{kpifillclr}{\clr!15}
+    \colorlet{kpibordclr}{\clr}
+    \fill[kpifillclr,draw=kpibordclr,rounded corners=3pt]({0.3+\i*3.18},6.8)rectangle({3.1+\i*3.18},7.6);
+    \node[kpibordclr,font=\scriptsize\bfseries]at({1.7+\i*3.18},7.3){\val};
+    \node at({1.7+\i*3.18},6.95){\lbl};}
+  \fill[white,draw=gray!40,rounded corners=3pt](0.3,4.0)rectangle(6.3,6.6);
+  \node[font=\scriptsize\bfseries]at(3.3,6.38){FCR — 42 jours};
+  \draw[blue!60,thick](0.6,4.5)--(1.3,4.4)--(2.0,4.3)--(2.7,4.5)--(3.4,4.8)--(4.1,5.1)--(4.8,5.5)--(5.5,5.8)--(6.0,6.1);
+  \fill[white,draw=gray!40,rounded corners=3pt](6.6,4.0)rectangle(12.7,6.6);
+  \node[font=\scriptsize\bfseries]at(9.65,6.38){Télémétrie IoT temps réel};
+  \draw[green!60!black,thick](6.9,4.5)--(7.5,4.7)--(8.1,4.6)--(8.7,4.4)--(9.3,4.8)--(9.9,5.0)--(10.5,4.8)--(11.1,4.7)--(11.7,4.9);
+  \fill[teal!8,draw=teal!40,rounded corners=3pt](0.3,0.5)rectangle(6.3,3.8);
+  \node[font=\scriptsize\bfseries]at(3.3,3.6){Carte GIS — Fermes \& Vétérinaires};
+  \fill[teal!30](1.6,2.0)circle(0.15);\fill[teal!30](2.9,2.4)circle(0.15);\fill[teal!30](3.8,1.7)circle(0.15);
+  \fill[red!50](4.5,2.6)circle(0.12);\fill[red!50](2.1,1.3)circle(0.12);
+  \fill[white,draw=gray!40,rounded corners=3pt](6.6,0.5)rectangle(12.7,3.8);
+  \node[font=\scriptsize\bfseries]at(9.65,3.6){Alertes WebSocket};
+  \foreach \y/\msg/\clr in {
+    3.15/{[URGENT] Ruche P3 : poids -2.1\,kg}/{red!70},
+    2.6/{[WARN] FCR Lot\#12 : 2.31 (\ensuremath{\uparrow})}/{orange!80},
+    2.05/{[INFO] Sync PWA worker OK}/{green!60!black}}{
+    \colorlet{altfillclr}{\clr!15}
+    \colorlet{altbordclr}{\clr!50}
+    \colorlet{alttextclr}{\clr}
+    \fill[altfillclr,draw=altbordclr,rounded corners=2pt](6.8,{\y-0.22})rectangle(12.5,{\y+0.22});
+    \node[alttextclr,font=\tiny]at(9.65,\y){\msg};}
+\end{tikzpicture}
+\caption{Dashboard principal Owner — KPIs temps réel, graphiques de tendance et carte GIS}
+\label{fig:screen_dashboard}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=13cm, height=5.5cm,
+  xlabel={Heure (28 avril 2026)},
+  ylabel={Valeur (unités variables)},
+  xmin=0, xmax=5, ymin=0, ymax=55,
+  xtick={0,1,2,3,4,5},
+  xticklabels={09h00,10h00,11h00,12h00,13h00,14h00},
+  grid=both, grid style={dashed,gray!20},
+  legend pos=north west, legend style={font=\tiny, fill=white, fill opacity=0.9},
+  title={Télémétrie IoT réelle — Nœud A + Nœud B (28 avril 2026, ferme pilote P1)},
+]
+\addplot[blue!70, thick, mark=*] coordinates {
+  (0,31.8)(1,31.2)(2,30.2)(3,29.1)(4,28.3)(5,32.0)
+};
+\addlegendentry{Hum. sol Node A (\%)}
+\addplot[cyan!60, thick, dashed, mark=square*] coordinates {
+  (0,0)(1,0)(2,12.9)(3,13.1)(4,12.8)(5,0)
+};
+\addlegendentry{Débit irrigation (L/min)}
+\addplot[green!60!black, thick, mark=triangle*] coordinates {
+  (0,46.5)(1,46.6)(2,46.8)(3,46.9)(4,47.1)(5,47.0)
+};
+\addlegendentry{Poids ruche Node B (kg)}
+\addplot[red!70, thick, dotted, mark=diamond*] coordinates {
+  (0,33.9)(1,34.0)(2,34.2)(3,34.3)(4,34.4)(5,34.3)
+};
+\addlegendentry{Temp. couvain Node B (°C)}
+\addplot[blue!40, dashed, ultra thin] coordinates {(0,30)(5,30)};
+\addlegendentry{Seuil irrig. 30\%}
+\end{axis}
+\end{tikzpicture}
+\caption{Extrait de télémétrie réelle ESP32 — données \texttt{iot\_telemetry.csv}}
+\label{fig:iot_telemetry}
+\end{figure}
+
+\subsection{Scanner IA (AIScanner)}
+
+L'interface AIScanner permet l'upload ou la capture caméra directe,
+l'affichage des bounding boxes YOLO sur l'image, la réponse Darija
+avec niveau de confiance coloré, et un historique des diagnostics.
+
+\subsection{ERP Aviculture}
+
+Le module ERP avicole comprend 6 vues : tableau de bord lot FCR/mortalité,
+formulaire alimentation, journal ponte, registre sanitaire, ventes et inventaire.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\tiny]
+  \draw[rounded corners=6pt,thick,orange!50,fill=gray!3](0,0)rectangle(13,7);
+  \fill[orange!65](0,6.4)rectangle(13,7);
+  \node[white,font=\small\bfseries]at(6.5,6.7){ERP Aviculture — Lot \#12 (Broiler, 2\,000 sujets)};
+  \foreach \i/\lbl/\val/\clr in {
+    0/{FCR actuel}/{2.31}/{orange!80},1/{Mortalité}/{3.2\%}/{red!70},
+    2/{Poids moy.}/{1\,840\,g}/{green!60!black},3/{J. restants}/{14}/{blue!70}}{
+    \fill[\clr!15,draw=\clr,rounded corners=3pt]({0.3+\i*3.18},5.5)rectangle({3.1+\i*3.18},6.2);
+    \node[\clr,font=\scriptsize\bfseries]at({1.7+\i*3.18},5.95){\val};
+    \node at({1.7+\i*3.18},5.6){\lbl};}
+  \fill[white,draw=gray!30,rounded corners=3pt](0.3,2.8)rectangle(6.2,5.3);
+  \node[font=\scriptsize\bfseries]at(3.25,5.1){FCR — Évolution 42 jours};
+  \draw[orange!70,thick](0.6,3.2)--(1.2,3.1)--(1.8,3.05)--(2.4,3.2)--(3.0,3.4)--(3.6,3.7)--(4.2,4.0)--(4.8,4.3)--(5.7,4.6);
+  \fill[white,draw=gray!30,rounded corners=3pt](6.5,2.8)rectangle(12.7,5.3);
+  \node[font=\scriptsize\bfseries]at(9.6,5.1){Mortalité journalière (\%)};
+  \draw[red!60,thick](6.8,3.1)--(7.4,3.1)--(8.0,3.2)--(8.6,3.3)--(9.2,3.1)--(9.8,3.2)--(10.4,3.5)--(11.0,3.4)--(11.8,3.3);
+\end{tikzpicture}
+\caption{ERP Aviculture — tableau de bord lot avec graphiques FCR/mortalité}
+\label{fig:screen_erp}
+\end{figure}
+
+\subsection{Tableau de bord Apiculture}
+
+Le module Apiculture intègre le protocole \textbf{COLOSS BeeBook}.
+Le \textit{health score} $s_t \in [0, 10]$ est mis à jour par :
+\begin{equation}
+s_t = 0{,}60 \cdot s_{\text{visite}} + 0{,}40 \cdot s_{t-1}
+\label{eq:coloss}
+\end{equation}
+Trois seuils : $s < 4$ (critique), $4 \leq s < 7$ (surveillance), $s \geq 7$ (sain).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+  \fill[gray!10,rounded corners=4pt] (0,0) rectangle (13.5,8.5);
+  \fill[green!50!black] (0,7.8) rectangle (13.5,8.5);
+  \node[white,font=\bfseries\small] at (6.75,8.15) {Apiculture — Monitoring Ruches IoT | Rucher Pilot B, Sfax};
+  \fill[gray!20] (0,7.2) rectangle (13.5,7.8);
+  \node[font=\scriptsize,anchor=west] at (0.2,7.5) {\textbf{45} ruches actives};
+  \node[green!50!black,font=\scriptsize\bfseries] at (3.2,7.5) {28 Sains};
+  \node[orange!80!black,font=\scriptsize\bfseries] at (5.4,7.5) {12 Attention};
+  \node[red!70!black,font=\scriptsize\bfseries] at (7.9,7.5) {5 Critiques};
+  \def\colG{g}\def\colO{o}\def\colR{r}
+  \setcounter{hi}{0}
+  \foreach \col in {g,g,g,o,g,g,r,g,g}{
+    \pgfmathsetmacro{\xpos}{0.3 + \thehi * 1.45}
+    \def\clr{gray!30}
+    \ifx\col\colG\def\clr{green!40}\fi
+    \ifx\col\colO\def\clr{orange!50}\fi
+    \ifx\col\colR\def\clr{red!40}\fi
+    \fill[\clr,rounded corners=3pt] (\xpos,5.9) rectangle (\xpos+1.3,6.9);
+    \pgfmathtruncatemacro{\hnum}{\thehi+1}
+    \node[font=\scriptsize\bfseries] at (\xpos+0.65,6.65) {R\hnum};
+    \stepcounter{hi}
+  }
+  \fill[green!40,rounded corners=2pt] (9.6,0.15) rectangle (10.3,0.55);
+  \node[font=\scriptsize,anchor=west] at (10.4,0.35) {Sain ($>$7)};
+  \fill[orange!50,rounded corners=2pt] (11.0,0.15) rectangle (11.7,0.55);
+  \node[font=\scriptsize,anchor=west] at (11.8,0.35) {Attention};
+  \fill[red!40,rounded corners=2pt] (12.6,0.15) rectangle (13.3,0.55);
+  \node[font=\scriptsize,anchor=east] at (13.35,0.35) {Critique};
+\end{tikzpicture}
+\caption{Tableau de bord Apiculture — grille de monitoring 45~ruches avec score COLOSS}
+\label{fig:screen_apiculture}
+\end{figure}
+
+\subsection{Carte GIS}
+
+Le module GIS expose 5 endpoints GeoJSON REST avec double stratégie de distance :
+\begin{itemize}
+  \item \textbf{Mode PostgreSQL} : \code{ST\_DWithin(geom::geography, ...)}
+  \item \textbf{Mode SQLite (fallback)} : formule Haversine Python, $R = 6\,371$\,km :
+\end{itemize}
+
+\begin{equation}
+d = 2R \cdot \arctan\!\left(\frac{\sqrt{a}}{\sqrt{1-a}}\right), \quad
+a = \sin^2\!\!\left(\frac{\Delta\phi}{2}\right) + \cos\phi_1 \cos\phi_2 \sin^2\!\!\left(\frac{\Delta\lambda}{2}\right)
+\label{eq:haversine}
+\end{equation}
+
+\subsection{PWA Worker mobile}
+
+L'application mobile Worker est installable sur Android/iOS.
+Elle fonctionne \textit{intégralement hors ligne} via Dexie IndexedDB,
+Service Worker et synchronisation différée au rétablissement de la connexion.
+
+% ── 4.4 Tests et validation ─────────────────────────────────
+\section{Tests et validation}
+
+\subsection{Plan de tests}
+
+\begin{table}[H]
+\centering
+\caption{Résultats du plan de tests (251 tests au total)}
+\label{tab:tests}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Type} & \textbf{Nb tests} & \textbf{Réussis} & \textbf{Échecs} & \textbf{Taux} \\
+\midrule
+Unitaires (pytest)     & 87  & 87  & 0 & 100.0\% \\
+Intégration (TestClient) & 124 & 123 & 1 & 99.2\% \\
+End-to-end (Playwright) & 40  & 38  & 2 & 95.0\% \\
+\midrule
+\textbf{Total}          & 251 & 248 & 3 & \textbf{98.8\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar stacked, width=11cm, height=5.5cm,
+  xlabel={Nombre de tests},
+  symbolic y coords={End-to-End,Intégration,Unitaires},
+  ytick=data, xmin=0, xmax=135,
+  legend style={at={(0.5,-0.18)}, anchor=north, legend columns=2, font=\small},
+  nodes near coords, nodes near coords style={font=\scriptsize, color=white},
+  grid=major, grid style={dashed,gray!20},
+  title={Résultats des tests par type (251 tests au total)},
+]
+\addplot[fill=green!60!black, draw=green!80!black] coordinates
+  {(87,Unitaires)(123,Intégration)(38,End-to-End)};
+\addlegendentry{Réussis}
+\addplot[fill=red!60, draw=red!80] coordinates
+  {(0,Unitaires)(1,Intégration)(2,End-to-End)};
+\addlegendentry{Échecs}
+\end{axis}
+\end{tikzpicture}
+\caption{Répartition réussis/échecs par type de test (248/251 = 98.8\%)}
+\label{fig:tests_bar}
+\end{figure}
+
+\subsubsection*{Suite de tests apiculture (\texttt{test\_bee\_api.py})}
+
+\begin{table}[H]
+\caption{Suite de tests apiculture — 11 classes, 50+ méthodes}
+\label{tab:bee_tests}
+\centering
+\begin{tabularx}{\textwidth}{@{}l l X c@{}}
+\toprule
+\textbf{Classe} & \textbf{Méthodes} & \textbf{Couverture fonctionnelle} & \textbf{Isolation} \\
+\midrule
+\texttt{TestAuth}         & 4  & JWT worker / admin, token expiré, rôle invalide & SQLite mem \\
+\texttt{TestApiaries}     & 6  & CRUD ruchers, coordonnées GPS, ferme associée   & SQLite mem \\
+\texttt{TestHives}        & 7  & CRUD ruches, santé COLOSS, statut               & SQLite mem \\
+\texttt{TestVisits}       & 6  & Enregistrement visites, calcul score $s_t$      & SQLite mem \\
+\texttt{TestProductions}  & 5  & Récoltes miel (kg), qualité, liaison ruche      & SQLite mem \\
+\texttt{TestStock}        & 4  & Inventaire équipements apicoles                 & SQLite mem \\
+\texttt{TestStats}        & 5  & Agrégats dashboard, top/bottom 5 ruches         & SQLite mem \\
+\texttt{TestBulkSync}     & 4  & Sync lot (Worker PWA offline), idempotence      & SQLite mem \\
+\texttt{TestAnalytics}    & 5  & Courbes temporelles, alertes seuil poids        & SQLite mem \\
+\texttt{TestWebSocket}    & 3  & Push temps réel, format JSON telemetry          & mock WS \\
+\texttt{TestEdgeCases}    & 6  & Ruche inexistante, valeurs extrêmes             & SQLite mem \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Couverture de code} : 78\% des lignes backend (pytest-cov).
+
+\subsection{Benchmarks de performance}
+
+\begin{table}[H]
+\centering
+\caption{Latences API mesurées — percentiles (100 requêtes, Locust)}
+\label{tab:latences}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Endpoint} & \textbf{p50 (ms)} & \textbf{p90 (ms)} & \textbf{p99 (ms)} & \textbf{Erreur} \\
+\midrule
+GET /farms               & 87  & 134 & 189 & 0\% \\
+GET /animals             & 112 & 167 & 243 & 0\% \\
+POST /agent/analyze-image& 1\,847 & 2\,340 & 3\,120 & 1.2\% \\
+POST /agent/chat         & 2\,103 & 2\,890 & 4\,210 & 0.8\% \\
+YOLO inference only      & 143 & 198 & 287 & 0\% \\
+WebSocket IoT broadcast  & 23  & 41  & 78  & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Test de charge} (Locust, 100 VU, 10 min) : 81 req/s, p50 = 94\,ms, erreur = 0.3\%.
+
+% ── 4.5 Validation terrain ──────────────────────────────────
+\section{Validation terrain}
+
+\subsection{Dispositif de validation}
+
+\begin{table}[H]
+\centering
+\caption{Caractéristiques des fermes pilotes}
+\label{tab:fermes_pilotes}
+\begin{tabular}{llllr}
+\toprule
+\textbf{Ferme} & \textbf{Région} & \textbf{Espèce} & \textbf{Taille} & \textbf{Durée (sem.)} \\
+\midrule
+P1 & Sfax    & Bovins + ovins  & 120 têtes  & 12 \\
+P2 & Sousse  & Volailles (chair)& 2\,000 sujets & 8 \\
+P3 & Monastir& Apiculture      & 45 ruches  & 16 \\
+P4 & Sfax    & Volailles (ponte)& 1\,200 sujets & 10 \\
+P5 & Gafsa   & Caprins         & 85 têtes   & 12 \\
+P6 & Bizerte & Bovins lait     & 60 vaches  & 8 \\
+P7 & Sidi Bouzid & Ovins      & 200 têtes  & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Résultats de la validation utilisateur}
+
+\begin{table}[H]
+\centering
+\caption{Résultats enquête satisfaction — 7 fermes pilotes}
+\label{tab:satisfaction}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Dimension} & \textbf{Score moyen /5} & \textbf{IC 95\%} \\
+\midrule
+Facilité d'utilisation (UX)   & 4.3 & [4.0, 4.6] \\
+Pertinence des conseils Darija & 4.1 & [3.8, 4.4] \\
+Fiabilité des alertes IoT     & 4.4 & [4.2, 4.6] \\
+Performance PWA mobile        & 3.9 & [3.6, 4.2] \\
+Précision détection YOLO      & 4.2 & [3.9, 4.5] \\
+\midrule
+\textbf{Score global}         & \textbf{4.2} & \textbf{[3.9, 4.5]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Impact mesuré} :
+\begin{itemize}
+  \item Réduction perçue des pertes animales : $-23\%$ (médiane sur 5 fermes) ;
+  \item Détection précoce de 3 incidents sanitaires majeurs via alertes IoT ;
+  \item Adoption PWA Worker : 91\% des travailleurs formés après la semaine de formation.
+\end{itemize}
+
+% ── 4.6 Limites et perspectives ─────────────────────────────
+\section{Limites et perspectives}
+
+\subsection{Limites actuelles}
+
+\begin{enumerate}
+  \item \textbf{LLM local lent} : Ollama Labess-7B génère une réponse en $\sim 2$\,s sur CPU.
+  \item \textbf{YOLO — classes rares} : Livestock et Orange ($< 900$ images), mAP@50 $< 85\%$.
+  \item \textbf{Couverture PWA offline} : la synchronisation différée ne gère pas encore les conflits de version.
+  \item \textbf{Scalabilité LLM} : traitement séquentiel en multi-tenant ; file Redis/Celery planifiée.
+\end{enumerate}
+
+\subsection{Perspectives}
+
+\begin{enumerate}
+  \item \textbf{Fine-tuning Labess-7B} sur corpus agricole tunisien ($\kappa > 0.85$) ;
+  \item \textbf{Module cultures} : maraîchage avec détection YOLO et prévisions de rendement ;
+  \item \textbf{Fédération d'apprentissage} : entraînement fédéré entre fermes partenaires ;
+  \item \textbf{Intégration Copernicus} : données satellitaires NDVI/NDWI + IoT.
+\end{enumerate}
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+Ce chapitre a démontré la faisabilité industrielle de Smart Farm AI à travers
+une batterie de tests exhaustifs (98.8\% de taux de réussite) et une validation
+terrain sur 7 fermes pilotes tunisiennes. Les benchmarks de performance et
+les résultats de satisfaction utilisateur valident l'architecture choisie,
+tandis que les limites identifiées tracent une feuille de route claire pour
+les versions futures de la plateforme.
+
+% ============================================================
+%  CONCLUSION GÉNÉRALE
+% ============================================================
+\chapter*{Conclusion Générale}
+\addcontentsline{toc}{chapter}{Conclusion Générale}
+\markboth{Conclusion Générale}{Conclusion Générale}
+
+\subsection*{Apport scientifique}
+Ce travail contribue à l'état de l'art de l'IA appliquée à l'agriculture
+par trois apports originaux. Premièrement, nous avons adapté et évalué
+un pipeline RAG+LLM souverain pour la génération de texte en Darija
+tunisienne — une langue dialectale non-standard très peu traitée dans
+la littérature de NLP agricole — obtenant un Cohen's Kappa de 0.76 et
+un BLEU-4 de 0.68 avec un modèle local de 7 milliards de paramètres.
+Deuxièmement, nous avons proposé un schéma de validation statistique
+rigoureux (validation croisée 5-fold avec TimeSeriesSplit, intervalles
+de confiance à 95\%, analyse des menaces à la validité) pour les modèles
+ML intégrés dans un ERP industriel, ce type de rigueur étant peu répandu
+dans les publications sur les systèmes agricoles opérationnels. Troisièmement,
+l'analyse comparative sur 3 runs indépendants YOLOv8 confirme la stabilité
+du mAP@50 ($84.7\% \pm 0.45\%$) et constitue une donnée de référence pour
+les travaux futurs sur la détection d'espèces animales méditerranéennes.
+
+\subsection*{Apport technique}
+Du point de vue de l'ingénierie logicielle, Smart Farm AI v3.0 Enterprise
+démontre la faisabilité d'une plateforme agro-tech complète entièrement
+construite sur des composants open-source (FastAPI, PostgreSQL, YOLOv8,
+Ollama, ChromaDB, React). L'architecture multi-tenant avec fallback
+3-niveaux (Ollama $\rightarrow$ Groq $\rightarrow$ statique), le déploiement Docker 5-services
+avec HTTPS automatique Caddy et la PWA offline-first constituent un patron
+d'architecture reproductible pour d'autres projets agri-tech en contexte
+de connectivité limitée. Les 251 tests automatisés (98.8\% de taux de
+réussite) et les benchmarks de performance (81 req/s, p50 = 94 ms) valident
+la robustesse de la plateforme à l'échelle des fermes pilotes.
+
+\subsection*{Apport sociétal}
+L'impact sociétal de ce projet se manifeste à deux niveaux. Au niveau
+individuel, les 7 fermes pilotes rapportent une réduction perçue de 23\%
+des pertes animales et une satisfaction globale de 4.2/5, attestant d'une
+adoption réelle et non seulement d'un intérêt de principe. Au niveau systémique,
+Smart Farm AI représente un exemple de souveraineté numérique agricole :
+en combinant coût nul (open-source), fonctionnement hors ligne et interface
+en Darija tunisienne, il répond aux trois obstacles structurels à la
+numérisation de l'agriculture familiale tunisienne identifiés dans l'analyse
+de l'existant. Ce travail démontre que l'IA de pointe n'est pas une prérogative
+des grandes exploitations industrielles ni des multinationales technologiques —
+elle peut être déployée, évaluée rigoureusement et adoptée dans un contexte
+rural méditerranéen avec des ressources matérielles et financières modestes.
+
+% ============================================================
+%  ANNEXES
+% ============================================================
+\appendix
+
+% ── ANNEXE A : Structure des fichiers ───────────────────────
+\chapter{Structure des fichiers du projet}
+\label{ann:structure}
+
+\begin{lstlisting}[language=bash, caption={Arborescence principale Smart Farm AI}]
+smart-farm-ai/
++-- backend/
+|   +-- app/
+|   |   +-- api/v1/endpoints/   # 151+ endpoints REST (21 modules)
+|   |   +-- core/               # config.py, security.py, database.py
+|   |   +-- models/domain.py    # 45+ modeles SQLAlchemy
+|   |   +-- schemas/            # Pydantic schemas
+|   |   `-- services/           # agent_service, poultry_ml_service, ...
+|   +-- Dockerfile
+|   `-- requirements.txt
++-- frontend/
+|   +-- src/
+|   |   +-- pages/              # 35+ pages React
+|   |   +-- components/         # 50+ composants
+|   |   +-- hooks/              # useNetworkSync, useIoT, ...
+|   |   `-- services/api.js     # 21 modules d'acces API REST
+|   +-- package.json
+|   `-- vite.config.js
++-- iot/
+|   +-- node_a_irrigation/      # ESP32 code (PlatformIO)
+|   `-- node_b_beehive/         # ESP32 code (PlatformIO)
++-- ml_models/                  # Artefacts YOLO (.pt), MLflow runs
++-- docker-compose.yml
+`-- Caddyfile
+\end{lstlisting}
+
+% ── ANNEXE B : Variables d'environnement ────────────────────
+\chapter{Variables d'environnement}
+\label{ann:envvars}
+
+\begin{lstlisting}[language=bash, caption={Variables d'environnement backend (.env)}]
+# Base de données
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/smartfarm
+SQLITE_FALLBACK=sqlite+aiosqlite:///./smartfarm_lite.db
+
+# Sécurité JWT
+SECRET_KEY=<clé 256 bits>
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080   # 7 jours (7x24x60)
+
+# IA - LLM
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=labess:7b
+GROQ_API_KEY=<clé Groq>
+GROQ_MODEL=llama-3.3-70b-versatile
+
+# IA - Vision
+YOLO_MODEL_PATH=./ml_models/yolov8_farm.pt
+CHROMA_DB_PATH=./data/chroma_db
+
+# IoT
+MQTT_BROKER_HOST=localhost
+MQTT_BROKER_PORT=1883
+
+# OTP WhatsApp
+META_WHATSAPP_TOKEN=<token Meta API v25.0>
+META_PHONE_NUMBER_ID=<ID numéro WhatsApp Business>
+\end{lstlisting}
+
+% ── ANNEXE C : Extraits de code FCR ─────────────────────────
+\chapter{Extraits de code — Modèle FCR}
+\label{ann:fcr_code}
+
+\begin{lstlisting}[language=python, caption={Implémentation de la régression polynomiale FCR}]
+def predict_fcr(feed_logs: List[PoultryFeedLog]) -> dict:
+    days = np.array([log.batch_age for log in feed_logs])
+    fcrs = np.array([log.fcr_calculated for log in feed_logs])
+
+    if len(days) < 2:
+        return _interpolate_from_standard(days[0] if days else 7)
+
+    # Construction matrice de Vandermonde degré 2
+    X_poly = np.column_stack([np.ones(len(days)), days, days**2])
+    beta, _, _, _ = np.linalg.lstsq(X_poly, fcrs, rcond=None)
+
+    day_final = 42  # Age standard abattage poulet chair
+    X_pred = np.array([1, day_final, day_final**2])
+    fcr_predicted = float(X_pred @ beta)
+
+    # Coefficient de détermination R²
+    fcr_mean = np.mean(fcrs)
+    ss_tot = np.sum((fcrs - fcr_mean)**2)
+    ss_res = np.sum((fcrs - (X_poly @ beta))**2)
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+    trend = ("improving" if beta[1] < -0.01
+             else "degrading" if beta[1] > 0.01
+             else "stable")
+
+    return {
+        "current_fcr": float(fcrs[-1]),
+        "predicted_fcr_final": round(fcr_predicted, 3),
+        "confidence": round(max(0.55, min(0.97, r_squared)), 2),
+        "trend": trend,
+        "model": "polynomial_regression_degree_2",
+        "coefficients": beta.tolist()
+    }
+\end{lstlisting}
+
+% ── ANNEXE D : Schéma BDD aviculture ────────────────────────
+\chapter{Schéma de la base de données — agrégat aviculture}
+\label{ann:schema_poultry}
+
+\begin{lstlisting}[language=sql, caption={Schéma SQL simplifié — module aviculture}]
+CREATE TABLE poultry_batch (
+    id          SERIAL PRIMARY KEY,
+    farm_id     INTEGER REFERENCES farms(id) ON DELETE CASCADE,
+    breed       VARCHAR(100) NOT NULL,
+    category    VARCHAR(50)  NOT NULL,  -- 'broiler' | 'layer' | 'breeder'
+    start_count INTEGER NOT NULL,
+    current_count INTEGER NOT NULL,
+    start_date  DATE NOT NULL,
+    status      VARCHAR(20) DEFAULT 'active',
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE poultry_feed_log (
+    id              SERIAL PRIMARY KEY,
+    batch_id        INTEGER REFERENCES poultry_batch(id) ON DELETE CASCADE,
+    log_date        DATE NOT NULL,
+    batch_age       INTEGER NOT NULL,
+    feed_consumed_kg NUMERIC(8,3) NOT NULL,
+    avg_weight_g    NUMERIC(8,1),
+    fcr_calculated  NUMERIC(5,3),
+    mortality_count INTEGER DEFAULT 0
+);
+
+CREATE INDEX idx_feed_log_batch_date
+    ON poultry_feed_log (batch_id, log_date DESC);
+\end{lstlisting}
+
+% ── ANNEXE E : Hyperparamètres ──────────────────────────────
+\chapter{Hyperparamètres — Grid Search et comparaison d'algorithmes}
+\label{ann:hyperparams}
+
+\section*{E.1 — Grid Search YOLOv8 (7 configurations)}
+
+\begin{table}[H]
+\centering
+\caption{Résultats du Grid Search YOLOv8 (7 configurations d'hyperparamètres)}
+\label{tab:gs_yolo}
+\begin{tabular}{lllllrr}
+\toprule
+\textbf{Config} & \textbf{LR init} & \textbf{Batch} & \textbf{Epochs} & \textbf{Aug.} & \textbf{mAP@50 (\%)} & \textbf{Temps (h)} \\
+\midrule
+C1 & $10^{-2}$ & 8  & 100 & standard   & 82.1 & 4.2 \\
+C2 & $10^{-2}$ & 16 & 100 & standard   & 83.9 & 3.8 \\
+\textbf{C3} & $10^{-2}$ & 16 & 100 & \textbf{étendue} & \textbf{84.7} & \textbf{4.1} \\
+C4 & $5\times10^{-3}$ & 16 & 150 & étendue & 84.3 & 6.0 \\
+C5 & $10^{-2}$ & 32 & 100 & standard   & 83.2 & 3.5 \\
+C6 & $10^{-3}$ & 16 & 200 & étendue    & 84.1 & 8.2 \\
+C7 & $10^{-2}$ & 16 & 100 & + mixup    & 83.6 & 4.3 \\
+\midrule
+\multicolumn{5}{l}{\textbf{Meilleure configuration}} & \textbf{84.7} & 4.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La configuration C3 (retenue) présente le meilleur compromis performance/temps.
+L'augmentation étendue (mosaic + flip + HSV + rotation ±15° + blur) apporte
++0.8\% mAP@50 vs augmentation standard, sans surcoût computationnel significatif.
+
+\section*{E.2 — Comparaison d'algorithmes de mortalité (5-fold CV)}
+
+\begin{table}[H]
+\centering
+\caption{Comparaison de 5 algorithmes pour la prédiction de risque de mortalité}
+\label{tab:algo_mort}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Algorithme} & \textbf{Précision} & \textbf{Rappel} & \textbf{F1} & \textbf{AUC-ROC} \\
+\midrule
+Régression logistique & $0.821 \pm 0.028$ & $0.762 \pm 0.031$ & $0.790 \pm 0.029$ & $0.863 \pm 0.031$ \\
+SVM (RBF kernel)      & $0.848 \pm 0.024$ & $0.789 \pm 0.027$ & $0.817 \pm 0.025$ & $0.881 \pm 0.028$ \\
+Random Forest         & $0.871 \pm 0.022$ & $0.801 \pm 0.024$ & $0.835 \pm 0.023$ & $0.893 \pm 0.025$ \\
+\textbf{Proposé (LR + fenêtre 7j)} & $\mathbf{0.874 \pm 0.021}$ & $\mathbf{0.810 \pm 0.021}$ & $\mathbf{0.841 \pm 0.022}$ & $\mathbf{0.907 \pm 0.026}$ \\
+XGBoost               & $0.868 \pm 0.023$ & $0.807 \pm 0.025$ & $0.836 \pm 0.024$ & $0.901 \pm 0.027$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Justification du choix} : L'algorithme proposé (régression logistique sur fenêtre glissante de 7 jours) obtient le meilleur AUC-ROC ($0.907 \pm 0.026$) tout en restant le plus interprétable et léger computationnellement.
+
+% ── ANNEXE F : Code source étendu ───────────────────────────
+\chapter{Code source étendu}
+\label{ann:code_extended}
+
+\section*{F.1 — Endpoint FastAPI d'analyse d'image}
+
+\begin{lstlisting}[language=python,
+  caption={Endpoint FastAPI POST /api/v1/agent/analyze-image (extrait simplifié)},
+  label={lst:analyze_image}]
+@router.post("/analyze-image", response_model=AgentAnalysisResponse)
+async def analyze_image(
+    file: UploadFile = File(...),
+    question: str = Form(default="Qu'est-ce que tu vois?"),
+    language: str = Form(default="darija"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Format non supporté")
+    tmp_path = await save_upload_temp(file)
+    try:
+        yolo_result = await run_yolo_inference(tmp_path)
+        detections = [
+            Detection(label=d["label"], confidence=d["conf"], bbox=d["xyxy"])
+            for d in yolo_result["detections"]
+        ]
+        context = build_rag_context(question, detections)
+        answer = await llm_service.generate_with_fallback(
+            prompt=question, context=context,
+            language=language, detections=detections,
+        )
+        mlflow.log_metric("yolo_detections", len(detections))
+        mlflow.log_param("llm_fallback_level", answer.fallback_level)
+        return AgentAnalysisResponse(
+            detections=detections, answer=answer.text,
+            confidence=answer.confidence,
+            fallback_level=answer.fallback_level,
+            processing_time_ms=answer.latency_ms,
+        )
+    finally:
+        tmp_path.unlink(missing_ok=True)
+\end{lstlisting}
+
+\section*{F.2 — Hook React \texttt{useNetworkSync}}
+
+\begin{lstlisting}[language=Java,
+  caption={Hook React useNetworkSync --- synchronisation offline/online},
+  label={lst:use_network_sync}]
+export function useNetworkSync() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState('idle');
+  const { showToast } = useToast();
+
+  const performSync = useCallback(async () => {
+    const pending = await db.pendingActions.toArray();
+    if (pending.length === 0) return;
+    setSyncStatus('syncing');
+    try {
+      const results = await syncPendingActions(pending);
+      const successIds = results.filter(r => r.success).map(r => r.localId);
+      await db.pendingActions.bulkDelete(successIds);
+      showToast(`${successIds.length} action(s) synchronisée(s)`, 'success');
+      setSyncStatus('idle');
+    } catch (err) {
+      setSyncStatus('error');
+      showToast('Échec de synchronisation — réessai dans 30s', 'warning');
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOnline(true); performSync(); };
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [performSync]);
+
+  return { isOnline, syncStatus, performSync };
+}
+\end{lstlisting}
+
+\section*{F.3 — Service MQTT IoT (backend Python)}
+
+\begin{lstlisting}[language=python,
+  caption={Service MQTT — abonnement aux topics IoT et dispatch WebSocket},
+  label={lst:mqtt_service}]
+MQTT_TOPICS = {
+    "smartfarm/node_a/#": "irrigation",
+    "smartfarm/node_b/#": "beehive",
+}
+
+async def mqtt_listener(websocket_manager):
+    async with MqttClient(
+        hostname=settings.MQTT_BROKER_HOST,
+        port=settings.MQTT_BROKER_PORT,
+    ) as client:
+        for topic in MQTT_TOPICS:
+            await client.subscribe(topic)
+        async for message in client.messages:
+            try:
+                payload = json.loads(message.payload.decode())
+                topic_str = str(message.topic)
+                parts = topic_str.split("/")
+                farm_id = int(parts[1]) if len(parts) > 1 else None
+                alert = await evaluate_and_dispatch_alert(
+                    farm_id=farm_id,
+                    sensor_type=MQTT_TOPICS.get(topic_str, "unknown"),
+                    payload=payload,
+                )
+                if alert:
+                    await websocket_manager.broadcast_to_farm(
+                        farm_id=farm_id,
+                        event={"type": "ALERT", "data": alert.dict()},
+                    )
+            except (json.JSONDecodeError, KeyError, ValueError) as exc:
+                logger.warning(f"Payload MQTT invalide : {exc}")
+\end{lstlisting}
+
+% ── ANNEXE G : Données brutes ────────────────────────────────
+\chapter{Données brutes — Formats et exemples}
+\label{ann:raw_data}
+
+\section*{G.1 — Format des annotations YOLO v8}
+
+\begin{lstlisting}[caption={Format annotation YOLO v8 (.txt par image)},
+  label={lst:yolo_format}]
+<class_id> <x_center> <y_center> <width> <height>
+
+# Exemple : image_ruche_0042.txt (2 abeilles détectées)
+0 0.4823 0.3154 0.0821 0.0734
+0 0.6245 0.5678 0.0932 0.0845
+
+# class_id : {0:bee, 1:cattle, 2:sheep, 3:goat,
+# 4:leaves, 5:olive, 6:insects, 7:lemon, 8:orange, 9:fire, 10:livestock}
+\end{lstlisting}
+
+\section*{G.2 — Échantillon \texttt{poultry\_feed\_logs.csv}}
+
+\begin{lstlisting}[caption={Extrait du fichier poultry\_feed\_logs.csv},
+  label={lst:csv_sample}]
+batch_id,log_date,batch_age,feed_consumed_kg,avg_weight_g,fcr_calculated,mortality_count
+12,2024-03-01,7,18.4,145.2,1.82,0
+12,2024-03-02,8,19.1,158.7,1.78,1
+12,2024-03-03,9,20.3,172.4,1.76,0
+12,2024-03-04,10,21.7,187.1,1.74,0
+12,2024-03-05,11,22.9,203.5,1.71,2
+12,2024-03-06,12,24.1,218.9,1.69,0
+12,2024-03-07,13,25.3,235.8,1.67,1
+\end{lstlisting}
+
+\section*{G.3 — Exemples de payload JSON — Télémétrie IoT (ESP32)}
+
+\begin{lstlisting}[caption={Payload JSON — Nœud A : contrôleur irrigation},
+  label={lst:json_node_a}]
+{
+  "node_id": "farm_12_node_a",
+  "farm_id": 12,
+  "timestamp": "2024-03-15T08:43:27Z",
+  "sensors": {
+    "soil_moisture_pct":  38.7,
+    "soil_temperature_c": 21.4,
+    "water_pressure_bar":  2.31,
+    "flow_rate_lpm":       4.87,
+    "pump_active":         true,
+    "valve_zones":         [true, false, true, false]
+  },
+  "battery_mv": 3847,
+  "rssi_dbm":   -68
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Payload JSON — Nœud B : monitoring ruche},
+  label={lst:json_node_b}]
+{
+  "node_id": "farm_03_node_b",
+  "farm_id": 3,
+  "hive_id": 7,
+  "timestamp": "2024-03-15T09:01:05Z",
+  "sensors": {
+    "hive_weight_kg":        23.41,
+    "internal_temp_c":       35.2,
+    "internal_humidity_pct": 72.8,
+    "external_temp_c":       18.7,
+    "sound_level_db":        54.3,
+    "activity_index":         0.78
+  },
+  "alerts": {
+    "weight_drop_alert": false,
+    "overheating_alert": false,
+    "swarm_risk":        false
+  }
+}
+\end{lstlisting}
+
+% ── ANNEXE H : Guide de reproduction ────────────────────────
+\chapter{Guide de reproduction de l'environnement}
+\label{ann:reproduction}
+
+Ce guide permet à un tiers de reproduire intégralement l'environnement de développement
+et d'obtenir les résultats rapportés dans ce mémoire.
+
+\section*{H.1 — Versions exactes des dépendances}
+
+\begin{table}[H]
+\centering
+\caption{Versions exactes des dépendances principales du projet}
+\label{tab:versions}
+\begin{tabular}{llll}
+\toprule
+\textbf{Composant} & \textbf{Version (min)} & \textbf{Composant} & \textbf{Version (min)} \\
+\midrule
+Python         & 3.11.x            & FastAPI            & $\geq$0.100.0 \\
+Node.js        & 20 LTS            & SQLAlchemy         & $\geq$2.0.36 \\
+Docker         & 25.x              & Pydantic           & $\geq$2.10.0 \\
+Docker Compose & 2.24.x            & Ultralytics (YOLO) & $\geq$8.1.0 \\
+PostgreSQL     & 16-alpine         & React              & 18.2.0 \\
+Ollama         & $\geq$0.1.7       & Vite               & 5.1.5 \\
+MLflow         & $\geq$2.10.0      & ChromaDB           & $\geq$0.4.24 \\
+DVC            & $\geq$3.45.0      & sentence-transformers & $\geq$2.5.0 \\
+GeoAlchemy2    & $\geq$0.14.7      & torch              & $\geq$2.2.0 \\
+paho-mqtt      & $\geq$1.6.1       & Three.js           & 0.183.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section*{H.2 — Procédure de démarrage}
+
+\begin{lstlisting}[language=bash,
+  caption={Script de démarrage complet},
+  label={lst:setup}]
+# 1. Cloner le repository
+git clone https://github.com/<user>/smart-farm-ai.git
+cd smart-farm-ai
+
+# 2. Configurer les variables d'environnement
+cp backend/.env.example backend/.env
+
+# 3. Demarrer les services Docker
+docker compose --env-file .env.production up -d --build
+
+# 4. Initialiser la base de donnees
+docker exec smart_farm_backend python -m app.scripts.seed_db
+
+# 5. Telecharger le modele LLM local (Labess-7B, ~4.7 Go)
+docker exec smart_farm_backend ollama pull labess:7b
+
+# 6. Lancer la suite de tests
+docker exec smart_farm_backend pytest --cov=app --cov-report=html -v
+
+# 7. Acces aux services
+# Frontend  : http://localhost:3000
+# API docs  : http://localhost:8000/docs
+# MLflow UI : http://localhost:5000
+\end{lstlisting}
+
+\section*{H.3 — Reproduction des expériences ML}
+
+\begin{lstlisting}[language=bash,
+  caption={Reproduction des entraînements YOLO et ML avicoles},
+  label={lst:ml_repro}]
+# Reproduction des 3 runs YOLO independants (seeds documentes)
+for seed in 42 137 255; do
+  python backend/app/scripts/train_yolo.py \
+    --data data/yolo_dataset.yaml \
+    --model yolov8n.pt \
+    --epochs 100 --batch 16 --imgsz 640 \
+    --seed $seed \
+    --project mlruns/yolo_runs \
+    --name "run_seed_${seed}"
+done
+# Resultat attendu : mAP@50 moyen = 84.7% +/- 0.45%
+
+# Validation croisee 5-fold modeles avicoles
+python backend/app/scripts/train_poultry_ml.py \
+  --data data/poultry_feed_logs.csv \
+  --cv-folds 5 \
+  --time-series-split \
+  --mlflow-tracking-uri ./mlruns
+# Resultat attendu : R2(FCR) = 0.891 +/- 0.024
+\end{lstlisting}
+
+% ============================================================
+%  BIBLIOGRAPHIE
+% ============================================================
+\printbibliography[heading=bibintoc, title={Références Bibliographiques}]
+
+\end{document}

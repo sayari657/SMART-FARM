@@ -1,6 +1,5 @@
 """Smart Farm AI - Auth Routes (with real Email & WhatsApp OTP)"""
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -29,13 +28,11 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 # ── Standard Auth ───────────────────────────────────────────────────────────
-@router.post("/register", status_code=201)
+@router.post("/register", response_model=UserResponse, status_code=201)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    try:
-        return AuthService(db).register(user_in)
-    except Exception as e:
-        import traceback
-        return JSONResponse(status_code=400, content={"detail": f"Error: {type(e).__name__} - {str(e)}", "trace": traceback.format_exc()})
+    """Register a new user. Returns public profile — never exposes password_hash."""
+    # Re-raise HTTPException so FastAPI returns proper 400/409 — do NOT swallow it
+    return AuthService(db).register(user_in)
 
 @router.post("/login", response_model=Token)
 @limiter.limit("10/minute")

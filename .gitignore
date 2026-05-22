@@ -49,3 +49,10 @@ artifacts/
 
 # PlatformIO
 .pio/
+
+# Large binary tools (download separately)
+diagramme/plantuml.jar
+
+# Debug / temp logs
+backend/auth_debug.log
+backend/*.log

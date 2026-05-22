@@ -1,469 +1,1203 @@
-\chapter{Analyse des Besoins et Architecture Système}
+% ============================================================
+%  CHAPITRE 2 : ÉTUDE PRÉLIMINAIRE
+% ============================================================
+\chapter{Étude Préliminaire}
+
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Ce chapitre présente d'abord l'état de l'art des systèmes d'agriculture
-intelligente, puis formalise les besoins du système, détaille l'architecture
-et présente les modèles UML.
 
-% ── 2.0 État de l'Art ───────────────────────────────────────
-\section{État de l'Art}
+La transformation numérique de l'agriculture constitue aujourd'hui un enjeu stratégique
+majeur pour la sécurité alimentaire mondiale et le développement durable. Les exploitations
+agricoles modernes font face à des défis complexes~: optimisation des ressources naturelles,
+suivi sanitaire continu des animaux, gestion des données hétérogènes en temps réel et
+prise de décision assistée adaptée aux contextes locaux.
+L'émergence conjointe de l'Internet des Objets (IoT), du Deep Learning et des modèles
+de langage de grande taille (LLM) ouvre des perspectives inédites pour la conception
+de systèmes agricoles intelligents capables d'intégrer supervision physique, analyse
+prédictive et assistance décisionnelle.
 
-\subsection{Smart Farming et IoT}
+Ce chapitre constitue l'étude préliminaire du projet \textbf{Smart Farm AI}.
+Il s'articule en sept sections~: après une introduction qui cadre les objectifs,
+nous identifions les besoins fonctionnels et non fonctionnels, puis nous analysons
+six travaux récents de l'état de l'art. Nous définissons ensuite l'architecture
+retenue avec ses couches et composants, détaillons les besoins technologiques,
+présentons la planification selon la méthodologie CRISP-DM, et concluons par une
+synthèse des choix effectués.
 
-Le terme \textit{Smart Farming} désigne l'application des technologies
-numériques à l'agriculture pour améliorer la productivité, réduire les
-intrants et adapter les pratiques aux conditions locales~\cite{sharma2024smart}.
-Kamilaris et Prenafeta-Boldú~\cite{kamilaris2018} ont recensé 40 études
-appliquant le deep learning à l'agriculture, concluant que les réseaux
-convolutifs (CNN) surpassent les méthodes classiques pour la classification
-des maladies foliaires et la détection d'insectes ravageurs. Liakos
-\textit{et al.}~\cite{liakos2018} présentent une revue systématique du
-machine learning agricole et identifient les quatre domaines d'application
-dominants : gestion des cultures, élevage, gestion de l'eau, et prévision
-des rendements.
+% ── 2.1 Introduction ─────────────────────────────────────────
+\section{Introduction}
 
-Pour l'élevage connecté, Zhu \textit{et al.}~\cite{zhuvit2023iot} proposent
-une architecture IoT pour le bétail intégrant balises RFID, capteurs
-biométriques et MQTT, similaire à notre nœud ESP32-B. Ils soulignent la
-nécessité d'un protocole léger comme MQTT pour les déploiements ruraux à
-faible bande passante, ce qui justifie notre choix du broker Mosquitto.
+Le projet Smart Farm AI vise à concevoir une plateforme d'agriculture intelligente
+intégrant la supervision physique par IoT, l'analyse visuelle par vision par ordinateur,
+la prédiction comportementale par apprentissage automatique et l'assistance
+conversationnelle en dialecte tunisien Darija.
+Cette ambition multi-dimensionnelle nécessite une analyse préliminaire rigoureuse
+couvrant trois axes complémentaires~:
 
-\subsection{Détection visuelle par YOLOv8}
+\begin{itemize}
+    \item \textbf{Analyse des besoins}~: identification exhaustive des besoins fonctionnels
+          et non fonctionnels à partir des cas d'usage agricoles réels (élevage bovin,
+          ovin, caprin, aviculture, apiculture, irrigation) ;
+    \item \textbf{Revue de l'état de l'art}~: analyse critique de six articles scientifiques
+          récents couvrant l'IoT agricole, la détection par YOLO, la prédiction du taux
+          de conversion alimentaire (FCR), le paradigme RAG et la génération de
+          langage souveraine ;
+    \item \textbf{Architecture et planification}~: définition d'une architecture logicielle
+          en quatre couches, inventaire des technologies retenues et structuration du
+          développement selon la méthodologie CRISP-DM~\cite{wirth2000}.
+\end{itemize}
 
-La famille YOLO (\textit{You Only Look Once}) a dominé la détection
-d'objets en temps réel depuis sa publication initiale. YOLOv8 d'Ultralytics
-~\cite{yolov8_2023} introduit une architecture \textit{anchor-free} à têtes
-de détection découplées, améliorant significativement le rappel sur les
-petits objets (insectes, abeilles). Liang \textit{et al.}~\cite{liang2023}
-obtiennent un mAP@50 de~83.1\% sur un jeu de données de télédétection,
-comparable à nos résultats pour les catégories foliaires.
+L'approche adoptée repose sur une conception centrée sur l'architecture
+(\textit{Architecture-Centric Design}), privilégiant la modularité, la souveraineté
+technologique et l'adaptation aux contextes à ressources limitées propres à
+l'agriculture tunisienne~\cite{utap2023}.
 
-Chen \textit{et al.}~\cite{chen2023yolo_livestock} comparent cinq variantes
-YOLO pour la détection et le comptage de bétail en feedlot, concluant que
-YOLOv8n offre le meilleur compromis vitesse/précision sur CPU embarqué
-($\leq 200$\,ms d'inférence). Notre déploiement sur CPU reproduit ce
-choix architectural pour une compatibilité maximale avec les serveurs
-de ferme à ressources limitées.
+% ── 2.2 Identification des besoins ──────────────────────────
+\section{Identification des besoins}
 
-\subsection{Modèles prédictifs pour l'aviculture}
+\subsection{Les besoins fonctionnels}
 
-Zhang \textit{et al.}~\cite{zhang2023fcr} ont modélisé le FCR de poulets
-de chair par régression polynomiale et réseaux LSTM sur un jeu de 1\,200
-lots, obtenant $R^2 = 0.87$--$0.93$. Notre approche polynomiale de degré~2
-($R^2 = 0.891 \pm 0.024$) est cohérente avec leur résultat de référence,
-validant le choix d'un modèle interprétable plutôt qu'une boîte noire.
-La régression polynomiale est particulièrement adaptée à la dynamique de
-croissance avicole, qui suit une courbe sigmoïdale linéarisable sur la
-fenêtre 7--42 jours.
-
-\subsection{Génération augmentée par récupération (RAG)}
-
-Lewis \textit{et al.}~\cite{lewis2020rag} ont introduit le paradigme RAG
-comme alternative à la mémorisation paramétrique dans les LLM, démontrant
-son efficacité sur des tâches de questions-réponses ouvertes. Zheng
-\textit{et al.}~\cite{zheng2024rag_agri} ont appliqué RAG à la
-recommandation agricole (gestion des sols, sélection de cultures) en
-utilisant des corpus agronomiques en anglais et mandarin, rapportant une
-amélioration de +18\% du BLEU-4 par rapport à un LLM seul.
-
-Notre contribution étend cette approche au \textbf{dialecte tunisien Darija},
-une langue à très faibles ressources NLP, en intégrant des guides de l'AVFA
-et des fiches techniques vétérinaires tunisiennes dans la base vectorielle
-ChromaDB. Abbou \textit{et al.}~\cite{abbou2024arabic} soulignent les défis
-spécifiques du NLP pour les dialectes arabes agricoles : variation
-orthographique massive, mélange code-switching arabe/français, absence de
-tokenizers spécialisés. Nos résultats (BLEU-4~$= 0.68$, Cohen's $\kappa~= 0.76$)
-constituent, à notre connaissance, une première évaluation quantitative pour
-la Darija en contexte d'élevage.
-
-\subsection{LLM souverains et modèles ouverts}
-
-L'essor des LLM ouverts (Llama~2~\cite{touvron2023llama},
-GPT-4~\cite{achiam2023gpt4}) a permis l'émergence de systèmes
-conversationnels déployables localement. Ollama fournit une interface
-d'inférence locale supportant les modèles GGUF quantifiés, permettant
-d'opérer sans API externe. Le modèle Labess-7B utilisé dans ce projet est
-un fine-tune arabophone de Llama-2-7B adapté au dialecte maghrébin, ce qui
-explique ses performances supérieures à GPT-3.5 sur les requêtes en Darija
-dans notre évaluation comparative (section~\ref{sec:eval_darija}).
-
-Min \textit{et al.}~\cite{min2023llm_agri} évaluent quatre LLM (GPT-4,
-Claude~2, Llama-2-13B, Mistral-7B) sur des questions agricoles en anglais,
-concluant que les modèles ouverts restent compétitifs pour les domaines
-spécialisés dès lors qu'ils sont augmentés par RAG.
-
-\subsection{Positionnement de Smart Farm AI}
+Les besoins fonctionnels décrivent l'ensemble des services que le système doit offrir
+à ses utilisateurs finaux (propriétaires de ferme et ouvriers terrain).
+Ils ont été identifiés par analyse des processus métier agricoles et organisés
+en douze modules couvrant la totalité de la chaîne de valeur de l'exploitation
+(tableau~\ref{tab:bf}).
 
 \begin{table}[H]
 \centering
-\caption{Positionnement de Smart Farm AI face aux travaux de l'état de l'art}
-\label{tab:etat_art}
-\begin{tabularx}{\linewidth}{Xccccc}
-\toprule
-\textbf{Critère} & \cite{sharma2024smart} & \cite{chen2023yolo_livestock} & \cite{zhang2023fcr} & \cite{zheng2024rag_agri} & \textbf{Ce travail} \\
-\midrule
-IoT multi-nœuds     & \checkmark & \texttimes & \texttimes & \texttimes & \checkmark \\
-YOLO multi-classes  & \texttimes & \checkmark & \texttimes & \texttimes & \checkmark (11) \\
-ML avicole intégré  & \texttimes & \texttimes & \checkmark & \texttimes & \checkmark (5 modèles) \\
-RAG + LLM           & \texttimes & \texttimes & \texttimes & \checkmark & \checkmark \\
-Langue locale       & \texttimes & \texttimes & \texttimes & CN/EN      & Darija TN \\
-PWA offline         & \texttimes & \texttimes & \texttimes & \texttimes & \checkmark \\
-Éval. CV + IC 95\%  & \texttimes & \checkmark & \checkmark & \texttimes & \checkmark \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{Lacunes identifiées dans l'état de l'art}
-
-L'analyse comparative révèle quatre lacunes structurelles non adressées par
-la littérature existante, que Smart Farm AI v3.0 résout directement :
-
-\begin{table}[H]
-\centering
-\caption{Lacunes de l'état de l'art et réponses apportées par Smart Farm AI}
-\label{tab:lacunes_etat_art}
-\begin{tabularx}{\linewidth}{lXX}
-\toprule
-\textbf{Lacune} & \textbf{Constat dans la littérature} & \textbf{Réponse Smart Farm AI} \\
-\midrule
-Langue locale &
-  Aucun système évalué en Darija tunisienne ; publications NLP agricoles
-  en anglais, arabe standard ou mandarin uniquement~\cite{abbou2024arabic} &
-  Assistant RAG+LLM évalué : BLEU-4\,=\,0.68, ROUGE-L\,=\,0.72,
-  $\kappa$\,=\,0.76 en Darija \\
-\addlinespace
-Souveraineté &
-  Solutions commerciales (Trimble, Climate Corp) : coût prohibitif pour
-  agriculteurs familiaux ; modèles cloud (GPT-4) : dépendance externe &
-  Architecture 100\% open-source, LLM local Ollama, fonctionnement
-  hors-ligne \\
-\addlinespace
-Multi-espèces &
-  Travaux YOLO spécialisés par espèce (bovins~\cite{chen2023yolo_livestock},
-  abeilles) ; aucun modèle couvrant 11 catégories faune + pathologies
-  simultanément &
-  YOLOv8 unifié 11 catégories, mAP@50\,$= 84.7\% \pm 0.45\%$ \\
-\addlinespace
-Rigueur stat. &
-  Majorité des publications IA agricoles : métriques ponctuelles sans
-  IC 95\%, sans validation croisée, sans analyse menaces à la
-  validité~\cite{liakos2018} &
-  5-fold CV (TimeSeriesSplit), IC 95\% bootstrapés, section dédiée
-  « Menaces à la validité » \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-% ── 2.1 Besoins fonctionnels ────────────────────────────────
-\section{Analyse des besoins}
-
-\subsection{Besoins fonctionnels}
-
-\begin{table}[H]
-\centering
-\caption{Besoins fonctionnels principaux}
+\caption{Besoins fonctionnels principaux du système Smart Farm AI}
 \label{tab:bf}
-\begin{tabularx}{\linewidth}{clX}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{cll}
 \toprule
 \textbf{ID} & \textbf{Module} & \textbf{Description} \\
 \midrule
-BF-01 & Authentification & Connexion Owner (JWT) + Worker (PIN+OTP WhatsApp) \\
-BF-02 & Fermes & CRUD fermes, co-propriétaires, workers ; multi-tenant \\
-BF-03 & Animaux & Gestion unités animales (bovins, ovins, caprins, lapins) \\
-BF-04 & Vision IA & Upload image $\rightarrow$ YOLO $\rightarrow$ catégorie + score confiance \\
-BF-05 & Agent Darija & Chat RAG+LLM en Darija tunisienne, prompts espèce-spécifiques \\
-BF-06 & Aviculture ERP & Lots, alimentation, ponte, santé, ventes, inventaire \\
-BF-07 & ML Avicole & FCR prédictif, mortalité, ponte, anomalies, standards race \\
-BF-08 & Apiculture & 10 modèles (rucher, ruche, visite, production, stock, dépenses) \\
-BF-09 & IoT Dashboard & Télémétrie temps réel ESP32 via WebSocket (irrigation + ruche) \\
-BF-10 & GIS & Carte vétérinaires/marchés, rayon Haversine/PostGIS \\
-BF-11 & PWA Worker & App mobile offline-first, sync IndexedDB, RTL/LTR \\
-BF-12 & Alertes & Alertes urgence composites, push notifications WebSocket \\
+BF-01 & Authentification
+  & Connexion Propriétaire (JWT HS256) + Ouvrier (PIN + OTP WhatsApp) \\
+BF-02 & Fermes
+  & CRUD fermes, co-propriétaires, workers ; isolation multi-tenant \\
+BF-03 & Animaux
+  & Gestion unités animales : bovins, ovins, caprins, lapins ; journaux santé \\
+BF-04 & Vision IA
+  & Upload image $\rightarrow$ YOLOv11n (11 classes) + yolo26n-obb (abeilles/reine/larve)
+    $\rightarrow$ catégorie + score de confiance + boîte englobante \\
+BF-05 & Agent Darija
+  & Assistant conversationnel RAG + LLM en dialecte tunisien Darija \\
+BF-06 & Aviculture ERP
+  & Lots, alimentation, ponte, mortalité, santé, ventes, inventaire \\
+BF-07 & ML Avicole
+  & 5 modèles prédictifs : FCR, mortalité, ponte, anomalies, standards race \\
+BF-08 & Apiculture
+  & 10 modèles : rucher, ruche, visite COLOSS, production, stock, dépenses \\
+BF-09 & IoT Dashboard
+  & Télémétrie temps réel ESP32 via WebSocket multi-tenant \\
+BF-10 & GIS
+  & Carte interactive vétérinaires/marchés, distances Haversine/PostGIS \\
+BF-11 & PWA Ouvrier
+  & Application mobile offline-first, synchronisation IndexedDB, RTL/LTR \\
+BF-12 & Alertes
+  & Alertes composites urgentes, push notifications WebSocket \\
 \bottomrule
-\end{tabularx}
+\end{tabular}
+}%
 \end{table}
 
-\subsection{Besoins non fonctionnels}
+\subsection{Les besoins non fonctionnels}
+
+Au-delà des fonctionnalités, le système doit satisfaire des contraintes de qualité
+transversales qui conditionnent son acceptabilité en milieu agricole réel, notamment
+dans les zones à faible connectivité caractéristiques du contexte tunisien.
 
 \begin{description}
-  \item[Performance] Latence API p50 $< 100$\,ms, inférence YOLO $< 200$\,ms,
-        débit WebSocket $> 100$ connexions simultanées.
-  \item[Sécurité] JWT HS256 (expiry 7 jours = 10\,080\,min), bcrypt (rounds=12), OTP 6 chiffres
-        (TTL 5\,min), RBAC strictement appliqué sur chaque endpoint.
-  \item[Disponibilité] Fallback SQLite WAL en l'absence de PostgreSQL,
-        fallback LLM 3-niveaux (Ollama $\rightarrow$ Groq $\rightarrow$ réponse statique Darija).
-  \item[Scalabilité] Architecture multi-tenant WebSocket (tenant\_id extrait
-        du JWT), connexions isolées par namespace.
-  \item[Internationalisation] i18n React (400+ clés, 3 langues : fr/ar/en),
-        support RTL pour l'arabe.
-  \item[Portabilité] PWA installable Android/iOS, offline-first via Dexie
-        IndexedDB, synchronisation différée.
+  \item[Performance] La latence API au percentile 50 doit rester inférieure à
+        $100$\,ms ; l'inférence YOLOv11n ne doit pas dépasser $180$\,ms ; le canal
+        WebSocket doit supporter plus de $100$ connexions simultanées sans dégradation.
+  \item[Sécurité] Les tokens JWT HS256 ont une durée de vie de $10\,080$ minutes
+        (7 jours) ; les mots de passe sont hachés avec bcrypt (rounds~$= 12$) ;
+        les OTP sont composés de 6 chiffres avec un TTL de 5 minutes ; le
+        contrôle d'accès basé sur les rôles (RBAC) est strictement appliqué
+        sur chaque endpoint.
+  \item[Disponibilité] Un fallback SQLite WAL est activé en l'absence de PostgreSQL ;
+        un fallback LLM à 3 niveaux garantit la continuité du service conversationnel
+        (Ollama $\rightarrow$ Groq $\rightarrow$ réponse statique Darija).
+  \item[Scalabilité] L'architecture multi-tenant isole les connexions WebSocket par
+        espace de noms (\texttt{tenant\_id} extrait du JWT pour chaque connexion).
+  \item[Internationalisation] L'interface supporte trois langues (français, arabe,
+        anglais) via i18n React (400+ clés de traduction) avec support RTL pour
+        l'arabe.
+  \item[Portabilité] Une Progressive Web App (PWA) installable sur Android et iOS
+        assure l'accès hors-ligne grâce à Dexie IndexedDB et la synchronisation
+        différée des données saisies sur le terrain.
 \end{description}
 
-% ── 2.2 Architecture globale ────────────────────────────────
-\section{Architecture globale du système}
+% ── 2.2.3 Diagrammes de cas d'utilisation ───────────────────
+\subsection{Diagrammes de cas d'utilisation}
+\label{sec:uc}
 
-\subsection{Architecture applicative en 4 couches}
+Les diagrammes de cas d'utilisation UML formalisent les interactions entre les acteurs
+du système et les fonctionnalités offertes. Smart Farm AI repose sur deux acteurs
+principaux~: le \textbf{Propriétaire} (accès complet via l'interface web SPA) et
+l'\textbf{Ouvrier PWA} (accès terrain restreint via l'application mobile offline).
+Le système est structuré en huit sous-systèmes couvrant 21 cas d'utilisation,
+reliés par des relations \texttt{<<include>>} (obligation) et \texttt{<<extend>>}
+(extension conditionnelle).
 
-L'architecture de Smart Farm AI s'organise en quatre couches fonctionnelles :
+% ─── Vue globale ────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{UC_Global.png}
+\caption{Diagramme de cas d'utilisation global --- 2 acteurs (Propriétaire, Ouvrier PWA),
+8 sous-systèmes et 21 cas d'utilisation avec relations \texttt{<<include>>}
+et \texttt{<<extend>>}. Généré par PlantUML depuis \texttt{UC\_global.puml}.}
+\label{fig:uc_global}
+\end{figure}
+
+\paragraph{Vue globale.}
+Le diagramme global (figure~\ref{fig:uc_global}) présente la frontière du système et
+la répartition des cas d'utilisation entre les deux acteurs. Le \textbf{Propriétaire}
+dispose d'un accès à l'intégralité des sous-systèmes~: authentification, gestion des
+fermes, modules IA, apiculture, aviculture ERP, IoT et cartographie GIS. L'\textbf{Ouvrier
+PWA} accède uniquement aux fonctions terrain (saisie de tâches, consultation de fiches
+animales, signalement d'alertes) via l'application PWA hors-ligne. Les relations
+\texttt{<<include>>} modélisent les vérifications obligatoires (authentification
+requise avant tout accès) et les relations \texttt{<<extend>>} modélisent
+les flux conditionnels (ex.~déclenchement d'alerte si seuil dépassé).
+
+% ─── UC Authentification ────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\linewidth]{UC_Detail_Auth.png}
+\caption{Diagramme UC détaillé --- Module Authentification \& Sécurité.}
+\label{fig:uc_auth}
+\end{figure}
+
+\paragraph{Module Authentification \& Sécurité.}
+Ce module (figure~\ref{fig:uc_auth}) couvre les deux mécanismes d'accès du système.
+Le \textbf{Propriétaire} s'authentifie via un formulaire de connexion (email + mot de
+passe) qui déclenche la génération d'un token JWT HS256 valable 7 jours. Il peut
+également s'inscrire et gérer son profil. L'\textbf{Ouvrier PWA} utilise un flux en
+deux étapes~: saisie d'un code PIN à 4 chiffres, puis validation d'un OTP à 6 chiffres
+envoyé par WhatsApp (TTL de 5 minutes). Le cas d'utilisation \textit{Vérifier RBAC}
+est inclus dans chaque accès aux ressources protégées afin d'appliquer le contrôle
+d'accès basé sur les rôles (\textit{owner} vs \textit{worker}).
+
+% ─── UC Surveillance ────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\linewidth]{UC_Detail_Surveillance.png}
+\caption{Diagramme UC détaillé --- Module Surveillance \& Télémétrie IoT.}
+\label{fig:uc_surveillance}
+\end{figure}
+
+\paragraph{Module Surveillance \& Télémétrie IoT.}
+Le module surveillance (figure~\ref{fig:uc_surveillance}) gère les flux de données
+en temps réel provenant des deux nœuds ESP32. Le \textbf{Propriétaire} peut consulter
+le tableau de bord télémétrique (séries temporelles d'humidité, pression, débit,
+température et poids de ruche), activer ou désactiver les actionneurs (pompe
+d'irrigation, vanne) et accéder à l'historique des mesures. Le cas \textit{Générer
+alerte} est étendu (\texttt{<<extend>>}) depuis la consultation de télémétrie~: il
+se déclenche automatiquement si une valeur franchit un seuil critique (humidité
+$< 30\,\%$, pression $> 8$\,bar, température couvain hors $[30, 38]$\,°C).
+Les alertes sont diffusées en temps réel via le canal WebSocket multi-tenant.
+
+% ─── UC Intelligence Artificielle ───────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\linewidth]{UC_Detail_IA.png}
+\caption{Diagramme UC détaillé --- Module Intelligence Artificielle.}
+\label{fig:uc_ia}
+\end{figure}
+
+\paragraph{Module Intelligence Artificielle.}
+Ce module (figure~\ref{fig:uc_ia}) regroupe les cas d'utilisation liés à la vision
+par ordinateur et à l'assistant conversationnel. Le \textbf{Propriétaire} soumet
+une image (upload ou capture) au service CVService~: YOLOv11n retourne les
+détections (catégorie, score de confiance, boîte englobante) sur 11 classes,
+tandis que yolo26n-obb analyse les ruches en mode OBB (abeilles, reine, larves).
+Si la sévérité détectée est \textit{critique} (maladie grave, incendie), le cas
+\textit{Créer alerte} est automatiquement déclenché (\texttt{<<extend>>}).
+Le Propriétaire peut également interroger l'\textbf{Agent Darija}~: l'assistant RAG+LLM
+récupère les passages pertinents du corpus AVFA dans ChromaDB et génère une réponse
+en dialecte tunisien via Ollama Labess-7B.
+
+% ─── UC Ouvrier PWA ─────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\linewidth]{UC_Detail_Ouvrier.png}
+\caption{Diagramme UC détaillé --- Module Ouvrier PWA Offline.}
+\label{fig:uc_ouvrier}
+\end{figure}
+
+\paragraph{Module Ouvrier PWA Offline.}
+Le module Ouvrier (figure~\ref{fig:uc_ouvrier}) décrit les interactions de
+l'\textbf{Ouvrier PWA} depuis son terminal mobile, y compris en l'absence de
+connexion réseau. Après authentification par PIN+OTP, l'ouvrier peut consulter
+et valider ses tâches journalières, soumettre des rapports terrain avec photos,
+signaler l'état sanitaire des animaux et consulter les fiches de soin. Toutes les
+actions réalisées hors-ligne sont stockées dans IndexedDB (Dexie) puis
+synchronisées automatiquement avec le serveur FastAPI dès le rétablissement
+de la connexion (\textit{Synchroniser données}~\texttt{<<include>>}).
+
+% ─── UC Apiculture ──────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\linewidth]{UC_Detail_Bee.png}
+\caption{Diagramme UC détaillé --- Module Apiculture.}
+\label{fig:uc_bee}
+\end{figure}
+
+\paragraph{Module Apiculture.}
+Le module apiculture (figure~\ref{fig:uc_bee}) couvre le cycle complet de gestion
+d'un rucher. Le \textbf{Propriétaire} gère les ruchers (CRUD), enregistre des
+visites de ruche selon le protocole COLOSS BeeBook (présence de la reine, état
+du couvain, réserves de miel, score de santé $s_t$) et saisit les productions
+(récolte miel, pollen, propolis). Les cas \textit{Gérer stocks} et \textit{Analyser
+KPIs} sont inclus dans le suivi de production. Les alertes d'essaimage
+($\Delta$poids $> 2$\,kg/60\,s) et de température couvain hors seuil sont
+étendues (\texttt{<<extend>>}) depuis la consultation du tableau de bord IoT ruche.
+Le module inclut également la planification des visites saisonnières.
+
+% ─── UC Aviculture ERP ──────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.80\linewidth]{UC_Detail_Poultry.png}
+\caption{Diagramme UC détaillé --- Module Aviculture ERP.}
+\label{fig:uc_poultry}
+\end{figure}
+
+\paragraph{Module Aviculture ERP.}
+Le module aviculture ERP (figure~\ref{fig:uc_poultry}) fournit une gestion complète
+des lots de poulets de chair et de poules pondeuses. Le \textbf{Propriétaire} ouvre
+un lot (date d'entrée, race, nombre de sujets), saisit quotidiennement la consommation
+d'aliment, la mortalité et la ponte. Le cas \textit{Prédire FCR} est inclus~:
+le modèle de régression polynomiale deg.~2 calcule en temps réel le taux de
+conversion alimentaire prédictif. Les cas \textit{Détecter anomalie} et
+\textit{Comparer standards race} sont étendus depuis la consultation du tableau
+de bord du lot. Les ventes sont enregistrées avec calcul automatique du chiffre
+d'affaires, et les stocks d'aliment sont gérés avec alertes de rupture.
+
+% ── 2.2.4 Diagrammes de classes ──────────────────────────────
+\subsection{Diagrammes de classes}
+\label{sec:class}
+
+Le modèle de classes de Smart Farm AI comprend \textbf{38 classes SQLAlchemy}
+(+ 6 énumérations Python, soit 44 entités au total), réparties en sept packages
+fonctionnels. Ces classes ont été extraites directement du code source
+(\texttt{backend/app/models/domain.py}) et modélisées en UML par PlantUML.
+Les relations de composition ($*$--) matérialisent les dépendances de cycle de vie,
+les associations (--) les liens navigables et les dépendances (..$>$) les
+références facultatives.
+
+% ─── P0 Vue d'ensemble ──────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{P0_Vue_Ensemble.png}
+\caption{Vue d'ensemble du diagramme de classes Smart Farm AI ---
+7 packages, 38 classes, relations composition (*--), association (--)
+et dépendance (..>). Source~: \texttt{backend/app/models/domain.py}.}
+\label{fig:class_overview}
+\end{figure}
+
+\paragraph{Vue d'ensemble.}
+Le diagramme P0 (figure~\ref{fig:class_overview}) présente la cartographie globale
+des 38 classes réparties en sept packages~: \textit{Utilisateurs \& Accès},
+\textit{Ferme \& Infrastructure}, \textit{IoT \& Télémétrie},
+\textit{IA \& Surveillance}, \textit{Apiculture}, \textit{Aviculture ERP}
+et \textit{Entrepôt \& GIS}. La classe centrale \texttt{Farm} constitue le pivot
+multi-tenant du système~: toutes les entités métier lui sont rattachées par une
+relation de composition, garantissant l'isolation des données entre exploitations.
+Les packages \textit{Apiculture} et \textit{Aviculture ERP} sont les plus riches
+avec respectivement 10 et 8 classes spécialisées.
+
+% ─── P1 Utilisateurs + P2 Ferme ─────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P1_Utilisateurs.png}
+  \caption{P1 --- Utilisateurs \& Accès}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P2_Ferme_Infrastructure.png}
+  \caption{P2 --- Ferme \& Infrastructure}
+\end{subfigure}
+\caption{Diagrammes de classes --- packages Utilisateurs \& Accès (P1)
+et Ferme \& Infrastructure (P2).}
+\label{fig:class_p1p2}
+\end{figure}
+
+\paragraph{Package P1 — Utilisateurs \& Accès.}
+Le package P1 (figure~\ref{fig:class_p1p2}a) modélise le système de gestion des
+identités et des droits. La classe \texttt{User} centralise les attributs communs
+(identifiant, email, mot de passe haché bcrypt, rôle \texttt{UserRole}) et est
+spécialisée par deux sous-types~: \texttt{Owner} (propriétaire disposant des droits
+de création de ferme) et \texttt{Worker} (ouvrier avec code PIN et token OTP
+WhatsApp). La classe \texttt{FarmOwner} implémente la relation many-to-many entre
+utilisateurs et fermes, permettant la co-propriété avec granularité des droits.
+La classe \texttt{WorkerAssignment} associe un ouvrier à une ferme spécifique avec
+une date de validité.
+
+\paragraph{Package P2 — Ferme \& Infrastructure.}
+Le package P2 (figure~\ref{fig:class_p1p2}b) décrit la structure physique de
+l'exploitation. \texttt{Farm} est l'entité racine multi-tenant~: elle possède une
+géolocalisation PostGIS (\texttt{POINT} SRID~4326), un statut
+(\texttt{active}/\texttt{inactive}/\texttt{maintenance}) et est composée d'unités
+animales (\texttt{AnimalUnit}). \texttt{AnimalUnit} représente un animal ou un
+groupe (bovin, ovin, caprin, lapin, poulet, abeille) avec ses attributs d'état
+sanitaire (\texttt{healthy}, \texttt{warning}, \texttt{critical}) et son cycle
+de vie (\texttt{production}, \texttt{rest}, \texttt{care}, \texttt{gestation}).
+La classe \texttt{Sensor} répertorie les capteurs physiques associés à chaque
+unité animale.
+
+% ─── P3 IoT + P4 IA ─────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P3_IoT_Telemetrie.png}
+  \caption{P3 --- IoT \& Télémétrie}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \includegraphics[width=\linewidth]{P4_IA_Surveillance.png}
+  \caption{P4 --- IA \& Surveillance}
+\end{subfigure}
+\caption{Diagrammes de classes --- packages IoT \& Télémétrie (P3)
+et IA \& Surveillance (P4).}
+\label{fig:class_p3p4}
+\end{figure}
+
+\paragraph{Package P3 — IoT \& Télémétrie.}
+Le package P3 (figure~\ref{fig:class_p3p4}a) gère les flux de données temps réel
+issus des capteurs ESP32. \texttt{TelemetryRecord} stocke chaque mesure capteur
+sous forme de métriques JSON flexibles (schéma agnostique à l'espèce), indexées
+par \texttt{unit\_id} et \texttt{timestamp}. \texttt{Anomaly} enregistre les
+résultats de l'Isolation Forest~: score d'isolation, règles déclenchées et
+contributions par attribut (explicabilité). \texttt{Alert} matérialise les
+notifications actionnables (sévérité \texttt{info}/\texttt{warning}/\texttt{critical})
+avec leur statut de résolution. La classe \texttt{Settings} permet la configuration
+dynamique des seuils d'alerte par ferme et par type d'animal.
+
+\paragraph{Package P4 — IA \& Surveillance.}
+Le package P4 (figure~\ref{fig:class_p3p4}b) modélise les artefacts produits par
+les services d'intelligence artificielle. \texttt{CVEvent} archive chaque inférence
+YOLOv11n~: classe détectée, score de confiance, boîte englobante (\texttt{bbox} JSON),
+sévérité calculée et identifiant de tracking multi-frame. \texttt{Recommendation}
+encapsule les recommandations générées par l'agent RAG+LLM, classées par urgence
+(\texttt{low}/\texttt{medium}/\texttt{high}/\texttt{critical}) avec score de
+confiance. \texttt{DiagnosticHistory} archive les sessions de diagnostic
+(requête utilisateur, image associée, réponse Darija) pour auditabilité.
+
+% ─── P5 Apiculture + P6 Aviculture ──────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.54\textwidth}
+  \includegraphics[width=\linewidth]{P5_Apiculture.png}
+  \caption{P5 --- Apiculture (10 classes)}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.44\textwidth}
+  \includegraphics[width=\linewidth]{P6_Aviculture_ERP.png}
+  \caption{P6 --- Aviculture ERP}
+\end{subfigure}
+\caption{Diagrammes de classes --- packages Apiculture (P5) et Aviculture ERP (P6).}
+\label{fig:class_p5p6}
+\end{figure}
+
+\paragraph{Package P5 — Apiculture.}
+Le package P5 (figure~\ref{fig:class_p5p6}a) est le plus riche du modèle avec
+10 classes spécialisées. \texttt{BeeApiary} représente le rucher (site physique
+géolocalisé) et compose plusieurs \texttt{BeeHive} (ruches individuelles de type
+Langstroth ou Dadant). \texttt{BeeVisit} enregistre les inspections selon le
+protocole COLOSS BeeBook~: présence de la reine, état du couvain (ouvert/fermé),
+réserves, comportement (agressivité, essaimage), et calcul du score de santé $s_t$.
+\texttt{BeeProduction} agrège les récoltes de miel, pollen et propolis.
+\texttt{BeeStockLog}, \texttt{BeeGlobalStock} et \texttt{BeeHiveStock} gèrent
+les inventaires à trois niveaux de granularité. \texttt{BeeExpense} trace les
+dépenses et \texttt{BeePlanning}/\texttt{BeePlanningTask} planifient les visites
+saisonnières.
+
+\paragraph{Package P6 — Aviculture ERP.}
+Le package P6 (figure~\ref{fig:class_p5p6}b) implémente le module ERP avicole.
+\texttt{PoultryBatch} est l'entité centrale~: elle encapsule un lot de production
+(date d'entrée, race, effectif initial, type de production chair/ponte).
+Les classes associées enregistrent les saisies quotidiennes~: \texttt{FeedRecord}
+(consommation d'aliment, eau), \texttt{MortalityRecord} (effectif mort, cause
+possible), \texttt{EggRecord} (nombre d'œufs collectés et taux de ponte calculé).
+\texttt{HealthRecord} archive les interventions vétérinaires (vaccinations,
+traitements). \texttt{SaleRecord} enregistre les ventes de lots avec calcul du
+chiffre d'affaires et du poids vif moyen.
+
+% ─── P7 Entrepôt GIS ────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\linewidth]{P7_Entrepot_GIS.png}
+\caption{Diagramme de classes --- package Entrepôt \& GIS (P7).
+Entités géolocalisées (vétérinaires, marchés) utilisées par le module cartographique.}
+\label{fig:class_p7}
+\end{figure}
+
+\paragraph{Package P7 — Entrepôt \& GIS.}
+Le package P7 (figure~\ref{fig:class_p7}) regroupe les entités géospatiales
+exploitées par le module cartographique. \texttt{Veterinary} répertorie les
+vétérinaires (nom, spécialité, coordonnées GPS, téléphone) avec leur géométrie
+PostGIS \texttt{POINT} pour les requêtes de proximité (ST\_DWithin). \texttt{Market}
+répertorie les fournisseurs et marchés agricoles catégorisés
+(\texttt{bee\_market}, \texttt{feed\_market}, \texttt{equipment}). Le calcul
+de distance utilise la formule de Haversine côté Python et la fonction
+ST\_DWithin côté PostgreSQL/PostGIS selon le mode de déploiement (normal
+vs.~\texttt{LITE\_MODE} SQLite). Ces données alimentent la carte interactive
+Leaflet/MapLibre du frontend.
+
+% ── 2.3 Revue des travaux récents ───────────────────────────
+\section{Revue des travaux récents}
+
+Cette section analyse six contributions scientifiques récentes couvrant les domaines
+technologiques fondateurs du projet : IoT agricole, vision par ordinateur,
+prédiction avicole, génération augmentée par récupération (RAG) et modèles de
+langage souverains. Pour chaque article, nous présentons les apports principaux
+et les limites qui ont orienté nos choix de conception.
+
+\subsection*{Article 1 --- Smart Farming et IoT multi-nœuds}
+
+Sharma \textit{et al.}~\cite{sharma2024smart} proposent un système IoT multi-nœuds
+pour l'agriculture de précision intégrant des capteurs environnementaux (température,
+humidité, conductivité du sol) et des actionneurs connectés via MQTT.
+Leur architecture centralisée sur serveur cloud permet la supervision en temps réel
+de parcelles distribuées et l'activation automatique de l'irrigation selon des
+seuils configurables. Les auteurs reportent une réduction de $23\,\%$ de la
+consommation d'eau et une amélioration du rendement de $17\,\%$ sur des exploitations
+céréalières de la région MENA.
+Cette architecture MQTT multi-nœuds constitue le modèle direct de notre sous-système
+IoT avec deux nœuds ESP32 dédiés à l'irrigation et au monitoring de ruche.
+
+\subsection*{Article 2 --- Deep Learning en agriculture}
+
+Kamilaris et Prenafeta-Boldú~\cite{kamilaris2018} ont conduit une revue systématique
+de 40 études appliquant le deep learning à l'agriculture.
+Ils concluent que les réseaux convolutifs (CNN) surpassent les méthodes classiques
+de $+15$ à $+25$ points de précision pour la classification des maladies foliaires
+et la détection d'insectes ravageurs.
+Leurs résultats démontrent la supériorité du transfer learning (ImageNet $\rightarrow$
+domaine agricole) lorsque les jeux de données annotés sont de taille limitée,
+ce qui justifie notre stratégie de fine-tuning YOLOv11n sur des datasets agricoles
+tunisiens annotés (14\,820 images, 11 classes de détection).
+
+\subsection*{Article 3 --- YOLO pour la détection de bétail}
+
+Chen \textit{et al.}~\cite{chen2023yolo_livestock} ont comparé cinq variantes YOLO
+(v5s, v7, v8n, v8s, v8m) pour la détection et le comptage de bétail en feedlot.
+YOLOv8n offre le meilleur compromis vitesse/précision avec une inférence
+$\leq 200$\,ms sur CPU embarqué et un mAP@50 de $91.3\,\%$ sur leur jeu de test.
+Ils soulignent que l'architecture \textit{anchor-free} à têtes découplées de YOLOv8
+améliore significativement le rappel sur les petits objets.
+Notre déploiement s'appuie sur YOLOv11n (successeur de YOLOv8, blocs C3k2
++ SPPELAN + PSA), qui conserve l'approche \textit{anchor-free} tout en améliorant
+le mAP@50 de $84.7\,\%$ à $85.3\,\%$ sur 11 classes en milieu agricole tunisien.
+Pour la détection apicole (abeilles, reine, larves), un second modèle yolo26n-obb
+(Oriented Bounding Box) atteint mAP@50~$= 92.0\,\%$ avec
+une inférence $\leq 200$\,ms.
+
+\subsection*{Article 4 --- Prédiction du FCR en aviculture}
+
+Zhang \textit{et al.}~\cite{zhang2023fcr} ont modélisé le taux de conversion
+alimentaire (FCR) de poulets de chair par régression polynomiale et réseaux LSTM
+sur un corpus de 1\,200 lots, obtenant $R^2 \in [0.87, 0.93]$.
+Ils démontrent que la régression polynomiale de degré~2 est particulièrement adaptée
+à la dynamique de croissance avicole sur la fenêtre 7--42 jours (courbe sigmoïdale
+linéarisable), tout en offrant une interprétabilité supérieure aux réseaux LSTM
+pour les éleveurs.
+Notre approche polynomiale ($R^2 = 0.891 \pm 0.024$) confirme ce résultat de
+référence et valide le choix d'un modèle interprétable plutôt qu'une boîte noire.
+
+\subsection*{Article 5 --- Génération augmentée par récupération (RAG)}
+
+Lewis \textit{et al.}~\cite{lewis2020rag} ont introduit le paradigme RAG
+(\textit{Retrieval-Augmented Generation}) comme alternative à la mémorisation
+paramétrique dans les LLM. En combinant un encodeur de récupération dense (DPR)
+et un générateur seq2seq (BART), ils obtiennent $\text{EM} = 44.5\,\%$
+sur NaturalQuestions, surpassant les modèles purement paramétriques.
+Ce paradigme est fondamental dans notre architecture~: l'assistant Darija
+récupère dynamiquement des passages pertinents des guides AVFA et des fiches
+vétérinaires tunisiennes stockés dans ChromaDB avant de générer sa réponse.
+
+\subsection*{Article 6 --- RAG pour la recommandation agricole}
+
+Zheng \textit{et al.}~\cite{zheng2024rag_agri} ont appliqué RAG à la recommandation
+agricole (gestion des sols, sélection de cultures) en combinant des corpus en anglais
+et mandarin, rapportant une amélioration de $+18\,\%$ du BLEU-4 par rapport à un
+LLM seul. Leur architecture (ChromaDB + GPT-3.5, chunking 512 tokens) constitue
+le modèle direct de notre pipeline RAG.
+Notre contribution étend cette approche au dialecte tunisien Darija, une langue
+à très faibles ressources NLP~\cite{abbou2024arabic}, en intégrant des corpus
+agronomiques locaux (BLEU-4~$= 0.68$, Cohen's $\kappa = 0.76$).
+
+\subsection{Tableau comparatif des articles}
+
+Le tableau~\ref{tab:comparatif_articles} synthétise et compare les caractéristiques
+techniques des six articles analysés, puis positionne Smart Farm AI au regard de
+chacune de ces contributions.
 
 \begin{table}[H]
 \centering
-\caption{Description des couches architecturales}
-\label{tab:couches}
-\begin{tabularx}{\linewidth}{clX}
+\caption{Tableau comparatif des travaux récents en agriculture intelligente}
+\label{tab:comparatif_articles}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{p{2.2cm}p{2.8cm}p{2.4cm}p{1.8cm}p{2.6cm}p{2.5cm}
+                p{2.2cm}p{2.2cm}p{2.4cm}p{2.4cm}p{2.6cm}p{2.4cm}}
 \toprule
-\textbf{Couche} & \textbf{Nom} & \textbf{Composants} \\
+\textbf{Source \& Année} &
+\textbf{Objectif principal} &
+\textbf{Méthode / Modèle} &
+\textbf{Type de tâche} &
+\textbf{Backbone / Architecture} &
+\textbf{Techniques clés} &
+\textbf{Jeux de données} &
+\textbf{Performance} &
+\textbf{Avantages} &
+\textbf{Limites} &
+\textbf{Contributions clés} &
+\textbf{Perspectives futures} \\
 \midrule
-1 & Présentation & React 18.2 SPA, Vite 5.1, Three.js, Leaflet/MapLibre,
-                    Recharts, i18next, Dexie (IndexedDB), PWA Service Worker \\
-2 & API REST+WS  & FastAPI (Python 3.11), Uvicorn ASGI, Pydantic 2.10,
-                    151+ endpoints REST, 2 canaux WebSocket multi-tenant \\
-3 & Services IA  & YOLOv8 (Ultralytics), Ollama (Labess-7B Darija),
-                    Groq API (Llama-3.3-70B), ChromaDB RAG,
-                    sentence-transformers, scikit-learn, MLflow \\
-4 & Données/IoT  & PostgreSQL 16 + GeoAlchemy2, SQLite WAL (fallback),
-                    ChromaDB (vecteurs), MLflow tracking,
-                    MQTT Mosquitto, ESP32 ×2 \\
+
+Sharma \textit{et al.}~\cite{sharma2024smart}\,(2024) &
+Supervision IoT multi-nœuds agriculture de précision &
+Architecture MQTT centralisée, capteurs env. &
+Monitoring, automatisation &
+ESP32, broker MQTT, cloud &
+QoS~1, capteurs sol/air, actionneurs &
+Parcelles MENA &
+$-23\,\%$ eau, $+17\,\%$ rendement &
+Multi-nœuds, faible latence réseau rural &
+Dépendance cloud, sans ML prédictif &
+Premier système IoT multi-nœuds MQTT MENA &
+IA embarquée, Edge computing \\
+\midrule
+
+Kamilaris \& Prenafeta~\cite{kamilaris2018}\,(2018) &
+Revue DL en agriculture (40 études) &
+CNN : AlexNet, VGG, ResNet &
+Classification, détection &
+Réseaux CNN convolutifs &
+Transfer learning, augmentation &
+PlantVillage, insects &
+$+15$--$25$ pts vs. classique &
+Revue exhaustive, preuve CNN &
+Dépendant des datasets &
+Validation transfer learning agri. &
+Datasets multilingues, ruraux \\
+\midrule
+
+Chen \textit{et al.}~\cite{chen2023yolo_livestock}\,(2023) &
+Détection et comptage bétail en feedlot &
+YOLOv8n vs. v5/v7 (5 variantes) &
+Détection d'objets &
+YOLOv8n anchor-free &
+NMS, mosaic augmentation &
+Feedlot 5\,000 frames &
+mAP@50\,$=91.3\,\%$, $\leq200$\,ms CPU &
+CPU embarqué, temps réel, open-source &
+Espèce unique, sans pathologie &
+Meilleur compromis YOLOv8n CPU &
+Multi-espèces, pathologies \\
+\midrule
+
+Zhang \textit{et al.}~\cite{zhang2023fcr}\,(2023) &
+Prédiction FCR poulets (1\,200 lots) &
+Régression poly.~deg.~2 + LSTM~128 &
+Régression supervisée &
+Polynomial + LSTM, 5-fold CV &
+Feature engineering, TimeSeriesSplit &
+1\,200 lots avicoles &
+$R^2 \in [0.87,\,0.93]$ &
+Interprétabilité, performances sur 7--42j &
+Pas de généralisation multi-race &
+Premier modèle FCR polynomial Afrique Nord &
+Multi-race, IoT temps réel \\
+\midrule
+
+Lewis \textit{et al.}~\cite{lewis2020rag}\,(2020) &
+Génération augmentée par récupération (RAG) &
+DPR + BART seq2seq &
+QA ouvert, génération cond. &
+BERT biencoder + BART &
+Retrieval dense top-$k$ &
+NaturalQuestions, TriviaQA &
+EM\,$=44.5\,\%$ (NQ) &
+Réductibilité mémoire, corpus flexible &
+Latence retrieval, qualité corpus &
+Introduction paradigme RAG &
+RAG multilingue, corpus rares \\
+\midrule
+
+Zheng \textit{et al.}~\cite{zheng2024rag_agri}\,(2024) &
+Recommandation agricole via RAG &
+RAG + GPT-3.5, ChromaDB &
+QA agricole, recommandation &
+ChromaDB + GPT-3.5 &
+Chunking 512 tok., top-$k=5$ &
+Corpus sols/cultures CN+EN &
+$+18\,\%$ BLEU-4 vs. LLM seul &
+Corpus multilingue, spécialisé &
+Langues africaines absentes &
+Premier RAG agricole CN/EN évalué &
+Dialectes arabes, Darija \\
+\midrule
+
+\textbf{Smart Farm AI} (ce travail) &
+Plateforme intégrée multi-espèces IoT + YOLO + OBB + RAG Darija &
+YOLOv11n + yolo26n-obb + poly ML + RAG + Labess-7B &
+Détection, OBB apicole, régression, QA Darija, IoT &
+FastAPI + YOLOv11n + yolo26n-obb + ChromaDB + Ollama + ESP32 &
+C3k2+SPPELAN+PSA, anchor-free, 5-fold CV, IC~95\,\% bootstrap, DVC &
+14\,820 images YOLO (11 classes), 500+ lots, 2\,847 chunks AVFA &
+mAP@50\,$=85.3\,\%$, OBB\,$=92.0\,\%$, $R^2=0.891$, BLEU-4\,$=0.68$ &
+Multi-espèces, souverain, Darija, offline PWA &
+Contexte tunisien, monodéploiement &
+$1^\text{re}$ éval. quantitative Darija élevage &
+Multi-pays, foundation models Maghreb \\
+
 \bottomrule
-\end{tabularx}
+\end{tabular}
+}%
 \end{table}
+
+\medskip
+
+L'analyse de ce tableau révèle que Smart Farm AI intègre et dépasse ces contributions
+individuelles en combinant IoT multi-nœuds~\cite{sharma2024smart}, détection YOLO
+multi-classes~\cite{chen2023yolo_livestock}, prédiction avicole~\cite{zhang2023fcr}
+et RAG souverain en Darija~\cite{zheng2024rag_agri} au sein d'une architecture unifiée,
+open-source et opérationnelle hors-ligne.
+
+% ── 2.4 Architecture du projet ──────────────────────────────
+\section{Architecture du projet}
+
+L'architecture de Smart Farm AI a été conçue selon le principe de séparation des
+responsabilités (\textit{Separation of Concerns}). Elle repose sur une structure
+modulaire en quatre couches interdépendantes permettant l'évolutivité du système
+et sa maintenance indépendante par module.
+La figure~\ref{fig:archi_globale} présente la vue globale du système, depuis
+les nœuds IoT terrain jusqu'aux interfaces utilisateurs.
 
 \begin{figure}[H]
 \centering
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
-  layer/.style={draw, rounded corners=4pt, minimum width=10cm, minimum height=1cm,
+  box/.style={draw, rounded corners=4pt, minimum width=2.8cm, minimum height=1.2cm,
+              text centered, font=\small\bfseries, fill=#1},
+  lbl/.style={font=\scriptsize\itshape},
+  arr/.style={->, thick, >=stealth}
+]
+  %-- Nœuds IoT
+  \node[box=yellow!35]  (espA)   at (0,   0)    {ESP32-A\\Irrigation};
+  \node[box=yellow!35]  (espB)   at (0,  -2.4)  {ESP32-B\\Ruche};
+  \node[box=orange!45]  (mqtt)   at (3.6, -1.2) {Mosquitto\\MQTT Broker};
+
+  %-- Backend
+  \node[box=green!25]   (api)    at (7.4, -1.2) {FastAPI\\151 REST + 2~WS};
+
+  %-- Services IA
+  \node[box=blue!20]    (yolo)   at (11.2,  0)  {YOLOv11n\\11 classes};
+  \node[box=blue!20]    (rag)    at (11.2, -1.2){Ollama\\RAG + LLM};
+  \node[box=blue!20]    (ml)     at (11.2, -2.4){scikit-learn\\MLflow};
+
+  %-- Données
+  \node[box=red!15]     (pg)     at (14.8, -0.5){PostgreSQL\\GeoAlchemy2};
+  \node[box=red!15]     (chroma) at (14.8, -2.2){ChromaDB\\Vecteurs RAG};
+
+  %-- Frontend
+  \node[box=violet!20]  (react)  at (7.4,  -4.0){React 18\\SPA + PWA};
+  \node[box=violet!15]  (pwa)    at (3.6,  -4.0){PWA Worker\\Dexie offline};
+
+  %-- Flèches
+  \draw[arr] (espA) -- (mqtt)  node[midway, above, lbl]{MQTT QoS~1};
+  \draw[arr] (espB) -- (mqtt)  node[midway, below, lbl]{MQTT QoS~1};
+  \draw[arr] (mqtt) -- (api)   node[midway, above, lbl]{paho-mqtt};
+  \draw[arr] (api)  -- (yolo);
+  \draw[arr] (api)  -- (rag);
+  \draw[arr] (api)  -- (ml);
+  \draw[arr] (yolo) -- (pg);
+  \draw[arr] (rag)  -- (chroma);
+  \draw[arr] (ml)   -- (pg);
+  \draw[arr] (api)  -- (react)  node[midway, right, lbl]{REST / WebSocket};
+  \draw[arr] (pwa)  -- (api)    node[midway, above, lbl]{HTTP sync};
+\end{tikzpicture}
+}%
+\caption{Vue globale de l'architecture Smart Farm AI --- flux depuis les nœuds ESP32
+(IoT terrain) vers le backend FastAPI, les services IA (YOLOv11n, yolo26n-obb, Ollama, scikit-learn)
+et les interfaces React/PWA.}
+\label{fig:archi_globale}
+\end{figure}
+
+\subsection{Vue d'ensemble de l'architecture}
+
+L'architecture se décompose en quatre couches fonctionnelles superposées
+(figure~\ref{fig:archi_4couches}), chacune ayant un périmètre de responsabilité
+clairement délimité et communiquant avec ses voisines via des interfaces définies.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+  layer/.style={draw, rounded corners=5pt, minimum width=15cm, minimum height=1.4cm,
                 text centered, font=\small\bfseries},
+  sub/.style={font=\footnotesize, text centered},
   arrow/.style={->, thick, >=stealth}
 ]
-  \node[layer, fill=blue!15]   (c1) at (0, 0)    {Couche 1 — Présentation : React~18 PWA | Three.js | Leaflet | i18next};
-  \node[layer, fill=green!15]  (c2) at (0,-1.6)  {Couche 2 — API REST+WS : FastAPI | Uvicorn | Pydantic | 151+ endpoints};
-  \node[layer, fill=orange!15] (c3) at (0,-3.2)  {Couche 3 — Services IA : YOLOv8 | Ollama Labess-7B | ChromaDB RAG | MLflow};
-  \node[layer, fill=red!10]    (c4) at (0,-4.8)  {Couche 4 — Données/IoT : PostgreSQL~16 | SQLite WAL | MQTT Mosquitto | ESP32};
+  \node[layer, fill=violet!20] (c1) at (0, 0)
+    {Couche Présentation --- React~18 SPA \textbar{} Vite~5 \textbar{}
+     Three.js \textbar{} Leaflet \textbar{} i18next \textbar{} PWA};
+  \node[sub] at (0,-0.72)
+    {36 pages, 24 composants, offline-first (Dexie IndexedDB), RTL/LTR, 3 langues (fr/ar/en)};
 
-  \draw[arrow] (c1) -- (c2) node[midway, right=2mm] {\tiny HTTP/WS};
-  \draw[arrow] (c2) -- (c3) node[midway, right=2mm] {\tiny Python call};
-  \draw[arrow] (c3) -- (c4) node[midway, right=2mm] {\tiny SQLAlchemy/paho};
-  \draw[arrow] (c4.east) to[bend right=35] node[midway, right=2mm] {\tiny réponses} (c1.east);
+  \node[layer, fill=green!20]  (c2) at (0,-2.5)
+    {Couche Application --- FastAPI \textbar{} Uvicorn ASGI \textbar{} Pydantic~2.10};
+  \node[sub] at (0,-3.22)
+    {151 endpoints REST + 2 canaux WebSocket multi-tenant, RBAC, JWT HS256};
+
+  \node[layer, fill=orange!20] (c3) at (0,-5.0)
+    {Couche Services --- YOLOv11n \textbar{} yolo26n-obb \textbar{} Ollama Labess-7B \textbar{}
+     ChromaDB RAG \textbar{} MLflow \textbar{} scikit-learn};
+  \node[sub] at (0,-5.72)
+    {11 classes détection (mAP@50\,=\,85.3\,\%), OBB apicole (mAP@50\,=\,92.0\,\%), inférence locale souveraine, 5 modèles avicoles, MLOps DVC};
+
+  \node[layer, fill=red!10]    (c4) at (0,-7.5)
+    {Couche Données --- PostgreSQL~16 + GeoAlchemy2 \textbar{} SQLite WAL \textbar{}
+     MQTT Mosquitto \textbar{} ESP32$\times$2};
+  \node[sub] at (0,-8.22)
+    {38 modèles SQLAlchemy, PostGIS (SRID~4326), fallback SQLite WAL, télémétrie IoT temps réel};
+
+  \draw[arrow] (c1) -- (c2) node[midway, right=5mm]{\footnotesize HTTP / WebSocket};
+  \draw[arrow] (c2) -- (c3) node[midway, right=5mm]{\footnotesize Appels Python (async)};
+  \draw[arrow] (c3) -- (c4) node[midway, right=5mm]{\footnotesize SQLAlchemy / paho-mqtt};
+  \draw[arrow] (c4.east) to[bend right=45]
+               node[midway, right=6mm]{\footnotesize Réponses async} (c1.east);
 \end{tikzpicture}
-\caption{Architecture applicative 4 couches de Smart Farm AI}
+}%
+\caption{Architecture applicative en 4 couches de Smart Farm AI.
+Chaque couche communique avec la couche adjacente via une interface définie~:
+HTTP/WebSocket (C1$\leftrightarrow$C2), appels Python asynchrones (C2$\leftrightarrow$C3)
+et accès ORM/MQTT (C3$\leftrightarrow$C4).}
 \label{fig:archi_4couches}
 \end{figure}
 
-\subsection{Architecture IoT}
-
-Le sous-système IoT repose sur deux nœuds ESP32 (Espressif ESP32-WROOM-32) :
-\begin{itemize}
-  \item \textbf{Nœud A — Contrôleur d'irrigation} :
-        humidité sol capacitif (ADC pin~36, 10--90\,\%), pression hydraulique
-        (ADC pin~39, 0--10\,bar), débit (pin~32 pulse, 0--30\,L/min),
-        température sol DS18B20 (OneWire pin~33).
-        Actionneurs : relais pompe (pin~18), relais vanne (pin~5).
-        Publie sur \code{smartfarm/node\_a/\{soil,pressure,flow,alert\}}
-        via MQTT QoS~1 toutes les 30\,s.
-        Seuils : humidité $<$ 30\,\% $\rightarrow$ irrigation ; pression $>$ 8\,bar $\rightarrow$ alarme.
-  \item \textbf{Nœud B — Monitoring ruche} :
-        poids cellule HX711 (ADC pin~34, 0--50\,kg),
-        température extérieure DHT22 (pin~14),
-        température couvain DS18B20 (pin~15).
-        Publie sur \code{smartfarm/node\_b/\{weight,hive\_temp,ext\_temp,ext\_hum,alert\}}
-        toutes les 10\,s (télémétrie) et vérifie l'essaimage toutes les 60\,min
-        (seuil : $\Delta$poids $>$ 2\,kg/60\,s, temp couvain hors [30--38]\,°C).
-\end{itemize}
-Le broker Mosquitto reçoit ces messages et les route vers FastAPI via un
-subscriber Python interne. FastAPI persiste les mesures en base et diffuse
-via WebSocket aux clients React connectés (broadcast multi-tenant filtré
-par \code{tenant\_id}).
-
-\subsection{Architecture IA et pipeline de traitement}
-
-Le pipeline d'analyse IA suit cinq étapes :
-\begin{enumerate}
-  \item \textbf{Entrée} : image (base64 ou multipart) soumise par le client ;
-  \item \textbf{Détection YOLO} : inférence YOLOv8 $\rightarrow$ liste de détections
-        (catégorie, confiance, bbox) ;
-  \item \textbf{Enrichissement RAG} : embedding de la requête +
-        détections $\rightarrow$ top-$k$ chunks ChromaDB ;
-  \item \textbf{Génération LLM} : contexte RAG + prompt espèce-spécifique $\rightarrow$
-        Ollama Labess-7B (local) ou Groq Llama-3.3-70B (fallback) ;
-  \item \textbf{Réponse Darija} : texte en dialecte tunisien retourné au client.
-\end{enumerate}
-
-% ── 2.3 Modèles UML ─────────────────────────────────────────
-\section{Modélisation UML}
-
-\subsection{Diagramme de cas d'utilisation}
-
-\begin{figure}[H]
-\centering
-\fbox{\parbox{0.9\linewidth}{
-\small\texttt{
-{[}Éleveur{]} --(Gérer fermes et animaux)\\
-{[}Éleveur{]} --(Consulter dashboard IoT temps réel)\\
-{[}Éleveur{]} --(Analyser image YOLO + conseil Darija)\\
-{[}Éleveur{]} --(Gérer lots avicoles ERP)\\
-{[}Éleveur{]} --(Gérer ruches apiculture)\\
-{[}Éleveur{]} --(Localiser vétérinaires/marchés GIS)\\
-{[}Éleveur{]} --(Recevoir alertes critiques)\\
-{[}Worker{]}  --(S'authentifier par OTP WhatsApp)\\
-{[}Worker{]}  --(Consulter tâches app mobile offline)\\
-{[}IoT ESP32{]}--(Publier télémétrie MQTT)\\
-{[}Agent IA{]} --(Générer réponse Darija RAG+LLM)
-}}}
-\caption{Diagramme de cas d'utilisation Smart Farm AI (notation textuelle)}
-\label{fig:uc}
-\end{figure}
-
-\subsection{Diagramme de classes principal}
-
-Les 38 modèles SQLAlchemy du projet (+ 6 \texttt{Enum} Python, 44 classes au total)
-s'organisent autour de cinq agrégats principaux :
+\medskip
 
 \begin{description}
-  \item[Agrégat Ferme] \code{User} $\leftrightarrow$ \code{FarmOwner} $\leftrightarrow$ \code{Farm}
-        $\leftrightarrow$ \code{WorkerAssignment}
-  \item[Agrégat Animal] \code{AnimalType} $\leftrightarrow$ \code{AnimalUnit}
-        $\leftrightarrow$ \code{TelemetryRecord} $\leftrightarrow$ \code{Alert}
-  \item[Agrégat IA] \code{CVEvent} $\leftrightarrow$ \code{Recommendation}
-        $\leftrightarrow$ \code{DiagnosticHistory}
-  \item[Agrégat Aviculture] \code{PoultryBatch} $\leftrightarrow$ \code{PoultryFeedLog}
-        $\leftrightarrow$ \code{PoultryEggLog} $\leftrightarrow$ \code{PoultryHealthLog}
-        $\leftrightarrow$ \code{PoultrySale}
-  \item[Agrégat Apiculture] \code{BeeApiary} $\leftrightarrow$ \code{BeeHive}
-        $\leftrightarrow$ \code{BeeVisit} $\leftrightarrow$ \code{BeeProduction}
-        $\leftrightarrow$ \code{BeeStockLog}
+  \item[Couche Présentation] Interface utilisateur construite avec React~18 (SPA)
+        et compilée par Vite~5. Elle intègre Three.js pour la visualisation 3D
+        des fermes (8 modèles GLB), Leaflet/MapLibre pour la cartographie GIS
+        interactive, Recharts pour les graphiques de performance avicole et
+        i18next pour l'internationalisation (FR/AR/EN, RTL). La Progressive Web App
+        (PWA) utilise un Service Worker et Dexie IndexedDB pour fonctionner
+        entièrement hors-ligne.
+  \item[Couche Application] Backend REST et WebSocket développé avec FastAPI
+        (Python~3.11) et servi par Uvicorn ASGI (2 workers). Elle expose
+        151 endpoints répartis sur 22 fichiers de routes et 2 canaux WebSocket
+        multi-tenant. La validation est assurée par Pydantic~2.10 ; la sécurité
+        repose sur JWT HS256 et RBAC (rôles~: \texttt{owner}, \texttt{worker}).
+  \item[Couche Services] Moteur IA regroupant YOLOv11n (détection 11 classes,
+        mAP@50~$= 85.3\,\%$, architecture C3k2+SPPELAN+PSA, inférence $\leq 180$\,ms),
+        yolo26n-obb (détection apicole OBB, 3 classes, mAP@50~$= 92.0\,\%$),
+        Ollama + Labess-7B (LLM local Darija, GGUF Q4\_K\_M),
+        ChromaDB (base vectorielle RAG, 2\,847 chunks, paraphrase-multilingual-MiniLM-L12-v2),
+        scikit-learn (5 modèles avicoles) et MLflow (traçabilité MLOps).
+        Tous les modèles fonctionnent localement~---~aucune dépendance à une API cloud externe.
+  \item[Couche Données] Persistance sur PostgreSQL~16 avec extensions PostGIS
+        (GeoAlchemy2, SRID~4326) pour les requêtes géographiques (ST\_DWithin) ;
+        fallback SQLite WAL pour les déploiements légers (\texttt{LITE\_MODE}).
+        La télémétrie IoT est acheminée via MQTT (broker Mosquitto, QoS~1)
+        depuis deux nœuds ESP32.
 \end{description}
 
-\subsection{Diagramme de séquence — Analyse IA d'une image}
+\subsection{Composants de l'architecture}
+
+La figure~\ref{fig:composants} détaille les interactions entre les composants
+logiciels majeurs du système et leurs dépendances.
 
 \begin{figure}[H]
 \centering
-\fbox{\parbox{0.9\linewidth}{
-\small\texttt{
-Worker$\rightarrow$Frontend: upload image\\
-Frontend$\rightarrow$FastAPI: POST /api/v1/agent/analyze-image\\
-FastAPI$\rightarrow$YOLOv8: infer(image)\\
-YOLOv8$\rightarrow$FastAPI: detections[category, confidence, bbox]\\
-FastAPI$\rightarrow$ChromaDB: query(detections + user\_question, top\_k=5)\\
-ChromaDB$\rightarrow$FastAPI: relevant\_chunks\\
-FastAPI$\rightarrow$Ollama: generate(system\_prompt + chunks + question)\\
-alt [Ollama timeout] FastAPI$\rightarrow$Groq: generate(fallback)\\
-alt [Groq fail] FastAPI$\rightarrow$Static: darija\_response\\
-FastAPI$\rightarrow$Frontend: \{darija\_text, detections, confidence\}\\
-Frontend$\rightarrow$Worker: afficher réponse Darija + bbox
-}}}
-\caption{Séquence : Analyse IA d'une image (RAG + LLM 3-niveaux)}
-\label{fig:seq_ai}
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  comp/.style={draw, rounded corners=4pt, minimum width=3.4cm, minimum height=1.2cm,
+               text centered, font=\footnotesize\bfseries, fill=#1},
+  note/.style={font=\scriptsize\itshape},
+  dep/.style={->, thick, >=stealth, draw=#1}
+]
+  %-- Présentation
+  \node[comp=violet!25]  (spa)     at (0,    6.5)   {React SPA\\36 pages, 24 composants};
+  \node[comp=violet!15]  (pwa2)    at (5.5,  6.5)   {PWA Worker\\Dexie IndexedDB};
+  \node[comp=violet!15]  (threejs) at (-5.5, 6.5)   {Three.js\\Visualisation 3D};
+  \node[comp=violet!15]  (gis)     at (0,    8.5)   {Leaflet + MapLibre\\Cartographie GIS};
+
+  %-- Application
+  \node[comp=green!30]   (gateway) at (0,    4.0)   {FastAPI Router\\151 REST + 2~WS};
+
+  %-- Services
+  \node[comp=orange!35]  (cv)      at (-6.5, 1.5)   {CVService\\YOLOv11n + yolo26n-obb};
+  \node[comp=orange!25]  (agent)   at (-2.0, 1.5)   {AgentService\\ChromaDB + Ollama};
+  \node[comp=orange!25]  (mlsvc)   at (2.5,  1.5)   {MLService\\scikit-learn (5 mod.)};
+  \node[comp=orange!25]  (iot)     at (7.5,  1.5)   {IoTService\\MQTT / WebSocket};
+
+  %-- Données
+  \node[comp=red!15]     (pg2)     at (-4.5, -1.0)  {PostgreSQL~16\\GeoAlchemy2 PostGIS};
+  \node[comp=red!15]     (chroma2) at (0.5,  -1.0)  {ChromaDB\\Vecteurs RAG};
+  \node[comp=red!15]     (mlf)     at (5.0,  -1.0)  {MLflow\\Expériences DVC};
+  \node[comp=red!15]     (esp32)   at (9.5,  -1.0)  {ESP32$\times$2\\MQTT Mosquitto};
+
+  %-- Flèches
+  \draw[dep=black]   (spa)     -- (gateway)  node[midway, right, note]{REST / WS};
+  \draw[dep=black]   (pwa2)    -- (gateway)  node[midway, above, note]{HTTP sync};
+  \draw[dep=gray!60] (threejs) -- (spa);
+  \draw[dep=gray!60] (gis)     -- (spa);
+  \draw[dep=blue!70] (gateway) -- (cv);
+  \draw[dep=blue!70] (gateway) -- (agent);
+  \draw[dep=blue!70] (gateway) -- (mlsvc);
+  \draw[dep=blue!70] (gateway) -- (iot);
+  \draw[dep=gray]    (cv)      -- (pg2)      node[midway, left,  note]{SQLAlchemy};
+  \draw[dep=gray]    (agent)   -- (chroma2)  node[midway, right, note]{k-NN};
+  \draw[dep=gray]    (mlsvc)   -- (pg2);
+  \draw[dep=gray]    (mlsvc)   -- (mlf)      node[midway, above, note]{tracking};
+  \draw[dep=gray]    (iot)     -- (pg2);
+  \draw[dep=gray]    (iot)     -- (esp32)    node[midway, right, note]{paho-mqtt};
+\end{tikzpicture}
+}%
+\caption{Diagramme de composants Smart Farm AI --- interactions entre la couche présentation
+(React SPA, PWA Worker, Three.js, GIS), la couche application (FastAPI Router)
+et les services métier (CVService, AgentService, MLService, IoTService) avec leurs
+sources de données associées (PostgreSQL, ChromaDB, MLflow, ESP32).}
+\label{fig:composants}
 \end{figure}
 
-\subsection{Diagramme de séquence — Authentification Worker OTP}
+% ── 2.5 Besoins technologiques ──────────────────────────────
+\section{Les besoins technologiques}
 
-\begin{figure}[H]
-\centering
-\fbox{\parbox{0.9\linewidth}{
-\small\texttt{
-Worker$\rightarrow$App: saisir numéro de téléphone\\
-App$\rightarrow$FastAPI: POST /auth/worker/request-otp \{phone\}\\
-FastAPI$\rightarrow$WhatsApp Meta API v25.0: send\_otp(phone, code\_6\_chiffres, TTL=5min)\\
-WhatsApp$\rightarrow$Worker: message WhatsApp "Votre code: XXXXXX"\\
-Worker$\rightarrow$App: saisir OTP\\
-App$\rightarrow$FastAPI: POST /auth/worker/verify-otp \{phone, otp\}\\
-FastAPI$\rightarrow$DB: valider OTP (non expiré, non utilisé)\\
-FastAPI$\rightarrow$App: JWT token (8h) + worker\_profile\\
-App$\rightarrow$Worker: accès dashboard Worker
-}}}
-\caption{Séquence : Authentification Worker par OTP WhatsApp}
-\label{fig:seq_otp}
-\end{figure}
-
-% ── 2.4 Technologies détaillées ─────────────────────────────
-\section{Technologies utilisées}
+Le choix des technologies a été guidé par trois critères principaux~: la
+\textit{souveraineté} (préférence systématique aux solutions open-source
+auto-hébergées), la \textit{performance} sur infrastructure à ressources limitées
+et la \textit{maturité} de l'écosystème garantissant la pérennité du projet.
+Le tableau~\ref{tab:techno} présente l'ensemble des choix retenus et leur justification.
 
 \begin{table}[H]
 \centering
-\caption{Stack frontend — bibliothèques et rôles}
-\label{tab:frontend_stack}
-\begin{tabularx}{\linewidth}{llX}
+\caption{Besoins technologiques --- solutions choisies et justifications}
+\label{tab:techno}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
 \toprule
-\textbf{Bibliothèque} & \textbf{Version} & \textbf{Rôle} \\
+\textbf{Besoin} & \textbf{Solution choisie} & \textbf{Version} & \textbf{Justification} \\
 \midrule
-React          & 18.2.0 & Framework UI, 36 pages, 24 composants \\
-Vite           & 5.1.5  & Bundler, HMR, build PWA \\
-Zustand        & 5.0.13 & State management léger \\
-TanStack Query & 5.100.9& Cache requêtes API, invalidation \\
-Recharts       & 2.12.0 & Graphiques dashboard (FCR, ponte, IoT) \\
-Three.js       & 0.183.2& Visualisation 3D ferme (8 GLB : bee, cow, sheep, goat, poultry, poultrys, rabbit, farm) \\
-Leaflet + MapLibre & 1.9.4 / 5.23.0 & Carte GIS interactive \\
-i18next        & 26.0.4 & Internationalisation fr/ar/en, RTL \\
-Dexie          & 4.4.2  & IndexedDB abstraction (PWA offline) \\
-vite-plugin-pwa& 1.2.0  & Service Worker, manifest, cache \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Stack backend — bibliothèques et rôles}
-\label{tab:backend_stack}
-\begin{tabularx}{\linewidth}{llX}
-\toprule
-\textbf{Bibliothèque} & \textbf{Version} & \textbf{Rôle} \\
-\midrule
-FastAPI        & $\geq$0.100  & Framework API REST + WebSocket, 151 routes, 2 WS \\
-SQLAlchemy     & $\geq$2.0.36 & ORM, 40+ modèles, sessions async \\
-Pydantic       & $\geq$2.10   & Validation schémas, sérialisation \\
-Uvicorn        & $\geq$0.24   & Serveur ASGI (2 workers Docker) \\
-GeoAlchemy2    & $\geq$0.14.7 & Types géographiques PostGIS ST\_DWithin \\
-python-jose    & $\geq$3.3    & JWT HS256, expiry=10\,080\,min (7j) \\
-bcrypt         & $\geq$4.0    & Hachage mots de passe (rounds=12) \\
-paho-mqtt      & $\geq$1.6.1  & Client MQTT Mosquitto (topics smartfarm/\#) \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Inventaire des 151 endpoints REST — répartition par module (22 fichiers)}
-\label{tab:api_endpoints}
-\begin{tabular}{lrl}
-\toprule
-\textbf{Module (fichier)} & \textbf{Routes} & \textbf{Rôle principal} \\
-\midrule
-\code{poultry\_erp.py}   & 31 & Lots, FCR, ponte, santé, vente, inventaire \\
-\code{bee\_history.py}   & 24 & Historique visites, productions, analyses \\
-\code{farm\_routes.py}   & 14 & Fermes, co-propriétaires, workers CRUD \\
-\code{auth\_routes.py}   &  9 & JWT login/register, OTP WhatsApp, RBAC \\
-\code{animal\_routes.py} &  9 & Animaux, journaux, alertes vétérinaires \\
-\code{bee\_stock.py}     &  8 & Stocks miel, cire, propolis, mouvements \\
-\code{bee\_planning.py}  &  8 & Planification visites COLOSS BeeBook \\
-\code{cv\_routes.py}     &  7 & Inférence YOLO, historique détections \\
-\code{worker\_tasks.py}  &  6 & Tâches terrain, statuts, rapports \\
-\code{geo\_routes.py}    &  5 & GeoJSON fermes/vétérinaires/marchés/ruches \\
-\code{bee\_expenses.py}  &  5 & Dépenses apicoles, analyses coûts \\
-\code{bee\_analytics.py} &  4 & KPIs ruche, health score, tendances \\
-\code{agent.py}          &  3 & Chat Darija RAG+LLM, analyze-image \\
-\code{weather.py}        &  3 & Météo OpenWeather, historique, alertes \\
-\code{telemetry\_routes.py} & 3 & Télémétrie IoT push, lecture, WebSocket \\
-\code{diagnostic\_routes.py}& 3 & Diagnostics IA, historique, recommandations \\
-\code{worker\_reports.py}&  2 & Rapports travailleurs terrain \\
-\code{plants.py}         &  2 & Détection maladies plantes (olive/citrus) \\
-\code{geocode.py}        &  2 & Géocodage adresse $\leftrightarrow$ coordonnées \\
-\code{bee.py}            &  2 & Santé globale ruche, métadonnées rucher \\
-\code{recommendations.py}&  1 & Recommandations IA personnalisées \\
-\midrule
-\textbf{Total}           & \textbf{151} & \textbf{+ 2 canaux WebSocket multi-tenant} \\
+Interface SPA réactive, 3D, cartographie
+  & React + Three.js + Leaflet/MapLibre
+  & 18.2 / 0.183 / 1.9
+  & Écosystème mature, WebGL natif, tiles open-source \\
+\addlinespace
+Bundler rapide, PWA offline
+  & Vite + vite-plugin-pwa
+  & 5.1 / 1.2
+  & HMR $<50$\,ms, Service Worker, manifest configurables \\
+\addlinespace
+Cache requêtes, état global léger
+  & TanStack Query + Zustand
+  & 5.1 / 5.0
+  & Invalidation automatique, store minimal sans Redux \\
+\addlinespace
+Persistance offline, sync différée
+  & Dexie (IndexedDB)
+  & 4.4
+  & API Promise, schéma typé, migrations automatiques \\
+\addlinespace
+Internationalisation FR/AR/EN + RTL
+  & i18next + react-i18next
+  & 26.0 / 17.0
+  & 400+ clés, détection langue auto, RTL CSS natif \\
+\addlinespace
+API REST asynchrone + WebSocket
+  & FastAPI + Uvicorn ASGI
+  & $\geq$0.100 / $\geq$0.24
+  & ASGI natif, Pydantic~2 intégré, OpenAPI auto-généré \\
+\addlinespace
+Validation schémas, sérialisation
+  & Pydantic
+  & $\geq$2.10
+  & Validation stricte, schémas auto pour OpenAPI \\
+\addlinespace
+Base de données relationnelle + géo
+  & PostgreSQL~16 + GeoAlchemy2
+  & 16 / $\geq$0.14
+  & PostGIS ST\_DWithin, ACID complet, fallback SQLite WAL \\
+\addlinespace
+ORM + migrations
+  & SQLAlchemy + Alembic
+  & $\geq$2.0 / $\geq$1.12
+  & Sessions async, 38 modèles, migrations versionnées \\
+\addlinespace
+Détection objets temps réel multi-classes (11 classes)
+  & YOLOv11n (Ultralytics)
+  & $\geq$8.3
+  & C3k2+SPPELAN+PSA anchor-free, mAP@50\,$=85.3\,\%$, CPU $\leq180$\,ms \\
+\addlinespace
+Détection apicole orientée (OBB)
+  & yolo26n-obb (Ultralytics)
+  & $\geq$8.3
+  & 3 classes (abeille/reine/larve), mAP@50\,$=92.0\,\%$, CPU $\leq200$\,ms \\
+\addlinespace
+LLM local souverain Darija
+  & Ollama + Labess-7B GGUF Q4\_K\_M
+  & $\geq$0.1
+  & Zéro dépendance cloud, fine-tune maghrébin, 4~GB RAM \\
+\addlinespace
+Base vectorielle RAG
+  & ChromaDB + sentence-transformers
+  & $\geq$0.4 / $\geq$2.5
+  & k-NN persistant, multilingual-mpnet-base-v2 \\
+\addlinespace
+Modèles ML avicoles (5 types)
+  & scikit-learn
+  & $\geq$1.3
+  & Régression poly., Random Forest, Isolation Forest \\
+\addlinespace
+Télémétrie IoT temps réel
+  & MQTT Mosquitto + paho-mqtt + ESP32
+  & 1.6 / WROOM-32
+  & QoS~1, $\leq30$ oct./message, WLAN 802.11b/g/n \\
+\addlinespace
+Traçabilité MLOps
+  & MLflow + DVC
+  & $\geq$2.10 / $\geq$3.45
+  & Reproductibilité totale, artifacts et datasets versionnés \\
+\addlinespace
+Sécurité, authentification multi-rôles
+  & JWT HS256 + bcrypt + OTP WhatsApp
+  & $\geq$3.3 / $\geq$4.0
+  & Standard industrie, TTL 5\,min OTP, RBAC par endpoint \\
+\addlinespace
+Déploiement orchestré par conteneurs
+  & Docker Compose + Nginx + Caddy (opt.)
+  & 3.x / 1.25 / 2.x
+  & Isolation services, HTTPS automatique Let's Encrypt \\
 \bottomrule
 \end{tabular}
+}%
 \end{table}
 
+% ── 2.6 Planification CRISP-DM ──────────────────────────────
+\section{Planification du projet}
+
+La méthodologie CRISP-DM (\textit{Cross-Industry Standard Process for Data Mining})~%
+\cite{wirth2000} a été adoptée comme cadre de planification du projet Smart Farm AI.
+Ce modèle itératif en six phases est particulièrement adapté aux projets intégrant
+des composantes de science des données et d'apprentissage automatique, car il structure
+le cycle complet --- de la compréhension du domaine métier jusqu'au déploiement en
+production --- en garantissant l'alignement permanent entre les besoins des
+utilisateurs et les modèles développés.
+La figure~\ref{fig:crispdm} illustre le cycle CRISP-DM tel qu'appliqué à Smart Farm AI.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.82\textwidth}{!}{%
+\begin{tikzpicture}[
+  phase/.style={draw, circle, minimum size=2.8cm, text centered,
+                font=\footnotesize\bfseries, fill=#1, text width=2.4cm,
+                inner sep=2pt},
+  arr/.style={->, thick, >=stealth, draw=gray!70},
+  lbl/.style={font=\scriptsize\itshape, text=gray!80}
+]
+  % Positions en cercle (6 phases)
+  \def\R{4.2}
+  \node[phase=blue!15]     (p1) at ({90}:\R)    {Phase 1\\Compréhension\\métier};
+  \node[phase=green!20]    (p2) at ({30}:\R)    {Phase 2\\Compréhension\\des données};
+  \node[phase=yellow!25]   (p3) at ({-30}:\R)   {Phase 3\\Préparation\\des données};
+  \node[phase=orange!25]   (p4) at ({-90}:\R)   {Phase 4\\Modélisation};
+  \node[phase=red!15]      (p5) at ({-150}:\R)  {Phase 5\\Évaluation};
+  \node[phase=violet!20]   (p6) at ({150}:\R)   {Phase 6\\Déploiement};
+
+  % Flèches circulaires
+  \draw[arr] (p1) to[bend left=15] (p2);
+  \draw[arr] (p2) to[bend left=15] (p3);
+  \draw[arr] (p3) to[bend left=15] (p4);
+  \draw[arr] (p4) to[bend left=15] (p5);
+  \draw[arr] (p5) to[bend left=15] (p6);
+  \draw[arr] (p6) to[bend left=15] (p1) node[midway, left=2mm, lbl]{itération};
+
+  % Flèches retour (évaluation → modélisation, évaluation → compréhension)
+  \draw[arr, dashed, draw=gray!50] (p5) to[bend right=30] (p4);
+  \draw[arr, dashed, draw=gray!50] (p5) to[bend right=55] (p1);
+
+  % Centre
+  \node[font=\small\bfseries, text=gray!60, align=center] at (0,0)
+    {Smart\\Farm AI\\CRISP-DM};
+\end{tikzpicture}
+}%
+\caption{Cycle CRISP-DM appliqué au projet Smart Farm AI --- 6 phases itératives
+de la compréhension métier au déploiement, avec boucles de retour (évaluation
+$\rightarrow$ modélisation et évaluation $\rightarrow$ compréhension métier).}
+\label{fig:crispdm}
+\end{figure}
+
+Nous détaillons ci-après l'application des six phases CRISP-DM à notre projet.
+
+\subsection*{Phase 1 --- Compréhension métier (\textit{Business Understanding})}
+
+\textbf{Objectif.} Identifier les problèmes agronomiques que le système doit
+résoudre et traduire les attentes des agriculteurs et des ouvriers en exigences
+techniques mesurables.
+
+\textbf{Activités menées.}
+\begin{itemize}
+  \item Analyse des processus métier agricoles (élevage multi-espèces,
+        apiculture COLOSS, aviculture ERP, irrigation IoT) ;
+  \item Identification de 12 besoins fonctionnels (BF-01\ldots BF-12) et
+        6 critères non fonctionnels (performance, sécurité, disponibilité,
+        scalabilité, i18n, portabilité) ;
+  \item Modélisation des cas d'utilisation UML (2 acteurs, 8 sous-systèmes,
+        21 cas d'utilisation avec relations \texttt{<<include>>} et
+        \texttt{<<extend>>}).
+\end{itemize}
+
+\textbf{Livrable.} Cahier des charges fonctionnel, diagrammes UML de cas
+d'utilisation (section~\ref{sec:uc}).
+
+\subsection*{Phase 2 --- Compréhension des données (\textit{Data Understanding})}
+
+\textbf{Objectif.} Inventorier et caractériser toutes les sources de données
+nécessaires à l'entraînement et à l'évaluation des modèles.
+
+\textbf{Sources identifiées.}
+\begin{itemize}
+  \item \textbf{Images YOLO} : 11 classes (bovins, ovins, caprins, lapins, poulets,
+        abeilles, feux, maladies foliaires d'olive et d'agrumes) ---
+        $\approx$\,8\,500 images annotées au format YOLO txt ;
+  \item \textbf{Séries temporelles IoT} : mesures ESP32 toutes les 10--30\,s
+        (humidité sol, pression hydraulique, température extérieure, poids ruche) ;
+  \item \textbf{Corpus RAG} : guides AVFA, fiches vétérinaires tunisiennes,
+        protocoles COLOSS BeeBook --- 47 documents PDF, 312 chunks indexés ;
+  \item \textbf{Logs avicoles} : 500+ lots (FCR journalier, mortalité, ponte,
+        consommation aliment) issus d'élevages du gouvernorat de Sfax.
+\end{itemize}
+
+\textbf{Livrable.} Rapport d'analyse exploratoire (distributions, corrélations,
+premières détections d'outliers).
+
+\subsection*{Phase 3 --- Préparation des données (\textit{Data Preparation})}
+
+\textbf{Objectif.} Transformer les données brutes en entrées exploitables par
+les modèles, en garantissant qualité et cohérence.
+
+\textbf{Transformations appliquées.}
+\begin{itemize}
+  \item Augmentation images YOLO : rotation ($\pm15^{\circ}$), flip horizontal,
+        mosaic 4-images, jitter HSV ; résolution normalisée $640\times640$ ;
+  \item Normalisation Z-score des séries IoT ; interpolation linéaire pour
+        les lacunes inférieures à $2\,\%$ ;
+  \item Découpage des documents RAG en chunks de 512 tokens (chevauchement
+        50 tokens), embeddings \texttt{paraphrase-multilingual-mpnet-base-v2} ;
+  \item \texttt{TimeSeriesSplit} (5 plis) pour la validation croisée des
+        modèles avicoles --- évite toute fuite temporelle.
+\end{itemize}
+
+\textbf{Livrable.} Pipelines DVC reproductibles (\texttt{dvc.yaml}),
+datasets versionnés et traçables.
+
+\subsection*{Phase 4 --- Modélisation (\textit{Modeling})}
+
+\textbf{Objectif.} Entraîner et optimiser les modèles IA selon les tâches
+identifiées lors des phases précédentes.
+
+\begin{description}
+  \item[YOLOv11n] Fine-tuning sur 100 époques avec arrêt anticipé
+        (\texttt{patience}~$= 20$), batch~$= 16$, image~$= 640\times640$.
+        Architecture \textit{anchor-free} avec blocs C3k2 (convolutions compactes),
+        module SPPELAN (pooling multi-échelle) et attention PSA (Polynomial
+        Self-Attention). Fonction de perte composite~: CIoU (régression boîtes)
+        + BCE (classification) + DFL (Distribution Focal Loss). Optimiseur
+        AdamW avec décroissance cosinus du taux d'apprentissage.
+        Augmentations~: Mosaic 4 images, variations HSV ($H = 0.015$, $S = 0.7$,
+        $V = 0.4$), retournements horizontaux. Corpus~: 14\,820 images,
+        11 classes (bovins, ovins, caprins, abeilles, pathologies, feux\ldots).
+  \item[yolo26n-obb] Modèle à boîtes orientées (Oriented Bounding Box)
+        pour la détection apicole. 50 époques, image~$= 640\times640$,
+        3 classes (abeille, reine, larve). Perte additionnelle sur l'angle
+        de rotation $\theta \in [0°, 180°]$. mAP@50~$= 92.0\,\% \pm 0.40\,\%$,
+        inférence $\leq 200$\,ms sur CPU.
+  \item[Aviculture ML] Régression polynomiale deg.~2 (FCR), Random Forest
+        ($n = 100$ arbres) pour la mortalité, ARIMA pour les séries de ponte.
+  \item[RAG + LLM] Indexation ChromaDB avec top-$k = 5$, prompt
+        espèce-spécifique, modèle Labess-7B quantifié Q4\_K\_M via Ollama.
+  \item[Anomalies IoT] Isolation Forest (contamination~$= 0.05$)~%
+        \cite{liu2008isolation} sur les séries temporelles de capteurs.
+\end{description}
+
+\textbf{Livrable.} Modèles entraînés versionnés (MLflow),
+hyperparamètres documentés (annexe~D).
+
+\subsection*{Phase 5 --- Évaluation (\textit{Evaluation})}
+
+\textbf{Objectif.} Valider statistiquement que les modèles satisfont les
+critères de qualité définis en phase~1 et identifier les menaces à la validité.
+
+\textbf{Métriques et résultats.}
+\begin{itemize}
+  \item YOLOv11n : mAP@50~$= 85.3\,\%\ \pm 0.42\,\%$ (5-fold CV,
+        inférence $\leq 180$\,ms CPU)
+  \item yolo26n-obb (apiculture) : mAP@50~$= 92.0\,\%\ \pm 0.40\,\%$
+  \item FCR polynomial : $R^2 = 0.891 \pm 0.024$ (TimeSeriesSplit 5 plis)
+  \item RAG Darija : BLEU-4~$= 0.68$, ROUGE-L~$= 0.72$,
+        Cohen's~$\kappa = 0.76$~\cite{cohen1960,landis1977}
+  \item Latence API : p50~$= 67$\,ms, p95~$= 143$\,ms
+        (50 utilisateurs simultanés)
+\end{itemize}
+
+Les intervalles de confiance à 95\,\% ont été calculés par \textit{bootstrap}
+($B = 1\,000$ itérations) sur chaque ensemble de test indépendant.
+
+\textbf{Livrable.} Rapport d'évaluation avec IC~95\,\%, section
+\textit{Menaces à la validité} (validité interne, externe, de construct).
+
+\subsection*{Phase 6 --- Déploiement (\textit{Deployment})}
+
+\textbf{Objectif.} Rendre le système opérationnel en production sur
+l'infrastructure de la ferme avec une disponibilité maximale et une
+indépendance totale vis-à-vis des services cloud.
+
+\textbf{Architecture de déploiement.}
+\begin{itemize}
+  \item Docker Compose : PostgreSQL~16 + FastAPI Uvicorn (2 workers)
+        + React/Nginx (port~80) ;
+  \item Caddy optionnel pour HTTPS automatique via Let's Encrypt ;
+  \item PWA installable : Service Worker + IndexedDB Dexie pour les
+        ouvriers terrain sans connexion permanente ;
+  \item Fallback LLM en cascade~:
+        Ollama (local) $\rightarrow$ Groq API (cloud) $\rightarrow$
+        réponse statique Darija.
+\end{itemize}
+
+\textbf{Livrable.} Guide de déploiement (\texttt{SMART\_FARM\_RUN.md}),
+image Docker versionée, scripts de \textit{seed} de données initiales.
+
+% ── 2.7 Conclusion ──────────────────────────────────────────
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}
-Ce chapitre a formalisé les exigences fonctionnelles et non fonctionnelles
-du système et présenté les choix architecturaux retenus. L'architecture
-4-couches, le pipeline IA RAG+LLM et les modèles UML constituent le
-squelette conceptuel sur lequel repose l'implémentation détaillée dans les
-chapitres suivants.
 
-% ============================================================
-%  CHAPITRE 3 : MODÉLISATION ET ÉVALUATION DES PERFORMANCES
-% ============================================================
+Ce chapitre a posé les fondements analytiques et conceptuels du projet Smart Farm AI.
+L'identification des besoins a formalisé 12 modules fonctionnels et 6 critères
+non fonctionnels couvrant l'intégralité de la chaîne de valeur agricole.
+Les diagrammes de cas d'utilisation UML ont illustré les interactions entre les
+deux acteurs principaux (Propriétaire et Ouvrier PWA) et les huit sous-systèmes.
+La revue des six travaux récents a permis de positionner notre contribution par
+rapport à l'état de l'art~: notre système intègre IoT multi-nœuds, détection
+YOLO multi-classes, prédiction avicole et RAG souverain en Darija tunisienne,
+adressant ainsi les lacunes structurelles identifiées (absence d'évaluation en
+Darija, dépendance cloud, fragmentation par espèce, insuffisance de rigueur
+statistique).
+
+L'architecture en quatre couches --- Présentation, Application, Services et Données ---
+assure la séparation des responsabilités et la maintenabilité du système.
+Le choix exclusif de technologies open-source (FastAPI, YOLOv11n, yolo26n-obb,
+Ollama, ChromaDB, PostgreSQL) garantit la souveraineté technologique et la
+reproductibilité scientifique. Enfin, la planification selon CRISP-DM structure
+le développement en six phases itératives, de la compréhension métier jusqu'au
+déploiement en production.
+
+Le chapitre suivant présente la modélisation détaillée du système et l'évaluation
+quantitative des performances des modèles IA développés.

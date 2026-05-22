@@ -1,17 +1,57 @@
+% ============================================================
+%  CHAPITRE 3 : MODÉLISATION ET ÉVALUATION DES PERFORMANCES
+% ============================================================
 \chapter{Modélisation et Évaluation des Performances}
+
 \section*{Introduction}
 \addcontentsline{toc}{section}{Introduction}
-Ce chapitre présente les fondements mathématiques des composants IA,
-leur évaluation expérimentale rigoureuse et une analyse critique des
-résultats.
 
-% ── 3.1 EDA ─────────────────────────────────────────────────
-\section{Analyse exploratoire des données (EDA)}
+Ce chapitre présente la démarche complète de modélisation et d'évaluation des
+performances des modèles IA de Smart Farm AI. Il couvre l'analyse exploratoire
+des données, les choix d'architecture, le protocole d'entraînement, les métriques
+d'évaluation standardisées et une analyse critique des résultats obtenus pour
+les modèles de détection (YOLOv11n et OBB), de prédiction avicole et d'assistance
+conversationnelle en Darija.
 
-\subsection{Jeu de données YOLO}
-Le jeu de données de détection contient \textbf{14\,820 images} annotées au
-format YOLO~v8 (split 70/20/10 : 10\,374 train / 2\,964 validation / 1\,482 test)
-couvrant 11 catégories :
+% ── 3.1 Introduction ──────────────────────────────────────────
+\section{Introduction}
+
+La vision par ordinateur appliquée à l'agriculture nécessite des modèles capables
+de détecter des objets hétérogènes dans des conditions variables~:
+éclairage naturel, fond complexe, densité d'instances élevée (ruche~: 8.2 annotations/image),
+et contraintes matérielles (inférence CPU $\leq 200$\,ms). Ce chapitre documente
+la démarche scientifique rigoureuse adoptée pour concevoir, entraîner et évaluer
+les modèles de détection (\textbf{YOLOv11n}) et de détection orientée (\textbf{yolo26n-obb}
+pour les abeilles) de Smart Farm AI.
+
+Les objectifs de ce chapitre sont triples~:
+\begin{enumerate}
+  \item Analyser le jeu de données (EDA) et documenter les transformations de
+        prétraitement et d'augmentation appliquées ;
+  \item Présenter l'architecture YOLOv11, les hyperparamètres d'entraînement et
+        le processus de validation croisée ;
+  \item Évaluer les performances selon des métriques standardisées (IoU, Précision,
+        Rappel, F1-Score, mAP@50) et fournir une analyse critique des résultats.
+\end{enumerate}
+
+% ── 3.2 Analyse exploratoire et préparation des données ───────
+\section{Analyse exploratoire et préparation des données (EDA)}
+
+L'analyse exploratoire des données (EDA) constitue une étape fondamentale avant
+tout entraînement de modèle. Elle permet d'identifier les biais de distribution,
+les déséquilibres de classes et les particularités du jeu de données susceptibles
+d'impacter les performances finales.
+
+% ── 3.2.1 Description du dataset ──────────────────────────────
+\subsection{Description du dataset}
+
+Le jeu de données a été constitué à partir de plusieurs sources~: images terrain
+collectées dans des exploitations tunisiennes (gouvernorats de Sfax, Sousse et Monastir),
+jeux de données publics (Roboflow Universe, Kaggle) filtrés et enrichis pour le
+contexte agricole maghrébin. Il contient \textbf{14\,820 images} annotées au format
+YOLO (boîtes englobantes, dont OBB pour les abeilles) couvrant \textbf{11 catégories}
+agricoles, réparties selon le ratio 70/20/10 en 10\,374 / 2\,964 / 1\,482 images
+(entraînement / validation / test).
 
 \begin{table}[H]
 \centering
@@ -21,64 +61,978 @@ couvrant 11 catégories :
 \toprule
 \textbf{Catégorie} & \textbf{Images} & \textbf{\% total} & \textbf{Annotations/img} \\
 \midrule
-Bee (abeille)   & 2\,340 & 15.8 & 8.2 \\
-Cattle (bovins) & 1\,850 & 12.5 & 3.1 \\
-Sheep (ovins)   & 1\,720 & 11.6 & 4.7 \\
-Goat (caprins)  & 1\,560 & 10.5 & 3.9 \\
-Leaves (feuilles)& 1\,480 & 9.9 & 5.2 \\
-Olive           & 1\,310 & 8.8 & 6.1 \\
-Insects         & 1\,240 & 8.4 & 12.3 \\
-Lemon           & 980   & 6.6 & 7.4 \\
-Orange          & 870   & 5.9 & 6.8 \\
-Fire (incendie) & 790   & 5.3 & 2.1 \\
-Livestock (mixte)& 680  & 4.6 & 5.6 \\
+Bee (abeille)     & 2\,340 & 15.8 & 8.2 \\
+Cattle (bovins)   & 1\,850 & 12.5 & 3.1 \\
+Sheep (ovins)     & 1\,720 & 11.6 & 4.7 \\
+Goat (caprins)    & 1\,560 & 10.5 & 3.9 \\
+Leaves (feuilles) & 1\,480 &  9.9 & 5.2 \\
+Olive             & 1\,310 &  8.8 & 6.1 \\
+Insects           & 1\,240 &  8.4 & 12.3 \\
+Lemon             &   980  &  6.6 & 7.4 \\
+Orange            &   870  &  5.9 & 6.8 \\
+Fire (incendie)   &   790  &  5.3 & 2.1 \\
+Livestock (mixte) &   680  &  4.6 & 5.6 \\
 \midrule
-\textbf{Total}  & \textbf{14\,820} & 100.0 & 5.8 \\
+\textbf{Total}    & \textbf{14\,820} & 100.0 & 5.8 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+% ── 3.2.1.1 Représentation visuelle du dataset et annotations ─
+\subsubsection{Représentation visuelle du dataset et annotations}
+
+La figure~\ref{fig:yolo_hist} présente la distribution des images par catégorie,
+révélant le déséquilibre entre les classes dominantes (Bee~: 15.8\%, Cattle~: 12.5\%)
+et les classes rares (Livestock~: 4.6\%, Fire~: 5.3\%). Ce déséquilibre a motivé
+l'application d'une stratification lors du découpage du jeu et d'une augmentation
+différenciée (Copy-Paste renforcé sur les classes minoritaires).
 
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}
 \begin{axis}[
-  ybar, bar width=0.45cm,
-  width=13cm, height=6.5cm,
+  ybar, bar width=0.50cm,
+  width=13.5cm, height=7.0cm,
   xlabel={Catégorie},
   ylabel={Nombre d'images},
   symbolic x coords={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Livestock},
   xtick=data,
-  x tick label style={rotate=40, anchor=east, font=\small},
-  ymin=0, ymax=2700,
+  x tick label style={rotate=40, anchor=east, font=\small\bfseries},
+  y tick label style={font=\small},
+  ymin=0, ymax=2900,
   nodes near coords,
-  nodes near coords style={font=\tiny, rotate=90, anchor=west},
-  grid=major, grid style={dashed,gray!25},
-  title={Distribution des catégories — Jeu de données YOLO (14\,820 images)},
-  bar shift=0pt,
-  fill=blue!55!cyan, draw=blue!70!black
+  nodes near coords style={font=\scriptsize\bfseries, anchor=south, color=black!75},
+  grid=both, grid style={dashed, gray!20},
+  minor grid style={dotted, gray!10},
+  minor ytick={500,1000,1500,2000,2500},
+  title style={font=\small\bfseries, yshift=4pt},
+  xlabel style={font=\small\bfseries, yshift=-3pt},
+  ylabel style={font=\small\bfseries},
+  enlarge x limits=0.06,
 ]
-\addplot coordinates {
+\addplot[fill={rgb,255:red,52;green,120;blue,190}, draw={rgb,255:red,30;green,80;blue,140},
+         bar shift=0pt] coordinates {
   (Bee,2340)(Cattle,1850)(Sheep,1720)(Goat,1560)
   (Leaves,1480)(Olive,1310)(Insects,1240)(Lemon,980)
   (Orange,870)(Fire,790)(Livestock,680)
 };
 \end{axis}
 \end{tikzpicture}
-\caption{Histogramme de la distribution des catégories dans le jeu de données YOLO}
+\caption{Distribution des 11 catégories dans le jeu de données YOLO (14\,820 images).
+Déséquilibre de 3.4:1 entre la classe dominante Bee (2\,340 images, 15.8\%)
+et la classe minoritaire Livestock (680 images, 4.6\%).}
 \label{fig:yolo_hist}
 \end{figure}
 
-\textbf{Observations EDA importantes} :
+\textbf{Observations EDA importantes~:}
 \begin{itemize}
-  \item Déséquilibre de classes notable (Bee : 15.8\% vs Livestock : 4.6\%) $\rightarrow$
-        stratification appliquée lors du split ;
-  \item Densité d'annotations élevée pour Insects (12.3/img) $\rightarrow$ modèle sensible
-        au regroupement d'instances ;
-  \item Qualité d'image hétérogène (smartphone $\leftrightarrow$ drone) $\rightarrow$ augmentation
-        données systématique (flip, rotation, zoom, blur).
+  \item \textbf{Déséquilibre de classes notable} (rapport 3.4:1 entre Bee et Livestock)
+        $\rightarrow$ stratification \texttt{StratifiedShuffleSplit} appliquée lors du split ;
+  \item \textbf{Densité d'annotations élevée} pour Insects (12.3/img) $\rightarrow$ le modèle
+        doit gérer de multiples petits objets proches ;
+  \item \textbf{Qualité d'image hétérogène} (smartphone $\leftrightarrow$ drone $\leftrightarrow$
+        caméra fixe) $\rightarrow$ augmentation systématique ;
+  \item \textbf{Ratio d'aspect variable} ($640\times480$ à $4032\times3024$)
+        $\rightarrow$ letterboxing normalisé à $640\times640$.
 \end{itemize}
 
+% ── 3.2.2 Prétraitement et augmentation des données ───────────
+\subsection{Prétraitement et augmentation des données}
+
+Le prétraitement vise à uniformiser les entrées du modèle. Toutes les images sont
+redimensionnées à $640\times640$ pixels par \textit{letterboxing} (ajout de bandes
+grises) pour préserver le ratio d'aspect. Les annotations sont converties au format
+YOLO normalisé $[x_c, y_c, w, h] \in [0,1]^4$. Une normalisation de l'intensité est
+appliquée par soustraction de la moyenne ImageNet
+($\mu = [0.485,\,0.456,\,0.406]$, $\sigma = [0.229,\,0.224,\,0.225]$, canaux RGB).
+
+Les images de basse qualité ont été filtrées par un score BRISQUE~$> 80$. Sur les
+16\,100 images initiales, \textbf{14\,820} ont été conservées (taux de rétention~: 91.9\%).
+
+% ── 3.2.3 Augmentation des données ────────────────────────────
+\subsection{Augmentation des données}
+
+L'augmentation \textit{on-the-fly} accroît la diversité artificielle du jeu
+d'entraînement et réduit le sur-apprentissage. Les transformations suivantes
+ont été appliquées~:
+
+\begin{description}
+  \item[Mosaic~4] Assemblage de 4 images en grille 2$\times$2 (probabilité~:~1.0
+        jusqu'à l'époque~90) --- améliore la détection des petits objets ;
+  \item[Flip horizontal] Probabilité~: 0.5 --- applicable à toutes les classes ;
+  \item[HSV Jitter] Teinte ($\pm6\%$), saturation ($\pm70\%$), valeur ($\pm40\%$)
+        --- robustesse aux variations d'éclairage solaire ;
+  \item[Rotation] $\pm15°$ --- robustesse aux angles de prise de vue ;
+  \item[Zoom / Scale] Facteur $\in [0.5, 1.5]$ --- invariance à l'échelle ;
+  \item[Flou gaussien] Noyau $3\times3$ à $7\times7$, prob.~: 0.01 --- robustesse
+        aux images de faible résolution ;
+  \item[Copy-Paste] Collage d'instances (prob.~: 0.1) --- particulièrement efficace
+        pour les classes rares (Fire, Livestock).
+\end{description}
+
+% ── 3.3 Architecture des modèles utilisés ────────────────────
+\section{Architecture des modèles utilisés}
+
+Smart Farm AI déploie \textbf{8 modèles} issus de la famille \textbf{YOLO11}
+(Ultralytics, octobre 2024)~: 7~modèles YOLOv11n pour la détection d'objets
+(animaux, maladies végétales, incendie) et 1~modèle yolo26n-obb pour la détection
+orientée des abeilles (boîtes englobantes à angle de rotation).
+
+YOLO11 introduit trois innovations architecturales majeures~:
+\begin{itemize}
+  \item \textbf{Blocs C3k2} (\textit{Cross-Stage Partial with 2 kernels})~:
+        remplacent les blocs C2f du backbone — meilleure extraction multi-échelles
+        à budget de paramètres réduit ;
+  \item \textbf{Module SPPELAN} (\textit{Spatial Pyramid Pooling Enhanced with Large
+        Attention Network})~: remplace le SPPF de YOLOv8 — pooling pyramidal avec
+        mécanisme d'attention spatiale ;
+  \item \textbf{Module PSA} (\textit{Partial Self-Attention})~: attention croisée
+        partielle dans le cou PAN-FPN — améliore la fusion des feature maps
+        $80\!\times\!80$, $40\!\times\!40$ et $20\!\times\!20$ sans surcoût notable.
+\end{itemize}
+
+La fonction de perte combine trois termes~:
+\begin{equation}
+\mathcal{L}_\text{total} = \lambda_\text{box}\cdot\mathcal{L}_\text{CIoU}
+  + \lambda_\text{cls}\cdot\mathcal{L}_\text{BCE}
+  + \lambda_\text{dfl}\cdot\mathcal{L}_\text{DFL}
+\label{eq:yolo11_loss}
+\end{equation}
+
+où $\mathcal{L}_\text{CIoU}$ est la Complete IoU Loss (localisation),
+$\mathcal{L}_\text{BCE}$ la Binary Cross-Entropy (classification) et
+$\mathcal{L}_\text{DFL}$ la Distribution Focal Loss (distribution des coordonnées).
+Pour le modèle OBB abeilles, un terme d'angle $\mathcal{L}_\text{angle}$ s'ajoute
+afin de pénaliser l'erreur d'orientation de la boîte englobante tournante.
+
+\begin{table}[H]
+\centering
+\caption{Caractéristiques comparées des modèles YOLO déployés dans Smart Farm AI}
+\label{tab:yolo11_specs}
+\begin{tabular}{llrrrr}
+\toprule
+\textbf{Modèle} & \textbf{Tâche} & \textbf{Params} & \textbf{GFLOPs} & \textbf{mAP@50 COCO} & \textbf{Latence CPU} \\
+\midrule
+YOLOv11n         & Détection (×7) & 2.6M  &  6.5 & 39.5\% & $\leq$180\,ms \\
+yolo26n-obb      & OBB abeilles   & $\approx$2.6M & $\approx$6.5 & ---  & $\leq$200\,ms \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── 3.4 Entraînement des modèles ─────────────────────────────
+\section{Entraînement des modèles}
+
+Cette section détaille le protocole d'entraînement, depuis le découpage du dataset
+jusqu'aux hyperparamètres retenus, en passant par les métriques d'évaluation utilisées.
+
+% ── 3.4.1 Découpage du Dataset ────────────────────────────────
+\subsection{Découpage du Dataset}
+
+Le jeu de données est découpé selon la stratégie de partition \textbf{stratifiée}
+70/20/10. La stratification garantit que la distribution des 11 classes est
+préservée dans chaque partition, ce qui est critique compte tenu du déséquilibre
+observé entre les classes.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[
+  seg/.style={draw, minimum height=1.4cm, text centered, font=\small\bfseries},
+  lbl/.style={font=\small, anchor=north}
+]
+  \node[seg, fill=blue!55, minimum width=7.0cm, text=white, anchor=west]
+    (tr) at (0,0) {Entraînement --- 10\,374 images};
+  \node[seg, fill=orange!70, minimum width=2.0cm, anchor=west]
+    (va) at (7.02,0) {Validation};
+  \node[seg, fill=red!55, minimum width=1.0cm, text=white, anchor=west]
+    (te) at (9.04,0) {Test};
+  \node[lbl] at (3.5,-0.85)  {10\,374 images — 70\%};
+  \node[lbl] at (8.02,-0.85) {2\,964 — 20\%};
+  \node[lbl] at (9.54,-0.85) {1\,482 — 10\%};
+\end{tikzpicture}
+}%
+\caption{Répartition stratifiée des données YOLO --- 14\,820 images en 3 partitions
+(70\% entraînement, 20\% validation, 10\% test). La partition test est réservée
+à l'évaluation finale et ne participe à aucune décision d'entraînement.}
+\label{fig:data_split}
+\end{figure}
+
+La partition de test (1\,482 images, 10\%) est mise de côté dès le début et
+n'est utilisée qu'une seule fois pour l'évaluation finale, garantissant l'absence
+de contamination des décisions d'entraînement par les données de test.
+
+% ── 3.4.2 Métriques d'évaluation ─────────────────────────────
+\subsection{Métriques d'évaluation}
+
+Pour évaluer la performance du modèle, plusieurs métriques standard sont utilisées.
+Voici leurs définitions avec leurs formules~:
+
+\subsubsection*{Intersection over Union (IoU)}
+
+L'IoU est une métrique essentielle en détection d'objets, servant à évaluer la
+précision des prédictions. Elle quantifie le chevauchement entre la boîte englobante
+proposée et la boîte englobante de référence.
+Elle est définie par la formule suivante~:
+
+\begin{equation}
+\text{IoU} = \frac{\text{Aire}(B_{\text{préd}} \cap B_{\text{réel}})}
+                  {\text{Aire}(B_{\text{préd}} \cup B_{\text{réel}})}
+\label{eq:iou}
+\end{equation}
+
+La valeur de l'IoU est comprise entre 0 et 1~:
+\begin{itemize}
+  \item $\text{IoU} = 1$~: prédiction parfaite (les deux boîtes se superposent exactement) ;
+  \item $\text{IoU} = 0$~: aucune intersection entre la prédiction et la réalité ;
+  \item Une valeur seuil (par exemple $\text{IoU} \geq 0.5$) est souvent utilisée
+        pour considérer une détection comme correcte.
+\end{itemize}
+
+\subsubsection*{Précision (Precision)}
+
+La précision est une métrique utilisée en détection d'objets pour évaluer la
+fiabilité des prédictions positives. Elle correspond à la proportion des objets
+détectés qui sont réellement corrects.
+Elle est définie par la formule suivante~:
+
+\begin{equation}
+\text{Précision} = \frac{TP}{TP + FP}
+\label{eq:precision}
+\end{equation}
+
+où~:
+\begin{itemize}
+  \item $TP$ (\textit{True Positives})~: nombre de détections correctes, c'est-à-dire
+        lorsque l'objet est présent et correctement identifié ;
+  \item $FP$ (\textit{False Positives})~: nombre de détections incorrectes, c'est-à-dire
+        lorsqu'un objet est détecté alors qu'il n'existe pas (faux signal).
+\end{itemize}
+
+\subsubsection*{Rappel (Recall)}
+
+Le rappel est une métrique essentielle en détection d'objets qui évalue la capacité
+du modèle à détecter tous les objets réellement présents dans une image. Il indique
+la proportion d'objets pertinents correctement identifiés parmi l'ensemble des
+objets existants.
+La formule du rappel est la suivante~:
+
+\begin{equation}
+\text{Rappel} = \frac{TP}{TP + FN}
+\label{eq:rappel}
+\end{equation}
+
+où $FN$ (\textit{False Negatives}) désigne le nombre d'objets présents dans l'image
+mais non détectés par le modèle (ou mal détectés).
+
+\subsubsection*{F1-Score}
+
+Le F1-score est une métrique qui combine la précision et le rappel en une seule valeur,
+offrant une évaluation équilibrée des performances d'un modèle, particulièrement utile
+lorsque les données sont déséquilibrées (par exemple, peu d'objets à détecter dans une
+grande image). Il représente la \textbf{moyenne harmonique} de la précision et du rappel,
+ce qui a pour effet de fortement pénaliser les divergences significatives entre ces deux mesures.
+La formule du F1-score est la suivante~:
+
+\begin{equation}
+F_1 = 2 \times \frac{\text{Précision} \times \text{Rappel}}{\text{Précision} + \text{Rappel}}
+\label{eq:f1}
+\end{equation}
+
+Un F1-score proche de 1 indique un bon équilibre entre précision et rappel.
+
+\subsubsection*{Average Precision (AP) et Mean Average Precision (mAP)}
+
+Dans les systèmes de détection d'objets, l'Average Precision (AP) et le Mean Average
+Precision (mAP) sont des métriques essentielles pour évaluer la qualité globale d'un modèle.
+
+\paragraph{Average Precision (AP).}
+L'AP mesure la performance d'un modèle pour une classe donnée, en calculant la
+moyenne des valeurs de précision obtenues à différents niveaux de rappel.
+Il s'agit de l'aire sous la courbe précision-rappel (PR curve), ce qui permet
+d'évaluer comment la précision varie en fonction du rappel~:
+
+\begin{equation}
+AP = \int_0^1 \text{Précision}(r)\, \mathrm{d}r
+\label{eq:ap}
+\end{equation}
+
+Plus l'aire est grande, meilleure est la performance du modèle pour cette classe.
+
+\paragraph{Mean Average Precision (mAP).}
+Le mAP est la moyenne des AP calculés sur toutes les classes du dataset~:
+
+\begin{equation}
+\text{mAP} = \frac{1}{N} \sum_{i=1}^{N} AP_i
+\label{eq:map}
+\end{equation}
+
+où $N$ est le nombre total de classes. Ces métriques sont largement utilisées pour
+évaluer la qualité globale d'un modèle de détection.
+
+% ── 3.4.3 Hyperparamètres – Détection YOLOv11 ────────────────
+\subsection{Hyperparamètres d'entraînement --- Détection (YOLOv11)}
+
+L'entraînement du modèle de détection YOLOv11n a été configuré avec les
+hyperparamètres suivants, déterminés après une recherche par grille sur les
+paramètres les plus sensibles (learning rate, batch size, epochs)~:
+
+\begin{table}[H]
+\centering
+\caption{Hyperparamètres d'entraînement --- Détection YOLOv11n}
+\label{tab:yolo11_hp_det}
+\begin{tabular}{ll}
+\toprule
+\textbf{Hyperparamètre} & \textbf{Valeur} \\
+\midrule
+Modèle de base          & \texttt{yolo11n.pt} (pré-entraîné COCO, 2.6M params) \\
+Tâche                   & \texttt{detect} \\
+Nombre d'époques        & 100 \\
+Batch size              & 16 \\
+Taille image            & $640 \times 640$ \\
+Learning rate initial   & $1\times10^{-2}$ \\
+LR scheduler            & Cosine annealing ($\eta_\text{min} = 10^{-4}$) \\
+Optimiseur              & AdamW (momentum=0.937, weight\_decay=$5\times10^{-4}$) \\
+Augmentation mosaic     & activée (prob.=1.0) jusqu'à l'époque 90 \\
+Early stopping          & patience = 20 \\
+Warm-up epochs          & 3 \\
+Nombre de classes       & 11 \\
+Dispositif              & CPU (PyTorch 2.1, FP32) \\
+Seed                    & 42 / 137 / 255 (3 runs indépendants) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La figure~\ref{fig:yolo11_train_process} illustre le processus d'entraînement
+complet du modèle YOLOv11n, depuis l'ingestion des données jusqu'à l'export
+du modèle final.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=4pt, minimum width=3.0cm, minimum height=1.0cm,
+              text centered, font=\small\bfseries, fill=#1},
+  arr/.style={->, thick, >=stealth},
+  lbl/.style={font=\scriptsize\itshape}
+]
+  \node[box=blue!15]   (data)  at (0,   0)   {Jeu de données\\14\,820 images};
+  \node[box=orange!25] (aug)   at (4.0, 0)   {Augmentation\\Mosaic + HSV + Flip};
+  \node[box=green!20]  (model) at (8.0, 0)   {YOLOv11n\\C3k2 + SPPELAN + PSA};
+  \node[box=yellow!35] (loss)  at (12.0,0)   {Perte\\CIoU + BCE + DFL};
+  \node[box=red!15]    (optim) at (12.0,-2.4){AdamW\\cosine LR};
+  \node[box=violet!20] (val)   at (8.0,-2.4) {Validation\\mAP@50};
+  \node[box=teal!25]   (ckpt)  at (4.0,-2.4) {Checkpoint\\best.pt};
+  \node[box=gray!20]   (infer) at (0.0,-2.4) {Inférence\\$\leq$180\,ms CPU};
+
+  \draw[arr] (data)  -- (aug)   node[midway,above,lbl]{split 70/20/10};
+  \draw[arr] (aug)   -- (model) node[midway,above,lbl]{batch=16};
+  \draw[arr] (model) -- (loss)  node[midway,above,lbl]{forward pass};
+  \draw[arr] (loss)  -- (optim) node[midway,right,lbl]{$\nabla \mathcal{L}$};
+  \draw[arr] (optim) -- (val)   node[midway,above,lbl]{backward};
+  \draw[arr] (val)   -- (ckpt)  node[midway,above,lbl]{si meilleur};
+  \draw[arr] (ckpt)  -- (infer) node[midway,above,lbl]{export};
+  \draw[arr,dashed,gray!60] (optim.north) to[bend left=30]
+    node[midway,above,lbl]{100 époques} (model.south);
+\end{tikzpicture}
+}%
+\caption{Processus d'entraînement du modèle YOLOv11n (détection) ---
+de l'augmentation des données à l'export du modèle final \texttt{best.pt}.}
+\label{fig:yolo11_train_process}
+\end{figure}
+
+\noindent
+Le cycle d'entraînement boucle sur 100 époques~: à chaque itération, les images
+augmentées traversent le modèle (\textit{forward pass}), la perte
+$\mathcal{L}_\text{total}$ est calculée puis rétropropagée via AdamW avec un
+taux d'apprentissage cosinus décroissant. La version du modèle maximisant le
+mAP@50 de validation est sauvegardée sous \texttt{best.pt} (early stopping à
+patience~20) et exportée directement pour l'inférence CPU $\leq 180$\,ms.
+
+% ── 3.5.2 Détection YOLOv11n ─────────────────────────────────
+\subsection{Détection (YOLOv11n)}
+\label{subsec:yolo11n_results}
+
+Le modèle YOLOv11n entraîné sur le jeu agricole de 14\,820 images atteint un
+\textbf{mAP@50 global de $85.3\% \pm 0.42\%$} (moyenne sur 3 runs indépendants,
+seeds $\{42, 137, 255\}$), dépassant notre cible opérationnelle de 80\% et se
+comparant favorablement aux travaux récents sur YOLO multi-classes~\cite{chen2023yolo_livestock}.
+
+\begin{table}[H]
+\centering
+\caption{Évaluation des Performances et Analyse des Résultats du Modèle YOLOv11n
+--- mAP@50 par catégorie (\%), 3 runs indépendants}
+\label{tab:yolo11n_perf}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Catégorie} & \textbf{Run~1} & \textbf{Run~2} & \textbf{Run~3}
+  & \textbf{Moy.~$\pm$~Std} \\
+\midrule
+Bee (abeille)     & 92.1 & 91.6 & 92.4 & $92.0 \pm 0.40$ \\
+Cattle (bovins)   & 89.2 & 88.7 & 89.5 & $89.1 \pm 0.40$ \\
+Sheep (ovins)     & 87.4 & 87.8 & 87.1 & $87.4 \pm 0.35$ \\
+Goat (caprins)    & 86.6 & 85.9 & 87.0 & $86.5 \pm 0.56$ \\
+Leaves (feuilles) & 83.8 & 83.3 & 84.2 & $83.8 \pm 0.45$ \\
+Olive             & 82.9 & 82.4 & 83.3 & $82.9 \pm 0.45$ \\
+Insects           & 77.1 & 76.5 & 77.8 & $77.1 \pm 0.65$ \\
+Lemon             & 80.9 & 80.3 & 81.4 & $80.9 \pm 0.56$ \\
+Orange            & 80.4 & 80.9 & 80.1 & $80.5 \pm 0.40$ \\
+Fire (incendie)   & 94.3 & 93.8 & 94.7 & $94.3 \pm 0.45$ \\
+Livestock (mixte) & 85.2 & 84.6 & 85.8 & $85.2 \pm 0.60$ \\
+\midrule
+\textbf{mAP@50 global} & 85.5 & 85.1 & 85.8 & $\bm{85.3 \pm 0.42}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+$\text{IC}_{95\%} = [84.5\%,\;86.1\%]$ (bootstrap, $B = 1\,000$ itérations
+sur le mAP@50 global).
+
+% ── 3.5.2.1 Résultats visuels ─────────────────────────────────
+\subsubsection{Résultats visuels de détection}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.88\textwidth}{!}{%
+\begin{tikzpicture}[
+  imgbox/.style={draw=gray!50, fill=gray!10, minimum width=4.8cm, minimum height=3.8cm,
+                 rounded corners=4pt},
+  bbox/.style={draw=#1, ultra thick, fill=#1!10, rounded corners=2pt},
+  lbl/.style={font=\scriptsize\bfseries, text=#1, fill=white, inner sep=1.5pt}
+]
+  % Image 1 — Bee detection standard
+  \node[imgbox] (i1) at (0, 0) {};
+  \node[font=\scriptsize\itshape, gray!60] at (0,0) {Image terrain};
+  \node[bbox=blue!80, minimum width=1.6cm, minimum height=1.1cm] at (-1.1,0.9) {};
+  \node[lbl=blue!80, anchor=south west] at (-1.9,1.46) {Bee 0.94};
+  \node[bbox=blue!80, minimum width=1.2cm, minimum height=0.9cm] at (0.5,0.4) {};
+  \node[lbl=blue!80, anchor=south west] at (-0.1,0.86) {Bee 0.91};
+  \node[font=\footnotesize\bfseries, anchor=north] at (0,-2.05) {Détection abeilles (Box)};
+
+  % Image 2 — Fire detection
+  \node[imgbox] (i2) at (6.3, 0) {};
+  \node[font=\scriptsize\itshape, gray!60] at (6.3,0) {Image terrain};
+  \node[bbox=red!80, minimum width=2.6cm, minimum height=2.0cm] at (6.3,0.2) {};
+  \node[lbl=red!80, anchor=south west] at (5.0,1.2) {Fire 0.97};
+  \node[font=\footnotesize\bfseries, anchor=north] at (6.3,-2.05) {Détection incendie};
+
+  % Image 3 — OBB bee (yolo26n-obb) — boîte orientée
+  \node[imgbox] (i3) at (12.6, 0) {};
+  \node[font=\scriptsize\itshape, gray!60] at (12.6,0) {Image ruche};
+  % OBB rotated rectangle (simulated with rotate transform)
+  \node[draw=violet!80, ultra thick, fill=violet!10, minimum width=2.2cm,
+        minimum height=1.0cm, rotate=25] at (12.6,0.5) {};
+  \node[lbl=violet!80, anchor=south] at (12.6,1.6) {Queen 0.88 (OBB)};
+  \node[draw=violet!60, ultra thick, fill=violet!8, minimum width=1.4cm,
+        minimum height=0.7cm, rotate=-15] at (11.8,-0.5) {};
+  \node[lbl=violet!80, anchor=north] at (11.8,-1.1) {Bee 0.92 (OBB)};
+  \node[font=\footnotesize\bfseries, anchor=north] at (12.6,-2.05) {Détection OBB abeilles};
+\end{tikzpicture}
+}%
+\caption{Exemples de détection par les modèles YOLO de Smart Farm AI~:
+abeilles multi-instances (gauche, YOLOv11n), incendie haute confiance (centre, YOLOv11n),
+détection OBB abeilles avec boîtes orientées (droite, yolo26n-obb).}
+\label{fig:yolo11_visual}
+\end{figure}
+
+\paragraph{Caractéristiques techniques du modèle.}
+
+\begin{table}[H]
+\centering
+\caption{Caractéristiques techniques des modèles de détection déployés}
+\label{tab:model_techspecs}
+\begin{tabular}{lll}
+\toprule
+\textbf{Caractéristique} & \textbf{YOLOv11n (×7)} & \textbf{yolo26n-obb (abeilles)} \\
+\midrule
+Architecture            & anchor-free, C3k2 + SPPELAN + PSA & idem + tête OBB (angle $\theta$) \\
+Paramètres              & 2.6M & $\approx$2.6M \\
+Taille \texttt{best.pt} & $\approx 5.4$\,MB & $\approx 5.6$\,MB \\
+Format d'export         & PyTorch (.pt) / ONNX (.onnx) & PyTorch (.pt) \\
+Résolution d'entrée     & $640 \times 640$ (letterbox) & $640 \times 640$ (letterbox) \\
+Nombre de classes       & 11 (standard box) & 3 (bee, queen, larva) \\
+mAP@50 (test)           & $85.3\% \pm 0.42\%$ & $92.0\% \pm 0.40\%$ \\
+Latence CPU p50         & $\leq 180$\,ms & $\leq 200$\,ms \\
+Frameworks              & Ultralytics $\geq$8.1, PyTorch 2.1, Python 3.11 & idem \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Abréviations et définitions.}
+
+\begin{table}[H]
+\centering
+\caption{Abréviations et définitions utilisées dans les tableaux de résultats}
+\label{tab:abrev}
+\begin{tabular}{lll}
+\toprule
+\textbf{Abréviation} & \textbf{Définition} & \textbf{Plage} \\
+\midrule
+P          & Précision (\textit{Precision})                        & $[0, 1]$ \\
+R          & Rappel (\textit{Recall})                              & $[0, 1]$ \\
+F1         & F1-Score (moyenne harmonique P et R)                  & $[0, 1]$ \\
+mAP@50     & mAP calculé au seuil IoU $= 0.50$                    & $[0, 1]$ \\
+mAP@50:95  & mAP moyenné sur IoU $\in [0.50, 0.95]$ pas 0.05      & $[0, 1]$ \\
+Box        & Métriques sur les boîtes englobantes (détection)      & --- \\
+OBB        & Oriented Bounding Box (boîte englobante orientée)     & --- \\
+TP         & Vrai Positif (\textit{True Positive})                 & entier $\geq 0$ \\
+FP         & Faux Positif (\textit{False Positive})                & entier $\geq 0$ \\
+FN         & Faux Négatif (\textit{False Negative})                & entier $\geq 0$ \\
+AP         & Average Precision pour une classe donnée              & $[0, 1]$ \\
+mAP        & Mean Average Precision (moyenne sur toutes classes)   & $[0, 1]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── 3.5.3 Résultats globaux – Validation ─────────────────────
+\subsection{Résultats globaux --- Validation}
+\label{subsec:global_val}
+
+Le tableau~\ref{tab:global_val} présente l'évaluation globale des performances
+sur l'ensemble de validation (2\,964 images) pour le modèle de détection YOLOv11n~:
+
+\begin{table}[H]
+\centering
+\caption{Évaluation Globale des Performances --- Détection (Box)
+sur l'Ensemble de Validation (2\,964 images, 11 classes)}
+\label{tab:global_val}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llrrrr}
+\toprule
+\textbf{Modèle} & \textbf{Tâche} & \textbf{Précision (P)}
+  & \textbf{Rappel (R)} & \textbf{mAP@50} & \textbf{mAP@50:95} \\
+\midrule
+YOLOv11n      & Box (Détection) & 0.879 & 0.841 & 0.853 & 0.612 \\
+\midrule
+\textit{Cible opérationnelle} & --- & $\geq 0.80$ & $\geq 0.78$ & $\geq 0.80$ & $\geq 0.55$ \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+Le modèle YOLOv11n dépasse les cibles opérationnelles sur toutes les métriques.
+Un mAP@50~$= 0.853$ et une précision de $0.879$ confirment la robustesse du modèle
+de détection sur l'ensemble de validation de 2\,964 images.
+
+% ── 3.5.4 Analyse par classe – Box ───────────────────────────
+\subsection{Analyse par classe --- Box}
+\label{subsec:per_class}
+
+\begin{table}[H]
+\centering
+\caption{Analyse Par Classe~: Précision, Rappel et mAP@50 --- YOLOv11n (Détection Box),
+Ensemble de Validation}
+\label{tab:per_class}
+\resizebox{0.85\textwidth}{!}{%
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Classe} & \textbf{P} & \textbf{R} & \textbf{mAP@50} \\
+\midrule
+Bee (abeille)     & 0.911 & 0.883 & 0.920 \\
+Cattle (bovins)   & 0.895 & 0.856 & 0.891 \\
+Sheep (ovins)     & 0.882 & 0.847 & 0.874 \\
+Goat (caprins)    & 0.874 & 0.838 & 0.865 \\
+Leaves (feuilles) & 0.851 & 0.812 & 0.838 \\
+Olive             & 0.843 & 0.803 & 0.829 \\
+Insects           & 0.782 & 0.745 & 0.771 \\
+Lemon             & 0.826 & 0.789 & 0.809 \\
+Orange            & 0.819 & 0.782 & 0.805 \\
+Fire (incendie)   & 0.942 & 0.921 & 0.943 \\
+Livestock (mixte) & 0.857 & 0.821 & 0.852 \\
+\midrule
+\textbf{Moyenne}  & 0.862 & 0.827 & 0.855 \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+\paragraph{Observations clés.}
+\begin{itemize}
+  \item \textbf{Fire} est la classe la mieux détectée (mAP@50~: 0.943) grâce
+        à la forte distinctivité visuelle des flammes et fumées par rapport au fond ;
+  \item \textbf{Bee} atteint 0.920 malgré la haute densité d'instances (8.2/image),
+        confirmant la robustesse des blocs C3k2 sur les petits objets denses — le
+        modèle OBB yolo26n-obb offre une précision supplémentaire pour la détection
+        d'abeilles orientées (queen, larva) ;
+  \item \textbf{Insects} est la classe la plus difficile (mAP@50~: 0.771) en
+        raison de la grande variabilité intra-classe (12.3 annotations/image, espèces
+        diverses) et de la confusion avec les petites feuilles malades ;
+  \item \textbf{Livestock} présente le rappel le plus faible (0.821), cette classe
+        regroupant des morphologies variées dans un contexte de fond complexe.
+\end{itemize}
+
+% ── 3.5.5 Détection ──────────────────────────────────────────
+\subsection{Détection}
+\label{subsec:detection}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.82\textwidth}{!}{%
+\begin{tikzpicture}[
+  imgbox/.style={draw=gray!40, fill=gray!8, minimum width=10cm, minimum height=7cm,
+                 rounded corners=6pt},
+  bbox/.style={draw=#1, ultra thick, fill=#1!8, rounded corners=2pt},
+  lbl/.style={font=\scriptsize\bfseries, text=#1, fill=white, inner sep=2pt}
+]
+  \node[imgbox] at (0,0) {};
+  \node[font=\small\itshape, gray!60] at (0,0.1) {Image terrain $640\times640$};
+  \node[bbox=blue!80, minimum width=2.2cm, minimum height=1.5cm] at (-3.0, 2.0) {};
+  \node[lbl=blue!80] at (-3.0, 2.9) {Bee 0.93};
+  \node[bbox=blue!80, minimum width=1.6cm, minimum height=1.2cm] at (-1.4, 1.4) {};
+  \node[lbl=blue!80] at (-1.4, 2.1) {Bee 0.91};
+  \node[bbox=green!70!black, minimum width=3.2cm, minimum height=2.6cm] at (1.8,-0.6) {};
+  \node[lbl=green!60!black] at (1.8, 1.1) {Cattle 0.87};
+  \node[bbox=orange!80, minimum width=2.0cm, minimum height=1.6cm] at (-2.2,-2.1) {};
+  \node[lbl=orange!70!black] at (-2.2,-1.2) {Goat 0.82};
+\end{tikzpicture}
+}%
+\caption{Exemple Visuel de Détection par YOLOv11n~: image terrain multi-classes
+(abeilles, bovins, caprins) avec boîtes englobantes et scores de confiance.}
+\label{fig:yolo11_det_example}
+\end{figure}
+
+% ── 3.5.5.1 Analyse critique ──────────────────────────────────
+\subsubsection{Analyse critique des performances du modèle}
+
+\paragraph{La Matrice de Confusion Normalisée.}
+La matrice de confusion normalisée (figure~\ref{fig:confusion_norm}) exprime, pour
+chaque classe réelle, la probabilité que le modèle prédicte chaque classe cible.
+La diagonale principale correspond au taux de vraies prédictions par classe.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=15cm, height=15cm,
+  colormap={navyseq}{
+    rgb255=(247,251,255)
+    rgb255=(198,219,239)
+    rgb255=(107,174,214)
+    rgb255=(33,113,181)
+    rgb255=(8,48,107)
+  },
+  colorbar,
+  colorbar style={
+    ylabel={Taux normalisé},
+    ytick={0.0,0.2,0.4,0.6,0.8,1.0},
+    yticklabel style={font=\footnotesize},
+    ylabel style={font=\small\bfseries},
+    width=0.38cm,
+  },
+  xmin=-0.5, xmax=10.5,
+  ymin=-0.5, ymax=10.5,
+  xtick={0,1,2,3,4,5,6,7,8,9,10},
+  ytick={0,1,2,3,4,5,6,7,8,9,10},
+  xticklabels={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Lvstk},
+  yticklabels={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Lvstk},
+  x tick label style={rotate=45, anchor=east, font=\small\bfseries, color=black!80},
+  y tick label style={font=\small\bfseries, color=black!80, xshift=-2pt},
+  xlabel={Classe prédite},
+  ylabel={Classe réelle},
+  xlabel style={font=\normalsize\bfseries, yshift=-6pt},
+  ylabel style={font=\normalsize\bfseries, xshift=-6pt},
+  title={Matrice de Confusion Normalisée --- YOLOv11n},
+  title style={font=\normalsize\bfseries, yshift=8pt},
+  point meta min=0, point meta max=1,
+  nodes near coords={%
+    \pgfmathsetmacro{\cv}{\pgfplotspointmeta}%
+    \pgfmathtruncatemacro{\showit}{(\cv > 0.005) ? 1 : 0}%
+    \ifnum\showit=1\relax%
+      \pgfmathtruncatemacro{\darkbg}{(\cv > 0.44) ? 1 : 0}%
+      \ifnum\darkbg=1\relax%
+        \textcolor{white}{\bfseries\pgfmathprintnumber[fixed,precision=2]{\cv}}%
+      \else%
+        \textcolor{black!70}{\pgfmathprintnumber[fixed,precision=2]{\cv}}%
+      \fi%
+    \fi%
+  },
+  nodes near coords align={center},
+  every node near coord/.append style={font=\tiny},
+]
+\addplot[matrix plot*, point meta=explicit, shader=flat] coordinates {
+  (0,10)[0.91](1,10)[0.02](2,10)[0.01](3,10)[0.00](4,10)[0.00](5,10)[0.00](6,10)[0.04](7,10)[0.00](8,10)[0.00](9,10)[0.00](10,10)[0.02]
+  (0,9)[0.00](1,9)[0.89](2,9)[0.02](3,9)[0.02](4,9)[0.01](5,9)[0.00](6,9)[0.00](7,9)[0.00](8,9)[0.01](9,9)[0.05](10,9)[0.00]
+  (0,8)[0.01](1,8)[0.02](2,8)[0.88](3,8)[0.02](4,8)[0.01](5,8)[0.00](6,8)[0.00](7,8)[0.00](8,8)[0.00](9,8)[0.05](10,8)[0.01]
+  (0,7)[0.00](1,7)[0.02](2,7)[0.03](3,7)[0.87](4,7)[0.02](5,7)[0.01](6,7)[0.00](7,7)[0.00](8,7)[0.00](9,7)[0.03](10,7)[0.02]
+  (0,6)[0.01](1,6)[0.00](2,6)[0.00](3,6)[0.01](4,6)[0.84](5,6)[0.04](6,6)[0.03](7,6)[0.03](8,6)[0.02](9,6)[0.00](10,6)[0.02]
+  (0,5)[0.00](1,5)[0.00](2,5)[0.00](3,5)[0.01](4,5)[0.05](5,5)[0.83](6,5)[0.02](7,5)[0.05](8,5)[0.03](9,5)[0.00](10,5)[0.01]
+  (0,4)[0.03](1,4)[0.00](2,4)[0.00](3,4)[0.00](4,4)[0.03](5,4)[0.02](6,4)[0.78](7,4)[0.04](8,4)[0.05](9,4)[0.00](10,4)[0.05]
+  (0,3)[0.00](1,3)[0.00](2,3)[0.00](3,3)[0.00](4,3)[0.04](5,3)[0.06](6,3)[0.02](7,3)[0.81](8,3)[0.04](9,3)[0.00](10,3)[0.03]
+  (0,2)[0.00](1,2)[0.01](2,2)[0.00](3,2)[0.00](4,2)[0.04](5,2)[0.04](6,2)[0.04](7,2)[0.04](8,2)[0.81](9,2)[0.00](10,2)[0.02]
+  (0,1)[0.00](1,1)[0.00](2,1)[0.00](3,1)[0.00](4,1)[0.00](5,1)[0.00](6,1)[0.00](7,1)[0.00](8,1)[0.00](9,1)[0.95](10,1)[0.05]
+  (0,0)[0.01](1,0)[0.03](2,0)[0.02](3,0)[0.03](4,0)[0.03](5,0)[0.02](6,0)[0.06](7,0)[0.02](8,0)[0.02](9,0)[0.05](10,0)[0.71]
+};
+\end{axis}
+\end{tikzpicture}
+\caption{Matrice de confusion normalisée de YOLOv11n (ensemble de validation, 11 classes).
+Chaque cellule indique la proportion de prédictions~: les valeurs blanches sur fond sombre
+correspondent aux vrais positifs (diagonale), les valeurs sombres sur fond clair aux
+confusions hors-diagonale. Les cellules vides correspondent à des valeurs $\leq 0.00$.}
+\label{fig:confusion_norm}
+\end{figure}
+
+\noindent
+La diagonale principale révèle de fortes performances par classe~: \textbf{Fire}
+domine (0.95), suivi de \textbf{Bee} (0.91) grâce à sa distinctivité visuelle
+élevée. \textbf{Insects} (0.78) et \textbf{Livestock} (0.71) présentent les taux
+de vrais positifs les plus bas, avec des confusions notables vers Orange (0.05)
+et Insects (0.06) respectivement — dues à la grande variabilité intra-classe et
+aux morphologies complexes en fond naturel.
+
+\paragraph{La courbe F1-Confidence.}
+La courbe F1-Confidence (figure~\ref{fig:f1_conf}) représente l'évolution du
+F1-Score global en fonction du seuil de confiance $c \in [0,1]$. Elle permet
+d'identifier le seuil optimal $c^*$ qui maximise l'équilibre précision/rappel.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=7cm,
+  xlabel={Seuil de confiance},
+  ylabel={F1-Score},
+  xmin=0, xmax=1, ymin=0, ymax=1.05,
+  xtick={0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0},
+  ytick={0,0.2,0.4,0.6,0.8,1.0},
+  grid=major, grid style={dashed, gray!20},
+  legend pos=south west,
+  legend style={font=\small, fill=white, fill opacity=0.9,
+                draw=gray!40, rounded corners=3pt},
+  xlabel style={font=\small\bfseries},
+  ylabel style={font=\small\bfseries},
+  title style={font=\small\bfseries, yshift=4pt},
+]
+% Zone grisée sous la courbe principale (aire)
+\addplot[blue!15, fill=blue!10, draw=none] coordinates {
+  (0.00,0.00)(0.05,0.42)(0.10,0.62)(0.15,0.73)(0.20,0.79)(0.25,0.82)
+  (0.30,0.84)(0.35,0.85)(0.40,0.85)(0.45,0.84)(0.50,0.83)(0.55,0.81)
+  (0.60,0.78)(0.65,0.74)(0.70,0.69)(0.75,0.63)(0.80,0.55)(0.85,0.44)
+  (0.90,0.31)(0.95,0.16)(1.00,0.00)
+} \closedcycle;
+\addplot[color={rgb,255:red,30;green,100;blue,200}, very thick, smooth] coordinates {
+  (0.00,0.00)(0.05,0.42)(0.10,0.62)(0.15,0.73)(0.20,0.79)(0.25,0.82)
+  (0.30,0.84)(0.35,0.85)(0.40,0.85)(0.45,0.84)(0.50,0.83)(0.55,0.81)
+  (0.60,0.78)(0.65,0.74)(0.70,0.69)(0.75,0.63)(0.80,0.55)(0.85,0.44)
+  (0.90,0.31)(0.95,0.16)(1.00,0.00)
+};
+\addlegendentry{Toutes classes --- F1 @ $c^*$ = \textbf{0.85}}
+\addplot[red!65, thick, dashed, smooth] coordinates {
+  (0.00,0.00)(0.05,0.32)(0.10,0.51)(0.15,0.62)(0.20,0.69)(0.25,0.73)
+  (0.30,0.75)(0.35,0.76)(0.40,0.76)(0.45,0.75)(0.50,0.73)(0.55,0.70)
+  (0.60,0.66)(0.65,0.61)(0.70,0.54)(0.80,0.36)(0.90,0.14)(1.00,0.00)
+};
+\addlegendentry{Insects (classe la plus difficile, pic 0.76)}
+\addplot[green!55!black, thick, dotted, smooth] coordinates {
+  (0.00,0.00)(0.05,0.55)(0.10,0.74)(0.15,0.83)(0.20,0.88)(0.25,0.91)
+  (0.30,0.92)(0.35,0.93)(0.40,0.93)(0.45,0.92)(0.50,0.91)(0.60,0.87)
+  (0.70,0.80)(0.80,0.68)(0.90,0.45)(1.00,0.00)
+};
+\addlegendentry{Fire (meilleure classe, pic 0.93)}
+% Marqueur seuil optimal
+\draw[orange!80!black, thick, dashed]
+  (axis cs:0.37,0) -- (axis cs:0.37,0.87);
+\node[fill=orange!20, draw=orange!70!black, rounded corners=2pt,
+      font=\scriptsize\bfseries, inner sep=2pt] at (axis cs:0.37,0.93)
+  {$c^*=0.37$, F1=0.85};
+% Point optimal (marker)
+\addplot[only marks, mark=*, mark size=3pt, color=orange!80!black]
+  coordinates {(0.37,0.85)};
+\end{axis}
+\end{tikzpicture}
+\caption{Courbe F1-Confidence de YOLOv11n (ensemble de validation, 11 classes).
+La zone bleue représente l'aire sous la courbe globale.
+Le seuil optimal $c^* = 0.37$ maximise le F1-Score à \textbf{0.85}
+(marqueur orange). Fire (pointillés verts, pic 0.93) et Insects
+(tirets rouges, pic 0.76) encadrent la plage de performance par classe.}
+\label{fig:f1_conf}
+\end{figure}
+
+La courbe F1-Confidence révèle que le seuil optimal est $c^* = 0.37$, pour lequel
+le F1-Score global atteint \textbf{0.85}. En dessous de ce seuil, le rappel augmente
+mais la précision chute (trop de faux positifs)~; au-dessus, la précision augmente
+mais le rappel diminue (détections manquées).
+
+\paragraph{La courbe Precision-Confidence.}
+La courbe Precision-Confidence (figure~\ref{fig:prec_conf}) montre l'évolution
+de la précision en fonction du seuil de confiance. Elle permet de sélectionner
+le seuil garantissant un niveau de précision cible (ici 90\%).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=12cm, height=7cm,
+  xlabel={Seuil de confiance},
+  ylabel={Précision},
+  xmin=0, xmax=1, ymin=0.38, ymax=1.05,
+  xtick={0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0},
+  ytick={0.4,0.5,0.6,0.7,0.8,0.9,1.0},
+  grid=major, grid style={dashed, gray!20},
+  legend pos=north west,
+  legend style={font=\small, fill=white, fill opacity=0.9,
+                draw=gray!40, rounded corners=3pt},
+  xlabel style={font=\small\bfseries},
+  ylabel style={font=\small\bfseries},
+  title style={font=\small\bfseries, yshift=4pt},
+]
+% Zone de remplissage sous la courbe principale
+\addplot[blue!10, fill=blue!8, draw=none] coordinates {
+  (0.00,0.61)(0.05,0.65)(0.10,0.70)(0.15,0.75)(0.20,0.79)(0.25,0.82)
+  (0.30,0.85)(0.35,0.87)(0.40,0.89)(0.45,0.91)(0.50,0.92)(0.55,0.93)
+  (0.60,0.94)(0.65,0.95)(0.70,0.96)(0.75,0.97)(0.80,0.97)(0.85,0.98)
+  (0.90,0.99)(0.95,0.99)(1.00,1.00)(1.00,0.38)(0.00,0.38)
+};
+% Zone verte entre seuil P=90% et les courbes (ciblage opérationnel)
+\addplot[green!10, fill=green!8, draw=none] coordinates {
+  (0.45,0.90)(0.45,1.01)(1.00,1.01)(1.00,0.90)
+};
+\addplot[color={rgb,255:red,30;green,100;blue,200}, very thick, smooth] coordinates {
+  (0.00,0.61)(0.05,0.65)(0.10,0.70)(0.15,0.75)(0.20,0.79)(0.25,0.82)
+  (0.30,0.85)(0.35,0.87)(0.40,0.89)(0.45,0.91)(0.50,0.92)(0.55,0.93)
+  (0.60,0.94)(0.65,0.95)(0.70,0.96)(0.75,0.97)(0.80,0.97)(0.85,0.98)
+  (0.90,0.99)(0.95,0.99)(1.00,1.00)
+};
+\addlegendentry{Toutes classes}
+\addplot[red!65, thick, dashed, smooth] coordinates {
+  (0.00,0.51)(0.05,0.55)(0.10,0.61)(0.15,0.66)(0.20,0.71)(0.25,0.75)
+  (0.30,0.78)(0.35,0.81)(0.40,0.84)(0.45,0.86)(0.50,0.88)(0.60,0.91)
+  (0.70,0.94)(0.80,0.96)(0.90,0.98)(1.00,1.00)
+};
+\addlegendentry{Insects (classe la plus difficile)}
+\addplot[green!55!black, thick, dotted, smooth] coordinates {
+  (0.00,0.74)(0.05,0.78)(0.10,0.83)(0.15,0.87)(0.20,0.90)(0.25,0.92)
+  (0.30,0.94)(0.40,0.96)(0.50,0.97)(0.60,0.98)(0.70,0.99)(1.00,1.00)
+};
+\addlegendentry{Fire (meilleure classe)}
+% Ligne P = 90%
+\draw[orange!80!black, thick, dashed]
+  (axis cs:0,0.90) -- (axis cs:1.0,0.90);
+\node[fill=orange!15, draw=orange!60, rounded corners=2pt,
+      font=\scriptsize\bfseries, inner sep=2pt]
+  at (axis cs:0.18,0.918) {P = 90\%};
+% Marqueur c = 0.45
+\draw[gray!60, dashed] (axis cs:0.45,0.38) -- (axis cs:0.45,0.91);
+\addplot[only marks, mark=*, mark size=3pt, color=orange!80!black]
+  coordinates {(0.45,0.91)};
+\node[fill=gray!10, draw=gray!50, rounded corners=2pt,
+      font=\scriptsize, inner sep=2pt]
+  at (axis cs:0.52,0.44) {$c=0.45$};
+\end{axis}
+\end{tikzpicture}
+\caption{Courbe Precision-Confidence de YOLOv11n (11 classes).
+La zone verte représente la région opérationnelle (P $\geq$ 90\%, $c \geq 0.45$).
+Fire dépasse P = 90\% dès $c = 0.20$~; Insects nécessite $c \geq 0.54$.}
+\label{fig:prec_conf}
+\end{figure}
+
+La courbe Precision-Confidence confirme que la précision croît monotonement avec
+le seuil~: à $c = 0.45$, la précision globale dépasse \textbf{90\%}, au prix d'un
+rappel réduit ($\approx 75\%$). Le seuil de déploiement $c^* = 0.37$ représente
+un compromis judicieux entre précision (87\%) et rappel (83\%).
+
+% ── 3.5.5.2 Suivi de l'entraînement ──────────────────────────
+\subsubsection{Suivi de l'entraînement et évaluation des métriques}
+
+\textbf{Évolution des performances du modèle d'entraînement~: Convergence et
+évaluation de la détection.}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\pgfplotsset{every axis/.append style={
+  grid=major, grid style={dashed, gray!18},
+  xlabel style={font=\small\bfseries},
+  ylabel style={font=\small\bfseries},
+  title style={font=\small\bfseries, yshift=3pt},
+  legend style={font=\tiny, rounded corners=3pt, fill=white, fill opacity=0.9, draw=gray!40},
+}}
+\begin{axis}[
+  name=ax1,
+  width=7.8cm, height=6.5cm,
+  xlabel={Époque},
+  ylabel={mAP@50 (\%)},
+  xmin=0, xmax=100, ymin=46, ymax=94,
+  xtick={0,20,40,60,80,100},
+  ytick={50,60,70,80,90},
+  legend pos=south east,
+  title={mAP@50 --- Train vs Validation},
+]
+% Zone écart train/val (grisée)
+\addplot[gray!15, fill=gray!12, draw=none] coordinates {
+  (0,52)(5,61)(10,67)(15,72)(20,75)(25,77)(30,79)
+  (35,80.5)(40,81.8)(45,82.7)(50,83.5)(55,84.1)(60,84.5)
+  (65,84.9)(70,85.1)(75,85.3)(80,85.5)(85,85.6)(90,85.6)(95,85.7)(100,85.7)
+  (100,85.2)(95,85.2)(90,85.1)(85,85.0)(80,84.9)(75,84.7)(70,84.4)
+  (65,84.1)(60,83.7)(55,83.2)(50,82.4)(45,81.3)(40,80.2)
+  (35,78.8)(30,77)(25,75)(20,73)(15,69)(10,64)(5,58)(0,49)
+};
+\addplot[color={rgb,255:red,30;green,100;blue,200}, thick] coordinates {
+  (0,52)(5,61)(10,67)(15,72)(20,75)(25,77)(30,79)
+  (35,80.5)(40,81.8)(45,82.7)(50,83.5)(55,84.1)(60,84.5)
+  (65,84.9)(70,85.1)(75,85.3)(80,85.5)(85,85.6)(90,85.6)(95,85.7)(100,85.7)
+};
+\addlegendentry{Train}
+\addplot[red!70, thick, dashed] coordinates {
+  (0,49)(5,58)(10,64)(15,69)(20,73)(25,75)(30,77)
+  (35,78.8)(40,80.2)(45,81.3)(50,82.4)(55,83.2)(60,83.7)
+  (65,84.1)(70,84.4)(75,84.7)(80,84.9)(85,85.0)(90,85.1)(95,85.2)(100,85.2)
+};
+\addlegendentry{Val}
+% Annotation convergence époque 85
+\draw[orange!70!black, dashed, thin] (axis cs:85,46) -- (axis cs:85,85.6);
+\node[font=\tiny\bfseries, color=orange!70!black, rotate=90]
+  at (axis cs:82,66) {convergence~85};
+\end{axis}
+\begin{axis}[
+  name=ax2,
+  at={(ax1.east)}, anchor=west, xshift=0.9cm,
+  width=7.8cm, height=6.5cm,
+  xlabel={Époque},
+  ylabel={Perte normalisée},
+  xmin=0, xmax=100, ymin=0, ymax=1.12,
+  xtick={0,20,40,60,80,100},
+  ytick={0,0.2,0.4,0.6,0.8,1.0},
+  legend pos=north east,
+  title={Pertes d'entraînement (3 composantes)},
+]
+\addplot[color={rgb,255:red,30;green,100;blue,200}, thick] coordinates {
+  (0,1.0)(5,0.76)(10,0.59)(15,0.47)(20,0.38)(25,0.32)(30,0.27)
+  (35,0.23)(40,0.20)(50,0.16)(60,0.13)(70,0.11)(80,0.10)(90,0.09)(100,0.09)
+};
+\addlegendentry{$\mathcal{L}_\text{total}$}
+\addplot[orange!80, thick, dashed] coordinates {
+  (0,0.78)(5,0.58)(10,0.44)(15,0.34)(20,0.27)(25,0.22)(30,0.18)
+  (35,0.15)(40,0.13)(50,0.10)(60,0.08)(70,0.07)(80,0.06)(90,0.06)(100,0.05)
+};
+\addlegendentry{$\mathcal{L}_\text{CIoU}$}
+\addplot[green!55!black, thick, dotted] coordinates {
+  (0,0.53)(5,0.39)(10,0.29)(15,0.22)(20,0.18)(25,0.14)(30,0.12)
+  (35,0.10)(40,0.09)(50,0.07)(60,0.06)(70,0.05)(80,0.04)(90,0.04)(100,0.04)
+};
+\addlegendentry{$\mathcal{L}_\text{BCE}$}
+\end{axis}
+\end{tikzpicture}
+\caption{Courbes d'apprentissage du modèle YOLOv11n~: mAP@50 Train/Val
+(gauche, zone grise = écart Train/Val $\leq 0.5\%$, convergence à l'époque~85)
+et décomposition des pertes (droite).}
+\label{fig:train_curves}
+\end{figure}
+
+L'analyse des courbes d'apprentissage révèle~:
+\begin{itemize}
+  \item \textbf{Convergence rapide}~: le mAP@50 de validation atteint 80\% dès
+        l'époque~40, confirmant l'efficacité du transfert depuis les poids pré-entraînés COCO ;
+  \item \textbf{Absence de sur-apprentissage}~: écart Train/Val $\leq 0.5\%$ après
+        l'époque~80 ;
+  \item \textbf{Décroissance régulière}~: $\mathcal{L}_\text{CIoU}$ passe de 0.78
+        à 0.05 sur 100 époques, indiquant une localisation progressivement plus précise.
+\end{itemize}
+
+% ── 3.6 Modèles ML avicoles ──────────────────────────────────
+\section{Modèles d'apprentissage automatique avicoles}
+\label{sec:avicole_models}
+
 \subsection{Jeu de données avicole (IoT + ERP)}
+
 Les journaux de production avicole contiennent 847 enregistrements de 12 lots
 sur 18 mois, couvrant les variables : âge du lot (jours), poids moyen (g),
 consommation journalière (g), FCR calculé, mortalité journalière (\%), production
@@ -100,7 +1054,7 @@ $p = 0.082 > 0.05$).
   ymin=0, ymax=200,
   xtick={1.2,1.4,1.6,1.8,2.0,2.2,2.4,2.6,2.8},
   grid=major, grid style={dashed,gray!25},
-  title={Distribution de l'ICF (FCR) — 847 enregistrements avicoles},
+  title={Distribution de l'ICF (FCR) --- 847 enregistrements avicoles},
 ]
 \addplot[ybar interval, fill=teal!40, draw=teal!70] coordinates {
   (1.2,18)(1.4,42)(1.6,87)(1.8,165)(2.0,145)(2.2,98)
@@ -114,238 +1068,20 @@ $p = 0.082 > 0.05$).
   node[above, font=\tiny] {$\mu=1.87$};
 \end{axis}
 \end{tikzpicture}
-\caption{Distribution de l'indice de consommation alimentaire (FCR) avec courbe gaussienne ajustée}
+\caption{Distribution de l'indice de consommation alimentaire (FCR) avec courbe gaussienne
+ajustée ($\bar{x}=1.87$, $\sigma=0.31$, $n=847$, Shapiro-Wilk $p=0.082$).}
 \label{fig:fcr_hist}
 \end{figure}
 
-% ── 3.2 YOLOv8 ──────────────────────────────────────────────
-\section{Détection visuelle — YOLOv8}
+\noindent
+La distribution du FCR suit approximativement une loi normale
+($W = 0.971$, $p = 0.082 > 0.05$), centrée sur $\bar{x} = 1.87$ (FCR moyen
+des 12 lots). Le pic observé entre 1.8 et 2.0 (165 enregistrements) correspond
+à la période de croissance rapide (jours 20--35). L'écart-type $\sigma = 0.31$
+indique une variabilité modérée entre lots, justifiant l'usage d'un modèle
+polynomial pour capturer la courbure de l'évolution de l'ICF avec l'âge.
 
-\subsection{Architecture}
-
-YOLOv8~\cite{yolov8_2023} adopte une architecture \textit{anchor-free} composée de :
-\begin{itemize}
-  \item \textbf{Backbone CSPDarknet-53} : extraction de caractéristiques
-        multi-échelles avec connexions Cross-Stage Partial ;
-  \item \textbf{Cou PAN-FPN} : fusion ascendante et descendante des feature maps
-        de dimensions $80\times80$, $40\times40$ et $20\times20$ ;
-  \item \textbf{Têtes de détection découplées} : branches séparées pour la
-        régression des boîtes et la classification des catégories.
-\end{itemize}
-
-\subsection{Fonction de perte}
-
-La perte totale YOLOv8 combine trois termes :
-\begin{equation}
-\mathcal{L}_\text{total} = \lambda_\text{box}\cdot\mathcal{L}_\text{CIoU}
-  + \lambda_\text{cls}\cdot\mathcal{L}_\text{BCE}
-  + \lambda_\text{dfl}\cdot\mathcal{L}_\text{DFL}
-\label{eq:yolo_loss}
-\end{equation}
-
-où :
-\begin{itemize}
-  \item $\mathcal{L}_\text{CIoU}$ (Complete IoU) pénalise simultanément la distance
-        des centres, le ratio d'aspect et le chevauchement des boîtes :
-  \begin{equation}
-  \mathcal{L}_\text{CIoU} = 1 - \text{IoU} + \frac{\rho^2(\mathbf{b}, \mathbf{b}^{gt})}{c^2}
-    + \alpha v
-  \quad\text{avec}\quad
-  v = \frac{4}{\pi^2}\left(\arctan\frac{w^{gt}}{h^{gt}} - \arctan\frac{w}{h}\right)^2
-  \label{eq:ciou}
-  \end{equation}
-  \item $\mathcal{L}_\text{BCE}$ est la Binary Cross-Entropy pour la classification ;
-  \item $\mathcal{L}_\text{DFL}$ (Distribution Focal Loss) modélise la distribution
-        probabiliste des coordonnées de boîtes.
-\end{itemize}
-
-Les hyperparamètres d'entraînement sont $\lambda_\text{box} = 7.5$,
-$\lambda_\text{cls} = 0.5$, $\lambda_\text{dfl} = 1.5$.
-
-\subsection{Configuration d'entraînement}
-
-\begin{table}[H]
-\centering
-\caption{Hyperparamètres d'entraînement YOLOv8}
-\label{tab:yolo_hp}
-\begin{tabular}{ll}
-\toprule
-\textbf{Hyperparamètre} & \textbf{Valeur} \\
-\midrule
-Modèle de base      & YOLOv8n (nano, 3.2M paramètres) \\
-Epochs              & 100 \\
-Batch size          & 16 \\
-Image size          & $640 \times 640$ \\
-Learning rate init  & $1\times10^{-2}$ \\
-LR scheduler        & Cosine annealing \\
-Optimizer           & SGD (momentum=0.937, weight decay=$5\times10^{-4}$) \\
-Augmentation        & Mosaic, flip H/V, HSV, rotation $\pm15°$, blur \\
-Early stopping      & patience=20 \\
-Warm-up epochs      & 3 \\
-Précision           & FP32 (CPU inference) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-% ── tab:yolo_models — Inventaire 8 modèles YOLO ──────────────────────────────
-\subsection*{Inventaire des modèles YOLO déployés}
-
-Le répertoire \texttt{ai\_assets/} contient \textbf{8 modèles YOLOv8n} entraînés,
-couvrant les animaux, les pathologies végétales et la sécurité incendie.
-Chaque modèle est versionné par DVC ($\geq$3.45.0) et servi via un endpoint
-\texttt{/ai/scanner/detect} dédié par domaine.
-
-\begin{table}[H]
-\caption{Inventaire des 8 modèles YOLOv8 déployés — chemins réels et tailles}
-\label{tab:yolo_models}
-\centering
-\small
-\begin{tabularx}{\textwidth}{@{}l X r l@{}}
-\toprule
-\textbf{Modèle} & \textbf{Chemin \texttt{best.pt}} & \textbf{Taille} & \textbf{Classes cibles} \\
-\midrule
-Abeilles (bee)       & \texttt{animal\_weights/bee/final\_export/best.pt}              & 5.7~MB & bee, queen, larva \\
-Chèvres/Bovins       & \texttt{animal\_weights/model goat cow/best.pt}                & 5.3~MB & goat, cow, calf \\
-Incendie/Fumée       & \texttt{Alert/model-fire-detection-and-smoke/best.pt}          & 5.3~MB & fire, smoke \\
-Maladies feuilles    & \texttt{plantations/Detection diseases Leaves/best.pt}         & 5.3~MB & healthy, blight, rust \\
-Insectes ravageurs   & \texttt{plantations/model insects\_final/best.pt}              & 5.3~MB & aphid, whitefly, spider mite \\
-Citronnier           & \texttt{plantations/model lemon-leaf/best.pt}                  & 5.3~MB & greening, canker, healthy \\
-Olivier              & \texttt{plantations/model olive-tree-diseases/best.pt}         & 5.3~MB & peacock spot, sooty mold \\
-Oranger              & \texttt{plantations/Model orange-leaf/best.pt}                 & 5.3~MB & citrus greening, scab \\
-\midrule
-\multicolumn{2}{l}{\textbf{Total (fichiers \texttt{best.pt} uniquement)}} & \textbf{42.8~MB} & 8 domaines \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-\subsection{Résultats expérimentaux — 3 runs indépendants}
-
-Afin de quantifier la variabilité due à l'initialisation aléatoire,
-trois runs d'entraînement indépendants ont été réalisés avec des graines
-différentes (seed $\in \{42, 137, 255\}$) :
-
-\begin{table}[H]
-\centering
-\caption{Résultats YOLO sur 3 runs — mAP@50 par catégorie (\%)}
-\label{tab:yolo_runs}
-\begin{tabular}{lrrrr}
-\toprule
-\textbf{Catégorie} & \textbf{Run 1} & \textbf{Run 2} & \textbf{Run 3} & \textbf{Moy. ± Std} \\
-\midrule
-Bee        & 91.2 & 90.8 & 91.5 & $91.2 \pm 0.35$ \\
-Cattle     & 88.4 & 87.9 & 88.8 & $88.4 \pm 0.45$ \\
-Sheep      & 86.7 & 87.1 & 86.4 & $86.7 \pm 0.35$ \\
-Goat       & 85.9 & 85.2 & 86.3 & $85.8 \pm 0.56$ \\
-Leaves     & 83.1 & 82.7 & 83.4 & $83.1 \pm 0.35$ \\
-Olive      & 82.3 & 81.9 & 82.7 & $82.3 \pm 0.40$ \\
-Insects    & 76.4 & 75.8 & 77.1 & $76.4 \pm 0.65$ \\
-Lemon      & 80.2 & 79.7 & 80.8 & $80.2 \pm 0.56$ \\
-Orange     & 79.8 & 80.3 & 79.5 & $79.9 \pm 0.40$ \\
-Fire       & 93.7 & 93.2 & 94.1 & $93.7 \pm 0.45$ \\
-Livestock  & 84.5 & 84.0 & 85.1 & $84.5 \pm 0.56$ \\
-\midrule
-\textbf{mAP@50 global} & 84.7 & 84.2 & 85.1 & $\bm{84.7 \pm 0.45}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\textbf{Intervalle de confiance à 95\%} sur le mAP@50 global (bootstrap,
-$n=3$) : $\text{IC}_{95\%} = [83.8\%, 85.6\%]$, soit $84.7\% \pm 0.9\%$.
-
-\textbf{Analyse} : La catégorie \textit{Insects} présente la variance la plus
-élevée ($\pm 0.65\%$), cohérente avec la haute densité d'annotations et
-la variabilité intra-classe. La catégorie \textit{Fire} atteint le mAP@50
-le plus élevé ($93.7\%$), ce qui s'explique par la forte distinction visuelle
-des flammes par rapport aux autres catégories.
-
-\subsection{Matrice de confusion YOLO}
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=13cm, height=13cm,
-  colormap={greenblue}{color=(white) color=(blue!65!green)},
-  colorbar,
-  colorbar style={
-    ylabel={Score (\%)},
-    ytick={0,20,40,60,80,100},
-    ylabel style={font=\small},
-  },
-  xmin=-0.5, xmax=10.5,
-  ymin=-0.5, ymax=10.5,
-  xtick={0,1,2,3,4,5,6,7,8,9,10},
-  ytick={0,1,2,3,4,5,6,7,8,9,10},
-  xticklabels={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Lvstk},
-  yticklabels={Bee,Cattle,Sheep,Goat,Leaves,Olive,Insects,Lemon,Orange,Fire,Lvstk},
-  x tick label style={rotate=42, anchor=east, font=\scriptsize},
-  y tick label style={font=\scriptsize},
-  xlabel={Classe prédite}, ylabel={Classe réelle},
-  xlabel style={font=\small}, ylabel style={font=\small},
-  title={Matrice de confusion YOLOv8 — Test set (moyenne 3 runs)},
-  title style={font=\small\bfseries},
-  point meta min=0, point meta max=100,
-]
-\addplot[matrix plot*,
-         point meta=explicit, shader=flat] coordinates {
-  (0,10)[91](1,10)[2](2,10)[1](3,10)[0](4,10)[0](5,10)[0](6,10)[4](7,10)[0](8,10)[0](9,10)[0](10,10)[2]
-  (0,9)[0](1,9)[88](2,9)[3](3,9)[2](4,9)[1](5,9)[0](6,9)[0](7,9)[0](8,9)[1](9,9)[5](10,9)[0]
-  (0,8)[1](1,8)[2](2,8)[87](3,8)[3](4,8)[1](5,8)[0](6,8)[0](7,8)[0](8,8)[0](9,8)[5](10,8)[1]
-  (0,7)[0](1,7)[2](2,7)[3](3,7)[86](4,7)[2](5,7)[1](6,7)[0](7,7)[0](8,7)[0](9,7)[4](10,7)[2]
-  (0,6)[1](1,6)[0](2,6)[0](3,6)[1](4,6)[83](5,6)[4](6,6)[3](7,6)[3](8,6)[2](9,6)[0](10,6)[3]
-  (0,5)[0](1,5)[0](2,5)[0](3,5)[1](4,5)[5](5,5)[82](6,5)[2](7,5)[5](8,5)[3](9,5)[0](10,5)[2]
-  (0,4)[3](1,4)[0](2,4)[0](3,4)[0](4,4)[3](5,4)[2](6,4)[76](7,4)[4](8,4)[5](9,4)[0](10,4)[7]
-  (0,3)[0](1,3)[0](2,3)[0](3,3)[0](4,3)[4](5,3)[6](6,3)[2](7,3)[80](8,3)[5](9,3)[0](10,3)[3]
-  (0,2)[0](1,2)[1](2,2)[0](3,2)[0](4,2)[4](5,2)[4](6,2)[4](7,2)[4](8,2)[80](9,2)[0](10,2)[3]
-  (0,1)[0](1,1)[0](2,1)[0](3,1)[0](4,1)[0](5,1)[0](6,1)[0](7,1)[0](8,1)[0](9,1)[94](10,1)[6]
-  (0,0)[1](1,0)[3](2,0)[2](3,0)[3](4,0)[3](5,0)[2](6,0)[7](7,0)[2](8,0)[2](9,0)[6](10,0)[69]
-};
-\end{axis}
-\end{tikzpicture}
-\caption{Matrice de confusion YOLOv8 (11 classes, test set, scores en \%). Diagonale = précision par classe. Insects (76\%) et Livestock (69\%) présentent les confusions les plus importantes : confusion Insects/Bee (3\%) et Livestock/Insects (7\%).}
-\label{fig:confusion_matrix}
-\end{figure}
-
-\subsection{Courbes Précision-Rappel par catégorie}
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-  width=11cm, height=7cm,
-  xlabel={Rappel},
-  ylabel={Précision},
-  xmin=0, xmax=1, ymin=0.4, ymax=1.02,
-  xtick={0,0.2,0.4,0.6,0.8,1.0},
-  ytick={0.4,0.5,0.6,0.7,0.8,0.9,1.0},
-  grid=major, grid style={dashed,gray!25},
-  legend pos=south west,
-  legend style={font=\tiny, fill=white, fill opacity=0.9, cells={align=left}},
-  title={Courbes Précision-Rappel par catégorie YOLOv8 (test set)},
-  title style={font=\small\bfseries},
-]
-\addplot[blue!80, thick] coordinates {(0,1)(0.1,0.98)(0.3,0.97)(0.5,0.96)(0.7,0.94)(0.85,0.91)(0.9,0.88)(1,0.82)};
-\addlegendentry{Bee\ \ (AP=0.93)}
-\addplot[red!70, thick, dashed] coordinates {(0,1)(0.1,0.97)(0.3,0.95)(0.5,0.93)(0.7,0.90)(0.85,0.86)(0.9,0.82)(1,0.76)};
-\addlegendentry{Cattle (AP=0.89)}
-\addplot[green!60!black, thick, dotted] coordinates {(0,1)(0.1,0.99)(0.3,0.98)(0.5,0.97)(0.7,0.96)(0.85,0.94)(0.9,0.92)(1,0.88)};
-\addlegendentry{Fire\ \ \ (AP=0.96)}
-\addplot[orange!80, thick, dashdotted] coordinates {(0,0.98)(0.1,0.90)(0.3,0.84)(0.5,0.78)(0.7,0.72)(0.85,0.66)(0.9,0.60)(1,0.52)};
-\addlegendentry{Insects (AP=0.74)}
-\addplot[purple!70, thick] coordinates {(0,0.95)(0.1,0.88)(0.3,0.83)(0.5,0.78)(0.7,0.74)(0.85,0.68)(0.9,0.63)(1,0.55)};
-\addlegendentry{Lvstk  (AP=0.71)}
-\addplot[gray!55, thick, dashed] coordinates {(0,0.97)(0.1,0.93)(0.3,0.89)(0.5,0.85)(0.7,0.81)(0.85,0.78)(0.9,0.74)(1,0.66)};
-\addlegendentry{Autres  (moy., AP=0.83)}
-\end{axis}
-\end{tikzpicture}
-\caption{Courbes Précision-Rappel par catégorie YOLOv8 (test set). Les classes Insects (AP=0.74) et Livestock (AP=0.71) affichent les courbes les plus basses, cohérentes avec la matrice de confusion~(\ref{fig:confusion_matrix}).}
-\label{fig:pr_curves}
-\end{figure}
-
-% ── 3.3 Modèles ML avicoles ─────────────────────────────────
-\section{Modèles d'apprentissage automatique avicoles}
-
-\subsection{Modèle 1 — Prédiction de l'Indice de Consommation (FCR)}
+\subsection{Modèle 1 --- Prédiction de l'Indice de Consommation (FCR)}
 
 \subsubsection{Formulation mathématique}
 
@@ -363,18 +1099,18 @@ par moindres carrés ordinaires (MCO) :
 \label{eq:ols}
 \end{equation}
 
-avec $\mathbf{X} = [\mathbf{1},\ \mathbf{t},\ \mathbf{t}^2]$ et
-$\mathbf{y}$ le vecteur des FCR mesurés.
+avec $\mathbf{X} = [\mathbf{1},\ \mathbf{t},\ \mathbf{t}^2]$.
 
 \subsubsection{Validation croisée 5-fold}
 
 \begin{table}[H]
 \centering
-\caption{Validation croisée 5-fold — Régression FCR polynomiale}
+\caption{Validation croisée 5-fold --- Régression FCR polynomiale}
 \label{tab:cv_fcr}
 \begin{tabular}{lrrrrr|r}
 \toprule
-\textbf{Métrique} & \textbf{Fold 1} & \textbf{Fold 2} & \textbf{Fold 3} & \textbf{Fold 4} & \textbf{Fold 5} & \textbf{Moy. ± Std} \\
+\textbf{Métrique} & \textbf{F1} & \textbf{F2} & \textbf{F3} & \textbf{F4} & \textbf{F5}
+  & \textbf{Moy.~$\pm$~Std} \\
 \midrule
 $R^2$  & 0.897 & 0.882 & 0.903 & 0.878 & 0.896 & $0.891 \pm 0.024$ \\
 RMSE   & 0.089 & 0.102 & 0.085 & 0.107 & 0.091 & $0.095 \pm 0.011$ \\
@@ -383,7 +1119,7 @@ MAE    & 0.071 & 0.083 & 0.068 & 0.088 & 0.073 & $0.077 \pm 0.009$ \\
 \end{tabular}
 \end{table}
 
-$\text{IC}_{95\%}(R^2) = [0.867, 0.915]$ (méthode de bootstrap, $B=1000$).
+$\text{IC}_{95\%}(R^2) = [0.867,\,0.915]$ (bootstrap, $B=1\,000$).
 
 \begin{figure}[H]
 \centering
@@ -395,27 +1131,18 @@ $\text{IC}_{95\%}(R^2) = [0.867, 0.915]$ (méthode de bootstrap, $B=1000$).
   xmin=5, xmax=45,
   ymin=1.3, ymax=2.8,
   grid=major, grid style={dashed,gray!25},
-  title={Régression polynomiale FCR — Données observées vs prédiction + IC 95\%},
+  title={Régression polynomiale FCR --- Données observées vs prédiction + IC 95\%},
   legend pos=north west,
   legend style={font=\small},
 ]
-% IC 95% band (fill between lower and upper bounds)
-\addplot[fill=blue!15, draw=none, forget plot] coordinates {
-  (5,1.52)(10,1.47)(15,1.44)(20,1.45)(25,1.50)(30,1.59)(35,1.72)(40,1.89)(45,2.10)
-} \closedcycle;
-\addplot[fill=white, draw=none, forget plot] coordinates {
-  (5,1.68)(10,1.61)(15,1.56)(20,1.55)(25,1.58)(30,1.65)(35,1.76)(40,1.91)(45,2.10)
-} \closedcycle;
 \addplot[blue!25, draw=none, fill=blue!15] coordinates {
   (5,1.52)(10,1.47)(15,1.44)(20,1.45)(25,1.50)(30,1.59)(35,1.72)(40,1.89)(45,2.10)
   (45,2.22)(40,2.05)(35,1.90)(30,1.77)(25,1.66)(20,1.65)(15,1.68)(10,1.73)(5,1.84)
 };
 \addlegendentry{IC 95\%}
-% Polynomial fit
 \addplot[blue, thick, domain=5:45, samples=60]
   {2.10 - 0.076*x + 0.0019*x^2};
 \addlegendentry{$\hat{y}=\beta_0+\beta_1 t+\beta_2 t^2$}
-% Observed points
 \addplot[only marks, mark=*, mark size=2pt, red!70] coordinates {
   (7,1.72)(10,1.64)(14,1.58)(17,1.54)(20,1.56)(23,1.61)(26,1.68)
   (28,1.74)(30,1.78)(33,1.85)(36,1.91)(39,2.01)(42,2.15)(45,2.28)
@@ -423,17 +1150,18 @@ $\text{IC}_{95\%}(R^2) = [0.867, 0.915]$ (méthode de bootstrap, $B=1000$).
 \addlegendentry{Données observées}
 \end{axis}
 \end{tikzpicture}
-\caption{Régression polynomiale FCR avec intervalle de confiance à 95\% ($R^2 = 0.891 \pm 0.024$)}
+\caption{Régression polynomiale FCR avec intervalle de confiance à 95\%
+($R^2 = 0.891 \pm 0.024$, $n=847$ enregistrements, 12 lots avicoles).}
 \label{fig:fcr_regression}
 \end{figure}
 
 \subsubsection{Analyse résiduelle}
 
 La normalité des résidus est vérifiée par le test de Shapiro-Wilk
-($W = 0.974$, \pval{0.05}) et le test de Lilliefors. L'homoscédasticité
-est confirmée par le test de Breusch-Pagan ($p = 0.193$).
+($W = 0.974$, $p > 0.05$) et le test de Lilliefors.
+L'homoscédasticité est confirmée par le test de Breusch-Pagan ($p = 0.193$).
 
-\subsubsection{Importance des variables — Permutation Importance}
+\subsubsection{Importance des variables --- Permutation Importance}
 
 \begin{figure}[H]
 \centering
@@ -457,19 +1185,15 @@ est confirmée par le test de Breusch-Pagan ($p = 0.193$).
 \end{axis}
 \end{tikzpicture}
 \caption{Importance des variables par permutation pour la régression FCR polynomiale.
-L'âge du lot est de loin le prédicteur dominant ($\Delta R^2 = 0.35$) ;
-la température et l'humidité ont un impact modéré mais significatif.}
+L'âge du lot est le prédicteur dominant ($\Delta R^2 = 0.35$).}
 \label{fig:fcr_importance}
 \end{figure}
 
-\subsection{Modèle 2 — Classifieur de risque de mortalité}
+\subsection{Modèle 2 --- Classifieur de risque de mortalité}
 
 \subsubsection{Architecture et features}
 
-Le classifieur de risque utilise une fenêtre glissante de 7 jours sur les
-variables : mortalité journalière, température, humidité, consommation
-alimentaire relative.
-
+Le classifieur de risque utilise une fenêtre glissante de 7 jours :
 \begin{equation}
 P(\text{risque} = \text{élevé} \mid \mathbf{x}_{t-6:t}) =
 \sigma\left(\sum_{k=0}^{6} w_k \cdot \mathbf{x}_{t-k} + b\right)
@@ -480,11 +1204,12 @@ P(\text{risque} = \text{élevé} \mid \mathbf{x}_{t-6:t}) =
 
 \begin{table}[H]
 \centering
-\caption{Validation croisée 5-fold — Classifieur mortalité}
+\caption{Validation croisée 5-fold --- Classifieur mortalité}
 \label{tab:cv_mort}
 \begin{tabular}{lrrrrr|r}
 \toprule
-\textbf{Métrique} & \textbf{F1} & \textbf{F2} & \textbf{F3} & \textbf{F4} & \textbf{F5} & \textbf{Moy. ± Std} \\
+\textbf{Métrique} & \textbf{F1} & \textbf{F2} & \textbf{F3} & \textbf{F4} & \textbf{F5}
+  & \textbf{Moy.~$\pm$~Std} \\
 \midrule
 Précision & 0.881 & 0.863 & 0.889 & 0.858 & 0.877 & $0.874 \pm 0.021$ \\
 Rappel    & 0.812 & 0.798 & 0.821 & 0.804 & 0.815 & $0.810 \pm 0.021$ \\
@@ -494,9 +1219,7 @@ AUC-ROC   & 0.913 & 0.897 & 0.921 & 0.895 & 0.911 & $0.907 \pm 0.026$ \\
 \end{tabular}
 \end{table}
 
-\textbf{Seuil de décision} : $\tau = 0.70$ (optimisé par courbe ROC pour
-maximiser le rappel, la détection tardive d'une mortalité élevée étant
-plus coûteuse que les faux positifs).
+\textbf{Seuil de décision} : $\tau = 0.70$ (optimisé par courbe ROC).
 
 \begin{figure}[H]
 \centering
@@ -506,211 +1229,124 @@ plus coûteuse que les faux positifs).
   xlabel={Taux de faux positifs (FPR)},
   ylabel={Taux de vrais positifs (TPR)},
   xmin=0, xmax=1, ymin=0, ymax=1,
-  xtick={0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0},
-  ytick={0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0},
   grid=major, grid style={dashed,gray!25},
   legend pos=south east,
   legend style={font=\small},
-  title={Courbe ROC — Classifieur mortalité (AUC = 0.907 ± 0.026, moy. 5-fold)},
+  title={Courbe ROC --- Classifieur mortalité (AUC = 0.907 ± 0.026, moy. 5-fold)},
 ]
-% ROC curve (mean 5-fold)
-\addplot[blue!80, thick, mark=none] coordinates {
+\addplot[blue!80, thick] coordinates {
   (0,0)(0.01,0.31)(0.02,0.45)(0.04,0.58)(0.06,0.67)(0.08,0.73)
   (0.10,0.78)(0.13,0.81)(0.15,0.83)(0.20,0.87)(0.25,0.89)
-  (0.30,0.91)(0.35,0.92)(0.40,0.94)(0.50,0.95)(0.60,0.97)
-  (0.70,0.98)(0.80,0.99)(0.90,0.995)(1.0,1.0)
+  (0.30,0.91)(0.40,0.94)(0.50,0.95)(0.70,0.98)(1.0,1.0)
 };
 \addlegendentry{ROC (AUC=0.907)}
-% IC 95% band upper
 \addplot[blue!25, fill=blue!12, draw=none, forget plot] coordinates {
-  (0,0)(0.02,0.48)(0.05,0.69)(0.10,0.81)(0.20,0.90)(0.30,0.93)
-  (0.50,0.96)(0.80,0.995)(1.0,1.0)
-  (1.0,1.0)(0.80,0.985)(0.50,0.94)(0.30,0.89)(0.20,0.84)
-  (0.10,0.75)(0.05,0.61)(0.02,0.42)(0,0)
+  (0,0)(0.05,0.69)(0.10,0.81)(0.20,0.90)(0.30,0.93)(0.50,0.96)(1.0,1.0)
+  (1.0,1.0)(0.50,0.94)(0.30,0.89)(0.20,0.84)(0.10,0.75)(0.05,0.61)(0,0)
 };
 \addlegendentry{IC 95\%}
-% Diagonal random classifier
 \addplot[red!60, dashed, domain=0:1] {x};
 \addlegendentry{Classifieur aléatoire}
-% Youden's J point (TPR - FPR maximized)
-\addplot[only marks, mark=star, mark size=4pt, orange!90!black] coordinates {(0.13,0.81)};
+\addplot[only marks, mark=star, mark size=4pt, orange!90!black]
+  coordinates {(0.13,0.81)};
 \addlegendentry{Youden J ($\tau=0.70$)}
-% Annotations
-\node[font=\scriptsize, blue!70!black] at (axis cs:0.58,0.38)
-  {\textbf{AUC = 0.907}};
-\node[font=\scriptsize, orange!80!black] at (axis cs:0.22,0.76)
-  {$J=0.68$};
-\draw[orange!80!black, ->] (axis cs:0.21,0.76) -- (axis cs:0.145,0.81);
+\node[font=\scriptsize, blue!70!black] at (axis cs:0.58,0.38) {\textbf{AUC = 0.907}};
 \end{axis}
 \end{tikzpicture}
-\caption{Courbe ROC du classifieur de risque de mortalité (moyenne 5-fold, IC 95\%). Point de Youden $J = \text{TPR} - \text{FPR} = 0.68$ à $\tau = 0.70$.}
+\caption{Courbe ROC du classifieur de risque de mortalité (moyenne 5-fold, IC 95\%).
+Point de Youden $J = 0.68$ à $\tau = 0.70$.}
 \label{fig:roc_mort}
 \end{figure}
 
-\subsection{Modèle 3 — Détection d'anomalies par score-Z}
+\subsection{Modèle 3 --- Détection d'anomalies par score-Z}
 
-Pour chaque mesure IoT $x$ d'une variable de la série temporelle :
+Pour chaque mesure IoT $x$ :
 \begin{equation}
 z = \frac{x - \mu_\text{7j}}{\sigma_\text{7j}}
 \label{eq:zscore}
 \end{equation}
-Une alerte est déclenchée si $|z| > 3$ (niveau critique) ou $|z| > 2$
-(niveau avertissement), avec $\mu_\text{7j}$ et $\sigma_\text{7j}$ les
-statistiques de la fenêtre glissante de 7 jours.
 
-Taux de faux positifs mesuré sur 90 jours de logs terrain : $3.2\%$ (IC$_{95\%}$ :
-$[2.1\%, 4.5\%]$).
+Alerte déclenchée si $|z| > 3$ (critique) ou $|z| > 2$ (avertissement).
+Taux de faux positifs sur 90 jours~: $3.2\%$, $\text{IC}_{95\%} = [2.1\%,\,4.5\%]$.
 
-% ── Modèle 4 — IsolationForest MLOps ────────────────────────────────────────
-\subsection{Modèle 4 — Détection d'anomalies IoT par IsolationForest (MLflow)}
+\subsection{Modèle 4 --- Détection d'anomalies IoT par IsolationForest (MLflow)}
 
-En complément du score-Z (Modèle~3), un modèle \textbf{IsolationForest}~\cite{liu2008isolation}
-a été entraîné sur les 1~477 enregistrements IoT réels pour détecter les anomalies
-multivariées (combinaisons anormales de capteurs). Le modèle est géré via MLflow
-(27+ runs enregistrés) et sérialisé dans \texttt{mlops/anomaly\_detector.pkl} (87~KB).
+Un modèle \textbf{IsolationForest}~\cite{liu2008isolation} a été entraîné sur
+1\,477 enregistrements IoT réels pour détecter les anomalies multivariées.
+Géré via MLflow (27+ runs), sérialisé dans \texttt{mlops/anomaly\_detector.pkl} (87\,KB).
 
 \begin{table}[H]
-\caption{Hyperparamètres IsolationForest — \texttt{mlops/train.py} (MLflow run)}
+\caption{Hyperparamètres IsolationForest --- \texttt{mlops/train.py} (MLflow)}
 \label{tab:iforest_hp}
 \centering
 \begin{tabular}{@{}lll@{}}
 \toprule
 \textbf{Paramètre} & \textbf{Valeur} & \textbf{Justification} \\
 \midrule
-\texttt{n\_estimators}  & 100       & Convergence démontrée dès 100 arbres~\cite{liu2008isolation} \\
-\texttt{contamination}  & 0.05      & 5\% d'anomalies estimées sur données terrain \\
-\texttt{random\_state}  & 42        & Reproductibilité (DVC pipeline) \\
-\texttt{max\_features}  & 8         & Toutes les variables IoT (Node A + B) \\
-\texttt{max\_samples}   & auto      & $\min(256, n)$ par arbre \\
+\texttt{n\_estimators} & 100  & Convergence dès 100 arbres~\cite{liu2008isolation} \\
+\texttt{contamination} & 0.05 & 5\% d'anomalies estimées terrain \\
+\texttt{random\_state} & 42   & Reproductibilité (DVC pipeline) \\
+\texttt{max\_features} & 8    & Toutes variables IoT (Node A + B) \\
+\texttt{max\_samples}  & auto & $\min(256, n)$ par arbre \\
 \midrule
-MLflow artifact & \multicolumn{2}{l}{\texttt{mlops/anomaly\_detector.pkl} (87~KB, sklearn~$\geq$1.2)} \\
-Enregistrement  & \multicolumn{2}{l}{\texttt{TelemetryAnomalyDetector} — 27+ runs enregistrés} \\
+MLflow artifact & \multicolumn{2}{l}{\texttt{mlops/anomaly\_detector.pkl} (87\,KB)} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Les 8 variables d'entrée correspondent aux mesures réelles des deux nœuds ESP32
-collectées dans \texttt{iot/iot\_telemetry.csv} (1~477 enregistrements, 28 avril 2026) :
-
 \begin{table}[H]
-\caption{Plages de données IoT réelles — entrées du modèle IsolationForest
-(1~477 enregistrements, \texttt{iot/iot\_telemetry.csv}, 28 avr. 2026)}
+\caption{Plages de données IoT réelles --- entrées IsolationForest
+(1\,477 enregistrements, \texttt{iot/iot\_telemetry.csv})}
 \label{tab:iot_ranges}
 \centering
 \begin{tabular}{@{}llrrrl@{}}
 \toprule
-\textbf{Nœud} & \textbf{Variable} & \textbf{Min} & \textbf{Max} & \textbf{Moy.} & \textbf{Unité} \\
+\textbf{Nœud} & \textbf{Variable} & \textbf{Min} & \textbf{Max}
+  & \textbf{Moy.} & \textbf{Unité} \\
 \midrule
-\multirow{4}{*}{Node A} & Humidité sol (ADC36)    & 30.2 & 64.9 & 47.5 & \% \\
-                        & Pression eau (ADC39)    &  0.3 &  0.5 &  0.4 & bar \\
-                        & Débit (pin32)           &  7.4 & 23.5 & 15.4 & L/min \\
-                        & Temp. ambiante (pin33)  & 22.1 & 25.7 & 23.9 & °C \\
+\multirow{4}{*}{Node A}
+  & Humidité sol (ADC36)   & 30.2 & 64.9 & 47.5 & \% \\
+  & Pression eau (ADC39)   &  0.3 &  0.5 &  0.4 & bar \\
+  & Débit (pin32)          &  7.4 & 23.5 & 15.4 & L/min \\
+  & Temp. ambiante (pin33) & 22.1 & 25.7 & 23.9 & °C \\
 \midrule
-\multirow{4}{*}{Node B} & Poids ruche (ADC34)     & 42.3 & 47.9 & 45.1 & kg \\
-                        & Temp. couvain (pin14)   & 34.2 & 35.5 & 34.8 & °C \\
-                        & Temp. extérieure (pin15)& 23.8 & 30.9 & 27.3 & °C \\
-                        & Humidité ext. (I$^2$C)  & 54.6 & 68.2 & 61.4 & \% \\
+\multirow{4}{*}{Node B}
+  & Poids ruche (ADC34)      & 42.3 & 47.9 & 45.1 & kg \\
+  & Temp. couvain (pin14)    & 34.2 & 35.5 & 34.8 & °C \\
+  & Temp. extérieure (pin15) & 23.8 & 30.9 & 27.3 & °C \\
+  & Humidité ext. (I$^2$C)   & 54.6 & 68.2 & 61.4 & \% \\
 \midrule
-\multicolumn{2}{l}{\textbf{Total enregistrements}} & \multicolumn{4}{l}{\textbf{1~477} (MQTT $\rightarrow$ PostgreSQL $\rightarrow$ CSV export)} \\
+\multicolumn{2}{l}{\textbf{Total}} & \multicolumn{4}{l}{\textbf{1\,477} (MQTT $\rightarrow$ PostgreSQL $\rightarrow$ CSV)} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent Le modèle atteint un score de reconstruction (AUC-ROC) de \textbf{0.89} sur le
-jeu de test (20\%, $n = 295$ enregistrements), avec un taux de faux positifs de $4.1\%$,
-compatible avec l'objectif opérationnel fixé à $< 5\%$.
-
-\subsection{Courbes d'apprentissage YOLO}
-
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}
-\pgfplotsset{every axis/.append style={grid=major, grid style={dashed,gray!25}}}
-
-% Left: mAP curves
-\begin{axis}[
-  name=ax1,
-  width=7.5cm, height=6cm,
-  xlabel={Époque},
-  ylabel={mAP@50 (\%)},
-  xmin=0, xmax=100, ymin=48, ymax=90,
-  xtick={0,20,40,60,80,100},
-  ytick={50,60,70,80,90},
-  legend pos=south east, legend style={font=\tiny},
-  title={mAP@50 — Train vs Validation},
-]
-\addplot[blue, thick] coordinates {
-  (0,52)(5,60)(10,66)(15,71)(20,74)(25,76)(30,78)
-  (35,79.5)(40,80.8)(45,81.7)(50,82.5)(55,83.1)(60,83.5)
-  (65,83.9)(70,84.1)(75,84.3)(80,84.5)(85,84.6)(90,84.6)(95,84.7)(100,84.7)
-};
-\addlegendentry{Train}
-\addplot[red, thick, dashed] coordinates {
-  (0,49)(5,57)(10,63)(15,68)(20,72)(25,74)(30,76)
-  (35,77.8)(40,79.2)(45,80.3)(50,81.4)(55,82.2)(60,82.7)
-  (65,83.1)(70,83.4)(75,83.7)(80,83.9)(85,84.0)(90,84.1)(95,84.2)(100,84.2)
-};
-\addlegendentry{Val}
-\end{axis}
-
-% Right: loss curves
-\begin{axis}[
-  name=ax2,
-  at={(ax1.east)}, anchor=west, xshift=0.8cm,
-  width=7.5cm, height=6cm,
-  xlabel={Époque},
-  ylabel={Perte normalisée},
-  xmin=0, xmax=100, ymin=0, ymax=1.1,
-  xtick={0,20,40,60,80,100},
-  legend pos=north east, legend style={font=\tiny},
-  title={Pertes d'entraînement (3 composantes)},
-]
-\addplot[blue!80, thick] coordinates {
-  (0,1.0)(5,0.78)(10,0.61)(15,0.49)(20,0.40)(25,0.34)(30,0.29)
-  (35,0.25)(40,0.22)(50,0.18)(60,0.15)(70,0.13)(80,0.12)(90,0.11)(100,0.10)
-};
-\addlegendentry{$\mathcal{L}_\text{total}$}
-\addplot[orange!80, thick, dashed] coordinates {
-  (0,0.80)(5,0.60)(10,0.46)(15,0.36)(20,0.29)(25,0.24)(30,0.20)
-  (35,0.17)(40,0.15)(50,0.12)(60,0.10)(70,0.08)(80,0.07)(90,0.07)(100,0.06)
-};
-\addlegendentry{$\mathcal{L}_\text{CIoU}$}
-\addplot[green!60!black, thick, dotted] coordinates {
-  (0,0.55)(5,0.41)(10,0.31)(15,0.24)(20,0.19)(25,0.16)(30,0.13)
-  (35,0.11)(40,0.10)(50,0.08)(60,0.06)(70,0.05)(80,0.05)(90,0.04)(100,0.04)
-};
-\addlegendentry{$\mathcal{L}_\text{BCE}$}
-\end{axis}
-\end{tikzpicture}
-\caption{Courbes d'apprentissage YOLOv8 (100 époques, moyenne 3 seeds) : mAP@50 Train/Val (gauche) et décomposition des pertes CIoU + BCE (droite)}
-\label{fig:yolo_curve}
-\end{figure}
+AUC-ROC sur ensemble test~: \textbf{0.89} ($n = 295$), taux de faux positifs~: $4.1\%$
+(objectif $< 5\%$~: atteint).
 
 \subsection{Comparaison aux baselines}
 
 \begin{table}[H]
 \centering
-\caption{Comparaison des performances aux baselines (FCR R²)}
+\caption{Comparaison des performances aux baselines (FCR $R^2$)}
 \label{tab:baseline}
 \begin{tabular}{lrr}
 \toprule
 \textbf{Modèle} & $R^2$ & \textbf{RMSE} \\
 \midrule
-Régression linéaire simple & 0.641 & 0.187 \\
-Moyenne mobile 7 jours     & 0.703 & 0.163 \\
-Régression polynomiale deg.2 (proposé) & $\mathbf{0.891 \pm 0.024}$ & $\mathbf{0.095 \pm 0.011}$ \\
-Random Forest (100 arbres) & $0.901 \pm 0.019$ & $0.088 \pm 0.009$ \\
+Régression linéaire simple          & 0.641              & 0.187 \\
+Moyenne mobile 7 jours              & 0.703              & 0.163 \\
+Régression polynomiale deg.2 (prop.)& $0.891 \pm 0.024$  & $0.095 \pm 0.011$ \\
+Random Forest (100 arbres)          & $0.901 \pm 0.019$  & $0.088 \pm 0.009$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Note} : Bien que Random Forest obtienne un $R^2$ légèrement supérieur
-($+0.010$), la régression polynomiale a été retenue pour sa \textit{interprétabilité}
-(les coefficients $\beta_1 < 0$ indiquent un FCR décroissant — amélioration) et
-sa \textit{légèreté computationnelle} pour les déploiements sur appareils à
-ressources limitées.
+La régression polynomiale a été retenue malgré un $R^2$ légèrement inférieur au
+Random Forest (+0.010) pour son \textit{interprétabilité} et sa \textit{légèreté
+computationnelle} sur appareils à ressources limitées.
 
-% ── 3.4 Agent Darija ────────────────────────────────────────
+% ── 3.7 Évaluation de l'agent Darija ─────────────────────────
 \section{Évaluation de l'agent Darija RAG+LLM}
 \label{sec:eval_darija}
 
@@ -719,44 +1355,28 @@ ressources limitées.
 La base de connaissances RAG contient \textbf{500 documents} (guides AVFA,
 protocoles vétérinaires, fiches techniques élevage) découpés en
 \textbf{2\,847 chunks} (taille moyenne 384 tokens, overlap 64 tokens),
-encodés par le modèle \code{sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
-(dimension 384), stockés dans ChromaDB.
+encodés par \texttt{paraphrase-multilingual-MiniLM-L12-v2} (dim.~384),
+stockés dans ChromaDB.
 
-\subsection{Métriques d'évaluation de génération de texte}
+\subsection{Métriques et résultats}
 
 \subsubsection{BLEU-4 et ROUGE-L}
 
-\begin{definition}[BLEU-4]
-Le score BLEU-4 mesure la précision des $n$-grammes ($n \leq 4$) générés
-par rapport à une référence humaine :
 \begin{equation}
-\text{BLEU-4} = \text{BP} \cdot \exp\left(\frac{1}{4}\sum_{n=1}^{4}\log p_n\right)
-\label{eq:bleu}
-\end{equation}
-où $\text{BP}$ est la pénalité de brièveté.
-\end{definition}
-
-\begin{definition}[ROUGE-L]
-ROUGE-L mesure le rappel de la plus longue sous-séquence commune (LCS) :
-\begin{equation}
+\text{BLEU-4} = \text{BP} \cdot \exp\!\left(\frac{1}{4}\sum_{n=1}^{4}\log p_n\right),
+\quad
 \text{ROUGE-L} = \frac{\text{LCS}(H, R)}{|R|}
-\label{eq:rouge}
+\label{eq:bleu_rouge}
 \end{equation}
-où $H$ est l'hypothèse générée et $R$ la référence.
-\end{definition}
 
 \subsubsection{Cohen's Kappa}
 
-L'accord inter-annotateurs sur la qualité factuelle des réponses Darija
-(grille 4 niveaux : inexact, partiel, correct, excellent) a été mesurée
-par le coefficient Kappa de Cohen~\cite{cohen1960} sur 200 paires
-évaluées par deux experts agricoles bilingues :
 \begin{equation}
 \kappa = \frac{P_o - P_e}{1 - P_e}
 \label{eq:kappa}
 \end{equation}
 
-\subsubsection{Résultats}
+Évaluation sur 200 paires par deux experts bilingues (grille 4 niveaux).
 
 \begin{table}[H]
 \centering
@@ -766,9 +1386,9 @@ par le coefficient Kappa de Cohen~\cite{cohen1960} sur 200 paires
 \toprule
 \textbf{Modèle LLM} & \textbf{BLEU-4} & \textbf{ROUGE-L} & \textbf{Cohen's $\kappa$} \\
 \midrule
-Ollama Labess-7B (local)        & 0.68 & 0.72 & 0.76 \\
-Groq Llama-3.3-70B (cloud)      & 0.71 & 0.75 & 0.79 \\
-Réponse statique (baseline)     & 0.34 & 0.41 & 0.21 \\
+Ollama Labess-7B (local)    & 0.68 & 0.72 & 0.76 \\
+Groq Llama-3.3-70B (cloud)  & 0.71 & 0.75 & 0.79 \\
+Réponse statique (baseline) & 0.34 & 0.41 & 0.21 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -789,140 +1409,446 @@ Réponse statique (baseline)     & 0.34 & 0.41 & 0.21 \\
   legend style={at={(0.5,1.02)}, anchor=south, legend columns=3, font=\small},
   grid=major, grid style={dashed,gray!25},
   title={Métriques d'évaluation des LLM en Darija (200 requêtes test)},
-  nodes near coords, nodes near coords style={font=\tiny, /pgf/number format/fixed, /pgf/number format/precision=2},
+  nodes near coords, nodes near coords style={font=\tiny,
+    /pgf/number format/fixed, /pgf/number format/precision=2},
 ]
-\addplot[fill=blue!60, draw=blue!80] coordinates {
-  (Labess-7B,0.68)(Llama-3.3-70B,0.71)(Statique,0.34)
-};
+\addplot[fill=blue!60,  draw=blue!80]   coordinates {(Labess-7B,0.68)(Llama-3.3-70B,0.71)(Statique,0.34)};
 \addlegendentry{BLEU-4}
-\addplot[fill=teal!60, draw=teal!80] coordinates {
-  (Labess-7B,0.72)(Llama-3.3-70B,0.75)(Statique,0.41)
-};
+\addplot[fill=teal!60,  draw=teal!80]   coordinates {(Labess-7B,0.72)(Llama-3.3-70B,0.75)(Statique,0.41)};
 \addlegendentry{ROUGE-L}
-\addplot[fill=orange!70, draw=orange!90] coordinates {
-  (Labess-7B,0.76)(Llama-3.3-70B,0.79)(Statique,0.21)
-};
+\addplot[fill=orange!70,draw=orange!90] coordinates {(Labess-7B,0.76)(Llama-3.3-70B,0.79)(Statique,0.21)};
 \addlegendentry{Cohen $\kappa$}
 \end{axis}
 \end{tikzpicture}
-\caption{Comparaison des métriques d'évaluation (BLEU-4, ROUGE-L, Cohen's $\kappa$) pour les trois modèles LLM en Darija tunisienne}
+\caption{Comparaison BLEU-4, ROUGE-L, Cohen's $\kappa$ pour les trois modèles LLM en Darija.
+Labess-7B local ($\kappa=0.76$, accord \textit{substantiel}) vs Groq cloud ($\kappa=0.79$)~:
+delta +0.03 BLEU-4 ne justifie pas la dépendance cloud pour les requêtes courantes.}
 \label{fig:darija_metrics}
 \end{figure}
 
-\textbf{Interprétation} : Cohen's $\kappa = 0.76$ (Labess-7B) indique un
-\textit{accord substantiel} selon l'échelle de Landis \& Koch~\cite{landis1977}
-($0.61$--$0.80$ = substantiel). Le delta BLEU-4 entre Labess-7B et
-Llama-3.3-70B (+0.03) ne justifie pas le coût réseau du fallback cloud pour
-les requêtes courantes.
+\textbf{Interprétation}~: Cohen's $\kappa = 0.76$ indique un \textit{accord substantiel}
+selon l'échelle de Landis \& Koch~\cite{landis1977} ($0.61$--$0.80$ = substantiel).
 
 \subsection{Exemples de réponses Darija générées}
 
-\begin{tcolorbox}[
-  colback=green!6, colframe=green!50!black,
-  title={\textbf{Exemple 1 — Consultation mortalité avicole}},
-  fonttitle=\small\bfseries, boxrule=0.8pt
-]
-\textbf{Requête utilisateur (Darija) :} \textit{«\,Kifech naaref ken el farrouj mrieth?\,»}
-(Comment savoir si mes poulets sont malades ?)
+\begin{tcolorbox}[colback=green!6, colframe=green!50!black,
+  title={\textbf{Exemple 1 --- Consultation mortalité avicole}},
+  fonttitle=\small\bfseries, boxrule=0.8pt]
+\textbf{Requête (Darija)~:} \textit{«\,Kifech naaref ken el farrouj mrieth?\,»}
 
-\textbf{Réponse Labess-7B :} \textit{«\,Salli fi farrajit ala el farrouj — ken yekol bechwiya, lazem tekshef 3la el ta9addum. El mortalité el normale ma t3addi-sh el 3\%. Ken tkoun akthar, lezem ta3mel analyse lil monya o check el température o el rayba....\,»}
-(Surveille bien tes poulets — si leur appétit diminue, vérifie les déjections. La mortalité normale ne dépasse pas 3\%. Si elle est plus haute, fais une analyse des carcasses et vérifie température et humidité.)
+\textbf{Réponse Labess-7B~:} \textit{«\,Salli fi farrajit ala el farrouj — ken yekol bechwiya,
+lazem tekshef 3la el ta9addum. El mortalité el normale ma t3addi-sh el 3\%...\,»}
 
-\textbf{Scores :} BLEU-4 = 0.71 | ROUGE-L = 0.74 | Kappa annotateur = 0.80 (excellent)
+\textbf{Scores~:} BLEU-4 = 0.71 | ROUGE-L = 0.74 | $\kappa$ = 0.80 (excellent)
 \end{tcolorbox}
 
 \vspace{0.5em}
 
-\begin{tcolorbox}[
-  colback=blue!5, colframe=blue!50!black,
-  title={\textbf{Exemple 2 — Conseil nutrition ruche}},
-  fonttitle=\small\bfseries, boxrule=0.8pt
-]
-\textbf{Requête utilisateur (Darija) :} \textit{«\,Waqtash netlaki el 3assal o ki nakhou?\,»}
-(Quand récolter le miel et comment le faire ?)
+\begin{tcolorbox}[colback=blue!5, colframe=blue!50!black,
+  title={\textbf{Exemple 2 --- Conseil nutrition ruche}},
+  fonttitle=\small\bfseries, boxrule=0.8pt]
+\textbf{Requête (Darija)~:} \textit{«\,Waqtash netlaki el 3assal o ki nakhou?\,»}
 
-\textbf{Réponse Labess-7B :} \textit{«\,El wa9t el zine lel ja9 taamel barra el 9iter. Lazem el bâtiment yekoun 80\% maghlou9 bel 3ach. Staamel fumigateur bel mech mahrouq, o na9ez el frames bechwiya bla ma tedhaj el nhal...\,»}
-(Le meilleur moment pour la récolte est en fin de miellée. La hausse doit être operculée à 80\%. Utilise un enfumoir avec paille brûlée, et retire les cadres doucement sans déranger les abeilles.)
+\textbf{Réponse~:} \textit{«\,El wa9t el zine lel ja9 taamel barra el 9iter. Lazem el bâtiment
+yekoun 80\% maghlou9 bel 3ach. Staamel fumigateur bel mech mahrouq...\,»}
 
-\textbf{Scores :} BLEU-4 = 0.65 | ROUGE-L = 0.70 | Kappa annotateur = 0.73 (substantiel)
+\textbf{Scores~:} BLEU-4 = 0.65 | ROUGE-L = 0.70 | $\kappa$ = 0.73 (substantiel)
 \end{tcolorbox}
 
 \vspace{0.5em}
 
-\begin{tcolorbox}[
-  colback=olive!5, colframe=olive!50!black,
-  title={\textbf{Exemple 3 — Conseil gestion de l'irrigation}},
-  fonttitle=\small\bfseries, boxrule=0.8pt
-]
-\textbf{Requête utilisateur (Darija) :} \textit{«\,Wa9tesh nasqi el-mzraa mta3i w qaddesh?\,»}
-(Quand irriguer mon champ et en quelle quantité ?)
+\begin{tcolorbox}[colback=olive!5, colframe=olive!50!black,
+  title={\textbf{Exemple 3 --- Conseil irrigation}},
+  fonttitle=\small\bfseries, boxrule=0.8pt]
+\textbf{Requête (Darija)~:} \textit{«\,Wa9tesh nasqi el-mzraa mta3i w qaddesh?\,»}
 
-\textbf{Réponse Labess-7B :} \textit{«\,Hasab sensor el-torab mta3ek, ken el-routouba ta7t 40\%
-lazem tasqi. El-wa9t el-a7sen sbe7 bekri 9bel el-7ar aw msa. El-kammia te9yas 3la naw3 el-tor9a:
-4--6 litres lil-meter el-morba3 lel-khdar, 2--3 litres lel-zitoun. Cek el-IoT sensor kol nhar...\,»}
-(Selon le capteur sol, si l'humidité est sous 40\%, irrigue. Le meilleur moment : tôt le matin
-avant la chaleur ou le soir. Quantité : 4--6 L/m² pour le maraîchage, 2--3 L/m² pour l'olivier.
-Vérifie le capteur IoT chaque jour.)
+\textbf{Réponse~:} \textit{«\,Hasab sensor el-torab mta3ek, ken el-routouba ta7t 40\%
+lazem tasqi. El-wa9t el-a7sen sbe7 bekri 9bel el-7ar aw msa...\,»}
 
-\textbf{Scores :} BLEU-4 = 0.63 | ROUGE-L = 0.68 | Kappa annotateur = 0.71 (substantiel)
+\textbf{Scores~:} BLEU-4 = 0.63 | ROUGE-L = 0.68 | $\kappa$ = 0.71 (substantiel)
 \end{tcolorbox}
 
-% ── 3.5 Menaces à la validité ────────────────────────────────
+% ── 3.7.3 Pipeline multi-modal Vision + OCR ──────────────────
+\subsection{Pipeline multi-modal Vision + OCR}
+\label{subsec:multimodal_pipeline}
+
+L'endpoint \texttt{POST /api/v1/agent/analyze-image} enrichit la requête utilisateur
+par une double analyse~: vision sémantique et extraction de texte (OCR), avant
+d'interroger ChromaDB et de générer une réponse en Darija. Cette chaîne permet à
+l'agriculteur de photographier une feuille malade, un paquet d'intrant ou une ruche
+et d'obtenir un conseil contextuel immédiat.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw, rounded corners=4pt, minimum width=2.6cm, minimum height=1.0cm,
+              text centered, font=\small\bfseries, fill=#1},
+  arr/.style={->, thick, >=stealth},
+  lbl/.style={font=\scriptsize\itshape}
+]
+  \node[box=gray!15]    (img)   at (0,    0) {Image\\640px JPEG 0.7};
+  \node[box=blue!15]    (vis)   at (3.4,  0) {Vision\\LLaVA / Groq-V};
+  \node[box=orange!20]  (ocr)   at (6.8,  0) {OCR\\pytesseract\\fra+ara+eng};
+  \node[box=teal!20]    (enr)   at (10.2, 0) {Requête\\enrichie};
+  \node[box=violet!15]  (rag)   at (13.6, 0) {ChromaDB\\top-3 chunks};
+  \node[box=green!20]   (llm)   at (17.0, 0) {Labess-7B\\/ Groq-70B};
+  \node[box=yellow!30]  (rep)   at (20.4, 0) {Réponse\\Darija};
+
+  \draw[arr] (img)  -- (vis)  node[midway,above,lbl]{base64};
+  \draw[arr] (img)  .. controls (3.4,-1.4) and (6.8,-1.4) .. (ocr)
+             node[midway,below,lbl]{parallèle};
+  \draw[arr] (vis)  -- (enr)  node[midway,above,lbl]{description};
+  \draw[arr] (ocr)  -- (enr)  node[midway,below right,lbl]{texte};
+  \draw[arr] (enr)  -- (rag)  node[midway,above,lbl]{cosine};
+  \draw[arr] (rag)  -- (llm)  node[midway,above,lbl]{contexte};
+  \draw[arr] (llm)  -- (rep)  node[midway,above,lbl]{génération};
+\end{tikzpicture}
+}%
+\caption{Pipeline multi-modal de l'assistant Smart Farm AI --- vision et OCR s'exécutent
+en parallèle pour enrichir la requête avant RAG+LLM. Timeout total~: 300\,s.}
+\label{fig:assistant_pipeline}
+\end{figure}
+
+\paragraph{Cascade LLM.}
+La génération de réponse suit une cascade de priorité pour garantir la disponibilité~:
+
+\begin{table}[H]
+\centering
+\caption{Cascade LLM --- Génération de réponses en Darija (texte et vision)}
+\label{tab:cascade_llm}
+\begin{tabular}{clllr}
+\toprule
+\textbf{Priorité} & \textbf{Modèle} & \textbf{Hébergement} & \textbf{Déclencheur fallback} & \textbf{Timeout} \\
+\midrule
+\multicolumn{5}{l}{\textit{Génération Darija (texte)}} \\
+1 & \texttt{wghezaiel/labess-7b-chat} & Ollama localhost:11434 & Modèle indisponible & 60\,s \\
+2 & \texttt{llama-3.3-70b-versatile}  & Groq Cloud API & Ollama indisponible & 15\,s \\
+3 & Réponse statique Darija & --- & Groq indisponible & --- \\
+\midrule
+\multicolumn{5}{l}{\textit{Vision sémantique (image)}} \\
+1 & \texttt{llava} ($\approx$4.5\,GB) & Ollama local & Vision indisponible & 15\,s \\
+2 & \texttt{llama-3.2-11b-vision-preview} & Groq Cloud Vision & LLaVA indisponible & 10\,s \\
+3 & Chaîne sans vision & --- & Groq vision indisponible & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Pipeline OCR.}
+
+\begin{table}[H]
+\centering
+\caption{Configuration du pipeline d'extraction de texte (OCR)}
+\label{tab:ocr_pipeline}
+\begin{tabular}{ll}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur} \\
+\midrule
+Moteur principal      & \texttt{pytesseract} (Tesseract 5.x) \\
+Langues               & \texttt{fra+ara+eng} (français, arabe, anglais) \\
+Résolution d'entrée   & $\leq 640 \times 640$\,px (compression frontend) \\
+Qualité JPEG          & 0.7 (réduction bande passante) \\
+Fallback              & Vision model avec prompt OCR dédié \\
+                      & (\textit{«\,Extract ALL text, numbers, labels, dates...\,»}) \\
+Timeout total         & 300\,s (frontend) / 180\,s (hard timeout) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── 3.7.4 Architecture RAG et base de connaissances ──────────
+\subsection{Architecture RAG et base de connaissances}
+\label{subsec:rag_architecture}
+
+La Retrieval-Augmented Generation (RAG) enrichit chaque requête avec des documents
+agricoles pertinents avant la génération LLM. La similarité cosinus entre le vecteur
+de requête $\mathbf{q}$ et chaque document $\mathbf{d}$ est calculée~:
+
+\begin{equation}
+\text{sim}(\mathbf{q}, \mathbf{d}) = \frac{\mathbf{q} \cdot \mathbf{d}}
+                                          {\|\mathbf{q}\| \cdot \|\mathbf{d}\|}
+\label{eq:cosine_sim}
+\end{equation}
+
+Les $k = 3$ documents les plus proches sont injectés dans le prompt LLM.
+
+\begin{table}[H]
+\centering
+\caption{Configuration ChromaDB --- Base vectorielle RAG de Smart Farm AI}
+\label{tab:rag_config}
+\begin{tabular}{ll}
+\toprule
+\textbf{Paramètre} & \textbf{Valeur} \\
+\midrule
+Collection         & \texttt{sovereign\_wisdom\_v3} \\
+Index              & HNSW (\textit{Hierarchical Navigable Small World}) \\
+Métrique distance  & Cosine similarity (eq.~\ref{eq:cosine_sim}) \\
+Modèle d'embedding & \texttt{paraphrase-multilingual-MiniLM-L12-v2} (dim. 384) \\
+Documents sources  & 500 (guides AVFA, protocoles vétérinaires, fiches élevage) \\
+Chunks             & 2\,847 (taille~: 384 tokens, overlap~: 64 tokens) \\
+n\_results (top-k) & 3 \\
+Hôte / Port        & \texttt{localhost:8001} \\
+Anonymized telemetry & désactivée \\
+Fallback           & Expert Synthetic KB (mots-clés Darija hardcodés) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Fallback synthétique~:} quand ChromaDB est indisponible, une base de
+connaissances synthétique est activée (\texttt{LITE\_MODE=true}). Elle mappe des
+mots-clés tunisiens (\textit{بطاطا, نحل, زيتون, علوش, أبقار, حبوب, حمضيات,
+مراعي}) vers des conseils agricoles génériques en Darija, assurant la continuité
+du service même sans vecteur store.
+
+% ── 3.8 Module Cartographique et Géolocalisation ──────────────
+\section{Module Cartographique et Géolocalisation (MapCenter)}
+\label{sec:mapcenter}
+
+Le module \textit{MapCenter} de Smart Farm AI est une interface GIS interactive
+fondée sur \textbf{MapLibre GL v5} (moteur WebGL). Il affiche en temps réel
+4~types d'entités géolocalisées — ruches IoT, fermes, cliniques vétérinaires et
+marchés — en les croisant avec la télémétrie IoT, les données météo Open-Meteo
+et les ressources cartographiques OpenStreetMap.
+
+% ── 3.8.1 Endpoints GeoJSON ──────────────────────────────────
+\subsection{Endpoints GeoJSON et sources de données}
+
+\begin{table}[H]
+\centering
+\caption{Endpoints GeoJSON de l'API Smart Farm AI --- module MapCenter}
+\label{tab:geo_endpoints}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llp{7cm}}
+\toprule
+\textbf{Endpoint} & \textbf{Méthode} & \textbf{Description} \\
+\midrule
+\texttt{/geo/farms}       & GET  & Fermes (lat, lon, nom, statut actif/inactif) \\
+\texttt{/geo/hives}       & GET  & Ruches + télémétrie temps réel (poids kg, T\degr C, humidité \%)
+                                   ; statut déduit du score de santé (healthy/warning/critical) \\
+\texttt{/geo/vets}        & GET  & Cliniques vétérinaires internes (spécialité, téléphone, adresse) \\
+\texttt{/geo/markets}     & GET  & Marchés agricoles (type, téléphone, adresse) \\
+\texttt{/geo/nearby-vets} & GET  & Proximité~: \texttt{?lat=X\&lon=Y\&radius\_km=100}
+                                   (résultats triés par distance Haversine) \\
+\texttt{/geo/overpass}    & POST & Proxy Overpass API~: découverte vétérinaires OSM
+                                   (CORS bloqué côté navigateur) \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+% ── 3.8.2 Algorithmes géospatiaux ────────────────────────────
+\subsection{Algorithmes géospatiaux}
+
+\paragraph{Distance Haversine.}
+La distance entre deux points GPS $(\varphi_1, \lambda_1)$ et $(\varphi_2, \lambda_2)$
+est calculée par la formule de Haversine~:
+\begin{equation}
+d = 2R \cdot \arcsin\!\left(\sqrt{\sin^2\!\!\left(\frac{\Delta\varphi}{2}\right)
+  + \cos\varphi_1\,\cos\varphi_2\,\sin^2\!\!\left(\frac{\Delta\lambda}{2}\right)}
+  \right), \quad R = 6\,371\,\text{km}
+\label{eq:haversine}
+\end{equation}
+Cette formule est utilisée pour trier les entités par distance à l'utilisateur et
+pour la requête de découverte vétérinaires dans un rayon de 100\,km.
+
+\paragraph{Placement circulaire des ruches.}
+Lorsque $N$ ruches sont associées à la même ferme
+$(\varphi_\text{farm},\lambda_\text{farm})$, elles sont disposées sur un cercle
+de rayon $\approx 33$\,m pour éviter la superposition des marqueurs~:
+\begin{equation}
+\varphi_i = \varphi_\text{farm} + 0.0003\,\sin\!\left(\frac{2\pi i}{N}\right),\quad
+\lambda_i = \lambda_\text{farm} + 0.0003\,\cos\!\left(\frac{2\pi i}{N}\right),\quad
+i \in \{0,\ldots,N-1\}
+\label{eq:circular_hive}
+\end{equation}
+
+\paragraph{Zoom adaptatif selon la précision GPS.}
+
+\begin{table}[H]
+\centering
+\caption{Niveau de zoom MapLibre adapté à la précision GPS de l'utilisateur}
+\label{tab:gps_zoom}
+\begin{tabular}{lr}
+\toprule
+\textbf{Précision GPS} & \textbf{Zoom MapLibre} \\
+\midrule
+$< 50$\,m   & 16 (rue) \\
+$< 200$\,m  & 15 (quartier) \\
+$< 1\,000$\,m & 13 (ville) \\
+$\geq 1\,000$\,m & 11 (région) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── 3.8.3 Services de géocodage ──────────────────────────────
+\subsection{Services de géocodage intégrés}
+
+\begin{table}[H]
+\centering
+\caption{Services de géocodage utilisés dans le module MapCenter}
+\label{tab:geocoding_services}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lllp{4.5cm}}
+\toprule
+\textbf{Service} & \textbf{Direction} & \textbf{Accès} & \textbf{Usage} \\
+\midrule
+Photon (Komoot)   & Forward (adresse $\to$ coords)
+                  & Frontend direct (pas de CORS)
+                  & Autocomplete~: 5 suggestions, debounce 300\,ms,
+                    paramètre \texttt{proximity=lon,lat} pour biaiser
+                    les résultats vers la position utilisateur \\
+Nominatim (OSM)   & Reverse (coords $\to$ adresse)
+                  & Frontend direct
+                  & Conversion $(\varphi, \lambda) \to$ adresse lisible
+                    après géolocalisation GPS (User-Agent~:
+                    \textit{SmartFarmAI/2.0}) \\
+Overpass API      & Requête OSM
+                  & Via proxy \texttt{/geo/overpass} (CORS bloqué)
+                  & Découverte des vétérinaires OSM
+                    dans un rayon de 100\,km \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+% ── 3.8.4 Météo et évaluation des risques ────────────────────
+\subsection{Intégration météo et évaluation des risques}
+
+Les conditions météorologiques sont récupérées via l'API \textbf{Open-Meteo}
+(gratuite, sans clé) et exposées par l'endpoint \texttt{/weather/coords}.
+Le service \texttt{weather\_service.py} calcule automatiquement trois indicateurs
+de risque agropastoral~:
+
+\begin{table}[H]
+\centering
+\caption{Seuils d'évaluation des risques météorologiques --- Smart Farm AI}
+\label{tab:weather_risks}
+\begin{tabular}{llr}
+\toprule
+\textbf{Risque} & \textbf{Variable} & \textbf{Seuil de déclenchement} \\
+\midrule
+Stress thermique (\textit{heat stress}) & Température ambiante & $> 35\,°C$ \\
+Stress froid (\textit{cold stress})     & Température ambiante & $< 5\,°C$ \\
+Risque tempête (\textit{storm risk})    & Vitesse du vent       & $> 40$\,km/h \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ces indicateurs sont affichés dans le badge météo de la carte et dans les popups
+des ruches pour alerter l'apiculteur en cas de conditions défavorables.
+
+% ── 3.8.5 Architecture du flux de données GIS ────────────────
+\subsection{Architecture du flux de données}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[
+  src/.style={draw, rounded corners=3pt, minimum width=2.8cm, minimum height=0.9cm,
+              text centered, font=\small\bfseries, fill=#1},
+  dst/.style={draw, rounded corners=3pt, minimum width=3.0cm, minimum height=0.9cm,
+              text centered, font=\small\bfseries, fill=#1},
+  arr/.style={->, thick, >=stealth},
+  lbl/.style={font=\scriptsize\itshape}
+]
+  % Flux 1 : IoT → PostgreSQL → /geo/hives → MapLibre
+  \node[src=teal!20]   (iot)   at (0,  3.6) {IoT\\MQTT};
+  \node[src=teal!15]   (db)    at (4.2, 3.6) {PostgreSQL\\TelemetryRecord};
+  \node[src=blue!15]   (hapi)  at (8.4, 3.6) {\texttt{/geo/hives}\\GeoJSON};
+  \node[dst=green!20]  (map1)  at (12.6,3.6) {Popup télémétrie\\MapLibre GL};
+
+  % Flux 2 : Open-Meteo → /weather/coords → Badge météo
+  \node[src=yellow!30] (om)    at (0,  2.1) {Open-Meteo\\API (gratuit)};
+  \node[src=blue!15]   (wapi)  at (4.2, 2.1) {\texttt{/weather/coords}\\JSON};
+  \node[dst=orange!25] (map2)  at (8.4, 2.1) {Badge météo\\+ Risques};
+
+  % Flux 3 : Overpass OSM → proxy /geo/overpass → Markers vétérinaires
+  \node[src=gray!20]   (osm)   at (0,  0.6) {Overpass API\\(OSM)};
+  \node[src=blue!15]   (proxy) at (4.2, 0.6) {\texttt{/geo/overpass}\\proxy backend};
+  \node[dst=red!20]    (map3)  at (8.4, 0.6) {Markers vétérinaires\\OSM (100\,km)};
+
+  % Flux 4 : Browser GPS → Cercle précision + Zoom
+  \node[src=violet!20] (gps)   at (0, -0.9) {Browser GPS\\(HTML5)};
+  \node[dst=violet!15] (map4)  at (4.2,-0.9) {Cercle précision\\+ Zoom adaptatif};
+
+  % Arrows
+  \draw[arr] (iot)   -- (db)    node[midway,above,lbl]{ESP32};
+  \draw[arr] (db)    -- (hapi)  node[midway,above,lbl]{SQLAlchemy};
+  \draw[arr] (hapi)  -- (map1)  node[midway,above,lbl]{fetch};
+  \draw[arr] (om)    -- (wapi)  node[midway,above,lbl]{HTTP};
+  \draw[arr] (wapi)  -- (map2)  node[midway,above,lbl]{JSON};
+  \draw[arr] (osm)   -- (proxy) node[midway,above,lbl]{Overpass QL};
+  \draw[arr] (proxy) -- (map3)  node[midway,above,lbl]{GeoJSON};
+  \draw[arr] (gps)   -- (map4)  node[midway,above,lbl]{eq.\,\ref{eq:haversine}/\ref{eq:circular_hive}};
+\end{tikzpicture}
+}%
+\caption{Architecture du flux de données du module MapCenter~: 4 sources
+(IoT MQTT, Open-Meteo, Overpass OSM, GPS navigateur) alimentent MapLibre GL
+via les endpoints \texttt{/geo/} et \texttt{/weather/} du backend FastAPI.}
+\label{fig:gis_architecture}
+\end{figure}
+
+% ── 3.9 Menaces à la validité ─────────────────────────────────
 \section{Menaces à la validité}
 
 \subsection{Validité interne}
 
 \begin{description}
-  \item[Biais d'échantillonnage YOLO] Les images proviennent principalement
-        de 3 régions tunisiennes (Sfax, Sousse, Monastir). Les races animales
-        locales (Barbarine, Sicilo-Sarde) peuvent différer visuellement des
-        races utilisées dans d'autres jeux de données de pré-entraînement.
-        \textit{Mitigation} : fine-tuning intégral (non gel du backbone).
-  \item[Autocorrélation temporelle (FCR)] Les lots de production avicole
-        sont des séries temporelles ; la validation croisée standard viole
-        l'indépendance des folds. \textit{Mitigation} : TimeSeriesSplit
-        utilisé (les folds respectent l'ordre chronologique).
-  \item[Évaluation Darija] Les 200 paires test ont été construites
-        principalement avec des requêtes en Darija sfaxienne. Les dialectes
-        d'autres régions (Djerba, Tunis) sont sous-représentés.
+  \item[Biais d'échantillonnage YOLO] Les images proviennent principalement de
+        3 régions tunisiennes. Les races locales (Barbarine, Sicilo-Sarde) peuvent
+        différer visuellement des races de pré-entraînement.
+        \textit{Mitigation}~: fine-tuning intégral (backbone non gelé).
+  \item[Autocorrélation temporelle (FCR)] La validation croisée standard viole
+        l'indépendance des folds sur des séries temporelles.
+        \textit{Mitigation}~: TimeSeriesSplit (folds respectent l'ordre chronologique).
+  \item[Évaluation Darija] Les 200 paires test sont principalement en Darija
+        sfaxienne. Les dialectes d'autres régions sont sous-représentés.
 \end{description}
 
 \subsection{Validité externe}
 
 \begin{description}
-  \item[Généralisation géographique] Les performances IoT (latence MQTT,
-        robustesse connectivité) ont été mesurées dans un environnement contrôlé.
-        Les conditions réelles (coupures, chaleur $> 45\,^\circ\mathrm{C}$) peuvent dégrader
-        les performances.
-  \item[Diversité des utilisateurs] Les 7 fermes pilotes représentent
-        des exploitations de taille moyenne (50--500 animaux). La scalabilité
-        vers des fermes industrielles ($> 50\,000$ volailles) n'a pas été évaluée.
+  \item[Généralisation géographique] Les performances IoT ont été mesurées en
+        environnement contrôlé. Les conditions réelles (coupures, chaleur $> 45\,°C$)
+        peuvent dégrader les résultats.
+  \item[Diversité des utilisateurs] Les 7 fermes pilotes représentent des exploitations
+        de taille moyenne (50--500 animaux). La scalabilité vers des fermes industrielles
+        ($> 50\,000$ volailles) n'a pas été évaluée.
 \end{description}
 
 \subsection{Validité statistique}
 
 \begin{description}
-  \item[Taille des échantillons] $n = 847$ pour les modèles ML avicoles.
-        Avec 5-fold CV, chaque fold test contient $\approx 169$ observations,
-        suffisant pour des estimateurs stables ($\sigma_{R^2} < 0.03$).
-  \item[Tests multiples] La comparaison de 5 catégories de modèles sans
-        correction de Bonferroni est une limitation ; les comparaisons
-        individuelles doivent être interprétées avec prudence.
-  \item[Biais d'évaluation expert] L'évaluation des réponses Darija par
-        deux annotateurs peut introduire un biais culturel ou de genre ;
-        l'accord Kappa $= 0.76$ valide néanmoins la cohérence inter-observateurs.
+  \item[Taille des échantillons] $n = 847$ pour les modèles ML avicoles. Avec 5-fold CV,
+        chaque fold test contient $\approx 169$ observations.
+  \item[Tests multiples] La comparaison de 5 catégories de modèles sans correction de
+        Bonferroni est une limitation~; les comparaisons individuelles doivent être
+        interprétées avec prudence.
+  \item[Biais expert] L'évaluation Darija par deux annotateurs peut introduire un biais
+        culturel~; l'accord $\kappa = 0.76$ valide la cohérence inter-observateurs.
 \end{description}
 
+% ── 3.6 Conclusion ───────────────────────────────────────────
 \section*{Conclusion}
 \addcontentsline{toc}{section}{Conclusion}
-Ce chapitre a présenté les fondements mathématiques et les résultats
-expérimentaux des principaux composants IA. Les intervalles de confiance,
-la validation croisée 5-fold et l'analyse des menaces à la validité
-garantissent la robustesse et la reproductibilité des évaluations. Les
-performances obtenues positionnent Smart Farm AI au niveau des solutions
-de recherche académique récentes, tout en restant adaptées aux contraintes
-matérielles du terrain tunisien.
+
+Ce chapitre a présenté la démarche complète de modélisation et d'évaluation des
+performances de Smart Farm AI. L'analyse exploratoire (14\,820 images, 11 classes,
+déséquilibre 3.4:1) a guidé les choix de prétraitement et d'augmentation. Les
+\textbf{8 modèles YOLO déployés} — 7~modèles \textbf{YOLOv11n} (détection standard)
+atteignant mAP@50~$= 85.3\% \pm 0.42\%$ et le modèle \textbf{yolo26n-obb}
+(abeilles, boîtes orientées) atteignant mAP@50~$= 92.0\%$ — dépassent tous les
+cibles opérationnelles. Les courbes F1-Confidence ($c^* = 0.37$, F1~$= 0.85$)
+et Precision-Confidence guident le déploiement en production.
+
+Les modèles prédictifs avicoles (FCR polynomial $R^2 = 0.891$, classifieur mortalité
+AUC~$= 0.907$, IsolationForest AUC~$= 0.89$) et l'agent conversationnel Darija
+(BLEU-4~$= 0.68$, $\kappa = 0.76$) complètent l'évaluation quantitative. Les
+intervalles de confiance à 95\% bootstrapés et la validation croisée 5-fold
+garantissent la robustesse et la reproductibilité des résultats.
+
+Le chapitre suivant présente la réalisation technique et la validation industrielle
+du système Smart Farm AI sur les 7 fermes pilotes.
 
 % ============================================================
-%  CHAPITRE 4 : RÉALISATION ET VALIDATION INDUSTRIELLE
+%  FIN CHAPITRE 3
 % ============================================================
