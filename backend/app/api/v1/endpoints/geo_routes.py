@@ -1,4 +1,5 @@
 import math
+import asyncio
 import httpx
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import JSONResponse
@@ -252,26 +253,43 @@ def find_nearby_vets(lat: float, lon: float, radius_km: float = 100, db: Session
             for r in rows]
 
 
+# ── Overpass mirrors — all tried in parallel, first success wins ──────────────
 _OVERPASS_MIRRORS = [
     "https://overpass-api.de/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.openstreetmap.fr/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
 ]
+_OVERPASS_TIMEOUT = 25.0
+
+
+async def _fetch_one(query: str, mirror: str) -> dict | None:
+    """Attempt one Overpass mirror; return parsed JSON or None."""
+    try:
+        async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT) as client:
+            resp = await client.post(
+                mirror,
+                data={"data": query},
+                headers={"User-Agent": "SmartFarmAI/3.0"},
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception:
+        return None
+
 
 @router.post("/overpass")
 async def overpass_proxy(payload: dict):
-    """Proxy Overpass API calls from the frontend to avoid browser CORS restrictions."""
+    """Proxy Overpass API calls (avoids browser CORS).
+    All mirrors are queried in parallel — first valid response wins."""
     query = payload.get("query", "")
     if not query:
         raise HTTPException(status_code=400, detail="Missing 'query' field")
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        for mirror in _OVERPASS_MIRRORS:
-            try:
-                resp = await client.post(mirror, data={"data": query})
-                resp.raise_for_status()
-                return JSONResponse(content=resp.json())
-            except Exception:
-                continue
+    results = await asyncio.gather(*[_fetch_one(query, m) for m in _OVERPASS_MIRRORS])
+    for data in results:
+        if data is not None:
+            return JSONResponse(content=data)
 
     raise HTTPException(status_code=502, detail="All Overpass mirrors unreachable")

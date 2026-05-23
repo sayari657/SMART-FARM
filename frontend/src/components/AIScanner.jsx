@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Upload, Sparkles, RefreshCcw, Activity, History, Trash2, X, FileText, Loader2, ShieldAlert } from 'lucide-react';
+import { Camera, Upload, Sparkles, RefreshCcw, Activity, Trash2, X, Loader2, ShieldAlert, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cvAPI, agentAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -48,15 +48,25 @@ const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const W = canvas.width;
-    const H = canvas.height;
+    const cW = canvas.width;
+    const cH = canvas.height;
+
+    // ── objectFit: cover — image fills container, excess is clipped ──────────
+    // Compute where the original image is rendered so bbox % map correctly.
+    const natW = img.naturalWidth  || cW;
+    const natH = img.naturalHeight || cH;
+    const scale = Math.max(cW / natW, cH / natH);
+    const imgW  = natW * scale;
+    const imgH  = natH * scale;
+    const imgX  = (cW - imgW) / 2;   // ≤ 0 when image is wider than container
+    const imgY  = (cH - imgH) / 2;   // ≤ 0 when image is taller than container
 
     detections.forEach(det => {
       const [cx_p, cy_p, w_p, h_p] = det.bbox;
-      const w  = (w_p / 100) * W;
-      const h  = (h_p / 100) * H;
-      const cx = (cx_p / 100) * W;
-      const cy = (cy_p / 100) * H;
+      const w  = (w_p  / 100) * imgW;
+      const h  = (h_p  / 100) * imgH;
+      const cx = imgX + (cx_p / 100) * imgW;
+      const cy = imgY + (cy_p / 100) * imgH;
       const x1 = cx - w / 2;
       const y1 = cy - h / 2;
       const boxColor = palette?.[det.label?.toLowerCase()] || color;
@@ -93,6 +103,144 @@ const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
       />
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 2 }} />
+    </div>
+  );
+};
+
+// ── BboxZoomCard: full-res image + bbox overlay for the zoom modal ────────────
+const BboxZoomCard = ({ imageUrl, detections, color, palette }) => {
+  const imgRef    = useRef(null);
+  const canvasRef = useRef(null);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    const img    = imgRef.current;
+    if (!canvas || !img) return;
+    canvas.width  = img.offsetWidth;
+    canvas.height = img.offsetHeight;
+    if (!detections?.length) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const cW = canvas.width;
+    const cH = canvas.height;
+    detections.forEach(det => {
+      const [cx_p, cy_p, w_p, h_p] = det.bbox;
+      const w  = (w_p / 100) * cW, h  = (h_p / 100) * cH;
+      const cx = (cx_p / 100) * cW, cy = (cy_p / 100) * cH;
+      const x1 = cx - w / 2,        y1 = cy - h / 2;
+      const boxColor = palette?.[det.label?.toLowerCase()] || color;
+      ctx.strokeStyle = boxColor; ctx.lineWidth = 2.5;
+      ctx.shadowBlur = 10; ctx.shadowColor = boxColor;
+      ctx.strokeRect(x1, y1, w, h);
+      ctx.shadowBlur = 0;
+      const lbl = `${det.label.toUpperCase()} ${Math.round(det.confidence * 100)}%`;
+      ctx.font = 'bold 13px Inter, sans-serif';
+      const tw = ctx.measureText(lbl).width;
+      ctx.fillStyle = boxColor;
+      ctx.fillRect(x1, Math.max(0, y1 - 22), tw + 10, 22);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(lbl, x1 + 5, Math.max(16, y1 - 5));
+    });
+  }, [detections, palette, color]);
+
+  useEffect(() => { const t = setTimeout(draw, 80); return () => clearTimeout(t); }, [draw]);
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <img ref={imgRef} src={imageUrl} alt="zoom" onLoad={draw}
+        style={{ display: 'block', width: '100%', height: 'auto' }} />
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+    </div>
+  );
+};
+
+// ── ZoomModal: lightbox with full image, bbox, detection chips, CRUD ──────────
+const ZoomModal = ({ card, total, index, color, palette, onClose, onDelete, onPrev, onNext }) => {
+  // Close on Escape, navigate with arrow keys
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape')     onClose();
+      if (e.key === 'ArrowLeft')  onPrev?.();
+      if (e.key === 'ArrowRight') onNext?.();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, onPrev, onNext]);
+
+  if (!card) return null;
+  const hasCritical = card.detections.some(d => CRITICAL_LABELS.has(d.label?.toLowerCase()));
+
+  return (
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.88)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px 16px',
+        backdropFilter: 'blur(6px)',
+      }}
+    >
+      {/* Prev / Next arrows */}
+      {onPrev && (
+        <button onClick={onPrev} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 44, height: 44, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+          <ChevronLeft size={22} />
+        </button>
+      )}
+      {onNext && (
+        <button onClick={onNext} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: '50%', width: 44, height: 44, cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+          <ChevronRight size={22} />
+        </button>
+      )}
+
+      <div style={{
+        background: '#fff', borderRadius: 16, overflow: 'hidden',
+        maxWidth: 780, width: '100%', maxHeight: '92vh',
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+      }}>
+        {/* ── Header ── */}
+        <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: '#888' }}>{new Date(card.timestamp).toLocaleString()}</span>
+            {total > 1 && <span style={{ fontSize: 10, background: '#f5f5f5', color: '#666', padding: '2px 8px', borderRadius: 20 }}>{index + 1} / {total}</span>}
+            {hasCritical && <span style={{ fontSize: 10, background: '#fef2f2', color: '#ef4444', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>⚠ CRITIQUE</span>}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => { onDelete(card.id); onClose(); }}
+              style={{ background: '#fef2f2', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
+              <Trash2 size={12} /> Supprimer
+            </button>
+            <button onClick={onClose}
+              style={{ background: '#f5f5f5', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
+              <X size={12} /> Fermer
+            </button>
+          </div>
+        </div>
+
+        {/* ── Image + bbox ── */}
+        <div style={{ overflow: 'auto', flex: 1 }}>
+          <BboxZoomCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
+        </div>
+
+        {/* ── Detections chips ── */}
+        <div style={{ padding: '10px 14px', borderTop: '1px solid #f0f0f0', background: '#fafafa', flexShrink: 0 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#999', marginBottom: 7, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            {card.detections.length} détection{card.detections.length !== 1 ? 's' : ''}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {card.detections.map((det, i) => {
+              const isCrit = CRITICAL_LABELS.has(det.label?.toLowerCase());
+              const bc = palette?.[det.label?.toLowerCase()] || color;
+              return (
+                <span key={i} style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: isCrit ? '#fef2f2' : `${bc}18`, color: isCrit ? '#ef4444' : bc, border: `1px solid ${isCrit ? '#ef444440' : `${bc}40`}` }}>
+                  {det.label.toUpperCase()} — {Math.round(det.confidence * 100)}%
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -160,7 +308,8 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
   const [palette, setPalette]       = useState({});
   const [detectionHistory, setDetectionHistory] = useState(() => loadHistory(category));
   const [aiReports, setAiReports]   = useState(() => loadReports(category));
-  const [activeTab, setActiveTab]   = useState('cards'); 
+  const [activeTab, setActiveTab]   = useState('cards');
+  const [zoomedIdx, setZoomedIdx]   = useState(null);   // index in detectionHistory
 
   const [devices, setDevices]       = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
@@ -334,15 +483,22 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const W = canvas.width;
-    const H = canvas.height;
+    const cW = canvas.width;
+    const cH = canvas.height;
+
+    // ── Bbox coordinate space = full canvas (image fills the container exactly) ─
+    // Uploaded image: width:100% height:auto → container = image → no black bars
+    // Live camera:    objectFit:cover        → fills container → no black bars
+    // In both cases imgX/imgY = 0, imgW = cW, imgH = cH.
+    const imgX = 0, imgY = 0, imgW = cW, imgH = cH;
 
     detections.forEach(det => {
       const [cx_p, cy_p, w_p, h_p, rot = 0] = det.bbox;
-      const w  = (w_p / 100) * W;
-      const h  = (h_p / 100) * H;
-      const cx = (cx_p / 100) * W;
-      const cy = (cy_p / 100) * H;
+      // Map bbox % coordinates onto the actual image area only
+      const w  = (w_p  / 100) * imgW;
+      const h  = (h_p  / 100) * imgH;
+      const cx = imgX + (cx_p / 100) * imgW;
+      const cy = imgY + (cy_p / 100) * imgH;
       const x1 = cx - w / 2;
       const y1 = cy - h / 2;
       const boxColor = getDetColor(det.label);
@@ -411,7 +567,18 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         </div>
       </div>
 
-      <div style={{ height: 320, background: '#000', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* ── Viewport: fixed height for camera, auto height for uploaded image ── */}
+      <div style={{
+        ...(capturedImage
+          ? { width: '100%' }                             // height driven by the img below
+          : { height: 320 }),                             // fixed 320px for live camera / idle
+        background: '#000',
+        position: 'relative',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
         {mode === 'camera' && !capturedImage && !window.isSecureContext && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.8)', color: '#ef4444', padding: 20, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             <ShieldAlert size={40} style={{ marginBottom: 12 }} />
@@ -420,7 +587,20 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
             <code style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 4, marginTop: 10, fontSize: 11 }}>Utilisez https:// au lieu de http://</code>
           </div>
         )}
-        {mode === 'camera' && !capturedImage ? <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : capturedImage && <img ref={imgRef} src={capturedImage} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Scanning..." />}
+        {/* Camera live: cover fills 320px area */}
+        {mode === 'camera' && !capturedImage && (
+          <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        )}
+        {/* Uploaded image: natural aspect ratio — no black bars */}
+        {capturedImage && (
+          <img
+            ref={imgRef}
+            src={capturedImage}
+            alt="Scanning..."
+            onLoad={drawBoxes}
+            style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '70vh' }}
+          />
+        )}
         {!capturedImage && mode === 'upload' && <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}><Upload size={40} /><button className="btn btn-sm" onClick={() => fileInputRef.current.click()} style={{ marginTop: 12, background: 'white', color: '#000' }}>Parcourir</button></div>}
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }} />
         {isProcessing && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}><Loader2 className="animate-spin" color={color} size={40} /></div>}
@@ -471,11 +651,28 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         <div style={{ padding: '15px' }}>
           {activeTab === 'cards' && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-              {detectionHistory.slice(0, 10).map(card => {
+              {detectionHistory.slice(0, 10).map((card, idx) => {
                 const hasCritical = card.detections.some(d => CRITICAL_LABELS.has(d.label?.toLowerCase()));
                 return (
-                  <div key={card.id} style={{ background: '#f9fafb', border: `1.5px solid ${hasCritical ? '#ef4444' : color}33`, borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
-                    <BboxMiniCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
+                  <div key={card.id} style={{ background: '#f9fafb', border: `1.5px solid ${hasCritical ? '#ef4444' : color}33`, borderRadius: 10, overflow: 'hidden', position: 'relative', transition: 'box-shadow .15s', cursor: 'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.boxShadow = `0 4px 16px ${color}33`}
+                    onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+                  >
+                    {/* Thumbnail */}
+                    <div onClick={() => setZoomedIdx(idx)} style={{ position: 'relative' }}>
+                      <BboxMiniCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
+                      {/* Zoom overlay on hover */}
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0)'}
+                      >
+                        <ZoomIn size={22} color="#fff" style={{ opacity: 0, transition: 'opacity .15s', filter: 'drop-shadow(0 1px 3px #000)' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Info */}
                     <div style={{ padding: '6px 8px' }}>
                       <div style={{ fontSize: 9, color: '#888', marginBottom: 3 }}>
                         {new Date(card.timestamp).toLocaleTimeString()}
@@ -496,7 +693,18 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
                         })}
                       </div>
                     </div>
-                    <button onClick={() => deleteCard(card.id)} style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', color: 'white', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><X size={10} /></button>
+
+                    {/* Actions: zoom + delete */}
+                    <div style={{ position: 'absolute', top: 5, right: 5, display: 'flex', gap: 4 }}>
+                      <button onClick={() => setZoomedIdx(idx)}
+                        style={{ background: `${color}cc`, border: 'none', borderRadius: '50%', color: 'white', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <ZoomIn size={10} />
+                      </button>
+                      <button onClick={() => deleteCard(card.id)}
+                        style={{ background: 'rgba(239,68,68,0.8)', border: 'none', borderRadius: '50%', color: 'white', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <X size={10} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -518,6 +726,21 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         @keyframes scannerSpin { to { transform: rotate(360deg); } }
         .animate-spin { animation: scannerSpin 1s linear infinite; }
       `}</style>
+
+      {/* ── Zoom Modal ── */}
+      {zoomedIdx !== null && detectionHistory[zoomedIdx] && (
+        <ZoomModal
+          card={detectionHistory[zoomedIdx]}
+          index={zoomedIdx}
+          total={detectionHistory.length}
+          color={color}
+          palette={palette}
+          onClose={() => setZoomedIdx(null)}
+          onDelete={(id) => { deleteCard(id); setZoomedIdx(null); }}
+          onPrev={zoomedIdx > 0 ? () => setZoomedIdx(i => i - 1) : null}
+          onNext={zoomedIdx < detectionHistory.length - 1 ? () => setZoomedIdx(i => i + 1) : null}
+        />
+      )}
     </div>
   );
 };

@@ -113,38 +113,102 @@ const MapCenter = () => {
         }
     };
 
+    // CORS-enabled Overpass mirrors for browser-side fallback (mail.ru removed — 403)
+    const OVERPASS_DIRECT = [
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.openstreetmap.fr/api/interpreter',
+        'https://overpass.private.coffee/api/interpreter',
+    ];
+
+    // ── Parse raw Overpass elements into app vet objects ─────────────────────
+    const parseOverpassElements = (elements, lat, lon) =>
+        elements
+            .filter(el => el.lat != null || el.center != null)
+            .map(el => {
+                const elLat = el.lat ?? el.center.lat;
+                const elLon = el.lon ?? el.center.lon;
+                const tags  = el.tags || {};
+                const addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean);
+                return {
+                    id: `osm-${el.id}`, type: 'vet', osm: true,
+                    name: tags.name || tags['name:fr'] || tags['name:ar'] || 'Clinique Vétérinaire',
+                    coords: [elLat, elLon],
+                    distance: haversine(lat, lon, elLat, elLon),
+                    properties: {
+                        name:          tags.name || 'Clinique Vétérinaire',
+                        specialty:     tags.veterinary || tags['veterinary:for'] || 'Médecine Vétérinaire',
+                        phone:         tags.phone || tags['contact:phone'] || null,
+                        website:       tags.website || tags['contact:website'] || null,
+                        address:       addrParts.length ? addrParts.join(', ') : (tags['addr:full'] || null),
+                        opening_hours: tags.opening_hours || null,
+                    },
+                };
+            })
+            .filter(v => v.distance <= 100)
+            .sort((a, b) => a.distance - b.distance);
+
+    // ── LocalStorage cache (6 h TTL, invalidated if position moves > 10 km) ──
+    const OVERPASS_CACHE_KEY = 'smartfarm_overpass_vets';
+    const OVERPASS_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 h in ms
+
+    const getCachedVets = (lat, lon) => {
+        try {
+            const raw = localStorage.getItem(OVERPASS_CACHE_KEY);
+            if (!raw) return null;
+            const { elements, ts, clat, clon } = JSON.parse(raw);
+            const age  = Date.now() - ts;
+            const dist = haversine(lat, lon, clat, clon);
+            if (age < OVERPASS_CACHE_TTL && dist < 10) return elements;
+        } catch { /* corrupt cache */ }
+        return null;
+    };
+
+    const setCachedVets = (lat, lon, elements) => {
+        try {
+            localStorage.setItem(OVERPASS_CACHE_KEY, JSON.stringify(
+                { elements, ts: Date.now(), clat: lat, clon: lon }
+            ));
+        } catch { /* quota full — skip */ }
+    };
+
     const fetchOSMVets = async (lat, lon) => {
+        // Return cached data immediately if still fresh
+        const cached = getCachedVets(lat, lon);
+        if (cached) {
+            const parsed = parseOverpassElements(cached, lat, lon);
+            setOsmVets(parsed);
+            return;
+        }
+
         setIsFetchingOSMVets(true);
         try {
             const query = `[out:json][timeout:30];(node["amenity"="veterinary"](around:100000,${lat},${lon});way["amenity"="veterinary"](around:100000,${lat},${lon}););out center;`;
-            // Use backend proxy to avoid browser CORS restrictions on Overpass API
-            const res = await api.post('/geo/overpass', { query });
-            const data = res.data;
+
+            let data = null;
+
+            // 1️⃣ Backend proxy (all mirrors in parallel on server side)
+            try {
+                const res = await api.post('/geo/overpass', { query });
+                data = res.data;
+            } catch {
+                // 2️⃣ Direct browser fetch to CORS-enabled mirrors
+                console.warn('Overpass proxy unavailable, trying direct CORS mirrors…');
+                for (const mirror of OVERPASS_DIRECT) {
+                    try {
+                        const r = await fetch(mirror, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: `data=${encodeURIComponent(query)}`,
+                            signal: AbortSignal.timeout(20000),
+                        });
+                        if (r.ok) { data = await r.json(); break; }
+                    } catch { /* try next */ }
+                }
+            }
             if (!data) return;
-            const parsed = (data.elements || [])
-                .filter(el => el.lat != null || el.center != null)
-                .map(el => {
-                    const elLat = el.lat ?? el.center.lat;
-                    const elLon = el.lon ?? el.center.lon;
-                    const tags = el.tags || {};
-                    const addrParts = [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean);
-                    return {
-                        id: `osm-${el.id}`, type: 'vet', osm: true,
-                        name: tags.name || tags['name:fr'] || tags['name:ar'] || 'Clinique Vétérinaire',
-                        coords: [elLat, elLon],
-                        distance: haversine(lat, lon, elLat, elLon),
-                        properties: {
-                            name: tags.name || 'Clinique Vétérinaire',
-                            specialty: tags.veterinary || tags['veterinary:for'] || 'Médecine Vétérinaire',
-                            phone: tags.phone || tags['contact:phone'] || null,
-                            website: tags.website || tags['contact:website'] || null,
-                            address: addrParts.length ? addrParts.join(', ') : (tags['addr:full'] || null),
-                            opening_hours: tags.opening_hours || null,
-                        }
-                    };
-                })
-                .filter(v => v.distance <= 100)
-                .sort((a, b) => a.distance - b.distance);
+            // Cache raw elements for next load
+            setCachedVets(lat, lon, data.elements || []);
+            const parsed = parseOverpassElements(data.elements || [], lat, lon);
             setOsmVets(parsed);
         } catch (err) {
             console.error('Overpass fetch failed:', err);

@@ -1,0 +1,314 @@
+% ============================================================
+%  FICHIER ISOLÉ — Section 4.3.10 Captures d'écran
+%  Smart Farm AI v3.0 — Mohamed Sayari
+%
+%  UTILISATION OVERLEAF / AUTRE ÉDITEUR CLOUD :
+%    1) Téléversez ce fichier
+%    2) Téléversez vos 15 captures dans un dossier "screenshots/"
+%    3) Collez \input{ch4_screenshots_only} dans votre document maître
+%       (ou compilez de manière autonome avec le préambule ci-dessous)
+%
+%  COMPILATION AUTONOME (décommentez le bloc ci-dessous) :
+% \documentclass[12pt,a4paper]{article}
+% \usepackage[utf8]{inputenc}
+% \usepackage[T1]{fontenc}
+% \usepackage[french]{babel}
+% \usepackage{graphicx}
+% \graphicspath{{screenshots/}}
+% \usepackage{caption,subcaption,float}
+% \begin{document}
+% ============================================================
+
+% ── 4.3.10 Captures d'écran réelles de l'application ─────────────────────────
+\subsection{Captures d'écran réelles de l'application}
+
+Les captures d'écran suivantes illustrent l'interface réelle de Smart Farm
+AI~v3.0 en cours d'exécution. Elles couvrent les neuf modules du tableau de
+bord propriétaire (SPA React~18/Vite~5) et les six écrans principaux de
+l'application mobile Worker PWA (Android, mode hors-ligne). Les images sont
+organisées selon les deux profils d'accès de la plateforme.
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  GROUPE 1 — Interface Propriétaire
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection*{Interface Propriétaire}
+
+% ── S01 : Landing Page ───────────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.88\linewidth]{screenshots/s01_landing.png}
+\caption{Page d'accueil (Landing Page) --- point d'entrée unique avec accès
+distinct Propriétaire (JWT HS256) et Ouvrier PWA (WhatsApp OTP).}
+\label{fig:s01_landing}
+\end{figure}
+
+La page d'accueil constitue le point d'entrée unique de la plateforme.
+Elle présente l'identité visuelle de Smart Farm AI~v3.0 et propose deux
+boutons d'accès distincts~: l'interface propriétaire (tableau de bord complet
+protégé par JWT HS256) et l'application mobile ouvrière (flux WhatsApp OTP
+sans mot de passe). Cette page est servie statiquement par Nginx en production
+et bénéficie d'un score Lighthouse PWA de~92/100, avec prise en charge du
+protocole d'installation sur Android et iOS.
+
+% ── S02 : Tableau de bord + détection incendie ───────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s02_dashboard.png}
+\caption{Tableau de bord principal (Owner) --- KPIs temps réel, jauges IoT
+ESP32, carte GIS et alerte de détection de fumée d'incendie par YOLOv11.}
+\label{fig:s02_dashboard}
+\end{figure}
+
+Le tableau de bord agrège en une vue unique les indicateurs critiques de
+l'exploitation~: nombre d'animaux actifs, alertes non lues, température
+moyenne IoT et production journalière. Les jauges circulaires Recharts
+affichent en temps réel l'humidité du sol (Nœud~A, DHT22) et le poids de
+la ruche (Nœud~B, HX711). Un bandeau d'alerte rouge signale la détection de
+fumée d'incendie par le modèle YOLOv11 déployé sur la caméra de surveillance,
+avec localisation de la zone concernée sur la mini-carte GIS intégrée.
+Les alertes sont diffusées simultanément par WebSocket et par notification
+WhatsApp Business aux responsables de la ferme.
+
+% ── S03 : Gestion du Bétail ──────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s03_livestock.png}
+\caption{Module Gestion du Bétail --- inventaire par espèce (6~catégories~:
+bovins, ovins, caprins, volailles, lapins, abeilles) avec fiches détaillées
+et score de santé individuel.}
+\label{fig:s03_livestock}
+\end{figure}
+
+L'interface de gestion du bétail affiche six cartes d'espèces avec le nombre
+de têtes actives, le score de santé moyen (calculé par moyenne pondérée des
+dernières visites vétérinaires) et le statut d'alerte éventuel. Chaque carte
+donne accès aux fiches individuelles, aux journaux de soins (vaccinations,
+traitements médicamenteux), à l'historique de pesée et aux diagnostics IA
+associés. Les données sont filtrables par ferme, par statut sanitaire et par
+période temporelle. Le module supporte l'ajout d'animaux en lot via import CSV.
+
+% ── S04 : Arbres & Plantations — YOLO Disease Detection ─────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s04_plants.png}
+\caption{Module Arbres et Plantations --- détection de maladies foliaires
+par YOLOv11 (mildiou, rouille, brûlure bactérienne) avec score de confiance
+et recommandation Darija automatique.}
+\label{fig:s04_plants}
+\end{figure}
+
+Le module végétal permet l'analyse phytosanitaire par upload d'image ou
+capture directe depuis la caméra du dispositif. Le modèle YOLOv11 entraîné
+sur un corpus de~3\,200 images annotées (mildiou, rouille, brûlure bactérienne,
+déficit hydrique) affiche les boîtes englobantes colorées par classe et le
+score de confiance associé. L'assistant Darija génère automatiquement une
+recommandation de traitement en dialecte tunisien (Labess-7B via Ollama,
+fallback Groq llama-3.3-70b), avec les sources RAG extraites de la base
+ChromaDB (fiches AVFA, INRAT) affichées en regard du résultat.
+
+% ── S05 : APICRAFT Apiculture — YOLO Bee Detection ───────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s05_apiculture.png}
+\caption{Module APICRAFT Apiculture --- détection YOLO des abeilles et
+de la reine (35~ouvrières + 1~reine, confiance~95--97\%) sur image de cadre
+de ruche en cours d'analyse.}
+\label{fig:s05_apiculture}
+\end{figure}
+
+L'interface apicole APICRAFT intègre la détection visuelle des insectes par
+le modèle yolo26n-obb entraîné sur~1\,847 images annotées (deux classes~:
+\textit{bee} et \textit{queen}). Sur l'exemple présenté, le modèle identifie
+35~ouvrières et~1~reine avec des scores de confiance de~95 à~97\%,
+permettant une évaluation automatique de la densité de la colonie.
+Le score COLOSS est mis à jour après chaque analyse, et une alerte est levée
+si la reine n'est pas détectée dans les~72\,h suivant la dernière visite
+documentée. L'historique des détections est persisté dans
+\texttt{DiagnosticHistory} pour suivi longitudinal de la colonie.
+
+% ── S06 : Entrepôt ───────────────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s06_warehouse.png}
+\caption{Module Entrepôt de la Ferme --- 10~catégories, 59~articles, gestion
+des stocks avec alertes de seuil minimal configurable et assistant IA en arabe.}
+\label{fig:s06_warehouse}
+\end{figure}
+
+Le gestionnaire d'entrepôt organise les approvisionnements en 10~catégories
+(alimentation animale, médicaments vétérinaires, équipements apicoles,
+intrants agricoles, outils, etc.) pour un total de~59~références actives.
+Chaque article dispose d'un seuil d'alerte minimal configurable~: lorsque le
+stock descend en dessous du seuil, une alerte apparaît dans le tableau de bord
+et est diffusée via WebSocket en temps réel. Un assistant IA intégré accepte
+les requêtes en arabe et en français pour rechercher des articles, vérifier
+les niveaux de stock ou suggérer des commandes de réapprovisionnement basées
+sur la consommation historique des 30~derniers jours.
+
+% ── S07 : SovereignAssistant Darija ──────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s07_assistant.png}
+\caption{SovereignAssistant --- interface conversationnelle Darija avec
+historique des sessions, sources RAG ChromaDB et métriques qualité
+(BLEU-4\,=\,0.68, ROUGE-L\,=\,0.72) affichées en temps réel.}
+\label{fig:s07_assistant}
+\end{figure}
+
+L'assistant souverain Darija offre une interface conversationnelle en dialecte
+tunisien agricole~: le panneau gauche affiche l'historique des sessions
+précédentes (persisté dans \texttt{DiagnosticHistory}), tandis que le panneau
+droit présente la réponse générée par Labess-7B accompagnée des~3 sources
+ChromaDB les plus pertinentes (top-3 HNSW, similarité cosinus). Les métriques
+de qualité BLEU-4\,=\,0.68, ROUGE-L\,=\,0.72 et Cohen's~$\kappa$\,=\,0.76
+sont affichées en bas de chaque réponse pour permettre à l'agriculteur
+d'évaluer la fiabilité des conseils reçus. L'interface accepte également
+des images (LLaVA-7B pour la description visuelle) et des documents PDF scannés
+(OCR Tesseract \texttt{fra+ara+eng}).
+
+% ── S08 : Rapports Stratégiques (Arabic RTL) ─────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s08_reports.png}
+\caption{Module Rapports Stratégiques --- moteur de génération IA en arabe (RTL)
+avec exports PDF/Excel et historique des rapports classés par ferme et par type.}
+\label{fig:s08_reports}
+\end{figure}
+
+Le module de rapports exploite le LLM pour générer automatiquement des analyses
+stratégiques en arabe (mise en page RTL native via la propriété CSS
+\texttt{direction: rtl} et \texttt{text-align: right}), en français ou en anglais.
+Quatre types de rapports sont disponibles~: rapport mensuel zootechnique,
+rapport sanitaire vétérinaire, analyse financière et bilan apicole saisonnier.
+Chaque rapport embarque des graphiques Recharts, des tableaux de données et une
+section de recommandations générée par Groq llama-3.3-70b. L'export PDF est
+réalisé côté client via \texttt{html2canvas}~+~\texttt{jsPDF}, et l'export Excel
+via \texttt{xlsx}. Les rapports sont sauvegardés en base et consultables depuis
+l'historique filtrable par ferme et par période.
+
+% ── S09 : Architecture / À Propos du Projet ──────────────────────────────────
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{screenshots/s09_architecture.png}
+\caption{Page Architecture (À Propos du Projet) --- diagramme interactif
+Three.js des 9~modules, flux de données animés et technologies clés.}
+\label{fig:s09_architecture}
+\end{figure}
+
+La page «~À Propos du Projet~» présente l'architecture technique complète
+de Smart Farm AI~v3.0 sous forme d'un diagramme interactif Three.js~: les
+neuf modules fonctionnels (Vision IA, Apiculture, Aviculture ERP, Entrepôt,
+Cartographie GIS, Agent Darija, Télémétrie IoT, Rapports, PWA Worker) sont
+représentés comme des nœuds orbitaux autour du cœur FastAPI, avec les flux de
+données animés (WebSocket, REST, MQTT, RAG) rendus par un shader GLSL
+personnalisé. Cette page sert à la fois de documentation visuelle pour les
+développeurs et de vitrine technologique pour les parties prenantes du projet.
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  GROUPE 2 — Application Mobile Worker PWA
+% ─────────────────────────────────────────────────────────────────────────────
+\subsubsection*{Application Mobile Worker PWA}
+
+Les six écrans suivants illustrent l'application mobile ouvrière installée
+sur Android en tant que PWA. L'interface adopte un thème sombre adapté aux
+conditions lumineuses variables du terrain (champs, étables, ruchers), avec
+des zones de frappe conformes aux recommandations WCAG~2.1
+($\geq$~44\,px).
+
+% ── S10 + S11 : Login + Home ─────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/s10_worker_login.png}
+  \caption{Connexion OTP WhatsApp --- numéro, envoi du code, validation}
+  \label{fig:s10_worker_login}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/s11_worker_home.png}
+  \caption{Écran d'accueil ouvrier --- résumé tâches du jour, météo, sync}
+  \label{fig:s11_worker_home}
+\end{subfigure}
+\caption{PWA Worker --- authentification WhatsApp OTP et écran d'accueil mobile.}
+\label{fig:s10s11_worker}
+\end{figure}
+
+L'écran de connexion guide l'ouvrier en deux étapes~: saisie du numéro WhatsApp
+enregistré par le propriétaire, puis validation du code OTP à~6 chiffres reçu
+par message WhatsApp Business (TTL~5\,min). Aucun mot de passe n'est mémorisé
+sur l'appareil~; le token JWT de~7~jours est stocké dans le \texttt{localStorage}
+chiffré du Service Worker. L'écran d'accueil affiche un résumé des tâches
+assignées pour la journée, la météo locale (OpenMeteo, sans clé API), le statut
+de la connexion réseau (icône de synchronisation verte/orange) et la date de la
+dernière synchronisation avec le backend FastAPI.
+
+% ── S12 + S13 : Tâches + Signaler ────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/s12_worker_tasks.png}
+  \caption{Liste des tâches prioritaires --- vaccination, alimentation, ruches}
+  \label{fig:s12_worker_tasks}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/s13_worker_report.png}
+  \caption{Formulaire Signaler --- photo, géolocalisation GPS, notes textuelles}
+  \label{fig:s13_worker_report}
+\end{subfigure}
+\caption{PWA Worker --- liste des tâches et formulaire de signalement terrain.}
+\label{fig:s12s13_worker}
+\end{figure}
+
+La liste des tâches affiche les missions assignées par le propriétaire, triées
+par priorité (URGENT en rouge, NORMAL en orange) et horodatées. Les tâches de
+vaccination bovine et de collecte d'œufs apparaissent en priorité critique.
+L'ouvrier peut marquer une tâche comme terminée d'un appui long ou via le bouton
+de validation~; l'action est immédiatement enregistrée dans Dexie IndexedDB pour
+synchronisation différée au rétablissement de la connexion. Le formulaire
+\textit{Signaler} permet de joindre une photo (caméra ou galerie), d'associer
+automatiquement la géolocalisation GPS et de saisir des notes textuelles libres,
+entièrement fonctionnel hors-ligne grâce à la file d'attente IndexedDB.
+
+% ── S14 + S15 : Paramètres + Scanner ─────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/s14_worker_settings.png}
+  \caption{Paramètres et synchronisation --- file Dexie, statut Service Worker}
+  \label{fig:s14_worker_settings}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/s15_worker_scanner.png}
+  \caption{Scanner YOLO terrain --- sélection du modèle (bétail / ruche / plantes / incendie)}
+  \label{fig:s15_worker_scanner}
+\end{subfigure}
+\caption{PWA Worker --- synchronisation hors-ligne et scanner YOLO de terrain.}
+\label{fig:s14s15_worker}
+\end{figure}
+
+L'écran de paramètres affiche l'état de la file d'attente Dexie IndexedDB
+(nombre d'opérations en attente, date de la dernière synchronisation réussie)
+et permet de déclencher une synchronisation manuelle. Le statut du Service Worker
+(actif/inactif) et la version du cache PWA installée sont visibles, avec un
+bouton «~Mettre à jour~» qui recharge le Service Worker si une nouvelle version
+est disponible via le backend. L'écran scanner donne accès aux quatre modèles
+YOLO déployés sur l'appareil~: \textit{Bétail} (bovins, ovins, caprins),
+\textit{Ruche} (yolo26n-obb, abeilles + reine), \textit{Plantes} (maladies
+foliaires) et \textit{Incendie} (détection fumée/flammes). L'ouvrier sélectionne
+le modèle adapté à sa situation, capture ou importe une image, et reçoit le
+résultat d'inférence ($\leq$~180\,ms CPU) avec une recommandation Darija
+générée localement par Labess-7B ou via Groq llama-3.3-70b en mode fallback.
+
+% ============================================================
+%  FIN DU FICHIER ISOLÉ
+%  Pour la compilation autonome, décommentez : \end{document}
+% \end{document}
+% ============================================================
