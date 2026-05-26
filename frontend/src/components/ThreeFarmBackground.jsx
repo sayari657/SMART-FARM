@@ -44,7 +44,7 @@ const ThreeFarmBackground = () => {
             azimuth={[-Math.PI / 4, Math.PI / 4]}
           >
             <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
-              <Model url="/models/farm.glb" />
+              <Model url="https://raw.githubusercontent.com/sayari657/SMART-FARM/main/frontend/public/models/farm.glb" />
             </Float>
           </PresentationControls>
 
