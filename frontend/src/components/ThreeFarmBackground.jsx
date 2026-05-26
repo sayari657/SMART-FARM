@@ -29,7 +29,7 @@ const ThreeFarmBackground = () => {
       pointerEvents: 'none',
       background: '#1a1a1a' // Dark background like the reference image
     }}>
-      <Canvas shadows dpr={[1, 2]}>
+      <Canvas shadows dpr={[1, 1.5]} gl={{ powerPreference: 'low-power', antialias: false }}>
         <PerspectiveCamera makeDefault position={[45, 35, 1]} fov={40} />
         <Suspense fallback={null}>
           {/* Using "sunset" for vibrant, high-contrast colors */}

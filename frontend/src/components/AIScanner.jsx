@@ -386,7 +386,15 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         setTimeout(() => { setDetectionHistory(curr => { generateAIReport(curr.slice(0, REPORT_EVERY)); return curr; }); }, 300);
       }
       if (onAnalysisComplete) onAnalysisComplete({ ...res.data, imageUrl });
-    } catch { setError('Erreur IA.'); } finally { if (!isBatch) setIsProcessing(false); }
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      const status = err?.response?.status;
+      if (status === 503) {
+        setError('Modèles IA non disponibles en mode cloud. Utilisez le chat texte avec l\'assistant.');
+      } else {
+        setError(detail || 'Erreur IA.');
+      }
+    } finally { if (!isBatch) setIsProcessing(false); }
   }, [category, onAnalysisComplete, generateAIReport]);
 
   const takePhoto = useCallback(() => {

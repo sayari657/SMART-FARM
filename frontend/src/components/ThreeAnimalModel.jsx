@@ -10,7 +10,7 @@ function Model({ url, scale = 1, rotation = [0, 0, 0] }) {
 const ThreeAnimalModel = ({ modelUrl, scale = 1.5, rotation = [0, 0, 0] }) => {
   return (
     <div style={{ width: '100%', height: '200px', position: 'relative' }}>
-      <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 0, 4], fov: 40 }}>
+      <Canvas shadows dpr={[1, 1.5]} frameloop="demand" camera={{ position: [0, 0, 4], fov: 40 }} gl={{ powerPreference: 'low-power', antialias: false }}>
         <Suspense fallback={null}>
           <Environment preset="city" />
           <PresentationControls

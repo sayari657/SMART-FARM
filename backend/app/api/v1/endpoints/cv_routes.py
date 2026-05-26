@@ -213,10 +213,12 @@ def models_health():
 
 @router.get("/models/{category}/metadata")
 def get_model_metadata(category: str):
+    if settings.LITE_MODE:
+        return {"category": category, "names": {}, "available": False, "reason": "lite_mode"}
     model = get_yolo_model(category)
     if not model:
-        raise HTTPException(status_code=404, detail="Model not found")
-    return {"category": category, "names": model.names}
+        return {"category": category, "names": {}, "available": False, "reason": "model_not_found"}
+    return {"category": category, "names": model.names, "available": True}
 
 @router.get("/stats/plants")
 def plant_cv_stats(
@@ -290,7 +292,10 @@ async def detect_in_file(
         try:
             model = await run_in_threadpool(get_yolo_model, category)
             if not model:
-                raise HTTPException(status_code=500, detail=f"IA {category} non prête.")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Modèle IA '{category}' non disponible sur ce serveur (mode cloud sans fichiers YOLO)."
+                )
 
             contents = await file.read()
             image = Image.open(io.BytesIO(contents))
