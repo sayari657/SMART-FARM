@@ -1,7 +1,6 @@
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any
 from app.services.weather_service import weather_service
-from app.services.agro_service import agro_service
 from app.services.mllm_service import mllm_service
 from app.services.rag_service import rag_service
 from app.models.domain import Farm
@@ -15,7 +14,7 @@ class RecommendationService:
     async def generate_recommendations(self, farm: Farm, plant_query: str = "grass") -> Dict[str, Any]:
         """Combine Weather, Telemetry, and Sovereign RAG/MLLM into recommendations."""
         recs = []
-        
+
         # 1. Weather based
         weather_summary = ""
         if farm.latitude and farm.longitude:
@@ -47,11 +46,11 @@ class RecommendationService:
                         "action": "Secure outdoor equipment and check hive anchoring.",
                         "reason": f"Wind speed: {wind} km/h — above 40 km/h threshold."
                     })
-        
+
         # 2. RAG based Wisdom (Species specific deduplication)
         # We group by species to avoid repetitive cards if there are multiple units of the same type
         farm_species = {unit.animal_type.species for unit in farm.units if unit.animal_type}
-        
+
         for species in farm_species:
             # Enhanced query including weather context for better RAG matching
             context_query = f"Recommendations for {species} managing {weather_summary}"
@@ -60,15 +59,16 @@ class RecommendationService:
                 species=species,
                 n_results=2
             )
-            
+
             if wisdom:
                 # Deduplicate identical wisdom snippets and combine them
                 unique_wisdom = []
                 for w in wisdom:
-                    if w not in unique_wisdom: unique_wisdom.append(w)
-                
+                    if w not in unique_wisdom:
+                        unique_wisdom.append(w)
+
                 combined_action = " ".join([w[:300] for w in unique_wisdom])
-                
+
                 recs.append({
                     "type": "sovereign_rag",
                     "title": f"Expertise Locale: {species.capitalize()}",

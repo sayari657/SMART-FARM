@@ -55,9 +55,9 @@ def get_yolo_model(category: str = "bee"):
     key = category.lower()
     if any(k in key for k in ["cow", "goat", "sheep"]):
         key = "livestock"
-    
+
     path = MODEL_REGISTRY.get(key, MODEL_REGISTRY["bee"])
-    
+
     if key not in _models:
         if os.path.exists(path):
             try:
@@ -280,7 +280,7 @@ def plant_recent_events(
 
 @router.post("/detect")
 async def detect_in_file(
-    file: UploadFile = File(...), 
+    file: UploadFile = File(...),
     category: Optional[str] = Query("bee"),
     db: Session = Depends(get_db),
     _=Depends(get_current_user)
@@ -291,19 +291,20 @@ async def detect_in_file(
             model = await run_in_threadpool(get_yolo_model, category)
             if not model:
                 raise HTTPException(status_code=500, detail=f"IA {category} non prête.")
-            
+
             contents = await file.read()
             image = Image.open(io.BytesIO(contents))
-            
+
             start_t = time.time()
             results = await run_in_threadpool(model.predict, image, conf=0.25)
             logger.info(f"[YOLO] OK in {(time.time()-start_t)*1000:.1f}ms")
-            
+
             detections = []
             img_w, img_h = image.size
             for r in results:
                 items = getattr(r, 'obb', None) or getattr(r, 'boxes', None)
-                if not items: continue
+                if not items:
+                    continue
                 for item in items:
                     cls_id = int(item.cls[0])
                     bbox_raw = (item.xywhr[0] if hasattr(item, 'xywhr') else item.xywh[0]).tolist()
@@ -316,7 +317,7 @@ async def detect_in_file(
                             bbox_raw[4] if len(bbox_raw) > 4 else 0
                         ]
                     })
-            
+
             # Auto-ingest high priority detections (Fire/Smoke)
             # Some models use numeric labels (0, 1, 2, 3, 4) for fire levels/zones
             priority_classes = ['fire', 'smoke', 'incendie', '0', '1', '2', '3', '4']
@@ -366,10 +367,10 @@ async def detect_in_file(
                             logger.info(f"[YOLO] Emergency alert created for {det['label']}")
                         except Exception as ingest_err:
                             logger.error(f"Ingest Error: {ingest_err}")
-            
+
             return {
-                "filename": file.filename, 
-                "detections": detections, 
+                "filename": file.filename,
+                "detections": detections,
                 "count": len(detections),
                 "status": "success"
             }

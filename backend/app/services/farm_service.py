@@ -61,7 +61,6 @@ class AnimalService:
 
     def create_animal(self, data: AnimalUnitCreate):
         # Verify the farm and animal type exist
-        from app.repositories.farm_repo import FarmRepository
         # type check only; farm_repo would raise if not found
         return self.repo.create(data.model_dump())
 
@@ -80,5 +79,4 @@ class AnimalService:
         return self.type_repo.get_all()
 
     def create_type(self, data):
-        from app.schemas.domain import AnimalTypeCreate
         return self.type_repo.create(data.model_dump())

@@ -17,27 +17,27 @@ class WeatherService:
             "longitude": lon,
             "current": "temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation"
         }
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(self.base_url, params=params)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 if "current" in data:
                     current_data = data["current"]
-                    
+
                     # Risk assessment
                     heat_stress = current_data.get("temperature_2m", 0) > 35
                     cold_stress = current_data.get("temperature_2m", 0) < 5
                     storm_risk = current_data.get("wind_speed_10m", 0) > 40
-                    
+
                     risks = {
                         "heat_stress": heat_stress,
                         "cold_stress": cold_stress,
                         "storm_risk": storm_risk,
                     }
-                    
+
                     return {
                         "temperature": current_data.get("temperature_2m"),
                         "humidity": current_data.get("relative_humidity_2m"),
@@ -61,7 +61,7 @@ class WeatherService:
             "hourly": "temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m",
             "forecast_days": days
         }
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(self.base_url, params=params)

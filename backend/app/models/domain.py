@@ -5,7 +5,7 @@ Full enterprise schema supporting multi-species farm monitoring.
 
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean,
-    ForeignKey, DateTime, Text, JSON, Enum, Index, UniqueConstraint
+    ForeignKey, DateTime, Text, JSON, Index, UniqueConstraint
 )
 try:
     from geoalchemy2 import Geometry  # type: ignore[import-untyped]
@@ -13,7 +13,7 @@ try:
 except ImportError:
     HAS_GEOALCHEMY = False
     Geometry = None  # type: ignore[assignment,misc]
-    
+
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum

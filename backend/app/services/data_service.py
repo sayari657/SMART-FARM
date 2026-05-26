@@ -2,7 +2,7 @@
 Smart Farm AI - Telemetry, CV, Anomaly, Alert, Recommendation, Report, Settings Services
 """
 
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -11,11 +11,10 @@ from app.repositories.data_repo import (
     TelemetryRepository, CVEventRepository, AnomalyRepository,
     AlertRepository, RecommendationRepository, ReportRepository, SettingsRepository
 )
-from app.repositories.farm_repo import AnimalUnitRepository, FarmRepository
+from app.repositories.farm_repo import AnimalUnitRepository
 from app.schemas.domain import (
     TelemetryCreate, CVEventCreate, AlertCreate,
-    RecommendationCreate, ReportGenerateRequest, SettingCreate, SettingUpdate,
-    AlertResolve, DashboardStats
+    RecommendationCreate, ReportGenerateRequest, SettingCreate, DashboardStats
 )
 from app.models.domain import Report, AnimalUnit
 
@@ -157,7 +156,6 @@ class ReportService:
 
     def generate(self, data: ReportGenerateRequest):
         """Build summary stats and persist report."""
-        from sqlalchemy import func as sqlfunc
         db = self.repo.db
 
         # Count units in farm
@@ -210,9 +208,9 @@ class ReportService:
         Build an intelligent strategic report using AI.
         """
         from app.services.mllm_service import mllm_service
-        from app.models.domain import Alert, Anomaly, AnimalUnit, AnimalType
+        from app.models.domain import Alert, Anomaly, AnimalUnit
         db = self.repo.db
-        
+
         # 1. Collect Data
         animal_count = db.query(func.count(AnimalUnit.id)).filter(AnimalUnit.farm_id == farm_id).scalar() or 0
         avg_health = db.query(func.avg(AnimalUnit.health_score)).filter(AnimalUnit.farm_id == farm_id).scalar() or 0
@@ -222,7 +220,7 @@ class ReportService:
         critical_alerts = db.query(func.count(Alert.id)).join(AnimalUnit).filter(
             AnimalUnit.farm_id == farm_id, Alert.is_resolved == False, Alert.severity == "critical"
         ).scalar() or 0
-        
+
         recent_anomalies = db.query(Anomaly.anomaly_type).join(AnimalUnit).filter(
             AnimalUnit.farm_id == farm_id
         ).order_by(Anomaly.timestamp.desc()).limit(5).all()
@@ -236,9 +234,9 @@ class ReportService:
             "critical_alerts": critical_alerts,
             "top_anomalies": top_anomalies
         }
-        
+
         summary_text = await mllm_service.generate_strategic_report(stats)
-        
+
         # 3. Save Report
         title = f"Rapport Intelligent ({report_type.capitalize()}) — {datetime.now().strftime('%d/%m/%Y')}"
         report = Report(
@@ -288,12 +286,12 @@ class DashboardService:
     def get_stats(self) -> DashboardStats:
         from app.models.domain import Farm, AnimalUnit, AnimalType, Alert, Anomaly, BeeHive
         total_farms = self.db.query(func.count(Farm.id)).scalar() or 0
-        
+
         # Count classic animal units
         total_units = self.db.query(func.count(AnimalUnit.id)).scalar() or 0
         # Count bee hives from Smart Bee module
         total_hives = self.db.query(func.count(BeeHive.id)).scalar() or 0
-        
+
         active_alerts = self.db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar() or 0
         critical_alerts = self.db.query(func.count(Alert.id)).filter(
             Alert.is_resolved == False, Alert.severity == "critical"
@@ -311,9 +309,9 @@ class DashboardService:
             .group_by(AnimalType.species)
             .all()
         )
-        
+
         species_counts = dict(species_counts_list)
-        
+
         # Add bees from Smart Bee module if any
         if total_hives > 0:
             species_counts["bee"] = species_counts.get("bee", 0) + total_hives

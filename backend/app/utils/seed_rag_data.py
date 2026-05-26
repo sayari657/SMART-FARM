@@ -1,5 +1,4 @@
 import asyncio
-import uuid
 import logging
 from app.services.rag_service import rag_service
 
@@ -36,17 +35,17 @@ KNOWLEDGE_SAMPLES = [
 
 async def seed_rag():
     logger.info("Starting Sovereign RAG Seeding...")
-    
+
     documents = [s["doc"] for s in KNOWLEDGE_SAMPLES]
     metadatas = [{"species": s["species"], **s["meta"]} for s in KNOWLEDGE_SAMPLES]
     ids = [s["id"] for s in KNOWLEDGE_SAMPLES]
-    
+
     await rag_service.add_knowledge_pack(
         documents=documents,
         metadatas=metadatas,
         ids=ids
     )
-    
+
     logger.info("Seeding complete. local knowledge base is now active.")
 
 if __name__ == "__main__":

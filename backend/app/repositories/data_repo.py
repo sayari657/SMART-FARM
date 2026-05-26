@@ -2,7 +2,7 @@
 Smart Farm AI - Telemetry, CV, Anomaly, Alert, Recommendation, Report, Settings Repositories
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Any
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc

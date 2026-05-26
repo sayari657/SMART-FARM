@@ -91,7 +91,8 @@ class AuthService:
         try:
             otp_service.send_otp_whatsapp(phone_number)
         except Exception:
-            import random as _r, logging as _log
+            import random as _r
+            import logging as _log
             otp = str(_r.randint(100000, 999999))
             otp_service.OTP_STORE[f"whatsapp:{phone_number}"] = otp
             _log.getLogger(__name__).warning(f"[DEV] WhatsApp non configuré — OTP pour {phone_number} dans OTP_STORE")
@@ -143,7 +144,7 @@ class AuthService:
         user = self.db.query(User).filter(User.phone_number == phone_number).first()
         if not user:
             raise HTTPException(status_code=404, detail="Numéro de téléphone introuvable.")
-        
+
         # Generate 5-digit OTP
         otp = str(random.randint(10000, 99999))
         MOCK_OTP_STORE[phone_number] = otp
@@ -153,16 +154,16 @@ class AuthService:
         user = self.db.query(User).filter(User.phone_number == phone_number).first()
         if not user:
             raise HTTPException(status_code=404, detail="Numéro de téléphone introuvable.")
-        
+
         # Verify OTP
         stored_otp = MOCK_OTP_STORE.get(phone_number)
         if not stored_otp or stored_otp != otp:
             raise HTTPException(status_code=400, detail="Code OTP invalide ou expiré.")
-        
+
         # Update password
         user.password_hash = hash_password(new_password)
         self.db.commit()
-        
+
         # Clear OTP
         del MOCK_OTP_STORE[phone_number]
         return True

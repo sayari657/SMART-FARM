@@ -288,17 +288,17 @@ def get_batch_pnl(batch_id: int, db: Session = Depends(get_db)):
     health_logs  = db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id == batch_id).all()
     sales        = db.query(PoultrySale).filter(PoultrySale.batch_id == batch_id).all()
 
-    total_feed_cost   = sum((l.quantity_kg or 0) * (l.cost_per_kg or 0) for l in feed_logs)
-    total_health_cost = sum(l.cost or 0 for l in health_logs)
+    total_feed_cost   = sum((fl.quantity_kg or 0) * (fl.cost_per_kg or 0) for fl in feed_logs)
+    total_health_cost = sum(hl.cost or 0 for hl in health_logs)
     total_revenue     = sum(s.total_amount or 0 for s in sales)
     total_costs       = total_feed_cost + total_health_cost
     margin            = total_revenue - total_costs
     margin_pct        = (margin / total_revenue * 100) if total_revenue > 0 else 0.0
 
-    total_deaths   = sum(l.deaths_today or 0 for l in health_logs)
+    total_deaths   = sum(hl.deaths_today or 0 for hl in health_logs)
     mortality_rate = (total_deaths / batch.initial_quantity * 100) if batch.initial_quantity else 0.0
 
-    valid_fcr = [l.fcr_calculated for l in feed_logs if l.fcr_calculated]
+    valid_fcr = [fl.fcr_calculated for fl in feed_logs if fl.fcr_calculated]
     avg_fcr   = sum(valid_fcr) / len(valid_fcr) if valid_fcr else None
 
     return {
@@ -327,11 +327,11 @@ def get_farm_poultry_stats(farm_id: int, db: Session = Depends(get_db)):
     feed_logs    = db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id.in_(batch_ids)).all()
 
     total_birds   = sum(b.current_quantity or 0 for b in active)
-    eggs_today    = sum(l.total_eggs for l in egg_logs if l.date and str(l.date)[:10] == today_str)
-    total_deaths  = sum(l.deaths_today or 0 for l in health_logs)
+    eggs_today    = sum(el.total_eggs for el in egg_logs if el.date and str(el.date)[:10] == today_str)
+    total_deaths  = sum(hl.deaths_today or 0 for hl in health_logs)
     total_initial = sum(b.initial_quantity or 0 for b in batches)
     mortality_rate = round(total_deaths / total_initial * 100, 1) if total_initial > 0 else 0.0
-    valid_fcr = [l.fcr_calculated for l in feed_logs if l.fcr_calculated]
+    valid_fcr = [fl.fcr_calculated for fl in feed_logs if fl.fcr_calculated]
     avg_fcr   = round(sum(valid_fcr) / len(valid_fcr), 2) if valid_fcr else None
 
     return {

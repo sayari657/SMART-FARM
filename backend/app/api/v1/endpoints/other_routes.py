@@ -12,7 +12,7 @@ from app.services.data_service import (
 from app.schemas.domain import (
     AlertCreate, AlertResolve,
     RecommendationCreate, ReportGenerateRequest,
-    SettingCreate, SettingUpdate, DashboardStats
+    SettingCreate, DashboardStats
 )
 
 # ---- Anomaly ---------------------------------------------------------------
@@ -81,10 +81,10 @@ def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)
     """Consolidated high-priority emergency monitoring data."""
     from app.models.domain import Alert, CVEvent, Anomaly
     from sqlalchemy import desc
-    
+
     # 1. Critical Alerts (Animal/System)
     critical_alerts = db.query(Alert).filter(Alert.is_resolved == False, Alert.severity == "critical").order_by(desc(Alert.timestamp)).limit(10).all()
-    
+
     # 2. Fire/Smoke Detections — match text labels OR any critical fire-camera event
     from sqlalchemy import or_, and_
     fire_events = db.query(CVEvent).filter(
@@ -94,14 +94,14 @@ def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)
         ),
         CVEvent.timestamp >= datetime.now(timezone.utc) - timedelta(hours=24)
     ).order_by(desc(CVEvent.timestamp)).limit(20).all()
-    
+
     # 3. Critical Anomalies
     critical_anomalies = db.query(Anomaly).filter(
         Anomaly.severity == "critical",
         Anomaly.is_acknowledged == False,
         Anomaly.timestamp >= datetime.now(timezone.utc) - timedelta(hours=48)
     ).order_by(desc(Anomaly.timestamp)).limit(10).all()
-    
+
     # 4. Tree Diseases (Critical from CV)
     tree_diseases = db.query(CVEvent).filter(
         CVEvent.camera_id.in_(["leaves", "olive", "lemon", "orange"]),
@@ -233,8 +233,8 @@ def dashboard_stats(db: Session = Depends(get_db), _=Depends(get_current_user)):
 @dashboard_router.get("/analytics")
 def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_db), _=Depends(get_current_user)):
     """Full analytics: telemetry averages per day, anomaly counts, alert severity breakdown."""
-    from app.models.domain import TelemetryRecord, Anomaly, Alert, AnimalUnit, AnimalType
-    from sqlalchemy import func, cast, Date
+    from app.models.domain import Anomaly, Alert, AnimalUnit, AnimalType
+    from sqlalchemy import func
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     daily_anomalies = (

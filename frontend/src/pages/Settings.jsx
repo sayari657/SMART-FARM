@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { settingsAPI, farmsAPI } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 /* ─── Field Types ─────────────────────────────────────────────────────── */
 // type: 'number' | 'text' | 'secret' | 'toggle' | 'select' | 'url' | 'email'
@@ -171,14 +172,8 @@ export default function Settings() {
   const [saving, setSaving]             = useState(false);
   const [sectionStatus, setSectionStatus] = useState({}); // 'saved' | 'error' per section
   const [dirty, setDirty]               = useState({});
-  const [darkMode, setDarkMode]         = useState(() => document.documentElement.classList.contains('dark'));
-
-  const toggleDark = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    document.documentElement.classList.toggle('dark', next);
-    localStorage.setItem('theme', next ? 'dark' : 'light');
-  };   // { sectionId: bool }
+  const { dark: darkMode, toggleTheme: toggleDark } = useTheme();
+  // { sectionId: bool }
   const origRef = useRef({});
 
   /* Load all settings + farms */

@@ -1,5 +1,4 @@
 import logging
-from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.domain import Veterinary
 
@@ -65,7 +64,7 @@ def seed_veterinarians():
                 geom=f"SRID=4326;POINT({v_data['longitude']} {v_data['latitude']})"
             )
             db.add(vet)
-        
+
         db.commit()
         logger.info(f"Successfully seeded {len(vets)} veterinarians.")
     except Exception as e:

@@ -83,7 +83,6 @@ def list_farms(db: Session = Depends(get_db), _=Depends(get_current_user)):
 
 @router.post("", status_code=201)
 def create_farm(data: FarmCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    from app.models.domain import FarmOwner
     farm = FarmService(db).create_farm(data, owner_id=user.id)
     # Auto-enroll the creator as the first farm owner
     existing = db.query(FarmOwner).filter(
@@ -133,7 +132,6 @@ def delete_farm(farm_id: int, db: Session = Depends(get_db), _=Depends(get_curre
 @router.get("/{farm_id}/owners")
 def list_farm_owners(farm_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     """List all owners of a farm. Falls back to the legacy owner_id if farm_owners is empty."""
-    from app.models.domain import Farm, FarmOwner, User
 
     entries = (
         db.query(FarmOwner)
@@ -163,7 +161,6 @@ def add_farm_owner(
 ):
     """Add an existing owner-role user to this farm by username or phone number."""
     from sqlalchemy import or_
-    from app.models.domain import Farm, FarmOwner, User
 
     farm = db.query(Farm).filter(Farm.id == farm_id).first()
     if not farm:
@@ -207,7 +204,6 @@ def remove_farm_owner(
     _=Depends(get_current_user),
 ):
     """Remove an owner from a farm. At least one owner must remain."""
-    from app.models.domain import FarmOwner
 
     total = db.query(FarmOwner).filter(FarmOwner.farm_id == farm_id).count()
     if total <= 1:
@@ -249,7 +245,7 @@ def add_farm_worker(
     _=Depends(get_current_user),
 ):
     """Create a new worker account and assign to farm, or reassign an existing worker."""
-    from app.models.domain import Farm, User, WorkerAssignment
+    from app.models.domain import WorkerAssignment
     from app.core.security import hash_password
 
     farm = db.query(Farm).filter(Farm.id == farm_id).first()
@@ -317,7 +313,7 @@ def update_farm_worker(
     _=Depends(get_current_user),
 ):
     """Update a worker's name and/or phone number."""
-    from app.models.domain import User, WorkerAssignment
+    from app.models.domain import WorkerAssignment
 
     assignment = db.query(WorkerAssignment).filter(
         WorkerAssignment.worker_id == worker_id,
@@ -354,7 +350,7 @@ def remove_farm_worker(
     _=Depends(get_current_user),
 ):
     """Remove a worker from this farm. Deletes the user account if they have no other assignments."""
-    from app.models.domain import User, WorkerAssignment
+    from app.models.domain import WorkerAssignment
 
     assignment = db.query(WorkerAssignment).filter(
         WorkerAssignment.worker_id == worker_id,
@@ -387,15 +383,15 @@ def list_farm_finance(
     if type:
         query = query.filter(FarmFinance.type == type)
     finances = query.order_by(FarmFinance.timestamp.desc()).all()
-    
+
     # Calculate summary
     expenses = sum(f.amount for f in finances if f.type == "expense")
     revenues = sum(f.amount for f in finances if f.type == "revenue")
-    
+
     return {
         "items": [{
             "id": f.id, "type": f.type, "category": f.category,
-            "amount": f.amount, "notes": f.notes, 
+            "amount": f.amount, "notes": f.notes,
             "timestamp": f.timestamp.isoformat()
         } for f in finances],
         "summary": {

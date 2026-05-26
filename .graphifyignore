@@ -1,0 +1,23 @@
+# Skip all files that require LLM extraction
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.svg
+*.pdf
+*.docx
+*.xlsx
+*.md
+*.mdx
+*.html
+*.txt
+*.rst
+*.yaml
+*.yml
+*.json
+# Skip heavy asset folders
+frontend/public/
+diagramme/
+rapport soutenace cycle/
+ai_assets/

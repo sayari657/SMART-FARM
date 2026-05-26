@@ -24,7 +24,7 @@ class RAGService:
         self.is_active = False
         self.collection = None
         self.chroma_client = None
-        
+
         # Skip heavy connection attempts in Lite Mode to prevent timeouts
         if settings.LITE_MODE or not HAS_CHROMADB:
             logger.info("Initializing RAG in Expert Synthetic Mode (Lite)...")
@@ -133,14 +133,14 @@ class RAGService:
                     "واصل الانتباه للري أو التغذية حسب نوع المزرعة، ولا تتردد في رفع صور أقرب إذا لاحظت بقعاً غريبة!"
                 )
             }
-            
+
             # Robust Matching Engine (Prioritizes specific multiple matches)
             query_lower = query.lower()
             results = []
-            
+
             # Sort keys by number of keywords (longer first) to match specific cases better
             sorted_keys = sorted(expert_kb.keys(), key=lambda x: len(x), reverse=True)
-            
+
             for keywords in sorted_keys:
                 advice = expert_kb[keywords]
                 # If a key requires multiple terms to match, check them
@@ -148,7 +148,7 @@ class RAGService:
                 if match_count > 0:
                     # Score based on number of keyword matches
                     results.append((match_count, advice))
-            
+
             # Sort results by score and take top matches
             results.sort(key=lambda x: x[0], reverse=True)
             final_docs = [r[1] for r in results]
@@ -156,11 +156,12 @@ class RAGService:
             # Catch-all Intelligent Response
             if not final_docs:
                 return ["يا فلاح، سؤالك مهم! أنا المساعد الذكي PlantBot. النصيحة الذهبية هي دائماً مراقبة مزرعتك بانتظام (الري، الأسمدة، ونظافة الحيوانات). إذا كان لديك صورة، أرسلها وسأحللها، أو اسألني سؤالاً محدداً عن الزيتون أو الأبقار أو النحل!"]
-            
+
             # Return top results (deduplicated)
             unique_docs = []
             for d in final_docs:
-                if d not in unique_docs: unique_docs.append(d)
+                if d not in unique_docs:
+                    unique_docs.append(d)
             return unique_docs[:2]
 
         try:

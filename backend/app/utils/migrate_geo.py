@@ -1,8 +1,6 @@
 import logging
-from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.domain import Farm, Veterinary
-from geoalchemy2.elements import WKTElement
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,13 +14,13 @@ def migrate_coordinates_to_geom():
             if f.latitude is not None and f.longitude is not None:
                 # WKT: POINT(longitude latitude)
                 f.geom = f"SRID=4326;POINT({f.longitude} {f.latitude})"
-        
+
         # Migrate Vets (if any existed before adding the geom column)
         vets = db.query(Veterinary).all()
         for v in vets:
             if v.latitude is not None and v.longitude is not None:
                 v.geom = f"SRID=4326;POINT({v.longitude} {v.latitude})"
-                
+
         db.commit()
         logger.info(f"Successfully migrated {len(farms)} farms and {len(vets)} veterinarians.")
     except Exception as e:

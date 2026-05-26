@@ -4,7 +4,8 @@ Run: python -m app.utils.seed
 Inserts demo data: 2 farms, hives, cows, poultry, telemetry, alerts, recommendations.
 """
 
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../"))
 
 from datetime import datetime, timedelta, timezone
@@ -13,14 +14,14 @@ from app.core.database import SessionLocal, engine, Base
 from app.core.security import hash_password
 from app.models.domain import (
     User, Farm, AnimalType, AnimalUnit, Sensor,
-    TelemetryRecord, CVEvent, Anomaly, Alert, Recommendation, Report, Settings
+    TelemetryRecord, CVEvent, Anomaly, Alert, Recommendation, Settings
 )
 
 
 def seed():
     # Ensure tables exist (crucial for SQLite)
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
     try:
         # ------------------------------------------------------------------
@@ -168,7 +169,7 @@ def seed():
             now = datetime.now(timezone.utc)
             for hours_ago in range(48, 0, -1):
                 ts = now - timedelta(hours=hours_ago)
-                noise = lambda s=1.0: random.gauss(0, s)
+                def noise(s=1.0): return random.gauss(0, s)
 
                 for u in bee_units:
                     base_temp = 34.5 if u.identifier == "hive_01" else 33.0

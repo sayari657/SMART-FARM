@@ -160,7 +160,7 @@ except ImportError:
 # 6. Routing
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-from pydantic import BaseModel
+from pydantic import BaseModel  # noqa: E402
 
 class TelemetryPayload(BaseModel):
     node: str
@@ -169,12 +169,13 @@ class TelemetryPayload(BaseModel):
 
 @app.post("/api/v1/iot/telemetry")
 def post_telemetry(payload: TelemetryPayload):
-    import os, csv
+    import os
+    import csv
     from pathlib import Path
     from datetime import datetime
     csv_path = str(Path(__file__).parent.parent.parent / "iot" / "iot_telemetry.csv")
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     try:
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
         with open(csv_path, 'a', newline='', encoding='utf-8') as f:
@@ -185,7 +186,7 @@ def post_telemetry(payload: TelemetryPayload):
     except Exception as e:
         logger.error(f"Error appending to IoT CSV: {e}")
         return {"status": "error", "message": str(e)}
-        
+
     return {"status": "ok"}
 
 def _iot_csv_path():
@@ -215,7 +216,8 @@ def _is_node_b(node: str) -> bool:
 
 @app.get("/api/v1/iot/latest")
 def get_latest_iot():
-    import os, csv as _csv
+    import os
+    import csv as _csv
     latest = {
         "nodeA": {"soil": 45.0, "pressure": 3.0, "flow": 12.0, "temp": 23.0,
                   "pump": 0, "valve": 0, "fault": 0, "mode": "OFFLINE"},
@@ -266,7 +268,8 @@ def get_latest_iot():
 
 @app.get("/api/v1/iot/history")
 def get_iot_history(limit: int = 50):
-    import os, csv as _csv
+    import os
+    import csv as _csv
     csv_path = _iot_csv_path()
     if not os.path.exists(csv_path):
         return {"nodeA": [], "nodeB": []}
@@ -322,8 +325,10 @@ class ConnectionManager:
     async def broadcast(self, message: dict):
         data = json.dumps(message)
         for ws in self.active:
-            try: await ws.send_text(data)
-            except: pass
+            try:
+                await ws.send_text(data)
+            except Exception:
+                pass
 
 manager = ConnectionManager()
 app.state.ws_manager = manager
@@ -337,9 +342,9 @@ async def ws_telemetry(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 # -- WebSockets (Distributed Secure Gateway) --
-from typing import Optional
-from app.core.websockets import socket_manager
-from app.core.security import get_ws_tenant_id
+from typing import Optional  # noqa: E402
+from app.core.websockets import socket_manager  # noqa: E402
+from app.core.security import get_ws_tenant_id  # noqa: E402
 
 @app.websocket("/ws/events")
 async def websocket_endpoint(
@@ -347,22 +352,24 @@ async def websocket_endpoint(
     token: Optional[str] = None
 ):
     """
-    Secure WebSocket Gateway. 
+    Secure WebSocket Gateway.
     Verifies token per-connection and manages the socket pool.
     """
     try:
         tenant_id = get_ws_tenant_id(token)
         await socket_manager.connect(websocket, tenant_id)
-        
+
         while True:
             # Maintain connection & listen for client closure
             await websocket.receive_text()
-            
+
     except WebSocketDisconnect:
         # If we reached the connect stage, cleanup
         if 'tenant_id' in locals():
             socket_manager.disconnect(websocket, tenant_id)
     except Exception as e:
         logger.error(f"[WS] Auth/Bridge Error: {e}")
-        try: await websocket.close(code=1008)  # Policy Violation
-        except: pass
+        try:
+            await websocket.close(code=1008)  # Policy Violation
+        except Exception:
+            pass

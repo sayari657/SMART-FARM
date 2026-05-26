@@ -16,12 +16,12 @@ class AgroService:
         if not self.token or self.token == "your_placeholder_token_here_from_trefle_io":
             logger.warning("Using Trefle without a valid token. Returning mock data.")
             return {"data": [{"id": 0, "common_name": f"Mock Trefle Plant '{query}'", "scientific_name": "Mockus plantus"}]}
-            
+
         params = {
             "token": self.token,
             "q": query
         }
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(f"{self.base_url}/plants/search", params=params)
@@ -42,7 +42,7 @@ class AgroService:
         params = {
             "token": self.token
         }
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(f"{self.base_url}/plants/{plant_id}", params=params)

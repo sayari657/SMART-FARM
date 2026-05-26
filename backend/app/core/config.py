@@ -16,9 +16,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
 
     # Database
-    USE_SQLITE: bool = False  
+    USE_SQLITE: bool = False
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", 
+        "DATABASE_URL",
         "postgresql+psycopg2://admin:password@localhost:5432/smart_farm"
     ).strip()
 

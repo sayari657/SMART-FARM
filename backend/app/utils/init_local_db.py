@@ -1,6 +1,4 @@
 import sqlite3
-import json
-import os
 from datetime import datetime
 import sys
 from pathlib import Path
@@ -25,7 +23,7 @@ SPECIES_DATA = [
 
 def init_db():
     print(f"Initializing Local SQLite Database: {DB_PATH}")
-    
+
     # Create all tables first
     Base.metadata.create_all(bind=engine)
 

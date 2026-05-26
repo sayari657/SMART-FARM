@@ -1,6 +1,5 @@
 import logging
 import httpx
-import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 from app.core.config import settings

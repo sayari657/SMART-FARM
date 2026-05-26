@@ -320,7 +320,9 @@ def get_hive_qr(hive_id: int, db: Session = Depends(get_db)):
     if not hive:
         raise HTTPException(404, "Hive not found")
     try:
-        import qrcode, io, base64
+        import qrcode
+        import io
+        import base64
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
         qr.add_data(hive.identifier)
         qr.make(fit=True)

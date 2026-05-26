@@ -48,13 +48,13 @@ class GeocodeService:
             "lon": lon,
             "format": "json"
         }
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout, headers=self.headers) as client:
                 response = await client.get(self.reverse_url, params=params)
                 response.raise_for_status()
                 data = response.json()
-                
+
                 return {
                     "display_name": data.get("display_name"),
                     "address": data.get("address", {}),

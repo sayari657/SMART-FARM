@@ -309,7 +309,6 @@ def planning_summary(db: Session = Depends(get_db)):
     pending    = [m for m in all_missions if m.status == "pending"]
     in_prog    = [m for m in all_missions if m.status == "in_progress"]
     done       = [m for m in all_missions if m.status == "done"]
-    cancelled  = [m for m in all_missions if m.status == "cancelled"]
 
     # Missions en retard (date passée + non terminée)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")

@@ -17,6 +17,6 @@ async def get_farm_recommendations(
     farm = db.query(Farm).filter(Farm.id == farm_id).first()
     if not farm:
         raise HTTPException(status_code=404, detail="Farm not found")
-        
+
     data = await recommendation_service.generate_recommendations(farm, plant_query=plant)
     return data

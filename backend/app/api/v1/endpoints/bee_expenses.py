@@ -4,7 +4,7 @@ Suivi comptable par ruche / site · Analyse coût/profit
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import desc
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime

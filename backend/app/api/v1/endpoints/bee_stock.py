@@ -7,7 +7,7 @@ Déductions · Alertes niveaux bas · Réapprovisionnement
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from typing import List
 from datetime import datetime
 
 from app.core.database import get_db

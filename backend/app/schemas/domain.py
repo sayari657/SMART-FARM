@@ -3,7 +3,7 @@ Smart Farm AI - Pydantic Schemas
 Complete request/response schemas for all API endpoints.
 """
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Any, Dict
 from datetime import datetime
 

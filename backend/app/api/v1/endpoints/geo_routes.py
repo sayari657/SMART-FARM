@@ -1,7 +1,7 @@
 import math
 import asyncio
 import httpx
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
@@ -33,7 +33,6 @@ def _use_sqlite() -> bool:
 
 
 def haversine(lat1, lon1, lat2, lon2):
-    import math
     R = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)

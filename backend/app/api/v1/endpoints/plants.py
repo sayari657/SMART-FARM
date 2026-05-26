@@ -11,11 +11,11 @@ async def search_plants(
 ):
     if not q:
         raise HTTPException(status_code=400, detail="Query parameter 'q' is required")
-        
+
     data = await agro_service.search_plants(q)
     if data is None:
         raise HTTPException(status_code=503, detail="Agro plant service unavailable")
-        
+
     return data
 
 @router.get("/details/{plant_id}")
@@ -26,6 +26,6 @@ async def get_plant_details(
     data = await agro_service.get_plant_details(plant_id)
     if data is None:
         raise HTTPException(status_code=503, detail="Agro plant details service unavailable")
-        
+
     return data
 

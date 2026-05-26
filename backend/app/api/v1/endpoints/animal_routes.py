@@ -1,12 +1,12 @@
 """Smart Farm AI - Animal Unit Routes"""
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.services.farm_service import AnimalService
 from app.schemas.domain import AnimalUnitCreate, AnimalUnitUpdate, AnimalTypeCreate
-from app.models.domain import AnimalUnit, AnimalLog, User
+from app.models.domain import AnimalLog, User
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/animals", tags=["Animals"])
@@ -21,7 +21,7 @@ class AnimalLogCreate(BaseModel):
 def _serialize_unit(u):
     return {
         "id": u.id, "name": u.name, "farm_id": u.farm_id, "type_id": u.type_id,
-        "identifier": u.identifier, "tag_id": u.tag_id, 
+        "identifier": u.identifier, "tag_id": u.tag_id,
         "status": u.status, "lifecycle_status": u.lifecycle_status,
         "health_score": u.health_score,
         "notes": u.notes,
@@ -42,15 +42,14 @@ def list_animals(
     from app.models.domain import BeeHive
     units = AnimalService(db).list_animals(farm_id=farm_id, species=species)
     serialized = [_serialize_unit(u) for u in units]
-    
+
     # Also include BeeHives from the Smart Bee module
     if species is None or species == "bee":
         from sqlalchemy.orm import joinedload as _jl
-        from app.models.domain import BeeApiary
         hives = db.query(BeeHive).options(_jl(BeeHive.apiary)).all()
         for h in hives:
             serialized.append({
-                "id": f"bee_{h.id}", 
+                "id": f"bee_{h.id}",
                 "name": h.identifier,
                 "farm_id": h.apiary_id,
                 "type_id": None,
@@ -87,7 +86,8 @@ def get_animal(unit_id: str, db: Session = Depends(get_db), _=Depends(get_curren
         from app.models.domain import BeeHive
         hive_id = int(str(unit_id).split("_")[1])
         h = db.query(BeeHive).filter(BeeHive.id == hive_id).first()
-        if not h: raise HTTPException(status_code=404, detail="Ruche non trouvée")
+        if not h:
+            raise HTTPException(status_code=404, detail="Ruche non trouvée")
         return {
             "id": f"bee_{h.id}", "name": h.identifier, "farm_id": h.apiary_id,
             "identifier": h.identifier, "status": "healthy" if h.health_score > 7 else "warning",
@@ -95,7 +95,7 @@ def get_animal(unit_id: str, db: Session = Depends(get_db), _=Depends(get_curren
             "species": "bee", "species_display": "Abeilles (Smart Bee)",
             "farm_name": h.apiary.name if h.apiary else "Smart Apiary",
         }
-    
+
     unit = AnimalService(db).get_animal(int(unit_id))
     return _serialize_unit(unit)
 
@@ -122,10 +122,10 @@ def list_animal_logs(
         query = query.filter(AnimalLog.type == type)
     logs = query.order_by(AnimalLog.timestamp.desc()).all()
     return [{
-        "id": l.id, "type": l.type, "value": l.value, "unit": l.unit,
-        "notes": l.notes, "timestamp": l.timestamp.isoformat(),
-        "recorded_by": l.recorded_by
-    } for l in logs]
+        "id": log.id, "type": log.type, "value": log.value, "unit": log.unit,
+        "notes": log.notes, "timestamp": log.timestamp.isoformat(),
+        "recorded_by": log.recorded_by
+    } for log in logs]
 
 @router.post("/{unit_id}/logs", status_code=201)
 def create_animal_log(

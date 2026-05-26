@@ -1,5 +1,4 @@
-from typing import Dict, List, Optional
-import json
+from typing import Dict, List
 from fastapi import WebSocket
 
 class SocketManager:
@@ -25,7 +24,7 @@ class SocketManager:
             for connection in self.active_connections[tenant_id]:
                 try:
                     await connection.send_json(message)
-                except:
+                except Exception:
                     pass
 
     async def broadcast_global(self, message: dict):

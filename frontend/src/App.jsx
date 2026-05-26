@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import { usePinLock, PinLockScreen } from './components/PinLock';
@@ -150,8 +151,10 @@ function AppWithPin() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppWithPin />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppWithPin />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

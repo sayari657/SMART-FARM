@@ -5,10 +5,8 @@ import sys
 # Ensure backend directory is in path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
 from app.models.domain import Veterinary, Farm, Market
-from sqlalchemy import text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +29,7 @@ def seed_tunisia_data():
             {"name": "Poultry Alpha Mateur", "location": "Bizerte", "lat": 37.040, "lon": 9.665, "desc": "Automated poultry monitoring."},
             {"name": "AgroSovereign Test Farm", "location": "Ben Arous", "lat": 36.755, "lon": 10.220, "desc": "GIS R&D Hub."}
         ]
-        
+
         # 3. CURATED BEE MARKETS
         markets = [
             {"name": "Apiculture Haddad (Grombalia)", "type": "bee_market", "lat": 36.598, "lon": 10.501, "desc": "Tunisia's leading apiculture equipment supplier and market.", "phone": "+216 72 255 100", "address": "GP1, Grombalia, Nabeul"},
@@ -57,7 +55,7 @@ def seed_tunisia_data():
                 geom=f"SRID=4326;POINT({v_data['lon']} {v_data['lat']})"
             )
             db.add(vet)
-        
+
         # Seed Farms
         for f_data in farms:
             farm = Farm(

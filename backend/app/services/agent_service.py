@@ -146,7 +146,7 @@ class AgentService:
             # Synthetic fallback: build answer from CV context + RAG
             if cv_context and detections:
                 labels = list({d.get("label", d.get("object_class", "")) for d in detections})
-                label_str = "، ".join(l.replace("_", " ") for l in labels[:3])
+                label_str = "، ".join(lbl.replace("_", " ") for lbl in labels[:3])
                 response_text = (
                     f"يا فلاح، الكاميرا كشفت على: {label_str}. "
                 )
@@ -186,11 +186,11 @@ class AgentService:
         async def get_ollama_vision():
             import ollama
             client = ollama.AsyncClient()
-            prompt_systeme = """Tu es un expert vétérinaire et agricole en Tunisie. 
-            Analyse l'image fournie. Si c'est un animal ou une scène, décris-la. 
+            prompt_systeme = """Tu es un expert vétérinaire et agricole en Tunisie.
+            Analyse l'image fournie. Si c'est un animal ou une scène, décris-la.
             Si c'est un médicament أو produit, lis son nom sur l'étiquette et explique brièvement son utilité.
             Réponds toujours de manière claire, en arabe ou en français."""
-            
+
             response = await client.chat(
                 model='llava', # Modèle léger (4.5GB) pour s'exécuter à 100% sur le GPU
                 messages=[
@@ -210,7 +210,7 @@ class AgentService:
         # Lancer l'OCR (excellent) et le VLM (Ollama) en parallèle
         ocr_task = asyncio.create_task(mllm_service.extract_text_ocr(image_b64))
         vision_result = ""
-        
+
         try:
             vision_result = await get_ollama_vision()
             ocr_text = await ocr_task

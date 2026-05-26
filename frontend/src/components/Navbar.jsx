@@ -1,13 +1,15 @@
 import React from 'react';
-import { Bell, RefreshCw, Languages, Menu, ChevronRight, ChevronDown } from 'lucide-react';
+import { Bell, RefreshCw, Languages, Menu, ChevronRight, ChevronDown, Sun, Moon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Navbar({ title, subtitle, actions }) {
   const { t, i18n } = useTranslation();
   const { toggle } = useSidebar();
   const { user } = useAuth() || {};
+  const { dark, toggleTheme } = useTheme();
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -34,7 +36,7 @@ export default function Navbar({ title, subtitle, actions }) {
           <Menu size={16} />
         </button>
         <div>
-          <h1 style={{ fontSize: '19px', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '19px', fontWeight: 800, color: 'var(--color-text)', margin: 0, lineHeight: 1.2, letterSpacing: '-0.02em' }}>
             {title || t('navbar.title')}
           </h1>
           <div style={{ fontSize: '12px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
@@ -61,6 +63,15 @@ export default function Navbar({ title, subtitle, actions }) {
             <option value="en">English</option>
           </select>
         </div>
+
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={toggleTheme}
+          title={dark ? 'Mode clair' : 'Mode sombre'}
+          style={{ position: 'relative' }}
+        >
+          {dark ? <Sun size={13} /> : <Moon size={13} />}
+        </button>
 
         <button className="btn btn-secondary btn-sm" onClick={() => window.location.reload()} title="Refresh">
           <RefreshCw size={11} />

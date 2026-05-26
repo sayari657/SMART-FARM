@@ -66,10 +66,10 @@ def delete_record(
         DiagnosticHistory.id == record_id,
         DiagnosticHistory.user_id == current_user.id
     ).first()
-    
+
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
-    
+
     db.delete(record)
     db.commit()
     return None

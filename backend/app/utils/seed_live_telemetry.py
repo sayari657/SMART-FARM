@@ -77,7 +77,7 @@ def bootstrap_live_telemetry():
                 "temperature": round(32.0 + (random.random() * 4), 1),
                 "humidity": round(55.0 + (random.random() * 15), 0)
             }
-            
+
             telemetry = TelemetryRecord(
                 unit_id=hive_unit.id,
                 metrics=metrics,

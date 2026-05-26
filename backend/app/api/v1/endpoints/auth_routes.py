@@ -83,7 +83,8 @@ def forgot_by_email(request: Request, req: ForgotEmailRequest, db: Session = Dep
     try:
         otp_service.send_otp_email(req.email)
     except Exception:
-        import random, logging as _log
+        import random
+        import logging as _log
         otp = str(random.randint(100000, 999999))
         otp_service.OTP_STORE[f"email:{req.email}"] = otp
         _log.getLogger(__name__).warning(f"[DEV] SMTP non configuré — OTP généré pour {req.email} (voir logs serveur)")
@@ -102,7 +103,8 @@ def forgot_by_whatsapp(request: Request, req: ForgotWhatsAppRequest, db: Session
     try:
         otp_service.send_otp_whatsapp(req.phone_number)
     except Exception:
-        import random, logging as _log
+        import random
+        import logging as _log
         otp = str(random.randint(100000, 999999))
         otp_service.OTP_STORE[f"whatsapp:{req.phone_number}"] = otp
         _log.getLogger(__name__).warning(f"[DEV] WhatsApp non configuré — OTP généré pour {req.phone_number} (voir logs serveur)")

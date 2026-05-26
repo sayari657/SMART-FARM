@@ -10,7 +10,7 @@ Real ML models (sklearn/numpy) for:
 """
 
 import numpy as np
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 import logging
 
@@ -59,7 +59,7 @@ def predict_fcr(feed_logs: list, batch_day: int) -> dict:
     Returns current FCR, predicted FCR at end of cycle, confidence score.
     """
     try:
-        valid = [l for l in feed_logs if l.fcr_calculated and l.fcr_calculated > 0]
+        valid = [fl for fl in feed_logs if fl.fcr_calculated and fl.fcr_calculated > 0]
 
         if len(valid) < 2:
             # Not enough data → use Ross 308 standard interpolation
@@ -76,7 +76,7 @@ def predict_fcr(feed_logs: list, batch_day: int) -> dict:
 
         # Build X (day index) and y (FCR values) arrays
         X = np.array([i + 1 for i in range(len(valid))], dtype=float).reshape(-1, 1)
-        y = np.array([l.fcr_calculated for l in valid])
+        y = np.array([fl.fcr_calculated for fl in valid])
 
         # Polynomial features (degree 2) — FCR grows faster over time
         X_poly = np.hstack([X, X ** 2])
@@ -130,7 +130,7 @@ def predict_mortality_risk(health_logs: list, batch_day: int, initial_qty: int) 
     Returns: risk_level (low/medium/high/critical), risk_score 0-1, confidence.
     """
     try:
-        deaths = [l.deaths_today or 0 for l in health_logs]
+        deaths = [hl.deaths_today or 0 for hl in health_logs]
         total_deaths = sum(deaths)
         mortality_rate = (total_deaths / initial_qty * 100) if initial_qty > 0 else 0.0
 
@@ -191,7 +191,7 @@ def predict_egg_production(egg_logs: list, current_qty: int, batch_day: int) -> 
     Returns: today_forecast, rate_pct, trend, confidence.
     """
     try:
-        valid = [l for l in egg_logs if l.total_eggs is not None and l.total_eggs > 0]
+        valid = [el for el in egg_logs if el.total_eggs is not None and el.total_eggs > 0]
 
         if len(valid) < 2:
             # Use ISA Brown standard for layers
@@ -206,7 +206,7 @@ def predict_egg_production(egg_logs: list, current_qty: int, batch_day: int) -> 
                 "days_used": 0,
             }
 
-        rates = [(l.total_eggs / current_qty * 100) for l in valid if current_qty > 0]
+        rates = [(el.total_eggs / current_qty * 100) for el in valid if current_qty > 0]
         X = np.arange(len(rates), dtype=float)
         y = np.array(rates)
 
@@ -254,7 +254,7 @@ def compute_anomaly_score(feed_logs: list, health_logs: list, egg_logs: list) ->
         scores = []
 
         # FCR anomaly
-        fcr_vals = [l.fcr_calculated for l in feed_logs if l.fcr_calculated]
+        fcr_vals = [fl.fcr_calculated for fl in feed_logs if fl.fcr_calculated]
         if len(fcr_vals) >= 3:
             mu, sigma = np.mean(fcr_vals), np.std(fcr_vals) + 0.001
             last_fcr = fcr_vals[-1]
@@ -265,7 +265,7 @@ def compute_anomaly_score(feed_logs: list, health_logs: list, egg_logs: list) ->
                 factors.append(f"FCR élevé ({last_fcr:.2f} vs moy. {mu:.2f})")
 
         # Mortality spike
-        deaths = [l.deaths_today or 0 for l in health_logs]
+        deaths = [hl.deaths_today or 0 for hl in health_logs]
         if len(deaths) >= 3:
             mu_d, sigma_d = np.mean(deaths), np.std(deaths) + 0.01
             last_d = deaths[-1]
@@ -276,7 +276,7 @@ def compute_anomaly_score(feed_logs: list, health_logs: list, egg_logs: list) ->
                 factors.append(f"Mortalité anormale ({last_d} vs moy. {mu_d:.1f}/j)")
 
         # Egg production drop
-        egg_rates = [l.production_rate or 0 for l in egg_logs if l.production_rate]
+        egg_rates = [el.production_rate or 0 for el in egg_logs if el.production_rate]
         if len(egg_rates) >= 3:
             mu_e, sigma_e = np.mean(egg_rates), np.std(egg_rates) + 0.01
             last_e = egg_rates[-1]
@@ -315,7 +315,7 @@ def compare_growth_vs_standard(feed_logs: list, health_logs: list, batch_day: in
         table = ISA_BROWN_STANDARD if is_layer else ROSS_308_STANDARD
 
         # FCR comparison
-        valid_fcr = [l.fcr_calculated for l in feed_logs if l.fcr_calculated]
+        valid_fcr = [fl.fcr_calculated for fl in feed_logs if fl.fcr_calculated]
         current_fcr = float(np.mean(valid_fcr)) if valid_fcr else None
         std_fcr = _interpolate_standard(batch_day, table, "fcr")
 
@@ -327,7 +327,7 @@ def compare_growth_vs_standard(feed_logs: list, health_logs: list, batch_day: in
             fcr_efficiency = round((std_fcr / current_fcr) * 100, 1)
 
         # Mortality comparison (standard: <3% total for broiler)
-        deaths = sum(l.deaths_today or 0 for l in health_logs)
+        deaths = sum(hl.deaths_today or 0 for hl in health_logs)
 
         # Overall efficiency index (0-100)
         scores = []
@@ -399,7 +399,7 @@ def generate_ml_insights(batch, feed_logs, health_logs, egg_logs) -> dict:
     if fcr_pred.get("trend") == "degrading":
         recommendations.append(f"⚠️ FCR en dégradation ({fcr_pred['current_fcr']}) — vérifier qualité aliment et densité.")
     if egg_forecast.get("trend") == "decreasing":
-        recommendations.append(f"📉 Chute de ponte détectée — vérifier stress thermique et photopériode.")
+        recommendations.append("📉 Chute de ponte détectée — vérifier stress thermique et photopériode.")
     if anomaly["is_anomalous"]:
         for f in anomaly["factors"]:
             recommendations.append(f"🔍 Anomalie : {f}")
