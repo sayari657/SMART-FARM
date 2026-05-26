@@ -31,11 +31,9 @@ api.interceptors.response.use(
       window.location.href = user?.role === 'worker' ? '/worker-login' : '/login';
     }
 
-    // 503 or network error (ECONNREFUSED) — backend is offline
-    if (status === 503 || !err.response) {
-      const detail = err.response?.data?.detail || 'Le serveur backend est hors ligne.';
-      console.error('[API] Backend offline:', detail);
-      // Enrich the error so callers can show a friendly message
+    // Network error (no response at all) — backend is truly offline
+    if (!err.response) {
+      console.error('[API] Backend offline: network error');
       err.isBackendOffline = true;
       err.friendlyMessage = 'Serveur backend hors ligne — lancez le backend avec start.bat puis réessayez.';
     }
