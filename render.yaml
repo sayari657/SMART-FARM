@@ -10,8 +10,9 @@ services:
     healthCheckPath: /health
     envVars:
       - {key: LITE_MODE, value: "true"}
+      - {key: USE_SQLITE, value: "true"}
+      - {key: SECRET_KEY, value: "5524eda8d8a5beb8d19b7dc79cd7a42871df69997eed2622f08459867817fcdc"}
       - {key: DATABASE_URL, value: ""}
-      - {key: SECRET_KEY, value: ""}
       - {key: SMTP_EMAIL, value: ""}
       - {key: SMTP_PASSWORD, value: ""}
       - {key: GROQ_API_KEY, value: ""}
