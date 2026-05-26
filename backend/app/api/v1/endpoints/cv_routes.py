@@ -379,6 +379,8 @@ async def detect_in_file(
                 "count": len(detections),
                 "status": "success"
             }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Inference Crash: {e}")
             raise HTTPException(status_code=500, detail=str(e))
