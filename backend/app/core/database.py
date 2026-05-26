@@ -8,14 +8,15 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# Resolve the effective DB URL: SQLite when USE_SQLITE=True or PostgreSQL unavailable
-if settings.USE_SQLITE or settings.DATABASE_URL.startswith("sqlite"):
+# Resolve the effective DB URL: SQLite when USE_SQLITE=True or DATABASE_URL empty/sqlite
+_db_url = settings.DATABASE_URL.strip()
+if settings.USE_SQLITE or not _db_url or _db_url.startswith("sqlite"):
     _db_file = Path(__file__).parent.parent.parent / "smart_farm.db"
     _effective_url = f"sqlite:///{_db_file}"
     connect_args = {"check_same_thread": False, "timeout": 15}
     _extra_kwargs = {}
 else:
-    _effective_url = settings.DATABASE_URL.strip()
+    _effective_url = _db_url
     connect_args = {}
     _extra_kwargs = {"pool_size": 10, "max_overflow": 20}
 

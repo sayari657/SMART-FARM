@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     VERSION: str = "3.0.0-Enterprise"
     API_V1_STR: str = "/api/v1"
 
-    # JWT — must be set in .env (no insecure default)
-    SECRET_KEY: str
+    # JWT — override in production via environment variable SECRET_KEY
+    SECRET_KEY: str = "change-me-in-production-set-SECRET_KEY-env-var"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
 

@@ -9,12 +9,13 @@ services:
     autoDeploy: true
     healthCheckPath: /health
     envVars:
+      - {key: LITE_MODE, value: "true"}
       - {key: DATABASE_URL, value: ""}
       - {key: SECRET_KEY, value: ""}
       - {key: SMTP_EMAIL, value: ""}
       - {key: SMTP_PASSWORD, value: ""}
       - {key: GROQ_API_KEY, value: ""}
-      - {key: CORS_ORIGINS, value: ""}
+      - {key: CORS_ORIGINS, value: "https://smart-farm-tan.vercel.app,http://localhost:5173"}
       - {key: WHATSAPP_TOKEN, value: ""}
       - {key: WHATSAPP_PHONE_ID, value: ""}
       
