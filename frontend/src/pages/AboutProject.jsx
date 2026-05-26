@@ -9,15 +9,13 @@ import Navbar from '../components/Navbar';
 import ThreeTile from '../components/ThreeTile';
 import ThreeAnimalModel from '../components/ThreeAnimalModel';
 
-const CDN = 'https://raw.githubusercontent.com/sayari657/SMART-FARM/main/frontend/public/models';
-
 const LIVESTOCK = [
-  { sp: 'Bee',     url: `${CDN}/bee.glb`,     color: '#fbbf24', emoji: '🐝', desc: 'Precision apiary monitoring with acoustic health diagnostics and automated harvest forecasting.' },
-  { sp: 'Cow',     url: `${CDN}/cow.glb`,     color: '#7c3aed', emoji: '🐄', desc: 'Comprehensive dairy & beef tracking: rumination analysis, milk yield forecasting, and biometric monitoring.', rotation: [0, Math.PI / 2, 0] },
-  { sp: 'Goat',    url: `${CDN}/goat.glb`,    color: '#dc2626', emoji: '🐐', desc: 'Active herd management with agility-based activity indexing and milk production tracking.', rotation: [0, Math.PI / 2, 0] },
-  { sp: 'Poultry', url: `${CDN}/poultry.glb`, color: '#0891b2', emoji: '🐔', desc: 'Automated environmental & egg production oversight for large-scale poultry facilities.', rotation: [0, Math.PI / 2, 0] },
-  { sp: 'Rabbit',  url: `${CDN}/rabbit.glb`,  color: '#f472b6', emoji: '🐰', desc: 'Optimized lagomorph breeding monitoring: litter health tracking, feed efficiency, and environmental controls.' },
-  { sp: 'Sheep',   url: `${CDN}/sheep.glb`,   color: '#059669', emoji: '🐑', desc: 'Advanced grazing behavior analysis and livestock health telemetry for high-quality wool and meat.' },
+  { sp: 'Bee',     url: '/models/bee.glb',     color: '#fbbf24', emoji: '🐝', desc: 'Precision apiary monitoring with acoustic health diagnostics and automated harvest forecasting.' },
+  { sp: 'Cow',     url: '/models/cow.glb',     color: '#7c3aed', emoji: '🐄', desc: 'Comprehensive dairy & beef tracking: rumination analysis, milk yield forecasting, and biometric monitoring.', rotation: [0, Math.PI / 2, 0] },
+  { sp: 'Goat',    url: '/models/goat.glb',    color: '#dc2626', emoji: '🐐', desc: 'Active herd management with agility-based activity indexing and milk production tracking.', rotation: [0, Math.PI / 2, 0] },
+  { sp: 'Poultry', url: '/models/poultry.glb', color: '#0891b2', emoji: '🐔', desc: 'Automated environmental & egg production oversight for large-scale poultry facilities.', rotation: [0, Math.PI / 2, 0] },
+  { sp: 'Rabbit',  url: '/models/rabbit.glb',  color: '#f472b6', emoji: '🐰', desc: 'Optimized lagomorph breeding monitoring: litter health tracking, feed efficiency, and environmental controls.' },
+  { sp: 'Sheep',   url: '/models/sheep.glb',   color: '#059669', emoji: '🐑', desc: 'Advanced grazing behavior analysis and livestock health telemetry for high-quality wool and meat.' },
 ];
 
 const TECH_STACK = [

@@ -1,3 +1,1 @@
-# Large 3D model files — served from GitHub CDN, excluded from Vercel deployment
-public/models/
-public/models designe/
+# intentionally empty — all public assets including models/ are deployed to Vercel CDN
