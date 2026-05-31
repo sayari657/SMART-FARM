@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.models.domain import Farm, Veterinary, Market, BeeHive
 from pydantic import BaseModel
 from app.core.config import settings
@@ -75,7 +76,7 @@ def get_veterinarians(db: Session = Depends(get_db)):
 
 
 @router.get("/farms", response_model=GeoJSONFeatureCollection)
-def get_farms_geojson(db: Session = Depends(get_db)):
+def get_farms_geojson(db: Session = Depends(get_db), _=Depends(get_current_user)):
     if _use_sqlite():
         farms = db.query(Farm).all()
         features = []
@@ -137,7 +138,7 @@ def get_markets_geojson(db: Session = Depends(get_db)):
 
 
 @router.get("/hives", response_model=GeoJSONFeatureCollection)
-def get_hives_geojson(db: Session = Depends(get_db)):
+def get_hives_geojson(db: Session = Depends(get_db), _=Depends(get_current_user)):
     from app.models.domain import AnimalUnit, AnimalType, TelemetryRecord
     from sqlalchemy import desc
 
