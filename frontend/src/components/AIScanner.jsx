@@ -439,7 +439,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
     fetch(dataUrl).then(res => res.blob()).then(blob => {
       const file = new File([blob], `capture_${Date.now()}.jpg`, { type: "image/jpeg" });
       runInference(file, dataUrl);
-    });
+    }).catch(err => console.error('Camera capture error:', err));
   }, [videoRef, runInference]);
 
   // 1. Load Metadata & Palette

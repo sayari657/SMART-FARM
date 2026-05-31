@@ -11,7 +11,7 @@ import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import { reportsAPI, farmsAPI, animalsAPI, plantsAPI } from '../services/api';
+import api, { reportsAPI, farmsAPI, animalsAPI, plantsAPI } from '../services/api';
 
 // Images générées
 const IMG_ANIMALS = "/brain/bd0df84b-40db-40ce-aca5-7889f371e7ca/farm_animals_premium_1777240383651.png";
@@ -58,23 +58,14 @@ export default function Reports() {
   };
 
   const downloadExcel = async () => {
-    const token = localStorage.getItem('token');
-    const h = token ? { Authorization: `Bearer ${token}` } : {};
-    let apiEnv = import.meta.env.VITE_API_URL;
-    if (apiEnv) apiEnv = apiEnv.replace(/^["']+|["']+$/g, '');
-    const apiUrl = apiEnv || '/api/v1';
-    const BEE = `${apiUrl}/bee/history`;
     try {
       const [r1, r2, r3, r4] = await Promise.all([
-        fetch(`${BEE}/hives`,       { headers: h }),
-        fetch(`${BEE}/visits`,      { headers: h }),
-        fetch(`${BEE}/productions`, { headers: h }),
-        fetch(`${apiUrl}/bee/expenses`, { headers: h }),
+        api.get('/bee/history/hives').catch(() => ({ data: [] })),
+        api.get('/bee/history/visits').catch(() => ({ data: [] })),
+        api.get('/bee/history/productions').catch(() => ({ data: [] })),
+        api.get('/bee/expenses').catch(() => ({ data: [] })),
       ]);
-      const [hives, visits, productions, depenses] = await Promise.all([
-        r1.ok ? r1.json() : [], r2.ok ? r2.json() : [],
-        r3.ok ? r3.json() : [], r4.ok ? r4.json() : [],
-      ]);
+      const [hives, visits, productions, depenses] = [r1.data || [], r2.data || [], r3.data || [], r4.data || []];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(hives.map(h => ({
         Identifiant: h.identifier, Site: h.apiary_id, Type: h.hive_type,

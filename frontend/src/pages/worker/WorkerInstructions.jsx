@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, Heart, Droplets, Trash2, BookOpen, RefreshCw } from 'lucide-react';
 import { workerTasksAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 // ── Static instruction data ───────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ const STATIC_INSTRUCTIONS = {
 
 export default function WorkerInstructions() {
   const navigate       = useNavigate();
+  const { farmId }     = useAuth();
   const [activeTab, setActiveTab]       = useState('feeding');
   const [dynTasks, setDynTasks]         = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
@@ -59,7 +61,7 @@ export default function WorkerInstructions() {
   useEffect(() => {
     if (activeTab !== 'tasks') return;
     setLoadingTasks(true);
-    workerTasksAPI.list({ farm_id: 1 })
+    workerTasksAPI.list({ farm_id: farmId || 1 })
       .then(r => setDynTasks((r.data || []).filter(t => t.category === 'instruction')))
       .catch(() => setDynTasks([]))
       .finally(() => setLoadingTasks(false));
