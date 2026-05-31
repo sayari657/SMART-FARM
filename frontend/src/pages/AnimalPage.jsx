@@ -49,7 +49,7 @@ const SC = {
     color:'#1d4ed8', dark:'#1e40af', emoji:'🐄',
     name:'Bovins', nameEn:'Cattle', nameAr:'الأبقار',
     title:'Gestion des Bovins', subtitle:'Suivi laitier, reproduction et santé — optimisé par IA',
-    apiSpecies:'cow', totalDays:305, cycleLabel:'Cycle Lactation (305 j)',
+    apiSpecies:'cow', cvCategory:'cow', totalDays:305, cycleLabel:'Cycle Lactation (305 j)',
     stats:[
       {label:'Vaches Actives',    icon:Activity,     color:'#1d4ed8'},
       {label:'Production / Jour', icon:Droplets,     color:'#0ea5e9'},
@@ -107,7 +107,7 @@ const SC = {
     color:'#7c3aed', dark:'#6d28d9', emoji:'🐑',
     name:'Ovins', nameEn:'Sheep', nameAr:'الأغنام',
     title:'Gestion des Ovins', subtitle:'Reproduction, laine et santé — suivi complet du troupeau',
-    apiSpecies:'sheep', totalDays:210, cycleLabel:'Cycle Reproductif (210 j)',
+    apiSpecies:'sheep', cvCategory:'livestock', totalDays:210, cycleLabel:'Cycle Reproductif (210 j)',
     stats:[
       {label:'Brebis Actives',  icon:Activity,     color:'#7c3aed'},
       {label:'Agneaux/Saison',  icon:TrendingUp,   color:'#10b981'},
@@ -164,7 +164,7 @@ const SC = {
     color:'#dc2626', dark:'#b91c1c', emoji:'🐐',
     name:'Caprins', nameEn:'Goats', nameAr:'الماعز',
     title:'Gestion des Caprins', subtitle:'Lait, reproduction et santé — pilotage précis du troupeau',
-    apiSpecies:'goat', totalDays:305, cycleLabel:'Cycle Caprin (305 j)',
+    apiSpecies:'goat', cvCategory:'goat', totalDays:305, cycleLabel:'Cycle Caprin (305 j)',
     stats:[
       {label:'Chèvres Actives', icon:Activity,     color:'#dc2626'},
       {label:'Lait / Jour',     icon:Droplets,     color:'#0ea5e9'},
@@ -221,7 +221,7 @@ const SC = {
     color:'#0d9488', dark:'#0f766e', emoji:'🐰',
     name:'Cuniculture', nameEn:'Rabbits', nameAr:'الأرانب',
     title:'Gestion des Lapins', subtitle:'Reproduction intensive, santé et performance — cycle court optimisé',
-    apiSpecies:'rabbit', totalDays:63, cycleLabel:'Cycle Cunicole (63 j)',
+    apiSpecies:'rabbit', cvCategory:'rabbit', totalDays:63, cycleLabel:'Cycle Cunicole (63 j)',
     stats:[
       {label:'Lapines Actives',  icon:Activity,     color:'#0d9488'},
       {label:'Lapereaux/Mois',   icon:TrendingUp,   color:'#10b981'},
@@ -1189,7 +1189,7 @@ function SurveillanceTab({ cfg }) {
           </div>
         ))}
       </div>
-      <AIScanner category="livestock" title={`Analyser ${cfg.emoji} ${cfg.name} par IA`} color={C} />
+      <AIScanner category={cfg.cvCategory || cfg.apiSpecies} title={`Analyser ${cfg.emoji} ${cfg.name} par IA`} color={C} />
     </div>
   );
 }

@@ -48,7 +48,10 @@ const T = {
 const REPORT_EVERY   = 10;
 const AGRONOMIE_CATS = ['leaves', 'lemon', 'orange'];
 const PHYTO_CATS     = ['olive', 'insects'];
-const getGroup       = (cat) => PHYTO_CATS.includes(cat) ? 'phyto' : 'agronomie';
+const PLANTDOC_CATS  = ['plantdoc'];
+const getGroup       = (cat) =>
+  PHYTO_CATS.includes(cat) ? 'phyto' :
+  PLANTDOC_CATS.includes(cat) ? 'plantdoc' : 'agronomie';
 
 const loadCnt  = (g)     => +(localStorage.getItem(`pb_${g}_cnt`) || 0);
 const saveCnt  = (g, n)  => localStorage.setItem(`pb_${g}_cnt`, n);
@@ -468,9 +471,11 @@ export default function ArbresPlantations() {
   const [listening,      setListening]      = useState(false);
   const [agronCnt,       setAgronCnt]       = useState(()=>loadCnt('agronomie'));
   const [phytoCnt,       setPhytoCnt]       = useState(()=>loadCnt('phyto'));
+  const [plantdocCnt,    setPlantdocCnt]    = useState(()=>loadCnt('plantdoc'));
   const [agronReps,      setAgronReps]      = useState(()=>loadReps('agronomie'));
   const [phytoReps,      setPhytoReps]      = useState(()=>loadReps('phyto'));
-  const [repLoading,     setRepLoading]     = useState({agronomie:false,phyto:false});
+  const [plantdocReps,   setPlantdocReps]   = useState(()=>loadReps('plantdoc'));
+  const [repLoading,     setRepLoading]     = useState({agronomie:false,phyto:false,plantdoc:false});
   const [sess,           setSess]           = useState({scans:0,detections:0,diseases:0,confSum:0});
 
   useEffect(()=>{fetchHistory();fetchStats();},[]);
@@ -494,11 +499,15 @@ export default function ArbresPlantations() {
       ? `بعد تحليل ${total} صورة فيتو-فيجن (زيتون، حشرات)، اعطيني تقرير بالدارجة التونسية: الأمراض الملاحظة، العلاجات العاجلة.`
       : `بعد تحليل ${total} صورة زراعية (فول، فراولة، طماطم، ليمون، برتقال)، اعطيني تقرير بالدارجة التونسية: الأمراض المكتشفة، خطة العلاج.`;
     try {
-      const res = await agentAPI.chat(query, isPhyto?'insects':'leaves');
+      const isPlantdoc = group === 'plantdoc';
+      const agentSpecies = isPhyto ? 'insects' : isPlantdoc ? 'plant' : 'leaves';
+      const res = await agentAPI.chat(query, agentSpecies);
       const rep = { id:Date.now(), group, text:res.data.response_derja||'Rapport indisponible.', timestamp:new Date().toISOString(), detCount:total };
       const updated = [rep,...loadReps(group)].slice(0,10);
       saveReps(group,updated);
-      if(isPhyto) setPhytoReps(updated); else setAgronReps(updated);
+      if(isPhyto) setPhytoReps(updated);
+      else if(isPlantdoc) setPlantdocReps(updated);
+      else setAgronReps(updated);
     } catch(e){ console.error('report:',e); }
     finally { setRepLoading(p=>({...p,[group]:false})); }
   },[]);
@@ -506,7 +515,9 @@ export default function ArbresPlantations() {
   const deleteReport = (group,id) => {
     const u = loadReps(group).filter(r=>r.id!==id);
     saveReps(group,u);
-    if(group==='phyto') setPhytoReps(u); else setAgronReps(u);
+    if(group==='phyto') setPhytoReps(u);
+    else if(group==='plantdoc') setPlantdocReps(u);
+    else setAgronReps(u);
   };
 
   const onAnalyze = useCallback(async (dets, cat, imgData='', isAuto=false) => {
@@ -517,7 +528,9 @@ export default function ArbresPlantations() {
     const group   = getGroup(cat);
     const newCnt  = loadCnt(group)+1;
     saveCnt(group,newCnt);
-    if(group==='agronomie') setAgronCnt(newCnt); else setPhytoCnt(newCnt);
+    if(group==='agronomie') setAgronCnt(newCnt);
+    else if(group==='plantdoc') setPlantdocCnt(newCnt);
+    else setPhytoCnt(newCnt);
     if(newCnt % REPORT_EVERY === 0) generateReport(group, newCnt);
     setSess(p=>({scans:p.scans+1,detections:p.detections+dets.length,diseases:p.diseases+dets.filter(d=>d.confidence>0.5).length,confSum:p.confSum+avgConf}));
 
@@ -706,6 +719,22 @@ export default function ArbresPlantations() {
               <ScannerPanel key="insects"
                 title={t('trees.insects_pests')}     subtitle="Army worm · Legume beetle · Rice pest"
                 category="insects" accent={T.red}   accentLt={T.redLt}   icon={Bug}
+                onAnalyze={onAnalyze}/>,
+            ]}
+          />
+
+          {/* ── PLANTDOC (30 classes / 13 species) ───────── */}
+          <GroupSection
+            title="PlantDoc — Multi-espèces"
+            subtitle="Apple · Tomato · Grape · Potato · Corn · Strawberry · 13 espèces · 30 maladies"
+            accent={T.blue} accentLt={T.blueLt} icon={Leaf}
+            detCount={plantdocCnt} reports={plantdocReps} reportLoading={repLoading.plantdoc}
+            onDeleteReport={id=>deleteReport('plantdoc',id)}
+            scanners={[
+              <ScannerPanel key="plantdoc"
+                title="PlantDoc Disease Detection"
+                subtitle="30 classes · Apple Scab · Tomato Blight · Grape Rot · Corn Rust · Potato Blight..."
+                category="plantdoc" accent={T.blue} accentLt={T.blueLt} icon={Leaf}
                 onAnalyze={onAnalyze}/>,
             ]}
           />

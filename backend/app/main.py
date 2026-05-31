@@ -157,8 +157,33 @@ try:
 except ImportError:
     logger.warning("[MLOps] prometheus-fastapi-instrumentator not installed — /metrics disabled.")
 
-# 6. Routing
+# 6. Universal Rate Limiting — applied to costly endpoints
+# (slowapi decorators on specific endpoints override these global defaults)
+from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
+app.add_middleware(SlowAPIMiddleware)
+
+# 7. Routing
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# 8. API v2 — real endpoints with pagination + unified envelope
+from app.api.v2.api import api_v2_router  # noqa: E402
+app.include_router(api_v2_router, prefix="/api/v2")
+
+# GraphQL — optional (requires strawberry-graphql[fastapi])
+from app.api.v1.endpoints.graphql_routes import graphql_router, HAS_GRAPHQL  # noqa: E402
+if HAS_GRAPHQL and graphql_router:
+    app.include_router(graphql_router)
+
+@app.get("/api/versions", tags=["API Info"])
+def api_versions():
+    return {
+        "current": "v2",
+        "supported": ["v1", "v2"],
+        "v1_deprecation_notice": "API v1 sera maintenue jusqu'au 2026-12-31",
+        "v1_sunset": "2026-12-31",
+        "v2_base_url": "/api/v2",
+        "v1_base_url": "/api/v1",
+    }
 
 from pydantic import BaseModel  # noqa: E402
 

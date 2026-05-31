@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app.models.domain import User
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token
 from app.schemas.domain import UserCreate, Token
 import random
 
@@ -61,8 +61,17 @@ class AuthService:
             )
         if not user.is_active:
             raise HTTPException(status_code=400, detail="Inactive account")
-        token = create_access_token({"sub": user.username, "role": user.role})
-        return Token(access_token=token)
+        from datetime import timedelta
+        access_token = create_access_token(
+            {"sub": user.username, "role": user.role},
+            expires_delta=timedelta(hours=1),
+        )
+        refresh_token = create_refresh_token({"sub": user.username, "role": user.role})
+        # SHA-256 hash of refresh token (bcrypt has 72-byte limit; JWTs exceed it)
+        import hashlib
+        user.refresh_token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
+        self.db.commit()
+        return Token(access_token=access_token, refresh_token=refresh_token)
 
     def worker_request_otp(self, phone_number: str) -> dict:
         """Étape 1 — Both workers and owners can use the mobile OTP login with their phone number."""

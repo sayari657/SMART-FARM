@@ -653,7 +653,7 @@ function SurveillanceTab() {
       </div>
 
       {/* ── AIScanner (image upload) ── */}
-      <AIScanner category="livestock" title={t('poultry.surveillance.scanner_title')} color={C} />
+      <AIScanner category="chicken" title={t('poultry.surveillance.scanner_title')} color={C} />
     </div>
   );
 }

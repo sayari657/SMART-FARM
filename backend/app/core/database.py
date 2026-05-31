@@ -47,3 +47,15 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+async def run_in_db_thread(func, *args, **kwargs):
+    """
+    Wraps a synchronous DB operation in asyncio.to_thread so it doesn't block
+    the uvicorn event loop. Use for heavy queries in async endpoints.
+
+    Example:
+        result = await run_in_db_thread(db.query(TelemetryRecord).filter(...).all)
+    """
+    import asyncio
+    return await asyncio.to_thread(func, *args, **kwargs)

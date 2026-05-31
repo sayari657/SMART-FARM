@@ -57,3 +57,12 @@ prometheus-fastapi-instrumentator>=6.1.0
 # External APIs
 duckduckgo-search>=6.0.0
 beautifulsoup4>=4.12.0
+
+# Advanced ML / Data Science
+prophet>=1.1.4
+shap>=0.44.0
+statsmodels>=0.14.0
+scipy>=1.12.0
+
+pytest-cov>=4.1.0
+httpx>=0.25.0

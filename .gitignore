@@ -46,6 +46,27 @@ map_data/
 brain/
 .tempmediaStorage/
 artifacts/
+.claude/
+graphify-out/
+
+# Sensitive monitoring config (contains API keys)
+monitoring/prometheus.docker.yml
+monitoring/data/
+monitoring/prometheus.exe
+monitoring/prometheus-2.51.2.windows-amd64/
+
+# Dev environment (has secrets)
+.env.dev
+
+# Large AI model binaries
+ai_assets/**/*.onnx
+ai_assets/**/*.pt
+ai_assets/**/*.engine
+
+# Generated outputs
+playwright-report/
+mlops/notebooks/.ipynb_checkpoints/
+backend/tests/__pycache__/
 
 # PlatformIO
 .pio/

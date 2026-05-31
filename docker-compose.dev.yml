@@ -1,0 +1,122 @@
+# Smart Farm AI — Full Dev Stack (SQLite + Monitoring)
+#
+# Démarre TOUT en local avec une seule commande :
+#   docker compose -f docker-compose.dev.yml --env-file .env.dev up -d --build
+#
+# Ports exposés :
+#   http://localhost        → Frontend React
+#   http://localhost:8000   → FastAPI backend + Swagger /docs
+#   http://localhost:8000/metrics → Métriques Prometheus raw
+#   http://localhost:9090   → Prometheus UI
+#   http://localhost:3000   → Grafana (admin / admin)
+#
+# Arrêter tout :
+#   docker compose -f docker-compose.dev.yml down
+#
+# Voir les logs :
+#   docker compose -f docker-compose.dev.yml logs -f backend
+
+services:
+
+  # ── FastAPI Backend (SQLite mode) ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: farm_backend
+    restart: unless-stopped
+    env_file: .env.dev
+    environment:
+      DATABASE_URL: "sqlite:////data/smart_farm.db"
+      USE_SQLITE:   "true"
+      DEBUG:        "true"
+    volumes:
+      - sqlite_data:/data          # SQLite DB persiste entre les restarts
+      - ./iot:/app/iot             # fichiers CSV IoT
+      - ./ai_assets:/app/ai_assets:ro  # modèles YOLO (read-only)
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - farm_net
+
+  # ── React Frontend (nginx) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""    # relative paths — nginx proxies /api/ to backend
+    container_name: farm_frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - farm_net
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: farm_prometheus
+    restart: unless-stopped
+    environment:
+      GRAFANA_CLOUD_API_KEY: "${GRAFANA_CLOUD_API_KEY}"
+    volumes:
+      - ./monitoring/prometheus.docker.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - farm_net
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: farm_grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER:           admin
+      GF_SECURITY_ADMIN_PASSWORD:       admin
+      GF_AUTH_ANONYMOUS_ENABLED:        "false"
+      GF_SERVER_HTTP_PORT:              "3000"
+      # Fix Chrome iframe issue — allow embedding from same origin
+      GF_SECURITY_ALLOW_EMBEDDING:      "true"
+      GF_SECURITY_COOKIE_SAMESITE:      disabled
+      GF_SERVER_ROOT_URL:               "http://localhost:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana_provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - farm_net
+
+networks:
+  farm_net:
+    driver: bridge
+
+volumes:
+  sqlite_data:
+  prometheus_data:
+  grafana_data:

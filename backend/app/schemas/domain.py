@@ -15,6 +15,8 @@ from datetime import datetime
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: Optional[str] = None
+    expires_in: int = 3600  # access token lifetime in seconds
 
 class TokenData(BaseModel):
     username: Optional[str] = None

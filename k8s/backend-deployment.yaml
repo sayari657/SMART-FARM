@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-farm-backend
+  labels: { app: smart-farm, tier: backend }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: smart-farm, tier: backend }
+  template:
+    metadata:
+      labels: { app: smart-farm, tier: backend }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port:   "8000"
+        prometheus.io/path:   "/metrics"
+    spec:
+      containers:
+        - name: backend
+          image: farmai-backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef: { name: smart-farm-secrets }
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits:   { cpu: "1000m", memory: "2Gi" }
+          livenessProbe:
+            httpGet:  { path: /health, port: 8000 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:  { path: /health, port: 8000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: ai-assets
+              mountPath: /app/ai_assets
+              readOnly: true
+      volumes:
+        - name: ai-assets
+          persistentVolumeClaim: { claimName: ai-assets-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smart-farm-backend
+spec:
+  selector: { app: smart-farm, tier: backend }
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: smart-farm-backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: smart-farm-backend
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

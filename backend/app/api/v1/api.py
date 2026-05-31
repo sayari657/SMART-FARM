@@ -7,7 +7,9 @@ from app.api.v1.endpoints.telemetry_routes import router as telemetry_router
 from app.api.v1.endpoints.cv_routes import router as cv_router
 from app.api.v1.endpoints.other_routes import (
     anomaly_router, alert_router, rec_router,
-    report_router, settings_router, dashboard_router
+    report_router, settings_router, dashboard_router,
+    forecast_router, analytics_router, poultry_explain_router,
+    irrigation_router, calendar_router, market_router, quality_router,
 )
 from app.api.v1.endpoints.weather import router as weather_ext_router
 from app.api.v1.endpoints.geocode import router as geocode_router
@@ -58,3 +60,28 @@ api_router.include_router(weather_ext_router, prefix="/weather", tags=["Weather"
 api_router.include_router(geocode_router, prefix="/geocode", tags=["Geocode"])
 api_router.include_router(plants_router, prefix="/plants", tags=["Plants"])
 api_router.include_router(recommendations_ext_router, prefix="/recommendations-advanced", tags=["Recommendations"])
+
+# v3.1 — New smart features
+api_router.include_router(forecast_router)
+api_router.include_router(analytics_router)
+api_router.include_router(poultry_explain_router)
+api_router.include_router(irrigation_router)
+api_router.include_router(calendar_router)
+api_router.include_router(market_router)
+api_router.include_router(quality_router)
+
+# Active Learning / CV Feedback
+from app.api.v1.endpoints.feedback_routes import router as feedback_router  # noqa: E402
+api_router.include_router(feedback_router)
+
+# Video Streaming (WebSocket) — registered directly on app in main.py via stream_routes
+from app.api.v1.endpoints.stream_routes import router as stream_router  # noqa: E402
+api_router.include_router(stream_router)
+
+# Data Drift Detection
+from app.api.v1.endpoints.drift_routes import router as drift_router  # noqa: E402
+api_router.include_router(drift_router)
+
+# Model A/B Testing
+from app.api.v1.endpoints.ab_testing_routes import router as ab_router  # noqa: E402
+api_router.include_router(ab_router)

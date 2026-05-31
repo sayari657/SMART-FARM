@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: smart-farm-frontend
+  labels: { app: smart-farm, tier: frontend }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: smart-farm, tier: frontend }
+  template:
+    metadata:
+      labels: { app: smart-farm, tier: frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: farmai-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests: { cpu: "50m",  memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: smart-farm-frontend
+spec:
+  selector: { app: smart-farm, tier: frontend }
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: smart-farm-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts: [your-domain.com]
+      secretName: smart-farm-tls
+  rules:
+    - host: your-domain.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: smart-farm-backend, port: { number: 8000 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: smart-farm-frontend, port: { number: 80 } }

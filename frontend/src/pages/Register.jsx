@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
+import { Leaf, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThreeBackground from '../components/ThreeBackground';
 import ThreeFarmBackground from '../components/ThreeFarmBackground';
@@ -19,6 +19,7 @@ export default function Register() {
   const [form, setForm] = useState({ username:'', email:'', phone_number:'+216', full_name:'', password:'', role:'owner' });
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState(false);
+  const [showPw, setShowPw]   = useState(false);
   const { register, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -117,7 +118,12 @@ export default function Register() {
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Mot de passe *</label>
-                <input className="form-input" id="reg-password" type="password" placeholder="Min. 6 caractères" value={form.password} onChange={set('password')} required minLength={6} />
+                <div style={{ position: 'relative' }}>
+                  <input className="form-input" id="reg-password" type={showPw ? 'text' : 'password'} placeholder="Min. 6 caractères" value={form.password} onChange={set('password')} required minLength={6} style={{ paddingRight: 40 }} />
+                  <button type="button" onClick={() => setShowPw(v => !v)} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', padding:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div className="form-group">
                 <label className="form-label">Rôle</label>

@@ -40,6 +40,9 @@ groq>=0.4.0
 # Rate limiting
 slowapi>=0.1.9
 
+# MLOps observability — /metrics endpoint for Prometheus scraping
+prometheus-fastapi-instrumentator>=6.1.0
+
 # Structured logging
 python-json-logger>=2.0.7
 

@@ -85,6 +85,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="operator")
     is_active = Column(Boolean, default=True)
+    refresh_token_hash = Column(String(255), nullable=True)  # BCrypt hash of current refresh token
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -991,3 +992,51 @@ class PoultryInventory(Base):
     last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     farm = relationship("Farm")
+
+
+# ---------------------------------------------------------------------------
+# Active Learning — Corrections CV par les utilisateurs
+# ---------------------------------------------------------------------------
+
+class MLFeedback(Base):
+    """Corrections des détections YOLO soumises par les utilisateurs (active learning)."""
+    __tablename__ = "ml_feedback"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cv_event_id = Column(Integer, ForeignKey("cv_events.id", ondelete="SET NULL"), nullable=True)
+    original_label = Column(String(100), nullable=False)   # Label prédit par YOLO
+    corrected_label = Column(String(100), nullable=False)  # Label corrigé par l'utilisateur
+    confidence_original = Column(Float, nullable=True)     # Confiance originale YOLO
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    category = Column(String(50), nullable=True)           # bee, leaves, olive, fire…
+    image_b64 = Column(Text, nullable=True)                # Image originale (optionnel)
+    notes = Column(Text, nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    used_for_training = Column(Boolean, default=False)     # Marqué True après retrain
+
+    __table_args__ = (
+        Index("ix_ml_feedback_training", "used_for_training", "timestamp"),
+    )
+
+
+# ---------------------------------------------------------------------------
+# MLOps — Métriques d'évaluation des modèles YOLO par classe
+# ---------------------------------------------------------------------------
+
+class ModelEvaluation(Base):
+    """Stocke precision/recall/F1 par classe pour chaque modèle YOLO."""
+    __tablename__ = "model_evaluations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String(100), nullable=False, index=True)  # bee, leaves, olive…
+    eval_date = Column(DateTime, default=datetime.utcnow, index=True)
+    # JSON: {"bee": {"precision": 0.94, "recall": 0.91, "f1": 0.92, "support": 312}, ...}
+    class_metrics = Column(JSON, nullable=False, default=dict)
+    map50 = Column(Float, nullable=True)
+    map50_95 = Column(Float, nullable=True)
+    dataset_size = Column(Integer, nullable=True)          # Nb images de validation
+    notes = Column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_model_eval_name_date", "model_name", "eval_date"),
+    )

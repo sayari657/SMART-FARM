@@ -47,14 +47,22 @@ class MLLMService:
           2. Groq Cloud (Llama-3.3-70B) — fast cloud fallback
           3. Static fallback — always returns something
         """
-        # Priority 1 — Ollama (Labess-7B)
+        # Priority 1 — Ollama llama3.1:8b (~5.5 GB RAM, fits in 7.6 GB)
         if not settings.LITE_MODE:
             try:
                 import ollama
-                resp = ollama.chat(
-                    model=settings.DERJA_MODEL,
-                    messages=[{"role": "user", "content": text}],
-                )
+                is_labess = "labess" in settings.DERJA_MODEL.lower()
+                messages = [{"role": "user", "content": text}]
+                if not is_labess:
+                    # llama3.1:8b needs a system prompt to respond in Darija
+                    messages = [
+                        {"role": "system", "content": (
+                            "أنت خبير زراعي تونسي. تجاوب دائماً بالدارجة التونسية. "
+                            "كن عملي ومختصر. استعمل مصطلحات تونسية محلية."
+                        )},
+                        {"role": "user", "content": text},
+                    ]
+                resp = ollama.chat(model=settings.DERJA_MODEL, messages=messages)
                 return resp["message"]["content"]
             except Exception as e:
                 logger.warning(f"Ollama ({settings.DERJA_MODEL}) unavailable: {e} → Groq fallback")

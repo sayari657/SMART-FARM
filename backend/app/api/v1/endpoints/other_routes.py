@@ -301,3 +301,370 @@ def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_
         "alert_severity_distribution": [{"severity": r.severity, "count": r.count} for r in alert_severity_dist],
         "anomaly_type_distribution":   [{"type": r.anomaly_type, "count": r.count} for r in anomaly_type_dist],
     }
+
+
+# ---------------------------------------------------------------------------
+# Forecasting Router
+# ---------------------------------------------------------------------------
+forecast_router = APIRouter(prefix="/forecast", tags=["Forecasting"])
+
+from app.services.forecasting_service import (  # noqa: E402
+    forecast_telemetry, forecast_honey_production, decompose_telemetry,
+)
+from app.models.domain import TelemetryRecord, BeeProduction  # noqa: E402
+
+
+@forecast_router.get("/telemetry/{unit_id}", summary="Prévision métriques IoT (Prophet)")
+def forecast_telemetry_endpoint(
+    unit_id: int,
+    metric: str = Query("temperature", description="Métrique à prévoir"),
+    days: int = Query(7, ge=1, le=30),
+    history_days: int = Query(60, ge=7, le=365),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    since = datetime.utcnow() - timedelta(days=history_days)
+    records = (
+        db.query(TelemetryRecord)
+        .filter(TelemetryRecord.unit_id == unit_id, TelemetryRecord.timestamp >= since)
+        .order_by(TelemetryRecord.timestamp.asc())
+        .all()
+    )
+    raw = [{"timestamp": r.timestamp.isoformat(), "metrics": r.metrics or {}} for r in records]
+    return forecast_telemetry(raw, metric=metric, horizon_days=days)
+
+
+@forecast_router.get("/honey/{hive_id}", summary="Prévision production miel (SARIMA/Prophet)")
+def forecast_honey_endpoint(
+    hive_id: int,
+    days: int = Query(30, ge=7, le=90),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    records = (
+        db.query(BeeProduction)
+        .filter(BeeProduction.hive_id == hive_id)
+        .order_by(BeeProduction.production_date.asc())
+        .all()
+    )
+    raw = [{"production_date": r.production_date.isoformat(), "honey_kg": float(r.honey_kg or 0)} for r in records]
+    return forecast_honey_production(raw, horizon_days=days)
+
+
+# ---------------------------------------------------------------------------
+# Analytics Extras Router
+# ---------------------------------------------------------------------------
+analytics_router = APIRouter(prefix="/analytics", tags=["Analytics"])
+
+
+@analytics_router.get("/correlation", summary="Corrélation croisée entre deux métriques IoT")
+def correlation_endpoint(
+    unit_id: int = Query(...),
+    metric_x: str = Query("temperature"),
+    metric_y: str = Query("hive_weight"),
+    days: int = Query(30, ge=7, le=365),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    import numpy as np  # noqa: PLC0415
+    try:
+        from scipy import stats as sp_stats  # noqa: PLC0415
+        _has_scipy = True
+    except ImportError:
+        _has_scipy = False
+
+    since = datetime.utcnow() - timedelta(days=days)
+    records = (
+        db.query(TelemetryRecord)
+        .filter(TelemetryRecord.unit_id == unit_id, TelemetryRecord.timestamp >= since)
+        .order_by(TelemetryRecord.timestamp.asc())
+        .all()
+    )
+
+    xs, ys = [], []
+    for r in records:
+        m = r.metrics or {}
+        x_val = m.get(metric_x)
+        y_val = m.get(metric_y)
+        if x_val is not None and y_val is not None:
+            try:
+                xs.append(float(x_val))
+                ys.append(float(y_val))
+            except (TypeError, ValueError):
+                pass
+
+    if len(xs) < 5:
+        return {"error": f"Données insuffisantes ({len(xs)} points — minimum 5 requis)",
+                "unit_id": unit_id, "metric_x": metric_x, "metric_y": metric_y}
+
+    x_arr = np.array(xs)
+    y_arr = np.array(ys)
+
+    pearson_r, p_value = (None, None)
+    if _has_scipy:
+        pearson_r, p_value = sp_stats.pearsonr(x_arr, y_arr)
+        pearson_r = round(float(pearson_r), 4)
+        p_value = round(float(p_value), 6)
+
+    # Cross-correlation with lag
+    cross_corr = np.correlate(x_arr - x_arr.mean(), y_arr - y_arr.mean(), mode="full")
+    norm = np.sqrt(np.sum((x_arr - x_arr.mean())**2) * np.sum((y_arr - y_arr.mean())**2))
+    cross_corr_norm = (cross_corr / norm if norm > 0 else cross_corr).tolist()
+    lags = list(range(-len(xs) + 1, len(xs)))
+    optimal_lag_idx = int(np.argmax(np.abs(cross_corr)))
+    optimal_lag = lags[optimal_lag_idx]
+
+    significant = bool(p_value is not None and p_value < 0.05)
+    if pearson_r is not None:
+        if abs(pearson_r) > 0.7:
+            interpretation = "forte corrélation " + ("positive" if pearson_r > 0 else "négative")
+        elif abs(pearson_r) > 0.4:
+            interpretation = "corrélation modérée " + ("positive" if pearson_r > 0 else "négative")
+        else:
+            interpretation = "corrélation faible ou absente"
+    else:
+        interpretation = "corrélation calculée sans scipy"
+
+    return {
+        "unit_id": unit_id,
+        "metric_x": metric_x,
+        "metric_y": metric_y,
+        "n_points": len(xs),
+        "pearson_r": pearson_r,
+        "p_value": p_value,
+        "significant": significant,
+        "lag_optimal": optimal_lag,
+        "cross_correlation": [round(v, 4) for v in cross_corr_norm[:50]],
+        "interpretation": interpretation,
+        "days_analyzed": days,
+    }
+
+
+@analytics_router.get("/decompose/{unit_id}", summary="Décomposition saisonnière d'une métrique IoT")
+def decompose_endpoint(
+    unit_id: int,
+    metric: str = Query("temperature"),
+    days: int = Query(30, ge=14, le=365),
+    period: int = Query(24, ge=2, le=168, description="Période de saisonnalité (ex: 24 pour quotidien)"),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    since = datetime.utcnow() - timedelta(days=days)
+    records = (
+        db.query(TelemetryRecord)
+        .filter(TelemetryRecord.unit_id == unit_id, TelemetryRecord.timestamp >= since)
+        .order_by(TelemetryRecord.timestamp.asc())
+        .all()
+    )
+    raw = [{"timestamp": r.timestamp.isoformat(), "metrics": r.metrics or {}} for r in records]
+    return decompose_telemetry(raw, metric=metric, period=period)
+
+
+# ---------------------------------------------------------------------------
+# Poultry Explainability Router
+# ---------------------------------------------------------------------------
+poultry_explain_router = APIRouter(prefix="/poultry", tags=["Poultry ML"])
+
+from app.models.domain import PoultryBatch, PoultryFeedLog, PoultryHealthLog  # noqa: E402
+from app.services.poultry_ml_service import explain_prediction, validate_models  # noqa: E402
+
+
+@poultry_explain_router.get("/{batch_id}/explain", summary="SHAP — contributions des features au score de risque")
+def explain_batch(
+    batch_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    batch = db.query(PoultryBatch).filter(PoultryBatch.id == batch_id).first()
+    if not batch:
+        from fastapi import HTTPException  # noqa: PLC0415
+        raise HTTPException(status_code=404, detail="Lot introuvable")
+
+    feed_logs = db.query(PoultryFeedLog).filter(PoultryFeedLog.batch_id == batch_id).all()
+    health_logs = db.query(PoultryHealthLog).filter(PoultryHealthLog.batch_id == batch_id).all()
+    from datetime import date  # noqa: PLC0415
+    batch_day = (date.today() - batch.arrival_date.date()).days if batch.arrival_date else 0
+
+    return explain_prediction(
+        feed_logs=feed_logs,
+        health_logs=health_logs,
+        batch_day=batch_day,
+        initial_qty=batch.initial_quantity or 1,
+    )
+
+
+@poultry_explain_router.get("/models/validation", summary="Cross-validation K-Fold des modèles poultry")
+def validate_poultry_models(_=Depends(get_current_user)):
+    return validate_models()
+
+
+# ---------------------------------------------------------------------------
+# Irrigation Router
+# ---------------------------------------------------------------------------
+irrigation_router = APIRouter(prefix="/irrigation", tags=["Irrigation"])
+
+from app.services.irrigation_service import get_crop_water_requirement, get_farm_et0  # noqa: E402
+from app.models.domain import Farm  # noqa: E402
+
+
+@irrigation_router.get("/et0/{farm_id}", summary="ET₀ Penman-Monteith + besoins en eau de la culture")
+async def et0_endpoint(
+    farm_id: int,
+    crop: str = Query("tomate"),
+    stage: str = Query("mid", description="Stade phénologique : ini, dev, mid, flowering, late, end, harvest"),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    farm = db.query(Farm).filter(Farm.id == farm_id).first()
+    if not farm:
+        from fastapi import HTTPException  # noqa: PLC0415
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+
+    et0_data = await get_farm_et0(farm, days=1)
+    et0_mm = et0_data["forecasts"][0]["et0_mm_day"] if et0_data.get("forecasts") else 4.0
+    crop_req = get_crop_water_requirement(crop=crop, stage=stage, et0_mm_day=et0_mm)
+
+    return {
+        "farm_id": farm_id,
+        "et0": et0_data["forecasts"][0] if et0_data.get("forecasts") else {"et0_mm_day": 4.0},
+        "crop_water_requirement": crop_req,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Crop Calendar Router
+# ---------------------------------------------------------------------------
+calendar_router = APIRouter(prefix="/calendar", tags=["Crop Calendar"])
+
+from app.services.crop_calendar_service import (  # noqa: E402
+    get_crops_for_month, get_crop_timeline, get_phenological_alerts, list_available_crops,
+)
+
+
+@calendar_router.get("/crops", summary="Cultures et actions pour un mois/zone donnée")
+def crops_for_month(
+    zone: str = Query("nord", description="Zone : nord, centre, sud, cotier"),
+    month: int = Query(None, ge=1, le=12, description="Mois (1-12). Défaut = mois courant"),
+    _=Depends(get_current_user),
+):
+    if month is None:
+        month = datetime.utcnow().month
+    return {"zone": zone, "month": month, "crops": get_crops_for_month(zone, month)}
+
+
+@calendar_router.get("/crops/{crop}/timeline", summary="Calendrier complet d'une culture sur 12 mois")
+def crop_timeline(
+    crop: str,
+    zone: str = Query("nord"),
+    _=Depends(get_current_user),
+):
+    return get_crop_timeline(crop=crop, zone=zone)
+
+
+@calendar_router.get("/alerts/{farm_id}", summary="Alertes phénologiques basées sur météo actuelle")
+async def phenological_alerts(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    import httpx  # noqa: PLC0415
+    farm = db.query(Farm).filter(Farm.id == farm_id).first()
+    if not farm:
+        from fastapi import HTTPException  # noqa: PLC0415
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+
+    # Determine zone from latitude (rough mapping for Tunisia)
+    lat = float(farm.lat or 36.8)
+    if lat > 36.5:
+        zone = "nord"
+    elif lat > 34.5:
+        zone = "centre"
+    elif lat > 33.0:
+        zone = "cotier"
+    else:
+        zone = "sud"
+
+    # Get current temperature for frost alerts
+    temperature = None
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={float(farm.lon or 10.1)}"
+                f"&current=temperature_2m&timezone=Africa%2FTunis"
+            )
+            temperature = resp.json().get("current", {}).get("temperature_2m")
+    except Exception:
+        pass
+
+    alerts = get_phenological_alerts(zone=zone, lat=lat, temperature=temperature)
+    return {"farm_id": farm_id, "zone": zone, "alerts": alerts, "month": datetime.utcnow().month}
+
+
+@calendar_router.get("/available", summary="Liste des cultures disponibles par zone")
+def available_crops(
+    zone: str = Query(None),
+    _=Depends(get_current_user),
+):
+    return list_available_crops(zone=zone)
+
+
+# ---------------------------------------------------------------------------
+# Market Prices Router
+# ---------------------------------------------------------------------------
+market_router = APIRouter(prefix="/market", tags=["Market Prices"])
+
+from app.services.market_price_service import (  # noqa: E402
+    get_prices, compute_farm_profitability, list_available_products,
+)
+
+
+@market_router.get("/prices", summary="Prix des produits agricoles tunisiens")
+def market_prices(
+    products: str = Query(..., description="Produits séparés par virgule : tomate,miel,lait_vache"),
+    _=Depends(get_current_user),
+):
+    product_list = [p.strip() for p in products.split(",") if p.strip()]
+    return {"prices": get_prices(product_list), "count": len(product_list)}
+
+
+@market_router.get("/profitability/{farm_id}", summary="Rentabilité estimée basée sur prix marché actuels")
+def farm_profitability(
+    farm_id: int,
+    products: str = Query("miel,lait_vache,tomate", description="Produits séparés par virgule"),
+    quantities: str = Query("50,500,1000", description="Quantités en kg (même ordre que products)"),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    product_list = [p.strip() for p in products.split(",")]
+    qty_list = [float(q.strip()) for q in quantities.split(",")]
+    if len(product_list) != len(qty_list):
+        from fastapi import HTTPException  # noqa: PLC0415
+        raise HTTPException(status_code=400, detail="Nombre de produits et quantités doivent correspondre")
+    products_produced = dict(zip(product_list, qty_list))
+    return compute_farm_profitability(db, farm_id=farm_id, products_produced=products_produced)
+
+
+@market_router.get("/products", summary="Liste des produits disponibles")
+def available_products(
+    category: str = Query(None, description="Filtrer par catégorie : légumes, fruits, élevage, apiculture…"),
+    _=Depends(get_current_user),
+):
+    return list_available_products(category=category)
+
+
+# ---------------------------------------------------------------------------
+# Telemetry Quality Router (added here to avoid new file)
+# ---------------------------------------------------------------------------
+quality_router = APIRouter(prefix="/telemetry", tags=["Data Quality"])
+
+from app.services.data_quality_service import get_quality_report  # noqa: E402
+
+
+@quality_router.get("/{unit_id}/quality", summary="Rapport qualité des données télémétriques")
+def telemetry_quality(
+    unit_id: int,
+    days: int = Query(7, ge=1, le=90),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    return get_quality_report(db=db, unit_id=unit_id, days=days)

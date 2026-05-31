@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Camera, Upload, Sparkles, RefreshCcw, Activity, Trash2, X, Loader2, ShieldAlert, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cvAPI, agentAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
+import { translateLabel } from '../utils/labelTranslations';
 
 const CRITICAL_LABELS = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu', 'fumee', 'blight', 'rot', 'disease']);
 const SCAN_ALERT_KEY = 'farm_scan_alerts';
@@ -78,7 +80,7 @@ const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
       ctx.strokeRect(x1, y1, w, h);
 
       ctx.shadowBlur = 0;
-      const label = `${det.label} ${Math.round(det.confidence * 100)}%`;
+      const label = `${tLabel(det.label)} ${Math.round(det.confidence * 100)}%`;
       ctx.font = 'bold 8px sans-serif';
       const tw = ctx.measureText(label).width;
       ctx.fillStyle = boxColor;
@@ -133,7 +135,7 @@ const BboxZoomCard = ({ imageUrl, detections, color, palette }) => {
       ctx.shadowBlur = 10; ctx.shadowColor = boxColor;
       ctx.strokeRect(x1, y1, w, h);
       ctx.shadowBlur = 0;
-      const lbl = `${det.label.toUpperCase()} ${Math.round(det.confidence * 100)}%`;
+      const lbl = `${tLabel(det.label).toUpperCase()} ${Math.round(det.confidence * 100)}%`;
       ctx.font = 'bold 13px Inter, sans-serif';
       const tw = ctx.measureText(lbl).width;
       ctx.fillStyle = boxColor;
@@ -234,7 +236,7 @@ const ZoomModal = ({ card, total, index, color, palette, onClose, onDelete, onPr
               const bc = palette?.[det.label?.toLowerCase()] || color;
               return (
                 <span key={i} style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: isCrit ? '#fef2f2' : `${bc}18`, color: isCrit ? '#ef4444' : bc, border: `1px solid ${isCrit ? '#ef444440' : `${bc}40`}` }}>
-                  {det.label.toUpperCase()} — {Math.round(det.confidence * 100)}%
+                  {tLabel(det.label).toUpperCase()} — {Math.round(det.confidence * 100)}%
                 </span>
               );
             })}
@@ -299,6 +301,9 @@ const buildReportPrompt = (category, summary, avgConf, count, periodLabel) => {
 };
 
 const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color = '#7c3aed', onAnalysisComplete }) => {
+  const { i18n } = useTranslation();
+  const tLabel = (label) => translateLabel(label, i18n.language);
+
   const [mode, setMode]             = useState('upload');
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -344,21 +349,46 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
   const generateAIReport = useCallback(async (recentHistory) => {
     const allDets = recentHistory.flatMap(c => c.detections);
     if (!allDets.length) return;
+
     const counts = {};
     allDets.forEach(d => { counts[d.label] = (counts[d.label] || 0) + 1; });
     const summary = Object.entries(counts).map(([label, count]) => `${count}× ${label}`).join(', ');
     const avgConf = Math.round(allDets.reduce((s, d) => s + d.confidence, 0) / allDets.length * 100);
-    const prompt = buildReportPrompt(category, summary, avgConf, recentHistory.length, `${recentHistory.length} images`);
+
     const reportId = Date.now();
-    const newReport = { id: reportId, isGenerating: true, timestamp: new Date().toISOString(), detectionCount: allDets.length, imageCount: recentHistory.length, summary, avgConf, text: null };
-    setAiReports(prev => { const updated = [newReport, ...prev]; saveReports(category, updated); return updated; });
+    const newReport = {
+      id: reportId, isGenerating: true,
+      timestamp: new Date().toISOString(),
+      detectionCount: allDets.length, imageCount: recentHistory.length,
+      summary, avgConf, text: null,
+    };
+    setAiReports(prev => { const u = [newReport, ...prev]; saveReports(category, u); return u; });
     setActiveTab('reports');
+
     try {
-      const res = await agentAPI.chat(prompt);
+      // Use fast /report endpoint — Groq direct, structured output, ~1s
+      const res = await agentAPI.report(allDets, category, recentHistory.length);
       const text = res.data.response_derja || res.data.response || 'Rapport généré.';
-      setAiReports(prev => { const updated = prev.map(r => r.id === reportId ? { ...r, isGenerating: false, text } : r); saveReports(category, updated); return updated; });
+      setAiReports(prev => {
+        const u = prev.map(r => r.id === reportId ? { ...r, isGenerating: false, text } : r);
+        saveReports(category, u); return u;
+      });
     } catch {
-      setAiReports(prev => { const updated = prev.map(r => r.id === reportId ? { ...r, isGenerating: false, text: 'Erreur génération.' } : r); saveReports(category, updated); return updated; });
+      // fallback to old chat endpoint
+      try {
+        const prompt = buildReportPrompt(category, summary, avgConf, recentHistory.length, `${recentHistory.length} images`);
+        const res2 = await agentAPI.analyze(prompt, category, allDets);
+        const text = res2.data.response_derja || 'Rapport généré.';
+        setAiReports(prev => {
+          const u = prev.map(r => r.id === reportId ? { ...r, isGenerating: false, text } : r);
+          saveReports(category, u); return u;
+        });
+      } catch {
+        setAiReports(prev => {
+          const u = prev.map(r => r.id === reportId ? { ...r, isGenerating: false, text: 'Erreur de connexion — réessaie.' } : r);
+          saveReports(category, u); return u;
+        });
+      }
     }
   }, [category]);
 
@@ -515,7 +545,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
       ctx.translate(cx, cy); ctx.rotate(rot); ctx.translate(-cx, -cy);
       ctx.strokeStyle = boxColor; ctx.lineWidth = 3;
       ctx.strokeRect(x1, y1, w, h);
-      const labelTxt = `${det.label.toUpperCase()} ${Math.floor(det.confidence * 100)}%`;
+      const labelTxt = `${tLabel(det.label).toUpperCase()} ${Math.floor(det.confidence * 100)}%`;
       ctx.font = 'bold 11px Inter, sans-serif';
       const tw = ctx.measureText(labelTxt).width;
       ctx.fillStyle = boxColor; ctx.fillRect(x1, y1 - 20, tw + 10, 20);
@@ -695,7 +725,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
                               color: isCrit ? '#ef4444' : '#16a34a',
                               border: `1px solid ${isCrit ? '#ef444430' : '#16a34a30'}`,
                             }}>
-                              {det.label} {Math.round(det.confidence * 100)}%
+                              {tLabel(det.label)} {Math.round(det.confidence * 100)}%
                             </span>
                           );
                         })}

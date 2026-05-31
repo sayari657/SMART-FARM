@@ -139,3 +139,55 @@ def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "✅ Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter.", "success": True}
+
+
+# ── JWT Refresh Token ────────────────────────────────────────────────────────
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+@router.post("/refresh", summary="Obtenir un nouveau access token via refresh token")
+def refresh_access_token(req: RefreshRequest, db: Session = Depends(get_db)):
+    """
+    Échange un refresh token (30 jours) contre un nouvel access token (1 heure).
+    Valide le hash stocké en DB — révocation effective dès le logout.
+    """
+    import hashlib
+    from app.core.security import decode_refresh_token, create_access_token
+    from datetime import timedelta
+
+    payload = decode_refresh_token(req.refresh_token)
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=401, detail="Refresh token invalide")
+
+    user = db.query(User).filter(User.username == username).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Utilisateur introuvable ou inactif")
+
+    # Verify via SHA-256 (bcrypt has 72-byte limit; JWTs exceed it)
+    token_hash = hashlib.sha256(req.refresh_token.encode()).hexdigest()
+    if not user.refresh_token_hash or user.refresh_token_hash != token_hash:
+        raise HTTPException(status_code=401, detail="Refresh token révoqué ou invalide — veuillez vous reconnecter")
+
+    new_access_token = create_access_token(
+        data={"sub": username, "role": user.role},
+        expires_delta=timedelta(hours=1),
+    )
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer",
+        "expires_in": 3600,
+    }
+
+
+@router.post("/logout", summary="Révoquer le refresh token côté serveur")
+def logout(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    """
+    Révoque le refresh token en effaçant son hash en DB.
+    Tout appel ultérieur à /auth/refresh avec l'ancien token sera refusé.
+    """
+    current_user.refresh_token_hash = None
+    db.commit()
+    return {"message": "Déconnexion réussie — refresh token révoqué", "success": True}

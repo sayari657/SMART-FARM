@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     CHROMA_HOST: str = os.getenv("CHROMA_HOST", "localhost")
     CHROMA_PORT: int = int(os.getenv("CHROMA_PORT", 8001))
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    VISION_MODEL: str = os.getenv("VISION_MODEL", "llava")
-    DERJA_MODEL: str = os.getenv("DERJA_MODEL", "wghezaiel/labess-7b-chat")
+    VISION_MODEL: str = os.getenv("VISION_MODEL", "llava:latest")
+    DERJA_MODEL: str = os.getenv("DERJA_MODEL", "llama3.1:8b")
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
     # Lite Mode
@@ -66,6 +66,27 @@ class Settings(BaseSettings):
         "YOLO_SHEEP_PATH",
         str(_BASE_DIR / "ai_assets" / "animal_weights" / "model goat cow" / "best.pt")
     )
+    # Disease-specific models (new)
+    YOLO_GOAT_DISEASE_PATH: str = os.getenv(
+        "YOLO_GOAT_DISEASE_PATH",
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "Model_goat_YOLOv11" / "best.pt")
+    )
+    YOLO_CHICKEN_DISEASE_PATH: str = os.getenv(
+        "YOLO_CHICKEN_DISEASE_PATH",
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "Model_chicken_YOLOv11" / "best.pt")
+    )
+    YOLO_CHICKEN_DETECT_PATH: str = os.getenv(
+        "YOLO_CHICKEN_DETECT_PATH",
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "Model_chicken_detection_YOLOv11" / "best.pt")
+    )
+    YOLO_RABBIT_PATH: str = os.getenv(
+        "YOLO_RABBIT_PATH",
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "Model_rabbit_YOLOv11" / "best.pt")
+    )
+    YOLO_COW_BEHAVIOR_PATH: str = os.getenv(
+        "YOLO_COW_BEHAVIOR_PATH",
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "Model_cow_behavior_YOLOv11" / "best.pt")
+    )
     YOLO_LEAVES_PATH: str = os.getenv(
         "YOLO_LEAVES_PATH",
         str(_BASE_DIR / "ai_assets" / "plantations" / "Detection diseases Leaves" / "best.pt")
@@ -85,6 +106,10 @@ class Settings(BaseSettings):
     YOLO_ORANGE_PATH: str = os.getenv(
         "YOLO_ORANGE_PATH",
         str(_BASE_DIR / "ai_assets" / "plantations" / "Model orange-leaf" / "best.pt")
+    )
+    YOLO_PLANTDOC_PATH: str = os.getenv(
+        "YOLO_PLANTDOC_PATH",
+        str(_BASE_DIR / "ai_assets" / "plantations" / "Model_plantdoc_YOLOv11" / "best.pt")
     )
     YOLO_FIRE_PATH: str = os.getenv(
         "YOLO_FIRE_PATH",

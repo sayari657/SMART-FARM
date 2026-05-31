@@ -1,0 +1,51 @@
+# Smart Farm AI — Monitoring Stack (Prometheus + Grafana)
+#
+# Lance en parallèle du backend dev local :
+#   docker compose -f docker-compose.monitoring.yml up -d
+#
+# Accès :
+#   Prometheus : http://localhost:9090
+#   Grafana    : http://localhost:3001  (admin / admin)
+#   /metrics   : http://localhost:8000/metrics  (FastAPI)
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: smart_farm_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"        # POST /-/reload pour hot-reload config
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # atteint le FastAPI sur le host
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: smart_farm_grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER:     admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED:  "false"
+      GF_SERVER_HTTP_PORT:        "3001"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana_provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3001"
+
+volumes:
+  prometheus_data:
+  grafana_data:
