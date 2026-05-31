@@ -5,11 +5,16 @@ stages:
       - mlops/dataset_builder.py
     outs:
       - mlops/data/telemetry_dataset.csv
-  
+      - mlops/data/feedback_labels.csv
+
   train_model:
     cmd: python mlops/train.py --n_estimators 150 --contamination 0.05
     deps:
       - mlops/data/telemetry_dataset.csv
       - mlops/train.py
+    metrics:
+      - mlops/metrics.json:
+          cache: false
     outs:
       - mlops/models/anomaly_detector.pkl
+      - mlops/models/scaler.pkl

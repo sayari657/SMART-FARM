@@ -14,7 +14,9 @@ Pipeline :
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
+import os
 import subprocess
 from collections import Counter
 from datetime import datetime
@@ -23,8 +25,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Seuil de corrections avant déclenchement retrain
-RETRAIN_THRESHOLD = 50
+# Seuil de corrections avant déclenchement retrain — configurable via env
+RETRAIN_THRESHOLD = int(os.getenv("RETRAIN_THRESHOLD", "50"))
 
 # Chemin racine du projet — compatible local et Docker (/app/app/services/...)
 # Remonte jusqu'à trouver dvc.yaml (marker du projet root)
@@ -176,7 +178,8 @@ async def trigger_retrain(db, socket_manager=None) -> dict[str, Any]:
 
 
 async def _run_dvc_repro():
-    """Lance dvc repro de façon asynchrone."""
+    """Lance dvc repro de façon asynchrone et persiste le résultat."""
+    report: dict[str, Any] = {"started_at": datetime.utcnow().isoformat(), "success": False}
     try:
         logger.info("Starting DVC repro pipeline...")
         proc = await asyncio.create_subprocess_exec(
@@ -188,7 +191,19 @@ async def _run_dvc_repro():
         stdout, stderr = await proc.communicate()
         if proc.returncode == 0:
             logger.info("DVC repro completed successfully")
+            report["success"] = True
         else:
-            logger.error("DVC repro failed: %s", stderr.decode())
+            err = stderr.decode()
+            logger.error("DVC repro failed: %s", err)
+            report["error"] = err[:500]
     except Exception as exc:
         logger.error("DVC retrain trigger failed: %s", exc)
+        report["error"] = str(exc)
+    finally:
+        report["finished_at"] = datetime.utcnow().isoformat()
+        try:
+            report_file = PROJECT_ROOT / "mlops" / "retrain_report.json"
+            report_file.parent.mkdir(parents=True, exist_ok=True)
+            report_file.write_text(json.dumps(report, indent=2))
+        except Exception:
+            pass

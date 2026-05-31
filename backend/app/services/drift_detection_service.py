@@ -7,6 +7,7 @@ Monitors distribution shifts in:
 Uses Population Stability Index (PSI) and Z-score for alerting.
 """
 import logging
+import os
 from collections import Counter
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
@@ -16,8 +17,8 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-PSI_WARNING  = 0.1   # PSI > 0.1 → moderate drift
-PSI_CRITICAL = 0.2   # PSI > 0.2 → significant drift
+PSI_WARNING  = float(os.getenv("PSI_WARNING",  "0.1"))   # PSI > threshold → moderate drift
+PSI_CRITICAL = float(os.getenv("PSI_CRITICAL", "0.2"))   # PSI > threshold → significant drift
 
 
 def _psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
