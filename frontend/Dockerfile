@@ -7,12 +7,14 @@ RUN npm ci --prefer-offline --legacy-peer-deps
 
 COPY . .
 
-# VITE_API_URL is intentionally left empty here so the built JS uses
-# relative /api/v1 paths. nginx then proxies those to the backend container.
-# Override at build-time if you need an absolute URL:
+# VITE_API_URL is intentionally left empty so built JS uses relative /api/v1 paths.
+# nginx proxies those to the backend container internally.
+# Override at build-time for an absolute URL:
 #   docker build --build-arg VITE_API_URL=https://api.yourdomain.com/api/v1 .
 ARG VITE_API_URL=""
+ARG VITE_WS_URL=""
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
 
 RUN npm run build
 

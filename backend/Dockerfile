@@ -15,8 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Persistent mount point for SQLite (docker-compose maps ./data:/data)
-RUN mkdir -p /data
+# Non-root user — never run app code as root
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser \
+    && mkdir -p /data && chown appuser:appgroup /data
+
+USER appuser
 
 EXPOSE 8000
 

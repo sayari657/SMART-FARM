@@ -1,0 +1,16 @@
+# credentials
+.env
+.env.*
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Version control
+.git/
+.gitignore
+
+# Virtual environments
+.venv/
+venv/

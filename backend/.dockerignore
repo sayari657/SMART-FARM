@@ -1,0 +1,34 @@
+# credentials — never bake secrets into the image
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Version control
+.git/
+.gitignore
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Database files (use Docker volumes instead)
+*.db
+*.sqlite3
+mlruns/
+mlruns.db
+
+# Dev/test artifacts
+tests/
+.ruff_cache/
+.pytest_cache/
+
+# Docs
+*.md

@@ -53,6 +53,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ""    # relative paths — nginx proxies /api/ to backend
+        VITE_WS_URL:  "${VITE_WS_URL:-ws://localhost:8000}"
     container_name: farm_frontend
     restart: unless-stopped
     depends_on:
@@ -96,8 +97,8 @@ services:
     depends_on:
       - prometheus
     environment:
-      GF_SECURITY_ADMIN_USER:           admin
-      GF_SECURITY_ADMIN_PASSWORD:       admin
+      GF_SECURITY_ADMIN_USER:           "${GRAFANA_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD:       "${GRAFANA_PASSWORD:-admin}"
       GF_AUTH_ANONYMOUS_ENABLED:        "false"
       GF_SERVER_HTTP_PORT:              "3000"
       # Fix Chrome iframe issue — allow embedding from same origin
