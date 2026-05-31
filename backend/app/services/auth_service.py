@@ -62,9 +62,10 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(status_code=400, detail="Inactive account")
         from datetime import timedelta
+        from app.core.config import settings
         access_token = create_access_token(
             {"sub": user.username, "role": user.role},
-            expires_delta=timedelta(hours=1),
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
         refresh_token = create_refresh_token({"sub": user.username, "role": user.role})
         # SHA-256 hash of refresh token (bcrypt has 72-byte limit; JWTs exceed it)
