@@ -5,6 +5,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.config import settings
 from app.services.auth_service import AuthService
 from app.schemas.domain import UserCreate, UserResponse, LoginRequest, Token, WorkerOtpRequest, WorkerOtpVerify
 from app.models.domain import User
@@ -150,7 +151,8 @@ class RefreshRequest(BaseModel):
 @router.post("/refresh", summary="Obtenir un nouveau access token via refresh token")
 def refresh_access_token(req: RefreshRequest, db: Session = Depends(get_db)):
     """
-    Échange un refresh token (30 jours) contre un nouvel access token (1 heure).
+    Échange un refresh token contre un nouvel access token.
+    Durée lue depuis settings.ACCESS_TOKEN_EXPIRE_MINUTES (défaut : 7 jours).
     Valide le hash stocké en DB — révocation effective dès le logout.
     """
     import hashlib
@@ -173,12 +175,12 @@ def refresh_access_token(req: RefreshRequest, db: Session = Depends(get_db)):
 
     new_access_token = create_access_token(
         data={"sub": username, "role": user.role},
-        expires_delta=timedelta(hours=1),
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return {
         "access_token": new_access_token,
         "token_type": "bearer",
-        "expires_in": 3600,
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     }
 
 

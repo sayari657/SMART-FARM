@@ -12,6 +12,7 @@ import AIScanner from '../components/AIScanner';
 import AnimalERP from '../components/AnimalERP';
 import { animalsAPI, workerTasksAPI, farmsAPI, cvAPI, anomalyAPI } from '../services/api';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
+import { useAuth } from '../context/AuthContext';
 
 const COLORS = {
   primary: '#7c3aed',
@@ -75,6 +76,7 @@ const SPECIES_CONFIG = {
 
 export default function AboutSpecies({ speciesType }) {
   const navigate = useNavigate();
+  const { farmId } = useAuth();
   const config = SPECIES_CONFIG[speciesType] || SPECIES_CONFIG.poultry;
   
   const [activeTab, setActiveTab] = useState('ai');
@@ -97,7 +99,7 @@ export default function AboutSpecies({ speciesType }) {
     try {
       const [unitsRes, finance, events, anom] = await Promise.all([
         animalsAPI.list({ species: speciesType }),
-        farmsAPI.getFinance(1),
+        farmsAPI.getFinance(farmId || 1),
         cvAPI.recent(20),
         anomalyAPI.recent(10)
       ]);
@@ -111,7 +113,7 @@ export default function AboutSpecies({ speciesType }) {
   };
 
   const handleSaveAnimal = async () => {
-    await animalsAPI.create({ ...formAnimal, species: speciesType, farm_id: 1 });
+    await animalsAPI.create({ ...formAnimal, species: speciesType, farm_id: farmId || 1 });
     setActiveModal(null);
     loadAll();
   };

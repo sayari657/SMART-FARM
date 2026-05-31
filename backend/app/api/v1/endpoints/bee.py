@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 import requests
 from bs4 import BeautifulSoup
 import logging
 import time
 import re
+from app.core.security import get_current_user
 
 router = APIRouter(tags=["Bee Management"])
 logger = logging.getLogger(__name__)
@@ -186,7 +187,7 @@ async def search_bee_supplies(q: str = Query(..., description="Catégorie ou ter
 
 
 @router.delete("/cache")
-async def clear_cache():
+async def clear_cache(_=Depends(get_current_user)):
     """Vide le cache du catalogue."""
     _cache.clear()
     return {"status": "ok", "message": "Cache vidé"}
