@@ -1,6 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs'
+import path from 'path'
+
+// mkcert certs — generated with: mkcert -key-file certs/key.pem -cert-file certs/cert.pem 192.168.0.9 localhost 127.0.0.1
+function loadCerts() {
+  const keyPath = path.resolve(__dirname, 'certs/key.pem')
+  const certPath = path.resolve(__dirname, 'certs/cert.pem')
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    return { key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) }
+  }
+  return undefined  // fall back to HTTP if certs not generated yet
+}
 
 export default defineConfig({
   test: {
@@ -31,15 +43,15 @@ export default defineConfig({
         lang: "fr",
         prefer_related_applications: false,
         icons: [
-          { src: "/icons/icon-72.png",  sizes: "72x72",   type: "image/png" },
+          { src: "/icons/icon-72.png", sizes: "72x72", type: "image/png" },
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
         ],
         shortcuts: [
-          { name: "Scanner IA",  short_name: "Scanner", url: "/worker/scan",  icons: [{ src: "/icons/scan.png",  sizes: "96x96" }] },
-          { name: "Mes Tâches",  short_name: "Tâches",  url: "/worker/tasks", icons: [{ src: "/icons/tasks.png", sizes: "96x96" }] },
-          { name: "Dashboard",   short_name: "Dash",    url: "/dashboard",    icons: [{ src: "/icons/dash.png",  sizes: "96x96" }] }
+          { name: "Scanner IA", short_name: "Scanner", url: "/worker/scan", icons: [{ src: "/icons/scan.png", sizes: "96x96" }] },
+          { name: "Mes Tâches", short_name: "Tâches", url: "/worker/tasks", icons: [{ src: "/icons/tasks.png", sizes: "96x96" }] },
+          { name: "Dashboard", short_name: "Dash", url: "/dashboard", icons: [{ src: "/icons/dash.png", sizes: "96x96" }] }
         ]
       },
       workbox: {
@@ -80,6 +92,7 @@ export default defineConfig({
   preview: {
     port: 4173,
     host: true,
+    https: loadCerts(),
     allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
     proxy: {
       '/api': {
@@ -100,6 +113,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    https: loadCerts(),
     allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
     proxy: {
       // REST API — all /api calls forwarded to FastAPI backend on :8000

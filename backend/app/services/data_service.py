@@ -60,6 +60,20 @@ class CVService:
     def get_recent(self, limit: int = 50):
         return self.repo.get_recent(limit=limit)
 
+    def get_recent_by_farms(self, farm_ids: list, limit: int = 50):
+        """Return CV events scoped to the given farms (via unit → farm)."""
+        if not farm_ids:
+            return []
+        from app.models.domain import CVEvent, AnimalUnit
+        return (
+            self.repo.db.query(CVEvent)
+            .join(AnimalUnit, CVEvent.unit_id == AnimalUnit.id)
+            .filter(AnimalUnit.farm_id.in_(farm_ids))
+            .order_by(CVEvent.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+
     def ingest(self, data: CVEventCreate):
         payload = data.model_dump()
         if not payload.get("timestamp"):
@@ -77,6 +91,20 @@ class AnomalyService:
     def get_recent(self, limit: int = 50):
         return self.repo.get_recent(limit=limit)
 
+    def get_recent_by_farms(self, farm_ids: list, limit: int = 50):
+        """BUG#4 FIXED: return only recent anomalies from the given farms."""
+        if not farm_ids:
+            return []
+        from app.models.domain import Anomaly, AnimalUnit
+        return (
+            self.repo.db.query(Anomaly)
+            .join(AnimalUnit, Anomaly.unit_id == AnimalUnit.id)
+            .filter(AnimalUnit.farm_id.in_(farm_ids))
+            .order_by(Anomaly.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+
     def count_recent(self, hours: int = 24) -> int:
         return self.repo.count_recent(hours=hours)
 
@@ -90,8 +118,39 @@ class AlertService:
             return self.repo.get_active(limit=limit)
         return self.repo.get_all(limit=limit)
 
+    def list_alerts_by_farms(self, farm_ids: list, limit: int = 200):
+        """BUG#4 FIXED: return only active alerts from the given farms."""
+        if not farm_ids:
+            return []
+        from app.models.domain import Alert, AnimalUnit
+        return (
+            self.repo.db.query(Alert)
+            .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
+            .filter(Alert.is_resolved == False, AnimalUnit.farm_id.in_(farm_ids))
+            .order_by(Alert.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+
     def get_critical(self, limit: int = 50):
         return self.repo.get_critical(limit=limit)
+
+    def get_critical_by_farms(self, farm_ids: list, limit: int = 50):
+        if not farm_ids:
+            return []
+        from app.models.domain import Alert, AnimalUnit
+        return (
+            self.repo.db.query(Alert)
+            .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
+            .filter(
+                Alert.is_resolved == False,
+                Alert.severity == "critical",
+                AnimalUnit.farm_id.in_(farm_ids),
+            )
+            .order_by(Alert.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
 
     def get_by_unit(self, unit_id: int, limit: int = 50):
         return self.repo.get_by_unit(unit_id, limit=limit)
@@ -120,14 +179,37 @@ class RecommendationService:
         self.unit_repo = AnimalUnitRepository(db)
 
     def get_by_unit(self, unit_id: int, limit: int = 50):
-        recs = self.repo.get_by_unit(unit_id, limit=limit)
-        # attach unit name
-        for r in recs:
-            pass  # unit is joined via ORM
-        return recs
+        return self.repo.get_by_unit(unit_id, limit=limit)
 
     def get_pending(self, limit: int = 100):
         return self.repo.get_pending(limit=limit)
+
+    def get_pending_by_farms(self, farm_ids: list, limit: int = 100):
+        """BUG#4 FIXED: pending recommendations from given farms only."""
+        if not farm_ids:
+            return []
+        from app.models.domain import Recommendation, AnimalUnit
+        return (
+            self.repo.db.query(Recommendation)
+            .join(AnimalUnit, Recommendation.unit_id == AnimalUnit.id)
+            .filter(Recommendation.is_actioned == False, AnimalUnit.farm_id.in_(farm_ids))
+            .order_by(Recommendation.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_all_by_farms(self, farm_ids: list, limit: int = 200):
+        if not farm_ids:
+            return []
+        from app.models.domain import Recommendation, AnimalUnit
+        return (
+            self.repo.db.query(Recommendation)
+            .join(AnimalUnit, Recommendation.unit_id == AnimalUnit.id)
+            .filter(AnimalUnit.farm_id.in_(farm_ids))
+            .order_by(Recommendation.timestamp.desc())
+            .limit(limit)
+            .all()
+        )
 
     def create(self, data: RecommendationCreate):
         payload = data.model_dump()
@@ -153,6 +235,19 @@ class ReportService:
         if farm_id:
             return self.repo.get_by_farm(farm_id)
         return self.repo.get_all(limit=200)
+
+    def list_reports_by_farms(self, farm_ids: list):
+        """BUG#4 FIXED: scoped to user's farms."""
+        if not farm_ids:
+            return []
+        from app.models.domain import Report
+        return (
+            self.repo.db.query(Report)
+            .filter(Report.farm_id.in_(farm_ids))
+            .order_by(Report.created_at.desc())
+            .limit(200)
+            .all()
+        )
 
     def generate(self, data: ReportGenerateRequest):
         """Build summary stats and persist report."""
@@ -283,36 +378,81 @@ class DashboardService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_stats(self) -> DashboardStats:
-        from app.models.domain import Farm, AnimalUnit, AnimalType, Alert, Anomaly, BeeHive
-        total_farms = self.db.query(func.count(Farm.id)).scalar() or 0
+    def get_stats(self, farm_ids: list = None) -> DashboardStats:
+        """BUG#5 FIXED: all counts scoped to the user's own farms."""
+        from app.models.domain import Farm, AnimalUnit, AnimalType, Alert, Anomaly, BeeHive, BeeApiary
 
-        # Count classic animal units
-        total_units = self.db.query(func.count(AnimalUnit.id)).scalar() or 0
-        # Count bee hives from Smart Bee module
-        total_hives = self.db.query(func.count(BeeHive.id)).scalar() or 0
+        if farm_ids is None:
+            farm_ids = []
 
-        active_alerts = self.db.query(func.count(Alert.id)).filter(Alert.is_resolved == False).scalar() or 0
-        critical_alerts = self.db.query(func.count(Alert.id)).filter(
-            Alert.is_resolved == False, Alert.severity == "critical"
-        ).scalar() or 0
-        avg_health = self.db.query(func.avg(AnimalUnit.health_score)).scalar()
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-        recent_anomalies = self.db.query(func.count(Anomaly.id)).filter(
-            Anomaly.timestamp >= cutoff
-        ).scalar() or 0
+        total_farms = len(farm_ids)
 
-        # Units per species
-        species_counts_list = (
-            self.db.query(AnimalType.species, func.count(AnimalUnit.id))
-            .join(AnimalUnit, AnimalUnit.type_id == AnimalType.id)
-            .group_by(AnimalType.species)
-            .all()
+        # Classic animal units
+        unit_q = self.db.query(func.count(AnimalUnit.id))
+        if farm_ids:
+            unit_q = unit_q.filter(AnimalUnit.farm_id.in_(farm_ids))
+        total_units = unit_q.scalar() or 0
+
+        # Bee hives — filter via apiary.farm_id
+        hive_q = (
+            self.db.query(func.count(BeeHive.id))
+            .join(BeeApiary, BeeHive.apiary_id == BeeApiary.id)
+        )
+        if farm_ids:
+            hive_q = hive_q.filter(BeeApiary.farm_id.in_(farm_ids))
+        total_hives = hive_q.scalar() or 0
+
+        # Active & critical alerts
+        alert_base = (
+            self.db.query(func.count(Alert.id))
+            .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
+            .filter(Alert.is_resolved == False)
+        )
+        if farm_ids:
+            alert_base = alert_base.filter(AnimalUnit.farm_id.in_(farm_ids))
+
+        active_alerts = alert_base.scalar() or 0
+        critical_alerts = (
+            alert_base.filter(Alert.severity == "critical").scalar() or 0
+            if False  # can't re-filter after .scalar() — rebuild
+            else (
+                self.db.query(func.count(Alert.id))
+                .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
+                .filter(
+                    Alert.is_resolved == False,
+                    Alert.severity == "critical",
+                    *(([AnimalUnit.farm_id.in_(farm_ids)] if farm_ids else [])),
+                )
+                .scalar() or 0
+            )
         )
 
-        species_counts = dict(species_counts_list)
+        # Average health score
+        health_q = self.db.query(func.avg(AnimalUnit.health_score))
+        if farm_ids:
+            health_q = health_q.filter(AnimalUnit.farm_id.in_(farm_ids))
+        avg_health = health_q.scalar()
 
-        # Add bees from Smart Bee module if any
+        # Recent anomalies (24 h)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        anom_q = (
+            self.db.query(func.count(Anomaly.id))
+            .join(AnimalUnit, Anomaly.unit_id == AnimalUnit.id)
+            .filter(Anomaly.timestamp >= cutoff)
+        )
+        if farm_ids:
+            anom_q = anom_q.filter(AnimalUnit.farm_id.in_(farm_ids))
+        recent_anomalies = anom_q.scalar() or 0
+
+        # Units per species
+        species_q = (
+            self.db.query(AnimalType.species, func.count(AnimalUnit.id))
+            .join(AnimalUnit, AnimalUnit.type_id == AnimalType.id)
+        )
+        if farm_ids:
+            species_q = species_q.filter(AnimalUnit.farm_id.in_(farm_ids))
+        species_counts = dict(species_q.group_by(AnimalType.species).all())
+
         if total_hives > 0:
             species_counts["bee"] = species_counts.get("bee", 0) + total_hives
             total_units += total_hives

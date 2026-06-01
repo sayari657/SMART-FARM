@@ -10,6 +10,7 @@ import {
 import Navbar from '../components/Navbar';
 import TelemetryChart from '../components/TelemetryChart';
 import { animalsAPI, telemetryAPI, externalAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 const IOT_LATEST  = '/api/v1/iot/latest';
@@ -423,9 +424,10 @@ function IoTTab() {
   );
 }
 
-// ─── Unit Analysis Tab (existing logic) ───────────────────────────────────────
+// ─── Unit Analysis Tab ────────────────────────────────────────────────────────
 function UnitTab() {
   const { t } = useTranslation();
+  const { farmId } = useAuth();    // scope animals to selected farm
   const [units, setUnits]      = useState([]);
   const [selectedId, setSelId] = useState('');
   const [records, setRecords]  = useState([]);
@@ -435,11 +437,13 @@ function UnitTab() {
   const [unit, setUnit]        = useState(null);
 
   useEffect(() => {
-    animalsAPI.list().then(r => {
+    if (!farmId) return;
+    animalsAPI.list({ farm_id: farmId }).then(r => {
       setUnits(r.data);
       if (r.data.length > 0) setSelId(String(r.data[0].id));
+      else setSelId('');
     }).catch(() => {});
-  }, []);
+  }, [farmId]);
 
   useEffect(() => {
     if (!selectedId) return;

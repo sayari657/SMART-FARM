@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { recsAPI, farmsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 /* ─── Config ────────────────────────────────────────────────────────────── */
 const POLL_INTERVAL_MS = 30_000;
@@ -181,37 +182,32 @@ function AiRecCard({ rec, idx }) {
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 export default function Recommendations() {
+  const { farmId, farms: authFarms } = useAuth();   // use context farm, not global list
   const [recs, setRecs]             = useState([]);
-  const [aiRecs, setAiRecs]         = useState(null);    // from advanced endpoint
-  const [farms, setFarms]           = useState([]);
-  const [selectedFarmId, setSelectedFarmId] = useState(null);
+  const [aiRecs, setAiRecs]         = useState(null);
+  const [selectedFarmId, setSelectedFarmId] = useState(farmId);
   const [selectedPlant, setSelectedPlant]   = useState('grass');
   const [loading, setLoading]       = useState(true);
   const [aiLoading, setAiLoading]   = useState(false);
   const [filter, setFilter]         = useState('all');
   const [search, setSearch]         = useState('');
   const [showActioned, setShowActioned] = useState(false);
-  const [wsStatus, setWsStatus]     = useState('connecting'); // 'connected' | 'disconnected' | 'connecting'
+  const [wsStatus, setWsStatus]     = useState('connecting');
   const [lastRefresh, setLastRefresh] = useState(null);
-  const wsRef = useRef(null);
+  const wsRef   = useRef(null);
   const pollRef = useRef(null);
 
-  /* ── Fetch DB recommendations ─────────────────────────────────── */
+  // Keep selectedFarmId in sync when the navbar farm selector changes
+  useEffect(() => { if (farmId) setSelectedFarmId(farmId); }, [farmId]);
+
+  /* ── Fetch DB recommendations — scoped to selected farm ─────── */
   const fetchRecs = useCallback(async () => {
     try {
-      const r = await recsAPI.list(showActioned);
+      const r = await recsAPI.list(showActioned, farmId);   // pass farmId
       setRecs(r.data);
       setLastRefresh(new Date());
     } catch {}
-  }, [showActioned]);
-
-  /* ── Load farms ───────────────────────────────────────────────── */
-  useEffect(() => {
-    farmsAPI.list().then(res => {
-      setFarms(res.data || []);
-      if (res.data?.length > 0) setSelectedFarmId(res.data[0].id);
-    }).catch(() => {});
-  }, []);
+  }, [showActioned, farmId]);
 
   /* ── Initial load ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -266,7 +262,7 @@ export default function Recommendations() {
       clearTimeout(reconnectTimer);
       if (ws) ws.close();
     };
-  }, [fetchRecs]);
+  }, []); // WS connects once; fetchRecs is stable via ref
 
   /* ── Generate AI recommendations on-demand ─────────────────── */
   const generateAI = useCallback(async () => {
@@ -275,15 +271,17 @@ export default function Recommendations() {
     try {
       const res = await recsAPI.generate(selectedFarmId, selectedPlant);
       setAiRecs(res.data);
-    } catch {
+    } catch (err) {
+      // Don't crash the page — just hide AI panel
       setAiRecs(null);
+      console.warn('AI recommendations unavailable:', err?.response?.status);
     } finally { setAiLoading(false); }
   }, [selectedFarmId, selectedPlant]);
 
   /* ── Auto-generate when farm selected ───────────────────────── */
   useEffect(() => {
     if (selectedFarmId) generateAI();
-  }, [selectedFarmId]); // eslint-disable-line
+  }, [selectedFarmId, selectedPlant]); // eslint-disable-line
 
   /* ── Mark as actioned ────────────────────────────────────────── */
   const handleAction = useCallback(async (recId) => {
@@ -359,7 +357,7 @@ export default function Recommendations() {
             </div>
             <h1 className="rc-hero-title">Recommandations Intelligentes</h1>
             <p className="rc-hero-sub">
-              Analyse IA continue · WebSocket + Polling {POLL_INTERVAL_MS/1000}s · {farms.length} ferme{farms.length !== 1 ? 's' : ''}
+              Analyse IA continue · WebSocket + Polling {POLL_INTERVAL_MS/1000}s · {authFarms.length} ferme{authFarms.length !== 1 ? 's' : ''}
               {lastRefresh && <span style={{ marginLeft: 8, color: 'var(--color-text-3)' }}>· Màj {fmtTime(lastRefresh)}</span>}
             </p>
           </div>
@@ -415,7 +413,7 @@ export default function Recommendations() {
                   cursor: 'pointer', minWidth: 160,
                 }}
               >
-                {farms.map(f => (
+                {authFarms.map(f => (
                   <option key={f.id} value={f.id} style={{ background: '#1e293b' }}>{f.name}</option>
                 ))}
               </select>

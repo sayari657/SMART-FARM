@@ -1,10 +1,11 @@
 """Smart Farm AI - Anomaly, Alert, Recommendation, Report, Settings, Dashboard Routes"""
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.farm_guard import get_user_farm_ids, assert_farm_owner, get_scoped_farm_ids
 from app.services.data_service import (
     AnomalyService, AlertService, RecommendationService,
     ReportService, SettingsService, DashboardService
@@ -30,11 +31,21 @@ def _serialize_anomaly(a):
     }
 
 @anomaly_router.get("/recent")
-def recent_anomalies(limit: int = Query(50, le=200), db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return [_serialize_anomaly(a) for a in AnomalyService(db).get_recent(limit=limit)]
+def recent_anomalies(
+    limit: int = Query(50, le=200),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """Anomalies scoped to the selected farm (farm_id param) or all user farms."""
+    return [_serialize_anomaly(a) for a in AnomalyService(db).get_recent_by_farms(farm_ids, limit=limit)]
 
 @anomaly_router.get("/{unit_id}")
-def anomalies_by_unit(unit_id: int, limit: int = Query(50), db: Session = Depends(get_db), _=Depends(get_current_user)):
+def anomalies_by_unit(
+    unit_id: int,
+    limit: int = Query(50),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
     return [_serialize_anomaly(a) for a in AnomalyService(db).get_by_unit(unit_id, limit=limit)]
 
 
@@ -54,12 +65,20 @@ def _serialize_alert(a):
     }
 
 @alert_router.get("")
-def list_alerts(limit: int = Query(200), db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return [_serialize_alert(a) for a in AlertService(db).list_alerts()]
+def list_alerts(
+    limit: int = Query(200),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """Alerts scoped to the selected farm (farm_id param) or all user farms."""
+    return [_serialize_alert(a) for a in AlertService(db).list_alerts_by_farms(farm_ids, limit=limit)]
 
 @alert_router.get("/critical")
-def critical_alerts(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return [_serialize_alert(a) for a in AlertService(db).get_critical()]
+def critical_alerts(
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    return [_serialize_alert(a) for a in AlertService(db).get_critical_by_farms(farm_ids)]
 
 @alert_router.post("", status_code=201)
 def create_alert(data: AlertCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
@@ -110,7 +129,7 @@ def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)
     ).order_by(desc(CVEvent.timestamp)).limit(10).all()
 
     return {
-        "critical_alerts": [_serialize_alert(a) for a in critical_alerts],
+        "critical_alerts": [_serialize_alert(a) for a in critical_alerts],  # type: ignore[arg-type]
         "fire_events": [_serialize_cv(e) for e in fire_events],
         "critical_anomalies": [_serialize_anomaly(a) for a in critical_anomalies],
         "tree_diseases": [_serialize_cv(e) for e in tree_diseases],
@@ -147,10 +166,11 @@ def _serialize_rec(r):
 def list_recommendations(
     include_actioned: bool = Query(False),
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
+    """Recommendations scoped to the selected farm (farm_id param) or all user farms."""
     svc = RecommendationService(db)
-    recs = svc.get_all() if include_actioned else svc.get_pending()
+    recs = svc.get_all_by_farms(farm_ids) if include_actioned else svc.get_pending_by_farms(farm_ids)
     return [_serialize_rec(r) for r in recs]
 
 @rec_router.put("/{rec_id}/action")
@@ -185,8 +205,17 @@ def _serialize_report(r):
     }
 
 @report_router.get("")
-def list_reports(farm_id: Optional[int] = Query(None), db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return [_serialize_report(r) for r in ReportService(db).list_reports(farm_id=farm_id)]
+def list_reports(
+    farm_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    """BUG#4 FIXED: filter reports by user's farms."""
+    if farm_id is not None and farm_id not in farm_ids:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Accès non autorisé à cette ferme.")
+    target_ids = [farm_id] if farm_id else farm_ids
+    return [_serialize_report(r) for r in ReportService(db).list_reports_by_farms(target_ids)]
 
 @report_router.post("/generate", status_code=201)
 def generate_report(data: ReportGenerateRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -196,10 +225,15 @@ def generate_report(data: ReportGenerateRequest, db: Session = Depends(get_db), 
 @report_router.post("/generate-intelligent", status_code=201)
 async def generate_intelligent_report(
     report_type: str = Query("general"),
-    farm_id: int = Query(1),
+    farm_id: int = Query(..., description="ID de la ferme — doit appartenir à l'utilisateur"),
     db: Session = Depends(get_db),
-    user = Depends(get_current_user)
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+    user=Depends(get_current_user),
 ):
+    """BUG#19 FIXED: farm_id no longer defaults to 1; ownership is validated."""
+    if farm_id not in farm_ids:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Accès non autorisé à cette ferme.")
     return _serialize_report(await ReportService(db).generate_intelligent(farm_id, report_type))
 
 
@@ -214,7 +248,14 @@ def _serialize_setting(s):
     }
 
 @settings_router.get("")
-def list_settings(farm_id: Optional[int] = Query(None), db: Session = Depends(get_db), _=Depends(get_current_user)):
+def list_settings(
+    farm_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    if farm_id is not None and farm_id not in farm_ids:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=403, detail="Accès non autorisé à cette ferme.")
     return [_serialize_setting(s) for s in SettingsService(db).list_settings(farm_id=farm_id)]
 
 @settings_router.put("")
@@ -225,24 +266,87 @@ def upsert_setting(data: SettingCreate, db: Session = Depends(get_db), _=Depends
 # ---- Dashboard -------------------------------------------------------------
 dashboard_router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
+@dashboard_router.get("/ai-insight")
+async def dashboard_ai_insight(
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """
+    Generate a real-time Darija AI insight based on the selected farm's live stats.
+    Calls Groq (primary) → Ollama (fallback) → static fallback.
+    """
+    from app.services.mllm_service import mllm_service
+
+    # Build real farm stats
+    stats_obj = DashboardService(db).get_stats(farm_ids=farm_ids)
+    stats = {
+        "animal_count":    stats_obj.total_units,
+        "plant_count":     0,
+        "avg_health":      stats_obj.avg_health_score,
+        "active_alerts":   stats_obj.active_alerts,
+        "critical_alerts": stats_obj.critical_alerts,
+        "top_anomalies":   "Aucune",
+    }
+
+    # Add recent anomaly types if any
+    if farm_ids:
+        from app.models.domain import Anomaly, AnimalUnit
+        from sqlalchemy import func as _f
+        recent = (
+            db.query(Anomaly.anomaly_type)
+            .join(AnimalUnit, Anomaly.unit_id == AnimalUnit.id)
+            .filter(AnimalUnit.farm_id.in_(farm_ids))
+            .order_by(Anomaly.timestamp.desc())
+            .limit(5)
+            .all()
+        )
+        if recent:
+            stats["top_anomalies"] = ", ".join(list({r[0] for r in recent}))
+
+    insight_text = await mllm_service.generate_strategic_report(stats)
+    return {
+        "text":   insight_text,
+        "stats":  stats,
+        "source": "Groq llama-3.3-70b" if insight_text and len(insight_text) > 80 else "Labess-7B / Statique",
+    }
+
+
 @dashboard_router.get("/stats", response_model=DashboardStats)
-def dashboard_stats(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return DashboardService(db).get_stats()
+def dashboard_stats(
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """Stats scoped to the selected farm (farm_id param) or all user farms."""
+    return DashboardService(db).get_stats(farm_ids=farm_ids)
 
 
 @dashboard_router.get("/analytics")
-def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_db), _=Depends(get_current_user)):
-    """Full analytics: telemetry averages per day, anomaly counts, alert severity breakdown."""
+def dashboard_analytics(
+    days: int = Query(30, le=90),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """Analytics scoped to the selected farm (farm_id param) or all user farms."""
     from app.models.domain import Anomaly, Alert, AnimalUnit, AnimalType
     from sqlalchemy import func
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
+    if not farm_ids:
+        return {
+            "timeline": [],
+            "species_health": [],
+            "alert_severity_distribution": [],
+            "anomaly_type_distribution": [],
+        }
+
+    # Join through AnimalUnit to apply farm filter
     daily_anomalies = (
         db.query(
             func.date(Anomaly.timestamp).label("day"),
-            func.count(Anomaly.id).label("count")
+            func.count(Anomaly.id).label("count"),
         )
-        .filter(Anomaly.timestamp >= cutoff)
+        .join(AnimalUnit, Anomaly.unit_id == AnimalUnit.id)
+        .filter(Anomaly.timestamp >= cutoff, AnimalUnit.farm_id.in_(farm_ids))
         .group_by(func.date(Anomaly.timestamp))
         .order_by(func.date(Anomaly.timestamp))
         .all()
@@ -252,31 +356,39 @@ def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_
         db.query(
             func.date(Alert.timestamp).label("day"),
             Alert.severity,
-            func.count(Alert.id).label("count")
+            func.count(Alert.id).label("count"),
         )
-        .filter(Alert.timestamp >= cutoff)
+        .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
+        .filter(Alert.timestamp >= cutoff, AnimalUnit.farm_id.in_(farm_ids))
         .group_by(func.date(Alert.timestamp), Alert.severity)
         .order_by(func.date(Alert.timestamp))
         .all()
     )
 
     species_health = (
-        db.query(AnimalType.species, func.avg(AnimalUnit.health_score).label("avg_health"))
+        db.query(
+            AnimalType.species,
+            func.avg(AnimalUnit.health_score).label("avg_health"),
+            func.count(AnimalUnit.id).label("unit_count"),
+        )
         .join(AnimalUnit, AnimalUnit.type_id == AnimalType.id)
+        .filter(AnimalUnit.farm_id.in_(farm_ids))
         .group_by(AnimalType.species)
         .all()
     )
 
     alert_severity_dist = (
         db.query(Alert.severity, func.count(Alert.id).label("count"))
-        .filter(Alert.timestamp >= cutoff)
+        .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
+        .filter(Alert.timestamp >= cutoff, AnimalUnit.farm_id.in_(farm_ids))
         .group_by(Alert.severity)
         .all()
     )
 
     anomaly_type_dist = (
         db.query(Anomaly.anomaly_type, func.count(Anomaly.id).label("count"))
-        .filter(Anomaly.timestamp >= cutoff)
+        .join(AnimalUnit, Anomaly.unit_id == AnimalUnit.id)
+        .filter(Anomaly.timestamp >= cutoff, AnimalUnit.farm_id.in_(farm_ids))
         .group_by(Anomaly.anomaly_type)
         .order_by(func.count(Anomaly.id).desc())
         .limit(8)
@@ -297,7 +409,14 @@ def dashboard_analytics(days: int = Query(30, le=90), db: Session = Depends(get_
 
     return {
         "timeline": sorted(day_map.values(), key=lambda x: x["day"]),
-        "species_health": [{"species": r.species, "avg_health": round(float(r.avg_health), 1)} for r in species_health],
+        "species_health": [
+            {
+                "species": r.species,
+                "avg_health": round(float(r.avg_health), 1),
+                "unit_count": r.unit_count,
+            }
+            for r in species_health
+        ],
         "alert_severity_distribution": [{"severity": r.severity, "count": r.count} for r in alert_severity_dist],
         "anomaly_type_distribution":   [{"type": r.anomaly_type, "count": r.count} for r in anomaly_type_dist],
     }
@@ -573,8 +692,9 @@ async def phenological_alerts(
         from fastapi import HTTPException  # noqa: PLC0415
         raise HTTPException(status_code=404, detail="Ferme introuvable")
 
-    # Determine zone from latitude (rough mapping for Tunisia)
-    lat = float(farm.lat or 36.8)
+    # BUG#21 FIXED: farm uses .latitude/.longitude not .lat/.lon
+    lat = float(farm.latitude or 36.8)
+    lon = float(farm.longitude or 10.1)
     if lat > 36.5:
         zone = "nord"
     elif lat > 34.5:
@@ -589,7 +709,7 @@ async def phenological_alerts(
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(
-                f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={float(farm.lon or 10.1)}"
+                f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
                 f"&current=temperature_2m&timezone=Africa%2FTunis"
             )
             temperature = resp.json().get("current", {}).get("temperature_2m")

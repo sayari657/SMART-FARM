@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import { cvAPI } from '../services/api';
+import { cvAPI, anomalyAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const SEV_CFG = {
   critical: { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', label: 'Critique', icon: AlertOctagon },
@@ -31,6 +32,7 @@ function loadScanAlerts() {
 
 export default function CVMonitoring() {
   const { t, i18n } = useTranslation();
+  const { farmId }  = useAuth();
   const [events, setEvents]       = useState([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,7 +47,7 @@ export default function CVMonitoring() {
   const load = async (spin = false) => {
     if (spin) setRefreshing(true);
     try {
-      const r = await cvAPI.recent(200);
+      const r = await cvAPI.recent(200, farmId);   // scoped to selected farm
       const dbEvents = r.data;
       const scanAlerts = loadScanAlerts();
 
@@ -82,7 +84,7 @@ export default function CVMonitoring() {
     } finally { setLoading(false); if (spin) setRefreshing(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [farmId]);
 
   const filtered = events.filter(e => {
     const hasImg   = !!(e.thumbnail_url || e.frame_metadata?.thumbnail_b64);

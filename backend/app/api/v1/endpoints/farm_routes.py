@@ -1,18 +1,20 @@
 """Smart Farm AI - Farm Routes (multi-owner + multi-farm workers)"""
-from typing import List, Optional
 import random
 import string
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.farm_guard import get_user_farm_ids, assert_farm_owner
 from app.services.farm_service import FarmService
 from app.schemas.domain import FarmCreate, FarmUpdate
-from app.models.domain import Farm, FarmOwner, FarmFinance, User
+from app.models.domain import Farm, FarmOwner, FarmFinance, User, WorkerAssignment
 
 
 router = APIRouter(prefix="/farms", tags=["Farms"])
+
 
 # ── Local request schemas ──────────────────────────────────────────────────────
 
@@ -28,11 +30,10 @@ class OwnerAddRequest(BaseModel):
     identifier: str  # username OR phone number of the owner to add
 
 class FinanceCreate(BaseModel):
-    type: str # expense, revenue
+    type: str  # expense, revenue
     category: str
     amount: float
     notes: Optional[str] = None
-
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -58,16 +59,25 @@ def _owner_to_dict(farm_owner, user):
         "added_at": farm_owner.added_at.isoformat() if farm_owner.added_at else None,
     }
 
+def _generate_pin() -> str:
+    return "".join(random.choices(string.digits, k=6))
+
 
 # ── Farm CRUD ──────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=List[dict])
-def list_farms(db: Session = Depends(get_db), _=Depends(get_current_user)):
+def list_farms(
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    """BUG#1 FIXED: returns only farms the authenticated user owns/has access to."""
     svc = FarmService(db)
-    results = svc.list_farms()
+    all_results = svc.list_farms()
     out = []
-    for r in results:
+    for r in all_results:
         f = r["farm"]
+        if f.id not in farm_ids:
+            continue
         out.append({
             "id": f.id, "name": f.name, "location": f.location,
             "description": f.description, "status": f.status,
@@ -84,7 +94,6 @@ def list_farms(db: Session = Depends(get_db), _=Depends(get_current_user)):
 @router.post("", status_code=201)
 def create_farm(data: FarmCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
     farm = FarmService(db).create_farm(data, owner_id=user.id)
-    # Auto-enroll the creator as the first farm owner
     existing = db.query(FarmOwner).filter(
         FarmOwner.farm_id == farm.id,
         FarmOwner.owner_id == user.id,
@@ -102,7 +111,12 @@ def create_farm(data: FarmCreate, db: Session = Depends(get_db), user=Depends(ge
 
 
 @router.get("/{farm_id}")
-def get_farm(farm_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+def get_farm(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    _farm_id: int = Depends(assert_farm_owner),
+):
+    """BUG#2 FIXED: verifies ownership before returning farm."""
     r = FarmService(db).get_farm(farm_id)
     f = r["farm"]
     return {
@@ -118,28 +132,36 @@ def get_farm(farm_id: int, db: Session = Depends(get_db), _=Depends(get_current_
 
 
 @router.put("/{farm_id}")
-def update_farm(farm_id: int, data: FarmUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
+def update_farm(
+    farm_id: int,
+    data: FarmUpdate,
+    db: Session = Depends(get_db),
+    _farm_id: int = Depends(assert_farm_owner),
+):
+    """BUG#2 FIXED: only farm owners can update their farm."""
     return FarmService(db).update_farm(farm_id, data)
 
 
 @router.delete("/{farm_id}", status_code=204)
-def delete_farm(farm_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
+def delete_farm(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    _farm_id: int = Depends(assert_farm_owner),
+):
+    """BUG#2 FIXED: only farm owners can delete their farm."""
     FarmService(db).delete_farm(farm_id)
 
 
 # ── Owner Management ───────────────────────────────────────────────────────────
 
 @router.get("/{farm_id}/owners")
-def list_farm_owners(farm_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    """List all owners of a farm. Falls back to the legacy owner_id if farm_owners is empty."""
+def list_farm_owners(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    _farm_id: int = Depends(assert_farm_owner),
+):
+    entries = db.query(FarmOwner).filter(FarmOwner.farm_id == farm_id).all()
 
-    entries = (
-        db.query(FarmOwner)
-        .filter(FarmOwner.farm_id == farm_id)
-        .all()
-    )
-
-    # Graceful backward compat: if no entries yet, seed from farm.owner_id
     if not entries:
         farm = db.query(Farm).filter(Farm.id == farm_id).first()
         if farm and farm.owner_id:
@@ -157,9 +179,9 @@ def add_farm_owner(
     farm_id: int,
     data: OwnerAddRequest,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    _farm_id: int = Depends(assert_farm_owner),
 ):
-    """Add an existing owner-role user to this farm by username or phone number."""
+    """BUG#18 FIXED: only owners of this farm can add new owners."""
     from sqlalchemy import or_
 
     farm = db.query(Farm).filter(Farm.id == farm_id).first()
@@ -172,19 +194,15 @@ def add_farm_owner(
     ).first()
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Aucun compte trouvé avec cet identifiant (nom d'utilisateur ou téléphone)."
-        )
-    if user.role != "owner":
+        raise HTTPException(status_code=404, detail="Aucun compte trouvé avec cet identifiant.")
+    if user.role not in ("owner",):
         raise HTTPException(
             status_code=400,
-            detail=f"'{user.username}' est un ouvrier, pas un propriétaire. Seuls les propriétaires peuvent gérer une ferme."
+            detail=f"'{user.username}' est un ouvrier, pas un propriétaire.",
         )
 
     existing = db.query(FarmOwner).filter(
-        FarmOwner.farm_id == farm_id,
-        FarmOwner.owner_id == user.id,
+        FarmOwner.farm_id == farm_id, FarmOwner.owner_id == user.id,
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Ce propriétaire gère déjà cette ferme.")
@@ -201,20 +219,18 @@ def remove_farm_owner(
     farm_id: int,
     owner_id: int,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    _farm_id: int = Depends(assert_farm_owner),
 ):
-    """Remove an owner from a farm. At least one owner must remain."""
-
+    """BUG#18 FIXED: only owners of this farm can remove other owners."""
     total = db.query(FarmOwner).filter(FarmOwner.farm_id == farm_id).count()
     if total <= 1:
         raise HTTPException(
             status_code=400,
-            detail="Impossible de supprimer le dernier propriétaire. Une ferme doit avoir au moins un propriétaire."
+            detail="Impossible de supprimer le dernier propriétaire.",
         )
 
     entry = db.query(FarmOwner).filter(
-        FarmOwner.farm_id == farm_id,
-        FarmOwner.owner_id == owner_id,
+        FarmOwner.farm_id == farm_id, FarmOwner.owner_id == owner_id,
     ).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Ce propriétaire n'est pas associé à cette ferme.")
@@ -226,9 +242,11 @@ def remove_farm_owner(
 # ── Worker Management ──────────────────────────────────────────────────────────
 
 @router.get("/{farm_id}/workers")
-def list_farm_workers(farm_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    """List all active workers assigned to a farm."""
-    from app.models.domain import WorkerAssignment
+def list_farm_workers(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    _farm_id: int = Depends(assert_farm_owner),
+):
     assignments = (
         db.query(WorkerAssignment)
         .filter(WorkerAssignment.farm_id == farm_id, WorkerAssignment.is_active == True)
@@ -242,10 +260,9 @@ def add_farm_worker(
     farm_id: int,
     data: WorkerCreateRequest,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    _farm_id: int = Depends(assert_farm_owner),
 ):
-    """Create a new worker account and assign to farm, or reassign an existing worker."""
-    from app.models.domain import WorkerAssignment
+    """BUG#17 FIXED: generates a 6-digit PIN for the worker."""
     from app.core.security import hash_password
 
     farm = db.query(Farm).filter(Farm.id == farm_id).first()
@@ -258,7 +275,7 @@ def add_farm_worker(
         if existing_user.role != "worker":
             raise HTTPException(
                 status_code=400,
-                detail="Ce numéro appartient à un compte propriétaire — il ne peut pas être assigné comme ouvrier."
+                detail="Ce numéro appartient à un compte propriétaire.",
             )
         already = db.query(WorkerAssignment).filter(
             WorkerAssignment.worker_id == existing_user.id,
@@ -269,11 +286,17 @@ def add_farm_worker(
             raise HTTPException(status_code=400, detail="Cet ouvrier est déjà assigné à cette ferme.")
         if data.full_name:
             existing_user.full_name = data.full_name
-        assignment = WorkerAssignment(worker_id=existing_user.id, farm_id=farm_id, pin_code="", is_active=True)
+        pin = _generate_pin()
+        assignment = WorkerAssignment(
+            worker_id=existing_user.id, farm_id=farm_id,
+            pin_code=hash_password(pin), is_active=True,
+        )
         db.add(assignment)
         db.commit()
         db.refresh(assignment)
-        return _worker_to_dict(assignment, existing_user)
+        result = _worker_to_dict(assignment, existing_user)
+        result["pin"] = pin  # return plain PIN once so owner can share it
+        return result
 
     # Brand-new worker account
     phone_digits = data.phone_number.replace("+", "").replace(" ", "")
@@ -296,12 +319,18 @@ def add_farm_worker(
     db.add(new_user)
     db.flush()
 
-    assignment = WorkerAssignment(worker_id=new_user.id, farm_id=farm_id, pin_code="", is_active=True)
+    pin = _generate_pin()
+    assignment = WorkerAssignment(
+        worker_id=new_user.id, farm_id=farm_id,
+        pin_code=hash_password(pin), is_active=True,
+    )
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
     db.refresh(new_user)
-    return _worker_to_dict(assignment, new_user)
+    result = _worker_to_dict(assignment, new_user)
+    result["pin"] = pin  # return plain PIN once so owner can share it
+    return result
 
 
 @router.put("/{farm_id}/workers/{worker_id}")
@@ -310,11 +339,8 @@ def update_farm_worker(
     worker_id: int,
     data: WorkerUpdateRequest,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    _farm_id: int = Depends(assert_farm_owner),
 ):
-    """Update a worker's name and/or phone number."""
-    from app.models.domain import WorkerAssignment
-
     assignment = db.query(WorkerAssignment).filter(
         WorkerAssignment.worker_id == worker_id,
         WorkerAssignment.farm_id == farm_id,
@@ -334,7 +360,7 @@ def update_farm_worker(
             User.phone_number == data.phone_number, User.id != worker_id
         ).first()
         if conflict:
-            raise HTTPException(status_code=400, detail="Ce numéro est déjà utilisé par un autre compte.")
+            raise HTTPException(status_code=400, detail="Ce numéro est déjà utilisé.")
         user.phone_number = data.phone_number
 
     db.commit()
@@ -347,28 +373,17 @@ def remove_farm_worker(
     farm_id: int,
     worker_id: int,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    _farm_id: int = Depends(assert_farm_owner),
 ):
-    """Remove a worker from this farm. Deletes the user account if they have no other assignments."""
-    from app.models.domain import WorkerAssignment
-
+    """BUG#22 FIXED: deactivate assignment only; never silently deletes the user account."""
     assignment = db.query(WorkerAssignment).filter(
         WorkerAssignment.worker_id == worker_id,
         WorkerAssignment.farm_id == farm_id,
     ).first()
     if assignment:
-        db.delete(assignment)
-
-    other_count = db.query(WorkerAssignment).filter(
-        WorkerAssignment.worker_id == worker_id,
-        WorkerAssignment.farm_id != farm_id,
-    ).count()
-    if other_count == 0:
-        user = db.query(User).filter(User.id == worker_id).first()
-        if user:
-            db.delete(user)
-
+        assignment.is_active = False  # soft-deactivate instead of deleting user
     db.commit()
+
 
 # ── Farm Finance (FMIS) ─────────────────────────────────────────────────────────
 
@@ -377,14 +392,13 @@ def list_farm_finance(
     farm_id: int,
     type: Optional[str] = None,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    _farm_id: int = Depends(assert_farm_owner),
 ):
     query = db.query(FarmFinance).filter(FarmFinance.farm_id == farm_id)
     if type:
         query = query.filter(FarmFinance.type == type)
     finances = query.order_by(FarmFinance.timestamp.desc()).all()
 
-    # Calculate summary
     expenses = sum(f.amount for f in finances if f.type == "expense")
     revenues = sum(f.amount for f in finances if f.type == "revenue")
 
@@ -397,26 +411,26 @@ def list_farm_finance(
         "summary": {
             "total_expenses": expenses,
             "total_revenues": revenues,
-            "net_profit": revenues - expenses
-        }
+            "net_profit": revenues - expenses,
+        },
     }
+
 
 @router.post("/{farm_id}/finance", status_code=201)
 def add_farm_finance(
     farm_id: int,
     data: FinanceCreate,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    _farm_id: int = Depends(assert_farm_owner),
 ):
     entry = FarmFinance(
         farm_id=farm_id,
         type=data.type,
         category=data.category,
         amount=data.amount,
-        notes=data.notes
+        notes=data.notes,
     )
     db.add(entry)
     db.commit()
     db.refresh(entry)
     return entry
-

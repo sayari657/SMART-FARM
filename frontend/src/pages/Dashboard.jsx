@@ -11,6 +11,7 @@ import KPIBox from '../components/KPIBox';
 import AlertCard from '../components/AlertCard';
 import TelemetryChart from '../components/TelemetryChart';
 import api, { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import AIScanner from '../components/AIScanner';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
 
@@ -62,17 +63,20 @@ function RingGauge({ value, max = 100, color = '#16a34a', size = 86, stroke = 7,
 
 export default function Dashboard() {
   const { t, i18n } = useTranslation();
+  const { farmId } = useAuth();
   const [stats, setStats]         = useState(null);
   const [alerts, setAlerts]       = useState([]);
   const [cvEvents, setCvEvents]   = useState([]);
   const [recentTelemetry, setRT]  = useState([]);
   const [weather, setWeather]     = useState(null);
   const [loading, setLoading]     = useState(true);
-  const [iotData, setIotData]     = useState({
-    nodeA: { soil: 45.2, pressure: 0.5, flow: 12.8, temp: 23.4 },
-    nodeB: { weight: 46.5, broodTemp: 34.8, extTemp: 28.2, extHum: 58.9 }
-  });
+  // BUG#9 FIXED: null = not yet loaded (shows spinner), 'error' = sensors offline
+  const [iotData, setIotData]     = useState(null);
+  const [iotError, setIotError]   = useState(false);
   const [fireAlert, setFireAlert] = useState(null);
+  // IA Souveraine — dynamic Darija insight
+  const [aiInsight, setAiInsight]   = useState(null);
+  const [aiLoading, setAiLoading]   = useState(false);
   const navigate = useNavigate();
 
   /* ── Fire detection handler ──────────────────────────────────────── */
@@ -90,27 +94,39 @@ export default function Dashboard() {
     setFireAlert({ isFire, isSmoke, imageUrl, confidence: maxConf, timestamp: new Date() });
   }, []);
 
-  /* ── IoT polling (unchanged) ─────────────────────────────────────── */
+  /* ── IoT polling — BUG#9 FIXED: null initial state, UI error feedback ── */
   useEffect(() => {
+    let cancelled = false;
     const fetchIot = () => {
       api.get('/iot/latest')
-        .then(res => { if (res.data?.nodeA && res.data?.nodeB) setIotData(res.data); })
-        .catch(err => console.error('IoT fetch error:', err));
+        .then(res => {
+          if (cancelled) return;
+          if (res.data?.nodeA && res.data?.nodeB) {
+            setIotData(res.data);
+            setIotError(false);
+          } else {
+            setIotError(true);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setIotError(true);
+        });
     };
     fetchIot();
     const interval = setInterval(fetchIot, 10000);
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  /* ── Main data load (unchanged) ─────────────────────────────────── */
+  /* ── Main data load — scoped to selected farm ── */
   useEffect(() => {
+    if (!farmId) { setLoading(false); return; }
+    setLoading(true);
     Promise.all([
-      dashboardAPI.stats(),
-      alertsAPI.list(),
-      cvAPI.recent(10),
-      animalsAPI.list(),
-      farmsAPI.list()
-    ]).then(([statsRes, alertsRes, cvRes, unitsRes, farmsRes]) => {
+      dashboardAPI.stats(farmId),
+      alertsAPI.list(farmId),
+      cvAPI.recent(10, farmId),              // CV events of THIS farm only
+      animalsAPI.list({ farm_id: farmId }),
+    ]).then(([statsRes, alertsRes, cvRes, unitsRes]) => {
       setStats(statsRes.data);
       setAlerts((Array.isArray(alertsRes.data) ? alertsRes.data : []).slice(0, 5));
       setCvEvents((Array.isArray(cvRes.data) ? cvRes.data : []).slice(0, 6));
@@ -118,17 +134,25 @@ export default function Dashboard() {
       if (units.length > 0) {
         telemetryAPI.history(units[0].id, 48).then(r => setRT(r.data));
       }
-      const farmsList = Array.isArray(farmsRes.data) ? farmsRes.data : [];
-      if (farmsList.length > 0) {
-        externalAPI.weather.current(farmsList[0].id)
-          .then(res => setWeather(res.data))
-          .catch(err => console.log('Weather fetch error:', err));
-        externalAPI.weather.forecast(farmsList[0].id)
-          .then(res => { setWeather(prev => prev ? { ...prev, forecast: res.data } : null); })
-          .catch(err => console.log('Forecast error:', err));
-      }
+      externalAPI.weather.current(farmId)
+        .then(res => setWeather(res.data))
+        .catch(() => {});
+      externalAPI.weather.forecast(farmId)
+        .then(res => { setWeather(prev => prev ? { ...prev, forecast: res.data } : null); })
+        .catch(() => {});
     }).finally(() => setLoading(false));
-  }, []);
+  }, [farmId]);
+
+  /* ── IA Souveraine — load dynamic Darija insight ── */
+  const loadAiInsight = () => {
+    if (!farmId) return;
+    setAiLoading(true);
+    dashboardAPI.aiInsight(farmId)
+      .then(res => setAiInsight(res.data))
+      .catch(() => setAiInsight(null))
+      .finally(() => setAiLoading(false));
+  };
+  useEffect(() => { loadAiInsight(); }, [farmId]);
 
   const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
   const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
@@ -139,8 +163,8 @@ export default function Dashboard() {
   const activeAlertsCount = alerts.filter(a => !a.is_resolved).length;
   const allOk             = activeAlertsCount === 0 && (stats?.critical_alerts || 0) === 0;
 
-  /* ── IoT helpers ─────────────────────────────────────────────────── */
-  const broodOk = iotData.nodeB.broodTemp >= 34 && iotData.nodeB.broodTemp <= 36;
+  /* ── IoT helpers — BUG#9 FIXED: guard against null iotData ──────── */
+  const broodOk = iotData ? (iotData.nodeB.broodTemp >= 34 && iotData.nodeB.broodTemp <= 36) : null;
 
   return (
     <>
@@ -229,10 +253,18 @@ export default function Dashboard() {
                 <div style={{ textAlign: 'center', paddingLeft: 16, borderLeft: '1px solid rgba(14,165,233,.25)' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-accent)', textTransform: 'uppercase' }}>{t('dashboard.risk_score', 'Risk Score')}</div>
                   {(() => {
-                    const activeRisks = [weather.risks?.heat_stress, weather.risks?.storm_risk, weather.risks?.drought_risk, weather.risks?.frost_risk].filter(Boolean).length;
-                    const score = activeRisks === 0 ? 12 : activeRisks === 1 ? 52 : activeRisks === 2 ? 74 : 90;
+                    // BUG#13 FIXED: weighted risk score based on alert severity and active conditions
+                    const risks = weather.risks || {};
+                    let score = 0;
+                    if (risks.heat_stress)  score += 30;
+                    if (risks.storm_risk)   score += 40;
+                    if (risks.drought_risk) score += 20;
+                    if (risks.frost_risk)   score += 25;
+                    // Cap at 100 and add base from active alerts
+                    const alertBonus = Math.min(activeAlertsCount * 5, 20);
+                    score = Math.min(score + alertBonus, 100);
                     return (
-                      <div style={{ fontSize: 20, fontWeight: 800, color: score > 50 ? 'var(--color-critical)' : 'var(--color-accent)' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: score > 50 ? 'var(--color-critical)' : score > 25 ? '#f59e0b' : 'var(--color-accent)' }}>
                         {score}/100
                       </div>
                     );
@@ -287,34 +319,56 @@ export default function Dashboard() {
         {/* ═══════════════════════════════════════════════════════════
             SOVEREIGN AI WIDGET (existing)
         ═══════════════════════════════════════════════════════════ */}
-        {weather && (
-          <div className="card" style={{ marginBottom: 28, background: 'var(--sidebar-bg)', color: 'white', border: 'none', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, right: 0, padding: 12, opacity: 0.06 }}>
-              <Cpu size={120} />
+        {/* IA Souveraine — dynamic Darija insight based on real farm data */}
+        <div className="card" style={{ marginBottom: 28, background: 'var(--sidebar-bg)', color: 'white', border: 'none', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, padding: 12, opacity: 0.06 }}>
+            <Cpu size={120} />
+          </div>
+          <div style={{ padding: '24px 32px', position: 'relative', zIndex: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ background: 'var(--color-info)', padding: 8, borderRadius: 8 }}>
+                <Zap size={20} color="white" />
+              </div>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('dashboard.sovereign_ai', 'IA Souveraine — Darija Tunisien')}</h3>
+              <span className="badge badge-info" style={{ background: 'rgba(59,130,246,.2)', color: '#93c5fd', border: '1px solid rgba(59,130,246,.3)' }}>
+                MLLM Local Actif
+              </span>
+              <button
+                onClick={loadAiInsight}
+                disabled={aiLoading}
+                title="Régénérer l'analyse IA"
+                style={{ marginLeft: 'auto', background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.2)', borderRadius: 8, color: 'white', cursor: aiLoading ? 'wait' : 'pointer', padding: '5px 12px', fontSize: 12, fontWeight: 600 }}
+              >
+                {aiLoading ? '...' : '↻ Actualiser'}
+              </button>
             </div>
-            <div style={{ padding: '24px 32px', position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <div style={{ background: 'var(--color-info)', padding: 8, borderRadius: 8 }}>
-                  <Zap size={20} color="white" />
+
+            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.08)', minHeight: 70 }}>
+              {aiLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,.6)' }}>
+                  <div className="spinner" style={{ width: 16, height: 16, borderColor: 'rgba(255,255,255,.3)', borderTopColor: 'white' }} />
+                  <span style={{ fontSize: 14 }}>Analyse de tes données en cours...</span>
                 </div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('dashboard.sovereign_ai')}</h3>
-                <span className="badge badge-info" style={{ background: 'rgba(59,130,246,.2)', color: '#93c5fd', border: '1px solid rgba(59,130,246,.3)' }}>
-                  {t('dashboard.local_mllm_active')}
-                </span>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p style={{ fontSize: 18, fontWeight: 600, margin: 0, lineHeight: 1.6, textAlign: 'right', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-                  {loading ? t('dashboard.analyzing_data') : t('dashboard.derja_message')}
+              ) : aiInsight?.text ? (
+                <p style={{ fontSize: 16, fontWeight: 600, margin: 0, lineHeight: 1.7, textAlign: 'right', direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif', color: 'white' }}>
+                  {aiInsight.text}
                 </p>
-              </div>
-              <div style={{ marginTop: 16, fontSize: 13, color: 'var(--sidebar-text)', display: 'flex', gap: 12 }}>
-                <span>Source: RAG + Labess-7B</span>
-                <span>•</span>
-                <span>Context: UTAP Tunisian Beekeeping Guide</span>
-              </div>
+              ) : (
+                <p style={{ fontSize: 14, margin: 0, color: 'rgba(255,255,255,.5)', fontStyle: 'italic' }}>
+                  Clique sur Actualiser pour générer une analyse IA de ta ferme.
+                </p>
+              )}
+            </div>
+
+            <div style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,.5)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <span>Source: {aiInsight?.source || 'Groq / Labess-7B'}</span>
+              <span>•</span>
+              <span>
+                {stats ? `${stats.total_units} animaux · ${stats.active_alerts} alertes · Santé ${stats.avg_health_score}%` : 'Données ferme chargées'}
+              </span>
             </div>
           </div>
-        )}
+        </div>
 
         {/* ═══════════════════════════════════════════════════════════
             SUIVI DES ESPÈCES — v2 (redesign tendance)
@@ -464,6 +518,19 @@ export default function Dashboard() {
             </span>
           </div>
 
+          {/* BUG#9 FIXED: show real states — loading / offline / live data */}
+          {iotData === null && !iotError ? (
+            <div style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-3)' }}>
+              <div className="spinner" style={{ margin: '0 auto 12px' }} />
+              <p style={{ fontSize: 13 }}>Connexion aux capteurs IoT…</p>
+            </div>
+          ) : iotError && !iotData ? (
+            <div style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-3)' }}>
+              <Activity size={32} color="#94a3b8" style={{ marginBottom: 8 }} />
+              <p style={{ fontSize: 13, fontWeight: 600 }}>⚠️ Capteurs hors ligne — aucune donnée IoT disponible</p>
+              <p style={{ fontSize: 11 }}>Vérifiez la connexion ESP32 / MQTT</p>
+            </div>
+          ) : iotData ? (
           <div className="iot-dual-layout">
             {/* Node A — Sol & Irrigation */}
             <div>
@@ -529,6 +596,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          ) : null}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════

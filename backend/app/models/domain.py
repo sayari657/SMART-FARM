@@ -83,7 +83,7 @@ class User(Base):
     phone_number = Column(String(20), unique=True, nullable=True)
     full_name = Column(String(100), nullable=True)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), default="operator")
+    role = Column(String(20), default="owner")
     is_active = Column(Boolean, default=True)
     refresh_token_hash = Column(String(255), nullable=True)  # BCrypt hash of current refresh token
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -509,6 +509,7 @@ class BeeApiary(Base):
     __tablename__ = "bee_apiaries"
 
     id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True, index=True)
     name = Column(String(100), nullable=False)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
@@ -625,10 +626,11 @@ class BeeStockLog(Base):
 # ---------------------------------------------------------------------------
 
 class BeeGlobalStock(Base):
-    """Stock entrepôt global de l'exploitation apicole (singleton)."""
+    """Stock entrepôt global de l'exploitation apicole (un enregistrement par ferme)."""
     __tablename__ = "bee_global_stock"
 
     id           = Column(Integer, primary_key=True, index=True)
+    farm_id      = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True, unique=True, index=True)
     sirop        = Column(Float,   default=0)   # litres
     pate         = Column(Float,   default=0)   # kg
     traitement   = Column(Integer, default=0)   # doses
@@ -705,6 +707,7 @@ class WarehouseCategory(Base):
     __tablename__ = "warehouse_categories"
 
     id            = Column(Integer, primary_key=True, index=True)
+    farm_id       = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True, index=True)
     name_ar       = Column(String(100), nullable=False)
     name_fr       = Column(String(100), nullable=False)
     icon          = Column(String(50),  default="Package")   # lucide icon name

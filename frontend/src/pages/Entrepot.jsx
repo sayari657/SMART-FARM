@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { warehouseAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const ICON_MAP = {
@@ -213,7 +214,8 @@ TR.en = TR.fr; // English falls back to French UI
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Entrepot() {
-  const { i18n } = useTranslation();
+  const { i18n }  = useTranslation();
+  const { farmId } = useAuth();
   const lang = i18n.language || 'fr';
   const T    = TR[lang] || TR.fr;
   const rtl  = T.dir === 'rtl';
@@ -297,10 +299,10 @@ export default function Entrepot() {
     return () => document.removeEventListener('mousedown', h);
   }, [showItemEmojiPicker]);
 
-  // ── load ──────────────────────────────────────────────────────────────────
+  // ── load — scoped to selected farm ──────────────────────────────────────
   const load = useCallback(() => {
     setLoading(true);
-    warehouseAPI.categories()
+    warehouseAPI.categories(farmId)     // pass farmId → only this farm's stock
       .then(res => {
         const cats = res.data;
         setCategories(cats);
@@ -312,7 +314,7 @@ export default function Entrepot() {
       })
       .catch(() => toast.error(T.toastLoadErr))
       .finally(() => setLoading(false));
-  }, []); // eslint-disable-line
+  }, [farmId]); // reload when farm switches
 
   useEffect(() => { load(); }, [load]);
 
@@ -324,21 +326,18 @@ export default function Entrepot() {
     const alreadyUp  = localStorage.getItem(SEED_VERSION);
 
     if (categories.length === 0) {
-      // Fresh DB — full seed
       setSeeding(true);
-      warehouseAPI.seed()
+      warehouseAPI.seed(farmId)
         .then(() => { localStorage.setItem(SEED_VERSION, '1'); load(); })
         .catch(() => {}).finally(() => setSeeding(false));
     } else if (!alreadyUp) {
-      // DB exists but emojis may be outdated — force reseed all default items
       setSeeding(true);
-      warehouseAPI.reseed()
+      warehouseAPI.reseed(farmId)
         .then(() => { localStorage.setItem(SEED_VERSION, '1'); load(); })
         .catch(() => {}).finally(() => setSeeding(false));
     } else if (emptyCats.length > 0) {
-      // Some categories have no items (manually deleted) — fill them
       setSeeding(true);
-      warehouseAPI.seedItems()
+      warehouseAPI.seedItems(farmId)
         .then(() => load()).catch(() => {}).finally(() => setSeeding(false));
     }
   }, [loading, categories]); // eslint-disable-line

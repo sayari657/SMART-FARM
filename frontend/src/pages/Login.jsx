@@ -38,7 +38,15 @@ export default function Login() {
     const res = await login(form.username, form.password);
     if (res.ok) {
       const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
-      navigate(savedUser?.role === 'worker' ? '/worker' : '/dashboard');
+      if (savedUser?.role === 'worker') {
+        navigate('/worker');
+      } else {
+        // After first registration, redirect to farm creation
+        const params = new URLSearchParams(window.location.search);
+        const farms = JSON.parse(localStorage.getItem('user_farms') || '[]');
+        const isFirstFarm = params.get('first_farm') === '1' || farms.length === 0;
+        navigate(isFirstFarm ? '/farms' : '/dashboard');
+      }
     } else {
       if (res.offline) setOffline(true);
       setError(res.error);
@@ -80,16 +88,29 @@ export default function Login() {
   };
 
   const renderLeft = () => (
-    <div className="auth-left" style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className="auth-left" style={{ position: 'relative', overflow: 'hidden', padding: '60px' }}>
+      {/* Dynamic Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+          opacity: 0.6, /* Makes text readable over the video */
+        }}
+      >
+        <source src="/videos/login-bg.mp4" type="video/mp4" />
+      </video>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(6, 78, 59, 0.9), rgba(6, 78, 59, 0.4))', zIndex: 1 }}></div>
+
       {/* Decorative SVG pattern */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: .08 }} xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
       {/* Decorative circles */}
       <div style={{ position: 'absolute', top: -60, right: -60, width: 240, height: 240, borderRadius: '50%', border: '1px solid rgba(255,255,255,.12)' }} />
       <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', border: '1px solid rgba(255,255,255,.08)' }} />

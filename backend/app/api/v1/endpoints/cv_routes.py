@@ -19,8 +19,10 @@ limiter = Limiter(key_func=get_remote_address)
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.config import settings
+from app.core.farm_guard import get_scoped_farm_ids
 from app.services.data_service import CVService
 from app.schemas.domain import CVEventCreate, AlertCreate
+from typing import List
 
 try:
     from ultralytics import YOLO
@@ -137,8 +139,15 @@ def _serialize(e):
     }
 
 @router.get("/events")
-def get_recent(limit: int = Query(50, le=200), db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return [_serialize(e) for e in CVService(db).get_recent(limit=limit)]
+def get_recent(
+    limit: int = Query(50, le=200),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """CV events scoped to selected farm. Returns [] if user has no farms yet."""
+    if not farm_ids:
+        return []
+    return [_serialize(e) for e in CVService(db).get_recent_by_farms(farm_ids, limit=limit)]
 
 @router.get("/events/{unit_id}")
 def get_by_unit(unit_id: int, limit: int = Query(100, le=500), db: Session = Depends(get_db), _=Depends(get_current_user)):

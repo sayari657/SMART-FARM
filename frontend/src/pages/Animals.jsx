@@ -9,6 +9,7 @@ import Navbar from '../components/Navbar';
 import AnimalCard from '../components/AnimalCard';
 import ThreeSpeciesCard from '../components/ThreeSpeciesCard';
 import { animalsAPI, farmsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const SPECIES = ['all', 'bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'];
 const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
@@ -21,25 +22,34 @@ const SPECIES_ROUTES = {
 
 export default function Animals() {
   const { t, i18n } = useTranslation();
+  // Auto-fill farm_id from the currently selected farm in context
+  const { farmId, farms: authFarms } = useAuth();
   const [units, setUnits]         = useState([]);
-  const [farms, setFarms]         = useState([]);
   const [types, setTypes]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [speciesFilter, setSp]    = useState('all');
   const [farmFilter, setFf]       = useState('');
   const [showForm, setShowForm]   = useState(false);
-  const [form, setForm]           = useState({ name: '', farm_id: '', type_id: '', identifier: '', notes: '' });
+  // farm_id defaults to the currently selected farm — not farm 1
+  const [form, setForm]           = useState({ name: '', farm_id: farmId || '', type_id: '', identifier: '', notes: '' });
   const [saving, setSaving]       = useState(false);
   const navigate = useNavigate();
 
+  // Keep form.farm_id in sync when the selected farm changes
+  useEffect(() => {
+    if (farmId) setForm(prev => ({ ...prev, farm_id: farmId }));
+  }, [farmId]);
+
   const load = () => {
     setLoading(true);
-    Promise.all([animalsAPI.list(), farmsAPI.list(), animalsAPI.types()])
-      .then(([u, f, tp]) => { setUnits(u.data); setFarms(f.data); setTypes(tp.data); })
+    // Load animals for the selected farm only (not all farms globally)
+    const params = farmId ? { farm_id: farmId } : {};
+    Promise.all([animalsAPI.list(params), animalsAPI.types()])
+      .then(([u, tp]) => { setUnits(u.data); setTypes(tp.data); })
       .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(load, [farmId]);
 
   const filtered = units.filter(u => {
     const matchSearch  = (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.identifier || '').includes(search);
@@ -81,15 +91,15 @@ export default function Animals() {
             <div className="anim-hero-eyebrow"><PawPrint size={11} /> LIVESTOCK INTELLIGENCE · SUIVI DES ESPÈCES</div>
             <h1 className="anim-hero-title">Gestion du Bétail</h1>
             <p className="anim-hero-sub">
-              Monitoring temps réel · IA prédictive · {farms.length} ferme{farms.length !== 1 ? 's' : ''} connectée{farms.length !== 1 ? 's' : ''}
+              Monitoring temps réel · IA prédictive · {authFarms.length} ferme{authFarms.length !== 1 ? 's' : ''} connectée{authFarms.length !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="anim-hero-kpis">
             {[
-              { val: units.length,  label: 'Total',     color: '#92400e', icon: Users },
-              { val: healthyCount,  label: 'Sains',     color: '#15803d', icon: Activity },
-              { val: criticalCount, label: 'Critiques', color: '#dc2626', icon: AlertTriangle },
-              { val: farms.length,  label: 'Fermes',    color: '#1d4ed8', icon: ChevronRight },
+              { val: units.length,       label: 'Total',     color: '#92400e', icon: Users },
+              { val: healthyCount,       label: 'Sains',     color: '#15803d', icon: Activity },
+              { val: criticalCount,      label: 'Critiques', color: '#dc2626', icon: AlertTriangle },
+              { val: authFarms.length,   label: 'Fermes',    color: '#1d4ed8', icon: ChevronRight },
             ].map(({ val, label, color, icon: Icon }) => (
               <div key={label} className="anim-kpi">
                 <Icon size={16} color={color} />
@@ -138,12 +148,27 @@ export default function Animals() {
               </div>
               <div className="farms-form-row">
                 <div className="farms-form-group">
-                  <label className="farms-form-label">{t('farms.location')} *</label>
-                  <select className="farms-form-input" value={form.farm_id}
-                    onChange={e => setForm(p => ({ ...p, farm_id: e.target.value }))} required>
-                    <option value="">{t('farms.location')}…</option>
-                    {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
+                  <label className="farms-form-label">Ferme *</label>
+                  {authFarms.length > 1 ? (
+                    // Multiple farms: let user choose, but default to selected farm
+                    <select className="farms-form-input" value={form.farm_id}
+                      onChange={e => setForm(p => ({ ...p, farm_id: e.target.value }))} required>
+                      <option value="">Choisir une ferme…</option>
+                      {authFarms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
+                  ) : (
+                    // Single farm: locked display, no confusion about "farm 1"
+                    <div className="farms-form-input" style={{
+                      background: 'var(--color-surface-2)', color: 'var(--color-text-2)',
+                      display: 'flex', alignItems: 'center', gap: 6, cursor: 'default',
+                    }}>
+                      <span style={{ fontSize: 14 }}>🏡</span>
+                      <span style={{ fontWeight: 600 }}>
+                        {authFarms[0]?.name || `Ferme #${farmId}`}
+                      </span>
+                      <span style={{ fontSize: 10, color: 'var(--color-primary)', marginLeft: 'auto' }}>Ferme active</span>
+                    </div>
+                  )}
                 </div>
                 <div className="farms-form-group">
                   <label className="farms-form-label">{t('animals.species')} *</label>
@@ -175,10 +200,12 @@ export default function Animals() {
               value={search} onChange={e => setSearch(e.target.value)} />
             {search && <button className="farms-search-clear" onClick={() => setSearch('')}><X size={12} /></button>}
           </div>
-          <select className="anim-farm-select" value={farmFilter} onChange={e => setFf(e.target.value)}>
-            <option value="">{t('farms.title')}</option>
-            {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-          </select>
+          {authFarms.length > 1 && (
+            <select className="anim-farm-select" value={farmFilter} onChange={e => setFf(e.target.value)}>
+              <option value="">Toutes mes fermes</option>
+              {authFarms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
+          )}
           <div className="farms-filter-pills">
             {SPECIES.map(sp => (
               <button key={sp}

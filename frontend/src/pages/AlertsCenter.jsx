@@ -134,20 +134,21 @@ export default function AlertsCenter() {
   const [assigning, setAssigning]         = useState(false);
   const [loadingWorkers, setLoadingWorkers] = useState(false);
 
-  const { user }    = useAuth();
-  const { t, i18n } = useTranslation();
-  const navigate    = useNavigate();
-  const lang        = i18n.language?.startsWith('ar') ? 'ar' : 'fr';
-  const L           = TR[lang];
-  const rtl         = lang === 'ar';
+  const { user, farmId } = useAuth();
+  const { t, i18n }      = useTranslation();
+  const navigate         = useNavigate();
+  const lang             = i18n.language?.startsWith('ar') ? 'ar' : 'fr';
+  const L                = TR[lang];
+  const rtl              = lang === 'ar';
 
-  /* ── Load data ─────────────────────────────────────────────────────────── */
+  /* ── Load data — scoped to selected farm ─────────────────────────────── */
   const load = useCallback(async () => {
+    if (!farmId) return;
     setLoading(true);
     try {
       const [aRes, eRes, wRes, rwRes] = await Promise.all([
-        alertsAPI.list(),
-        alertsAPI.emergency(),
+        alertsAPI.list(farmId),           // alerts for THIS farm
+        alertsAPI.emergency(farmId),
         warehouseAPI.alerts.list(false).catch(() => ({ data: [] })),
         warehouseAPI.alerts.list(true).catch(() => ({ data: [] })),
       ]);
@@ -155,21 +156,19 @@ export default function AlertsCenter() {
       setResolvedWAlerts(rwRes.data || []);
       let baseAlerts = aRes.data;
       setEmergencyData(eRes.data);
+      setFirstFarmId(farmId);
 
-      const fRes = await farmsAPI.list();
-      if (fRes.data.length > 0) {
-        setFirstFarmId(fRes.data[0].id);
-        try {
-          const weatherRes = await externalAPI.weather.current(fRes.data[0].id);
-          const risks = weatherRes.data?.risks;
-          setWeatherRisks(risks);
-          if (risks) {
-            if (risks.heat_stress) baseAlerts.unshift({ id: 'w1', title: t('alerts.heat_stress'), description: t('alerts.heat_stress_desc'), severity: 'critical', entity_type: 'Environment', timestamp: new Date().toISOString(), is_resolved: false });
-            if (risks.storm_risk)  baseAlerts.unshift({ id: 'w2', title: t('alerts.storm_warning'), description: t('alerts.storm_warning_desc'), severity: 'critical', entity_type: 'Environment', timestamp: new Date().toISOString(), is_resolved: false });
-            if (risks.cold_stress) baseAlerts.unshift({ id: 'w3', title: t('alerts.cold_stress'), description: t('alerts.cold_stress_desc'), severity: 'warning', entity_type: 'Environment', timestamp: new Date().toISOString(), is_resolved: false });
-          }
-        } catch {}
-      }
+      try {
+        const weatherRes = await externalAPI.weather.current(farmId);
+        const risks = weatherRes.data?.risks;
+        setWeatherRisks(risks);
+        if (risks) {
+          if (risks.heat_stress) baseAlerts.unshift({ id: 'w1', title: t('alerts.heat_stress'), description: t('alerts.heat_stress_desc'), severity: 'critical', entity_type: 'Environment', timestamp: new Date().toISOString(), is_resolved: false });
+          if (risks.storm_risk)  baseAlerts.unshift({ id: 'w2', title: t('alerts.storm_warning'), description: t('alerts.storm_warning_desc'), severity: 'critical', entity_type: 'Environment', timestamp: new Date().toISOString(), is_resolved: false });
+          if (risks.cold_stress) baseAlerts.unshift({ id: 'w3', title: t('alerts.cold_stress'), description: t('alerts.cold_stress_desc'), severity: 'warning', entity_type: 'Environment', timestamp: new Date().toISOString(), is_resolved: false });
+        }
+      } catch {}
+
       setAlerts([...baseAlerts]);
       try {
         const stored = JSON.parse(localStorage.getItem(SCAN_ALERT_KEY) || '[]');
@@ -180,17 +179,17 @@ export default function AlertsCenter() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, farmId]);
 
   useEffect(() => {
     load();
-    const t = setTimeout(() => {
+    const tid = setTimeout(() => {
       try {
         const stored = JSON.parse(localStorage.getItem(SCAN_ALERT_KEY) || '[]');
         setScannerAlerts(stored);
       } catch {}
     }, 700);
-    return () => clearTimeout(t);
+    return () => clearTimeout(tid);
   }, [load]);
 
   /* ── Resolve helpers ────────────────────────────────────────────────────── */

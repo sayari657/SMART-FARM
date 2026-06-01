@@ -29,8 +29,15 @@ export default function Register() {
     e.preventDefault();
     setError('');
     const res = await register(form);
-    if (res.ok) { setSuccess(true); setTimeout(() => navigate('/login'), 2000); }
-    else setError(res.error);
+    if (res.ok) {
+      setSuccess(true);
+      // Owners: go to farm creation after 1.5s instead of login
+      // Workers: go to login (they don't create farms themselves)
+      const target = form.role === 'owner' ? '/login?first_farm=1' : '/login';
+      setTimeout(() => navigate(target), 1500);
+    } else {
+      setError(res.error);
+    }
   };
 
   return (

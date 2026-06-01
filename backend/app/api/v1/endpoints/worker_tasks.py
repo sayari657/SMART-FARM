@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.farm_guard import get_user_farm_ids
 from app.models.domain import WorkerTask, WorkerAssignment, User
+from typing import List
 
 router = APIRouter(prefix="/worker-tasks", tags=["Worker Tasks"])
 
@@ -61,13 +63,16 @@ class WorkerOut(BaseModel):
 @router.get("", response_model=List[TaskOut])
 def list_my_tasks(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
 ):
-    """Workers: list tasks assigned to me. Owners: list all tasks across their farms."""
+    """BUG#8 FIXED: workers see their own tasks; owners see tasks of THEIR farms only."""
     if current_user.role == "worker":
         tasks = db.query(WorkerTask).filter(WorkerTask.worker_id == current_user.id).all()
     else:
-        tasks = db.query(WorkerTask).all()
+        if not farm_ids:
+            return []
+        tasks = db.query(WorkerTask).filter(WorkerTask.farm_id.in_(farm_ids)).all()
     return tasks
 
 

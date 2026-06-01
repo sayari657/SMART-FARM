@@ -11,7 +11,8 @@ import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import api, { reportsAPI, farmsAPI, animalsAPI, plantsAPI } from '../services/api';
+import api, { reportsAPI, farmsAPI, animalsAPI, plantsAPI, dashboardAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 // Images générées
 const IMG_ANIMALS = "/brain/bd0df84b-40db-40ce-aca5-7889f371e7ca/farm_animals_premium_1777240383651.png";
@@ -29,7 +30,8 @@ const COLORS = {
 };
 
 export default function Reports() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n }  = useTranslation();
+  const { farmId }   = useAuth();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [view, setView] = useState('live'); // 'live' or 'archive'
@@ -44,8 +46,8 @@ export default function Reports() {
   const handleGenerateIntelligent = async (type) => {
     setGenerating(true);
     try {
-      await reportsAPI.generateIntelligent(type);
-      const res = await reportsAPI.list();
+      await reportsAPI.generateIntelligent(type, farmId);   // scope to selected farm
+      const res = await reportsAPI.list(farmId);
       setReports(res.data);
       setView('archive');
       alert(`Rapport Intelligent (${type}) généré avec succès !`);
@@ -122,23 +124,21 @@ export default function Reports() {
     const loadAll = async () => {
       setLoading(true);
       try {
-        const [rRes, fRes, aRes] = await Promise.all([
-          reportsAPI.list(),
-          farmsAPI.list(),
-          animalsAPI.list(),
+        const [rRes, aRes, statsRes] = await Promise.all([
+          reportsAPI.list(farmId),               // reports for THIS farm
+          animalsAPI.list(farmId ? { farm_id: farmId } : {}),
+          dashboardAPI.stats(farmId),             // real stats for THIS farm
         ]);
-        
+
         setReports(rRes.data);
-        setFarms(fRes.data);
-        
-        // plantsAPI n’est pas appelé ici (endpoint /plants/search exige q non vide)
+        const s = statsRes.data;
         setStats({
-          farms: fRes.data.length,
-          animals: aRes.data.length,
-          plants: 0,
-          hives: 12,
-          health: 94,
-          alerts: 3
+          farms:   s.total_farms   ?? 1,
+          animals: s.total_units   ?? 0,
+          plants:  0,
+          hives:   s.units_by_species?.bee ?? 0,
+          health:  s.avg_health_score ?? 0,
+          alerts:  s.active_alerts ?? 0,
         });
       } catch (err) {
         console.error("Report Load Error:", err);
@@ -147,7 +147,7 @@ export default function Reports() {
       }
     };
     loadAll();
-  }, []);
+  }, [farmId]);   // reload when farm changes
 
   return (
     <>

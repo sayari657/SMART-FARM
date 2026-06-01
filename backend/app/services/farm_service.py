@@ -42,6 +42,12 @@ class AnimalService:
         self.repo = AnimalUnitRepository(db)
         self.type_repo = AnimalTypeRepository(db)
 
+    def list_animals_by_farms(self, farm_ids: list, species: Optional[str] = None):
+        """BUG#3 FIXED: multi-tenant animal list."""
+        if not farm_ids:
+            return []
+        return self.repo.get_by_farms(farm_ids, species=species)
+
     def list_animals(self, farm_id: Optional[int] = None, species: Optional[str] = None):
         if farm_id and species:
             units = self.repo.get_by_farm_and_species(farm_id, species)

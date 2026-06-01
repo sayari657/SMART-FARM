@@ -9,6 +9,7 @@ import { usePinLock, PinLockScreen } from './components/PinLock';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './layouts/MainLayout';
 import WorkerLayout from './layouts/WorkerLayout';
+import NoFarmGuard from './components/NoFarmGuard';
 
 // Pages — lazy-loaded for code splitting
 const Landing             = lazy(() => import('./pages/Landing'));
@@ -82,17 +83,18 @@ function AppRoutes() {
           <MainLayout />
         </OwnerRoute>
       }>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="farms" element={<Farms />} />
-        <Route path="farms/:id" element={<FarmDetails />} />
-        <Route path="animals" element={<Animals />} />
-        <Route path="animals/:id" element={<AnimalDetails />} />
-        <Route path="telemetry" element={<TelemetryAnalysis />} />
-        <Route path="cv" element={<CVMonitoring />} />
-        <Route path="alerts" element={<AlertsCenter />} />
-        <Route path="recommendations" element={<Recommendations />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="settings" element={<Settings />} />
+        {/* Farm-scoped pages — guarded: require at least one farm */}
+        <Route path="/dashboard"    element={<NoFarmGuard><Dashboard /></NoFarmGuard>} />
+        <Route path="farms"         element={<Farms />} />
+        <Route path="farms/:id"     element={<NoFarmGuard><FarmDetails /></NoFarmGuard>} />
+        <Route path="animals"       element={<NoFarmGuard><Animals /></NoFarmGuard>} />
+        <Route path="animals/:id"   element={<NoFarmGuard><AnimalDetails /></NoFarmGuard>} />
+        <Route path="telemetry"     element={<NoFarmGuard><TelemetryAnalysis /></NoFarmGuard>} />
+        <Route path="cv"            element={<NoFarmGuard><CVMonitoring /></NoFarmGuard>} />
+        <Route path="alerts"        element={<NoFarmGuard><AlertsCenter /></NoFarmGuard>} />
+        <Route path="recommendations" element={<NoFarmGuard><Recommendations /></NoFarmGuard>} />
+        <Route path="reports"       element={<NoFarmGuard><Reports /></NoFarmGuard>} />
+        <Route path="settings"      element={<Settings />} />
         <Route path="aboutbee" element={<AboutBee />} />
         <Route path="aboutcow" element={<AboutCows />} />
         <Route path="aboutpoultry" element={<AboutPoultry />} />

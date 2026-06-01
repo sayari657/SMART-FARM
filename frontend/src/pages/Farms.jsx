@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import FarmCard from '../components/FarmCard';
 import { farmsAPI, externalAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_META = {
   active:      { label: 'Actif',        color: '#16a34a', bg: '#dcfce7', icon: CheckCircle2 },
@@ -17,6 +18,7 @@ const STATUS_META = {
 
 export default function Farms() {
   const { t, i18n } = useTranslation();
+  const { onFarmCreated } = useAuth();
   const [farms, setFarms]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [search, setSearch]         = useState('');
@@ -51,7 +53,7 @@ export default function Farms() {
     e.preventDefault();
     setSaving(true);
     try {
-      await farmsAPI.create({
+      const res = await farmsAPI.create({
         ...form,
         total_area_ha: form.total_area_ha ? +form.total_area_ha : null,
         latitude:      form.latitude      ? +form.latitude      : null,
@@ -59,6 +61,8 @@ export default function Farms() {
       });
       setShowForm(false);
       setForm({ name:'', location:'', description:'', status:'active', total_area_ha:'', latitude: '', longitude: '' });
+      // Refresh AuthContext farms list and auto-select new farm
+      if (res.data?.id) await onFarmCreated(res.data.id);
       load();
     } finally { setSaving(false); }
   };

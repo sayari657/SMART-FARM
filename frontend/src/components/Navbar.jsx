@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import FarmSelector from './FarmSelector';
 
 export default function Navbar({ title, subtitle, actions }) {
   const { t, i18n } = useTranslation();
   const { toggle } = useSidebar();
-  const { user } = useAuth() || {};
+  const { user, farms } = useAuth() || {};
   const { dark, toggleTheme } = useTheme();
+  const isOwner = user?.role === 'owner';
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -48,6 +50,9 @@ export default function Navbar({ title, subtitle, actions }) {
       </div>
 
       <div className="navbar-right">
+        {/* FarmSelector — visible only for owners with farms */}
+        {isOwner && <FarmSelector />}
+
         {actions}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

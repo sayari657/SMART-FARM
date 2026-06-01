@@ -56,8 +56,9 @@ export const authAPI = {
 
 // ---- Dashboard
 export const dashboardAPI = {
-  stats:     () => api.get('/dashboard/stats'),
-  analytics: (days = 30) => api.get('/dashboard/analytics', { params: { days } }),
+  stats:     (farmId) => api.get('/dashboard/stats',     { params: farmId ? { farm_id: farmId } : {} }),
+  analytics: (days = 30, farmId) => api.get('/dashboard/analytics', { params: { days, ...(farmId ? { farm_id: farmId } : {}) } }),
+  aiInsight: (farmId) => api.get('/dashboard/ai-insight', { params: farmId ? { farm_id: farmId } : {} }),
 };
 
 // ---- Farms
@@ -135,7 +136,7 @@ export const telemetryAPI = {
 
 // ---- CV Events
 export const cvAPI = {
-  recent: (limit = 50) => api.get(`/cv/events?limit=${limit}`),
+  recent: (limit = 50, farmId) => api.get('/cv/events', { params: { limit, ...(farmId ? { farm_id: farmId } : {}) } }),
   byUnit: (unitId, limit = 100) => api.get(`/cv/events/${unitId}?limit=${limit}`),
   ingest: (data) => api.post('/cv/events', data),
   deleteEvent: (id) => api.delete(`/cv/events/${id}`),
@@ -158,32 +159,36 @@ export const cvAPI = {
 
 // ---- Anomalies
 export const anomalyAPI = {
-  recent: (limit = 50) => api.get('/anomalies/recent', { params: { limit } }),
-  byUnit: (unitId) => api.get(`/anomalies/${unitId}`),
+  recent: (limit = 50, farmId) => api.get('/anomalies/recent', { params: { limit, ...(farmId ? { farm_id: farmId } : {}) } }),
+  byUnit: (unitId)             => api.get(`/anomalies/${unitId}`),
 };
 
 // ---- Alerts
 export const alertsAPI = {
-  list: () => api.get('/alerts'),
-  critical: () => api.get('/alerts/critical'),
-  resolve: (id, by) => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
-  delete: (id) => api.delete(`/alerts/${id}`),
-  emergency: () => api.get('/alerts/emergency'),
+  list:      (farmId) => api.get('/alerts',          { params: farmId ? { farm_id: farmId } : {} }),
+  critical:  (farmId) => api.get('/alerts/critical', { params: farmId ? { farm_id: farmId } : {} }),
+  resolve:   (id, by) => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
+  delete:    (id)     => api.delete(`/alerts/${id}`),
+  emergency: (farmId) => api.get('/alerts/emergency', { params: farmId ? { farm_id: farmId } : {} }),
 };
 
 // ---- Recommendations
 export const recsAPI = {
-  list: (includeActioned = false) => api.get('/recommendations', { params: { include_actioned: includeActioned } }),
-  byUnit: (unitId) => api.get(`/recommendations/${unitId}`),
-  action: (recId) => api.put(`/recommendations/${recId}/action`),
+  list:     (includeActioned = false, farmId) => api.get('/recommendations', {
+    params: { include_actioned: includeActioned, ...(farmId ? { farm_id: farmId } : {}) },
+  }),
+  byUnit:   (unitId)           => api.get(`/recommendations/${unitId}`),
+  action:   (recId)            => api.put(`/recommendations/${recId}/action`),
   generate: (farmId, plant = 'grass') => api.get(`/recommendations-advanced/${farmId}`, { params: { plant } }),
 };
 
 // ---- Reports
 export const reportsAPI = {
-  list: (farmId) => api.get('/reports', { params: farmId ? { farm_id: farmId } : {} }),
-  generate: (data) => api.post('/reports/generate', data),
-  generateIntelligent: (type, farmId = 1) => api.post(`/reports/generate-intelligent?report_type=${type}&farm_id=${farmId}`),
+  list:                (farmId) => api.get('/reports', { params: farmId ? { farm_id: farmId } : {} }),
+  generate:            (data)   => api.post('/reports/generate', data),
+  generateIntelligent: (type, farmId) => api.post(
+    `/reports/generate-intelligent`, {}, { params: { report_type: type, ...(farmId ? { farm_id: farmId } : {}) } }
+  ),
 };
 
 // ---- Settings
@@ -244,7 +249,7 @@ export const diagnosticAPI = {
 // ---- Poultry ERP
 export const poultryAPI = {
   batches: {
-    list:   (farmId = 1) => api.get('/poultry/batches', { params: { farm_id: farmId } }),
+    list:   (farmId) => api.get('/poultry/batches', { params: farmId ? { farm_id: farmId } : {} }),
     create: (data)       => api.post('/poultry/batches', data),
     update: (id, data)   => api.patch(`/poultry/batches/${id}`, data),
     delete: (id)         => api.delete(`/poultry/batches/${id}`),
@@ -275,7 +280,7 @@ export const poultryAPI = {
     delete: (id)           => api.delete(`/poultry/sales/${id}`),
   },
   inventory: {
-    list:   (farmId = 1)   => api.get('/poultry/inventory', { params: { farm_id: farmId } }),
+    list:   (farmId)       => api.get('/poultry/inventory', { params: farmId ? { farm_id: farmId } : {} }),
     create: (data)         => api.post('/poultry/inventory', data),
     update: (id, data)     => api.patch(`/poultry/inventory/${id}`, data),
     delete: (id)           => api.delete(`/poultry/inventory/${id}`),
@@ -290,7 +295,7 @@ export const poultryAPI = {
 
 // ---- Warehouse / Entrepôt
 export const warehouseAPI = {
-  categories:     ()           => api.get('/warehouse/categories'),
+  categories:     (farmId)     => api.get('/warehouse/categories', { params: farmId ? { farm_id: farmId } : {} }),
   createCategory: (data)       => api.post('/warehouse/categories', data),
   updateCategory: (id, data)   => api.put(`/warehouse/categories/${id}`, data),
   deleteCategory: (id)         => api.delete(`/warehouse/categories/${id}`),
@@ -300,9 +305,9 @@ export const warehouseAPI = {
   create:     (data)       => api.post('/warehouse/items', data),
   update:     (id, data)   => api.put(`/warehouse/items/${id}`, data),
   delete:     (id)         => api.delete(`/warehouse/items/${id}`),
-  seed:       ()           => api.post('/warehouse/seed'),
-  seedItems:  ()           => api.post('/warehouse/seed-items'),
-  reseed:     ()           => api.post('/warehouse/reseed'),
+  seed:       (farmId)     => api.post('/warehouse/seed',       {}, { params: farmId ? { farm_id: farmId } : {} }),
+  seedItems:  (farmId)     => api.post('/warehouse/seed-items', {}, { params: farmId ? { farm_id: farmId } : {} }),
+  reseed:     (farmId)     => api.post('/warehouse/reseed',     {}, { params: farmId ? { farm_id: farmId } : {} }),
   alerts: {
     list:    (resolved = false) => api.get('/warehouse/alerts', { params: { resolved } }),
     create:  (data)             => api.post('/warehouse/alerts', data),

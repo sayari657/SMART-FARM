@@ -11,8 +11,10 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.farm_guard import get_user_farm_ids, assert_farm_owner, get_scoped_farm_ids
 from app.models.domain import WarehouseCategory, WarehouseItem, WarehouseAlert
 from app.schemas.domain import WarehouseItemCreate, WarehouseItemUpdate
+from typing import List
 
 logger = logging.getLogger("stokky")
 
@@ -56,8 +58,15 @@ def _ser_cat(cat: WarehouseCategory, items: list) -> dict:
 # ── Categories ────────────────────────────────────────────────────────────────
 
 @router.get("/categories")
-def list_categories(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    cats = db.query(WarehouseCategory).order_by(WarehouseCategory.display_order).all()
+def list_categories(
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
+):
+    """Categories scoped to the selected farm (farm_id param) or all user farms."""
+    q = db.query(WarehouseCategory).order_by(WarehouseCategory.display_order)
+    if farm_ids:
+        q = q.filter(WarehouseCategory.farm_id.in_(farm_ids))
+    cats = q.all()
     result = []
     for cat in cats:
         items = db.query(WarehouseItem).filter(
@@ -103,16 +112,22 @@ def delete_category(
 def create_category(
     data: dict,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
 ):
-    """Create a new warehouse category."""
+    """BUG#7 FIXED: category requires farm_id from user's farms."""
     name_ar = (data.get("name_ar") or "").strip()
     name_fr = (data.get("name_fr") or "").strip()
     if not name_ar or not name_fr:
         raise HTTPException(status_code=422, detail="name_ar et name_fr requis")
-    last = db.query(WarehouseCategory).order_by(WarehouseCategory.display_order.desc()).first()
+    farm_id = data.get("farm_id")
+    if farm_id and int(farm_id) not in farm_ids:
+        raise HTTPException(status_code=403, detail="Accès non autorisé à cette ferme.")
+    if not farm_id and farm_ids:
+        farm_id = farm_ids[0]  # default to first user farm
+    last = db.query(WarehouseCategory).filter(WarehouseCategory.farm_id == farm_id).order_by(WarehouseCategory.display_order.desc()).first()
     next_order = (last.display_order + 1) if last else 1
     cat = WarehouseCategory(
+        farm_id=farm_id,
         name_ar=name_ar,
         name_fr=name_fr,
         icon=data.get("icon", "Package"),
@@ -133,9 +148,14 @@ def create_category(
 def list_items(
     category_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
-    q = db.query(WarehouseItem)
+    """BUG#7 FIXED: items scoped to user's farm via category."""
+    q = db.query(WarehouseItem).join(
+        WarehouseCategory, WarehouseItem.category_id == WarehouseCategory.id
+    )
+    if farm_ids:
+        q = q.filter(WarehouseCategory.farm_id.in_(farm_ids))
     if category_id:
         q = q.filter(WarehouseItem.category_id == category_id)
     return [_ser_item(i) for i in q.order_by(WarehouseItem.id).all()]
@@ -345,13 +365,22 @@ def seed_items_only(db: Session = Depends(get_db), _=Depends(get_current_user)):
 
 
 @router.post("/seed", status_code=201)
-def seed_categories(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    existing = db.query(WarehouseCategory).count()
+def seed_categories(
+    farm_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    """BUG#7 FIXED: seed is per-farm, not global."""
+    if not farm_id and farm_ids:
+        farm_id = farm_ids[0]
+    if farm_id and farm_id not in farm_ids:
+        raise HTTPException(status_code=403, detail="Accès non autorisé à cette ferme.")
+    existing = db.query(WarehouseCategory).filter(WarehouseCategory.farm_id == farm_id).count()
     if existing > 0:
-        return {"message": f"{existing} catégories déjà présentes, seed ignoré."}
+        return {"message": f"{existing} catégories déjà présentes pour cette ferme, seed ignoré."}
     created_cats = []
     for cat_data in DEFAULT_CATEGORIES:
-        cat = WarehouseCategory(**cat_data)
+        cat = WarehouseCategory(**cat_data, farm_id=farm_id)
         db.add(cat)
         created_cats.append(cat)
     db.flush()
@@ -457,11 +486,21 @@ class _StokkyQuery(BaseModel):
 async def warehouse_assistant(
     body: _StokkyQuery,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
-    """STOKKY — assistant IA dédié à la gestion d'entrepôt agricole."""
-    cats  = db.query(WarehouseCategory).order_by(WarehouseCategory.display_order).all()
-    items = db.query(WarehouseItem).order_by(WarehouseItem.category_id, WarehouseItem.id).all()
+    """STOKKY — assistant IA dédié à la gestion d'entrepôt de la ferme sélectionnée."""
+    # Scope to current farm only — STOKKY sees only YOUR inventory
+    cat_q = db.query(WarehouseCategory).order_by(WarehouseCategory.display_order)
+    if farm_ids:
+        cat_q = cat_q.filter(WarehouseCategory.farm_id.in_(farm_ids))
+    cats = cat_q.all()
+
+    item_q = db.query(WarehouseItem).order_by(WarehouseItem.category_id, WarehouseItem.id)
+    if farm_ids:
+        item_q = item_q.join(WarehouseCategory, WarehouseItem.category_id == WarehouseCategory.id).filter(
+            WarehouseCategory.farm_id.in_(farm_ids)
+        )
+    items = item_q.all()
 
     # Build inventory snapshot grouped by category
     inventory_lines: list[str] = []

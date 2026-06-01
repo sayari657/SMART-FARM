@@ -42,6 +42,34 @@ def _configure_logging() -> None:
 _configure_logging()
 logger = logging.getLogger("smart_farm")
 
+
+def _run_column_migrations() -> None:
+    """Idempotent ALTER TABLE migrations for columns added after initial schema."""
+    from sqlalchemy import text, inspect as sa_inspect
+    with engine.connect() as conn:
+        insp = sa_inspect(engine)
+
+        _migrations = [
+            ("bee_apiaries",        "farm_id",  "INTEGER REFERENCES farms(id) ON DELETE CASCADE"),
+            ("bee_global_stock",    "farm_id",  "INTEGER REFERENCES farms(id) ON DELETE CASCADE"),
+            ("warehouse_categories","farm_id",  "INTEGER REFERENCES farms(id) ON DELETE CASCADE"),
+            ("users",               "refresh_token_hash", "VARCHAR(255)"),
+            ("push_tokens",         "platform", "VARCHAR(50)"),
+        ]
+
+        for table, col, col_def in _migrations:
+            if table not in insp.get_table_names():
+                continue
+            existing = [c["name"] for c in insp.get_columns(table)]
+            if col not in existing:
+                try:
+                    conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" {col_def}'))
+                    conn.commit()
+                    logger.info(f"[MIGRATION] Added column {table}.{col}")
+                except Exception as exc:
+                    logger.warning(f"[MIGRATION] Could not add {table}.{col}: {exc}")
+
+
 # 2. Modern Lifespan Manager
 @asynccontextmanager
 async def app_lifespan(_app: FastAPI):
@@ -64,6 +92,10 @@ async def app_lifespan(_app: FastAPI):
         import app.models.domain  # noqa: F401
         Base.metadata.create_all(bind=engine)
         logger.info("[STARTUP] Database refreshed and synchronized.")
+
+        # c. Incremental column migrations (SQLite-safe, idempotent)
+        _run_column_migrations()
+
 
         # Seed default admin on first run (fresh DB has no users)
         from app.core.security import hash_password

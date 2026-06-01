@@ -96,6 +96,17 @@ class AnimalUnitRepository(BaseRepository[AnimalUnit]):
             .first()
         )
 
+    def get_by_farms(self, farm_ids: List[int], species: Optional[str] = None) -> List["AnimalUnit"]:
+        """BUG#3 FIXED: filter animals by a list of farm IDs (multi-tenant)."""
+        q = (
+            self.db.query(AnimalUnit)
+            .options(joinedload(AnimalUnit.animal_type), joinedload(AnimalUnit.farm))
+            .filter(AnimalUnit.farm_id.in_(farm_ids) if farm_ids else False)
+        )
+        if species:
+            q = q.join(AnimalType).filter(AnimalType.species == species)
+        return q.all()
+
     def get_all_with_relations(self, skip: int = 0, limit: int = 100) -> List[AnimalUnit]:
         return (
             self.db.query(AnimalUnit)
