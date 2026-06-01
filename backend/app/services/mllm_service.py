@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import httpx
 from datetime import datetime
@@ -8,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class MLLMService:
-    """Service to interface with Ollama (LLaVA + Labess-7B) and Groq Cloud fallback."""
+    """Service to interface with Groq Cloud (primary) and Ollama local fallback."""
 
     def __init__(self):
         self.base_url = settings.OLLAMA_BASE_URL
@@ -23,7 +24,7 @@ class MLLMService:
         timeout: float = 60.0,
     ) -> Dict[str, Any]:
         """Send a prompt to Ollama /api/generate."""
-        model = model or settings.DERJA_MODEL
+        model = model or self.derja_model
         url = f"{self.base_url}/api/generate"
         payload = {"model": model, "prompt": prompt, "stream": False}
         if images:
@@ -38,37 +39,19 @@ class MLLMService:
             logger.error(f"Ollama ({model}) error: {e}")
             return {"error": str(e)}
 
-    # ── Text: Labess-7B (Ollama) → Groq (cloud) → static ─────────────────────
+    # ── Text: Groq (cloud) → Ollama fallback → static ────────────────────────
 
     async def translate_to_derja(self, text: str) -> str:
         """
         Call the LLM chain:
-          1. Local Ollama (Labess-7B) — sovereign, full Darija
-          2. Groq Cloud (Llama-3.3-70B) — fast cloud fallback
-          3. Static fallback — always returns something
+          1. Groq Cloud (Llama-3.3-70B) — fast cloud primary
+          2. Local Ollama (Labess-7B)   — sovereign fallback (warning logged)
+          3. Static fallback            — always returns something
         """
-        # Priority 1 — Ollama llama3.1:8b (~5.5 GB RAM, fits in 7.6 GB)
-        if not settings.LITE_MODE:
-            try:
-                import ollama
-                is_labess = "labess" in settings.DERJA_MODEL.lower()
-                messages = [{"role": "user", "content": text}]
-                if not is_labess:
-                    # llama3.1:8b needs a system prompt to respond in Darija
-                    messages = [
-                        {"role": "system", "content": (
-                            "أنت خبير زراعي تونسي. تجاوب دائماً بالدارجة التونسية. "
-                            "كن عملي ومختصر. استعمل مصطلحات تونسية محلية."
-                        )},
-                        {"role": "user", "content": text},
-                    ]
-                resp = ollama.chat(model=settings.DERJA_MODEL, messages=messages)
-                return resp["message"]["content"]
-            except Exception as e:
-                logger.warning(f"Ollama ({settings.DERJA_MODEL}) unavailable: {e} → Groq fallback")
-
-        # Priority 2 — Groq (llama-3.3-70b-versatile)
+        # Priority 1 — Groq (llama-3.3-70b-versatile)
+        groq_attempted = False
         if settings.GROQ_API_KEY:
+            groq_attempted = True
             try:
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(
@@ -93,9 +76,32 @@ class MLLMService:
                     )
                     if resp.status_code == 200:
                         return resp.json()["choices"][0]["message"]["content"]
-                    logger.warning(f"Groq error {resp.status_code}: {resp.text}")
+                    logger.warning(f"Groq error {resp.status_code}: {resp.text} → Ollama fallback")
             except Exception as e:
-                logger.error(f"Groq error: {e}")
+                logger.warning(f"Groq unavailable: {e} → Ollama fallback")
+
+        # Priority 2 — Ollama llama3.1:8b (local fallback)
+        if not settings.LITE_MODE:
+            if groq_attempted:
+                logger.warning("Falling back to local Ollama — Groq Cloud unavailable")
+            try:
+                import ollama
+                is_labess = "labess" in settings.DERJA_MODEL.lower()
+                messages = [{"role": "user", "content": text}]
+                if not is_labess:
+                    messages = [
+                        {"role": "system", "content": (
+                            "أنت خبير زراعي تونسي. تجاوب دائماً بالدارجة التونسية. "
+                            "كن عملي ومختصر. استعمل مصطلحات تونسية محلية."
+                        )},
+                        {"role": "user", "content": text},
+                    ]
+                resp = await asyncio.to_thread(
+                    ollama.chat, model=settings.DERJA_MODEL, messages=messages
+                )
+                return resp.message.content
+            except Exception as e:
+                logger.error(f"Ollama ({settings.DERJA_MODEL}) also unavailable: {e}")
 
         # Priority 3 — static
         return (
@@ -104,33 +110,19 @@ class MLLMService:
             "ثبت في لوميديتي والماء."
         )
 
-    # ── Vision: LLaVA (Ollama) → Groq Vision → text-only fallback ─────────────
+    # ── Vision: Groq Vision → LLaVA (Ollama) fallback → empty ────────────────
 
     async def analyze_visual(self, image_b64: str, prompt: str) -> str:
         """
         Analyse an image:
-          1. Ollama LLaVA  — local vision model (15 s timeout)
-          2. Groq Vision   — llama-3.2-11b-vision-preview (10 s timeout)
+          1. Groq Vision   — llama-3.2-11b-vision-preview (10 s timeout, primary)
+          2. Ollama LLaVA  — local vision model (15 s timeout, fallback + warning)
           3. Text fallback — returns empty string so caller can degrade gracefully
         """
-        # Priority 1 — Ollama LLaVA
-        try:
-            result = await self.generate_response(
-                prompt=prompt,
-                model=settings.VISION_MODEL,
-                images=[image_b64],
-                timeout=15.0,
-            )
-            if result and "error" not in result:
-                text = result.get("response", "").strip()
-                if text:
-                    logger.info("LLaVA vision OK")
-                    return text
-        except Exception as e:
-            logger.warning(f"LLaVA unavailable: {e}")
-
-        # Priority 2 — Groq Vision (llama-3.2-11b-vision-preview)
+        # Priority 1 — Groq Vision (llama-3.2-11b-vision-preview)
+        groq_attempted = False
         if settings.GROQ_API_KEY:
+            groq_attempted = True
             try:
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(
@@ -161,9 +153,26 @@ class MLLMService:
                         text = resp.json()["choices"][0]["message"]["content"].strip()
                         logger.info("Groq vision OK")
                         return text
-                    logger.warning(f"Groq vision error {resp.status_code}")
+                    logger.warning(f"Groq vision error {resp.status_code} → LLaVA fallback")
             except Exception as e:
-                logger.warning(f"Groq vision error: {e}")
+                logger.warning(f"Groq vision unavailable: {e} → LLaVA fallback")
+
+        # Priority 2 — Ollama LLaVA (local fallback)
+        if groq_attempted:
+            logger.warning("Falling back to local LLaVA — Groq Vision unavailable")
+        result = await self.generate_response(
+            prompt=prompt,
+            model=settings.VISION_MODEL,
+            images=[image_b64],
+            timeout=15.0,
+        )
+        if result and "error" not in result:
+            text = result.get("response", "").strip()
+            if text:
+                logger.info("LLaVA vision OK")
+                return text
+        if result and "error" in result:
+            logger.error(f"LLaVA unavailable: {result['error']}")
 
         # Priority 3 — no vision available
         logger.warning("No vision model available — returning empty")
