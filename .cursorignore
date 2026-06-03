@@ -1,0 +1,67 @@
+# Cursor — fichiers à ignorer pour l'indexation
+
+# Environnement virtuel Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/build/
+*.egg-info/
+dist/
+
+# Modèles AI volumineux (indexer uniquement les métadonnées)
+ai_assets/**/*.pt
+ai_assets/**/*.onnx
+ai_assets/**/*.pkl
+
+# Données IoT brutes
+iot/iot_telemetry.csv
+iot/**/*.csv
+
+# MLflow artifacts (DB OK, artifacts non)
+mlruns/
+mlartifacts/
+
+# Logs et données
+.logs/
+.pids/
+monitoring/data/
+monitoring/prometheus-*/
+monitoring/prometheus.exe
+
+# Git
+.git/
+
+# Secrets
+.env
+.env.production
+.env.local
+*.env
+
+# SQLite DBs (trop volumineux)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Cache
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/

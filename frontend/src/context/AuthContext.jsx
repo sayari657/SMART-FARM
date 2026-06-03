@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { authAPI, farmsAPI } from '../services/api';
 
 const AuthContext = createContext(null);
@@ -19,6 +19,20 @@ export function AuthProvider({ children }) {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // On mount: if already authenticated, fetch a fresh CSRF token (hourly rotation)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    if (!token || !storedUser) return;
+    try {
+      const u = JSON.parse(storedUser);
+      if (u?.role === 'worker') return; // workers skip CSRF
+    } catch (_) {}
+    authAPI.getCsrfToken()
+      .then(({ data }) => { if (data?.csrf_token) localStorage.setItem('csrf_token', data.csrf_token); })
+      .catch(() => {}); // fail silently — interceptor will auto-retry on 403
+  }, []);
 
   const _persistFarms = useCallback((list) => {
     setFarms(list);
@@ -63,6 +77,8 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await authAPI.login({ username, password });
       localStorage.setItem('token', data.access_token);
+      // Store CSRF token for X-CSRF-Token header on mutations
+      if (data.csrf_token) localStorage.setItem('csrf_token', data.csrf_token);
       const profile = await authAPI.profile();
       localStorage.setItem('user', JSON.stringify(profile.data));
       setUser(profile.data);
@@ -133,6 +149,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('csrf_token');
     localStorage.removeItem('selected_farm_id');
     localStorage.removeItem('user_farms');
     setUser(null);

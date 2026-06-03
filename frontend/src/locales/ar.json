@@ -23,7 +23,8 @@
     "sheep": "الخرفان",
     "goat": "الماعز",
     "rabbit": "الأرانب",
-    "entrepot": "مستودع المزرعة"
+    "entrepot": "مستودع المزرعة",
+    "iot_devices": "أجهزة استشعار IoT"
   },
   "navbar": {
     "title": "سمارت فارم AI",

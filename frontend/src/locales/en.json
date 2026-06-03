@@ -22,7 +22,9 @@
     "poultry": "Poultry",
     "sheep": "Sheep",
     "goat": "Goats",
-    "rabbit": "Rabbits"
+    "rabbit": "Rabbits",
+    "entrepot": "Warehouse",
+    "iot_devices": "IoT Sensors"
   },
   "navbar": {
     "title": "Smart Farm AI",

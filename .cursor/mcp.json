@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "smart-farm-backend": {
+      "command": "uvicorn",
+      "args": ["app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "DATABASE_URL": "sqlite:///./smart_farm.db",
+        "SECRET_KEY": "cursor-dev-secret-key",
+        "LITE_MODE": "true"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}"],
+      "env": {}
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite", "${workspaceFolder}/backend/smart_farm.db"],
+      "env": {}
+    },
+    "git": {
+      "command": "uvx",
+      "args": ["mcp-server-git", "--repository", "${workspaceFolder}"],
+      "env": {}
+    }
+  }
+}

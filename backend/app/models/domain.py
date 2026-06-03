@@ -33,8 +33,15 @@ def get_geom_column(geometry_type='POINT', srid=4326):
 # ---------------------------------------------------------------------------
 
 class UserRole(str, enum.Enum):
-    owner  = "owner"
-    worker = "worker"
+    superadmin = "superadmin"
+    owner      = "owner"
+    worker     = "worker"
+
+
+class SubscriptionPlan(str, enum.Enum):
+    free       = "free"
+    pro        = "pro"
+    enterprise = "enterprise"
 
 
 class FarmStatus(str, enum.Enum):
@@ -84,8 +91,10 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="owner")
+    plan = Column(String(20), default="free")          # free | pro | enterprise
+    plan_expires_at = Column(DateTime, nullable=True)  # None = never expires
     is_active = Column(Boolean, default=True)
-    refresh_token_hash = Column(String(255), nullable=True)  # BCrypt hash of current refresh token
+    refresh_token_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -121,6 +130,31 @@ class Farm(Base):
 # ---------------------------------------------------------------------------
 # Farm Owners (many-to-many: a farm can have several owners)
 # ---------------------------------------------------------------------------
+
+class AuditLog(Base):
+    """Tracks every superadmin write action for compliance."""
+    __tablename__ = "audit_logs"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    admin_id   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action     = Column(String(100), nullable=False)   # e.g. "plan_update", "user_delete"
+    target_id  = Column(Integer, nullable=True)        # affected user/farm id
+    detail     = Column(Text, nullable=True)           # JSON string
+    ip_address = Column(String(45), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Broadcast(Base):
+    """Platform-wide or targeted broadcast messages."""
+    __tablename__ = "broadcasts"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    title      = Column(String(200), nullable=False)
+    body       = Column(Text, nullable=False)
+    target     = Column(String(20), default="all")     # all | owner | worker
+    sent_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 
 class FarmOwner(Base):
     __tablename__ = "farm_owners"

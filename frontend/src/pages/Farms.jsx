@@ -9,6 +9,8 @@ import Navbar from '../components/Navbar';
 import FarmCard from '../components/FarmCard';
 import { farmsAPI, externalAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import farmHeroImg     from '../assets/farm/farm-hero.png';
+import farmLandscapeImg from '../assets/farm/farm-landscape.png';
 
 const STATUS_META = {
   active:      { label: 'Actif',        color: '#16a34a', bg: '#dcfce7', icon: CheckCircle2 },
@@ -117,10 +119,41 @@ export default function Farms() {
       <div className="page-content" style={{ direction: rtl ? 'rtl' : 'ltr' }}>
 
         {/* ═══════════════════════════════════════════════
-            HERO BANNER
+            HERO BANNER — watercolor farm
         ═══════════════════════════════════════════════ */}
-        <div className="farms-hero">
-          <div className="farms-hero-left">
+        <div className="farms-hero" style={{ position: 'relative', overflow: 'hidden' }}>
+
+          {/* Watercolor background image */}
+          <img
+            src={farmHeroImg}
+            alt=""
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover', objectPosition: 'center',
+              opacity: 0.22,
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Landscape image right-side decoration */}
+          <div style={{
+            position: 'absolute', right: 0, top: 0,
+            height: '100%', width: '38%', overflow: 'hidden',
+            pointerEvents: 'none',
+          }}>
+            <img
+              src={farmLandscapeImg}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'left center', opacity: .35 }}
+            />
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to right, rgba(22,101,52,.95) 0%, transparent 100%)',
+            }}/>
+          </div>
+
+          {/* Content — same as before, just ensure zIndex */}
+          <div className="farms-hero-left" style={{ position: 'relative', zIndex: 2 }}>
             <div className="farms-hero-eyebrow">
               <span className="farms-hero-dot" />
               SMART FARM MANAGEMENT
@@ -147,17 +180,15 @@ export default function Farms() {
           </div>
 
           {/* KPI strip */}
-          <div className="farms-hero-kpis">
+          <div className="farms-hero-kpis" style={{ position: 'relative', zIndex: 2 }}>
             {[
-              { icon: Building2,   val: farms.length,              label: 'Fermes',        color: '#4ade80' },
-              { icon: Activity,    val: totalUnits,                 label: 'Animaux',       color: '#60a5fa' },
-              { icon: Layers,      val: totalArea.toFixed(1) + ' ha', label: 'Surface',    color: '#fbbf24' },
-              { icon: AlertTriangle,val: totalAlerts,               label: 'Alertes',       color: totalAlerts > 0 ? '#f87171' : '#4ade80' },
+              { icon: Building2,    val: farms.length,                label: 'Fermes',  color: '#4ade80' },
+              { icon: Activity,     val: totalUnits,                  label: 'Animaux', color: '#60a5fa' },
+              { icon: Layers,       val: totalArea.toFixed(1) + ' ha',label: 'Surface', color: '#fbbf24' },
+              { icon: AlertTriangle,val: totalAlerts,                  label: 'Alertes', color: totalAlerts > 0 ? '#f87171' : '#4ade80' },
             ].map(({ icon: Icon, val, label, color }) => (
               <div className="farms-kpi-tile" key={label}>
-                <div className="farms-kpi-icon" style={{ color }}>
-                  <Icon size={18} />
-                </div>
+                <div className="farms-kpi-icon" style={{ color }}><Icon size={18} /></div>
                 <div className="farms-kpi-val" style={{ color }}>{val}</div>
                 <div className="farms-kpi-label">{label}</div>
               </div>
@@ -323,13 +354,19 @@ export default function Farms() {
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="farms-empty">
+          <div className="farms-empty" style={{ position: 'relative', overflow: 'hidden' }}>
+            <img src={farmLandscapeImg} alt="" style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', opacity: .12, pointerEvents: 'none',
+            }}/>
+            <div style={{ position: 'relative', zIndex: 1 }}>
             <div className="farms-empty-icon">🌿</div>
             <h3 className="farms-empty-title">{t('common.no_data')}</h3>
             <p className="farms-empty-sub">{t('farms.subtitle')}</p>
             <button className="farms-hero-btn" style={{ marginTop: 20 }} onClick={() => setShowForm(true)}>
               <Plus size={15} /> {t('farms.add_farm')}
             </button>
+            </div>
           </div>
         )}
 

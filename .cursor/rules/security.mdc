@@ -1,0 +1,66 @@
+---
+description: Security rules — always apply for auth, payments, user data
+globs: **/*.{py,jsx,js}
+alwaysApply: true
+---
+
+# Security Rules — Always Apply
+
+## NEVER expose in API responses
+- `password_hash`
+- `totp_secret`
+- `stripe_customer_id` (unless explicitly needed)
+- `refresh_token_hash`
+
+## JWT Token fields
+```python
+# Token contains: sub (username), role, tenant_id, exp
+# Decode via: get_current_user(token, db) → User model
+# DO NOT add sensitive data to JWT payload
+```
+
+## Multi-tenant isolation (CRITICAL)
+```python
+# ALWAYS scope DB queries by farm ownership:
+from app.core.farm_guard import get_scoped_farm_ids
+
+farm_ids = Depends(get_scoped_farm_ids)  # returns [farm_id_1, farm_id_2, ...]
+db.query(Model).filter(Model.farm_id.in_(farm_ids))
+
+# NEVER:
+db.query(Model).all()  # returns ALL tenants data
+```
+
+## Superadmin endpoints
+```python
+# ALL /superadmin/* routes MUST use:
+admin: User = Depends(require_superadmin)
+# AND log to audit:
+_audit(db, admin, "action_name", target_id, {"detail": ...}, request)
+```
+
+## Input validation
+- Use Pydantic models for all request bodies
+- Validate email format, phone E.164 format
+- Sanitize strings before DB insert (SQLAlchemy ORM handles SQL injection)
+
+## Stripe webhooks
+```python
+# ALWAYS verify Stripe signature:
+event = stripe.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
+# Never process without verification
+```
+
+## 2FA
+```python
+# TOTP codes are time-based (30s window)
+# Always use valid_window=1 for clock drift tolerance:
+totp.verify(code, valid_window=1)
+```
+
+## Frontend auth
+```javascript
+// Token stored in localStorage (not httpOnly cookie — known limitation)
+// Always check token expiry before sensitive operations
+// Use SuperAdminRoute guard for all /superadmin/* pages
+```

@@ -1,0 +1,52 @@
+---
+description: MLOps rules — apply when working with AI models, MLflow, YOLO
+globs: **/{ai_assets,workers,mlruns*,register_all_models*}/**
+alwaysApply: false
+---
+
+# MLOps — YOLO + MLflow + APScheduler Rules
+
+## MLflow
+- Tracking URI: `sqlite:///mlruns.db` (local dev)
+- 19 modèles enregistrés: voir `register_all_models_mlflow.py`
+- UI: `python -m mlflow ui --backend-store-uri sqlite:///mlruns.db --port 5000`
+- Experiments: SmartFarm_Animal_Detection | SmartFarm_Plant_Detection | SmartFarm_Alert_Detection | SmartFarm_Poultry_ML
+
+## Enregistrer un nouveau modèle
+```python
+import mlflow
+mlflow.set_tracking_uri("sqlite:///mlruns.db")
+exp_id = mlflow.create_experiment("Mon_Experience")
+with mlflow.start_run(experiment_id=exp_id, run_name="mon_run") as run:
+    mlflow.log_param("epochs", 100)
+    mlflow.log_metric("mAP50", 0.85)
+    mlflow.log_artifact("path/to/best.pt", artifact_path="weights")
+```
+
+## YOLO Inference
+```python
+# Via cv_routes.py — get_yolo_model(category)
+# Categories: bee, leaves, olive, insects, fire, goat, chicken, rabbit, cow_behavior
+from app.api.v1.endpoints.cv_routes import get_yolo_model
+model = get_yolo_model("bee")
+results = model(image_array)
+```
+
+## Drift Detection (PSI)
+- Service: `backend/app/services/drift_detection_service.py`
+- Seuils: PSI_WARNING=0.1, PSI_CRITICAL=0.2
+- Vérification automatique toutes les 6h via APScheduler
+
+## Auto-retraining
+```python
+# Dans backend/app/core/scheduler.py → check_drift_and_retrain()
+# Déclenché quand PSI > PSI_CRITICAL
+# Log via _trigger_retrain(farm_id) → à connecter à DVC pipeline
+```
+
+## Modèles Poultry (service pur Python)
+```python
+from app.services.poultry_ml_service import generate_ml_insights
+insights = generate_ml_insights(batch, feed_logs, health_logs, egg_logs)
+# Retourne: fcr_forecast, mortality_risk, egg_production, anomaly_detection, growth_benchmark
+```

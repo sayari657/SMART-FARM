@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import ThreeTile from '../components/ThreeTile';
 import ThreeAnimalModel from '../components/ThreeAnimalModel';
+import aboutHeroImg from '../assets/about-hero.jpg';
 
 const CDN = 'https://raw.githubusercontent.com/sayari657/SMART-FARM/main/frontend/public/models';
 
@@ -49,8 +50,25 @@ const AboutProject = () => {
 
         {/* ═══════════ HERO ═══════════ */}
         <div className="ap-hero">
+          {/* Full-bleed watercolor image */}
+          <img
+            src={aboutHeroImg}
+            alt="Smart Farm AI"
+            style={{
+              position: 'absolute', inset: 0,
+              width: '100%', height: '100%',
+              objectFit: 'cover', objectPosition: 'center',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Dark-green gradient overlay for text legibility */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(120deg, rgba(10,50,20,.78) 0%, rgba(16,83,45,.62) 55%, rgba(20,120,60,.30) 100%)',
+            pointerEvents: 'none',
+          }} />
           <div className="ap-hero-bg" />
-          <div className="ap-hero-content">
+          <div className="ap-hero-content" style={{ position: 'relative', zIndex: 3 }}>
             <div className="ap-hero-eyebrow">
               <span className="ap-hero-dot" />
               SMART FARM AI — ENTERPRISE PLATFORM v3.0

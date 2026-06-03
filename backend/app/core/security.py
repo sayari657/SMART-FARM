@@ -88,6 +88,16 @@ def get_current_user(
     return user
 
 
+def require_superadmin(current_user=Depends(get_current_user)):
+    """Dependency — restricts endpoint to superadmin only."""
+    if current_user.role != "superadmin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superadmin access required."
+        )
+    return current_user
+
+
 def require_roles(*roles: str):
     """Dependency factory — restricts endpoint to certain user roles."""
     def _checker(current_user=Depends(get_current_user)):

@@ -72,7 +72,18 @@ class AuthService:
         import hashlib
         user.refresh_token_hash = hashlib.sha256(refresh_token.encode()).hexdigest()
         self.db.commit()
-        return Token(access_token=access_token, refresh_token=refresh_token)
+        # Include CSRF token in login response (frontend must send X-CSRF-Token on mutations)
+        from app.core.csrf import generate_csrf_token
+        csrf_token = generate_csrf_token(user.id)
+        token_obj = Token(access_token=access_token, refresh_token=refresh_token)
+        # Return as dict to include csrf_token field
+        return {
+            "access_token": token_obj.access_token,
+            "token_type": token_obj.token_type,
+            "refresh_token": token_obj.refresh_token,
+            "expires_in": token_obj.expires_in,
+            "csrf_token": csrf_token,
+        }
 
     def worker_request_otp(self, phone_number: str) -> dict:
         """Étape 1 — Both workers and owners can use the mobile OTP login with their phone number."""

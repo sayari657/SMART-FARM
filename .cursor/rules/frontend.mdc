@@ -1,0 +1,111 @@
+---
+description: Frontend React rules — apply when editing JSX/JS files in frontend/src/
+globs: frontend/src/**/*.{jsx,js}
+alwaysApply: false
+---
+
+# Frontend — React 18 + Vite Rules
+
+## Design System
+Always use these tokens for dark theme pages (superadmin, owner dashboard):
+```javascript
+const T = {
+  bg: '#0a0e14', card: '#0d1520', card2: '#111827',
+  border: '#1a2535', muted: '#4b6380',
+  text: '#e2e8f0', text2: '#94a3b8',
+  green: '#22c55e', red: '#ef4444', amber: '#f59e0b',
+  blue: '#06b6d4', purple: '#7c3aed', indigo: '#6366f1',
+};
+```
+
+## Route Structure
+```
+/                   → Landing.jsx (public)
+/login              → Login.jsx (public)
+/worker-login       → WorkerLogin.jsx (public)
+/register           → Register.jsx (public)
+/dashboard          → Dashboard.jsx (OwnerRoute)
+/superadmin/*       → SuperAdminLayout (SuperAdminRoute)
+/worker/*           → WorkerLayout (WorkerRoute)
+```
+
+## Auth Guards
+```javascript
+// In App.jsx — three guards:
+// SuperAdminRoute → role === 'superadmin' only
+// OwnerRoute → role === 'owner' (redirects superadmin to /superadmin)
+// WorkerRoute → role === 'worker'
+```
+
+## New Page Checklist
+1. Create `frontend/src/pages/MyPage.jsx`
+2. Add lazy import in `App.jsx`: `const MyPage = lazy(() => import('./pages/MyPage'))`
+3. Add route in appropriate section of `AppRoutes()`
+4. Add to `Sidebar.jsx` NAV array if owner page
+5. Use `Navbar` component at top
+
+## API Calls Pattern
+```javascript
+// Import from services/api.js — never use fetch() or axios directly
+import { recsAPI, alertsAPI, dashboardAPI } from '../services/api';
+
+// Standard load pattern
+const [data, setData] = useState([]);
+const [loading, setLoading] = useState(true);
+const { farmId } = useAuth();
+
+const load = useCallback(async () => {
+  try {
+    const { data: d } = await alertsAPI.list(farmId);
+    setData(d || []);
+  } catch (e) {
+    toast.error('Erreur chargement');
+  } finally {
+    setLoading(false);
+  }
+}, [farmId]);
+
+useEffect(() => { load(); }, [load]);
+```
+
+## WebSocket
+```javascript
+import { useWebSocket } from '../hooks/useWebSocket';
+const { connected, lastMessage, send } = useWebSocket({ endpoint: '/ws/events' });
+// lastMessage = { type: 'alert'|'recommendation'|'notification', payload: {...} }
+```
+
+## PWA Version Check
+```javascript
+import { usePWAVersion } from '../hooks/usePWAVersion';
+const { updateAvailable, newVersion, applyUpdate, dismiss } = usePWAVersion();
+// Shows banner when superadmin pushes new version
+```
+
+## Notification Bell
+```javascript
+import NotificationBell from '../components/NotificationBell';
+// Already integrated in Navbar.jsx
+// Polls /superadmin/broadcasts/public/{role} + WebSocket events
+```
+
+## i18n
+```javascript
+import { useTranslation } from 'react-i18next';
+const { t, i18n } = useTranslation();
+// Keys in frontend/src/locales/fr.json, en.json, ar.json
+```
+
+## Charts (recharts)
+```javascript
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+// Always wrap in <ResponsiveContainer width="100%" height={N}>
+// Dark theme tooltip: contentStyle={{ background: T.card, border: `1px solid ${T.border}` }}
+```
+
+## DO NOT
+- Use `window.location.href` for navigation → use `useNavigate()`
+- Use `document.getElementById()` → use React refs
+- Hardcode farm_id → always from `useAuth().farmId`
+- Add global CSS → inline styles with T.* tokens
+- Use class components → always functional with hooks

@@ -13,6 +13,7 @@ from app.services import otp_service
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+# Per-IP rate limit for auth endpoints (not per-user — user not authenticated yet)
 limiter = Limiter(key_func=get_remote_address)
 
 # ── Schemas ────────────────────────────────────────────────────────────────
@@ -36,13 +37,14 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     return AuthService(db).register(user_in)
 
 @router.post("/login", response_model=Token)
-@limiter.limit("10/minute")
+@limiter.limit("5/minute")      # 5 tentatives/min par IP — anti brute-force
 def login(request: Request, creds: LoginRequest, db: Session = Depends(get_db)):
     return AuthService(db).login(creds.username, creds.password)
 
 # ── Worker Auth: Étape 1 — Demander OTP via WhatsApp ─────────────────────────
 @router.post("/worker/request-otp")
-def worker_request_otp(req: WorkerOtpRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")      # 3 OTP/min par IP — anti-spam WhatsApp
+def worker_request_otp(request: Request, req: WorkerOtpRequest, db: Session = Depends(get_db)):
     """L'ouvrier saisit son numéro de téléphone → reçoit un OTP sur WhatsApp."""
     return AuthService(db).worker_request_otp(req.phone_number)
 
@@ -60,6 +62,13 @@ class PushTokenRequest(BaseModel):
 @router.get("/profile", response_model=UserResponse)
 def profile(current_user=Depends(get_current_user)):
     return current_user
+
+@router.get("/csrf-token")
+def refresh_csrf_token(current_user=Depends(get_current_user)):
+    """Returns a fresh CSRF token for the authenticated user.
+    Call this on app load (if already logged in) and after a 403 CSRF error."""
+    from app.core.csrf import generate_csrf_token
+    return {"csrf_token": generate_csrf_token(current_user.id)}
 
 @router.post("/push-token")
 def register_push_token(req: PushTokenRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):

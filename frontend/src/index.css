@@ -1130,13 +1130,16 @@ tbody tr:hover td { background: var(--color-surface-2); }
 
 /* ── Dashboard Hero Banner ─────────────────────────────────────────── */
 .dash-hero {
-  background: linear-gradient(135deg, #166534 0%, #16a34a 35%, #22c55e 70%, #4ade80 100%);
+  background: #0f3d1f;
   border-radius: var(--r-lg, 16px);
   padding: 28px 32px;
+  min-height: 160px;
   margin-bottom: 24px;
   position: relative;
   overflow: hidden;
   color: white;
+  display: flex;
+  align-items: center;
 }
 .dash-hero::before {
   content: '';
@@ -2219,9 +2222,12 @@ tbody tr:hover td { background: var(--color-surface-2); }
 
 .ap-hero {
   position: relative;
-  background: linear-gradient(135deg, #166534 0%, #16a34a 40%, #22c55e 70%, #86efac 100%);
+  background: #0f3d1f;
   border-radius: var(--r-xl);
-  padding: 48px 44px;
+  padding: 56px 48px;
+  min-height: 340px;
+  display: flex;
+  align-items: center;
   margin-bottom: 32px;
   overflow: hidden;
 }
@@ -2229,7 +2235,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse at 80% 50%, rgba(74,222,128,.08) 0%, transparent 60%);
 }
-.ap-hero-content { position: relative; z-index: 2; }
+.ap-hero-content { position: relative; z-index: 2; width: 100%; }
 .ap-hero-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 9px; font-weight: 800; letter-spacing: .14em;
@@ -3906,3 +3912,74 @@ tbody tr:hover td { background: #f9fafb !important; }
 [dir="rtl"] .ap-section-label,
 [dir="rtl"] .anim-section-label { border-left: none; border-right: 3px solid var(--color-primary); padding-left: 0; padding-right: 12px; }
 [dir="rtl"] .control-item-search input          { order: 0; }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE UTILITIES — inline-style grids override
+   Applied to pages that use inline grid/flex layouts
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Generic responsive two-column split (Recommendations, IoTDevices, etc.) */
+@media (max-width: 900px) {
+  /* Force inline grid columns to stack */
+  [style*="grid-template-columns: 300px"] ,
+  [style*="grid-template-columns: 280px"],
+  [style*="grid-template-columns: 260px"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* SuperAdmin left panel full width */
+  [style*="grid-template-columns: 1fr 1fr"][style*="gap"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── SuperAdmin sidebar: collapse on mobile ────────────────────── */
+@media (max-width: 768px) {
+  /* SuperAdminLayout aside */
+  aside[style*="flex-direction: column"] {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease !important;
+    min-width: 230px !important;
+    width: 230px !important;
+  }
+  /* SuperAdmin main content: full width */
+  main[style*="overflow: auto"] {
+    padding: 16px !important;
+  }
+  /* SuperAdmin KPI grid: 2 cols */
+  [style*="repeat(auto-fill, minmax(190px"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Charts: full width */
+  [style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* Recommendations split layout */
+  [style*="gridTemplateColumns: '300px 1fr'"],
+  [style*="grid-template-columns: 300px 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Dashboard KPI strip on mobile ───────────────────────────── */
+@media (max-width: 600px) {
+  /* Inline KPI grids */
+  [style*="minmax(190px"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  [style*="minmax(200px"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  /* Tab bar: horizontal scroll */
+  [style*="display: 'flex'"][style*="gap: 4"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+  }
+  /* Recommendation split: table single column */
+  [style*="gridTemplateColumns: '1fr 1fr'"] {
+    grid-template-columns: 1fr !important;
+  }
+}

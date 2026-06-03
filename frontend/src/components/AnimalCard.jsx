@@ -1,6 +1,17 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, ChevronRight, Activity } from 'lucide-react';
+import beeIconImg     from '../assets/bee/bee-icon.png';
+import cowIconImg     from '../assets/cow/cow-icon.png';
+import sheepIconImg   from '../assets/sheep/sheep-icon.png';
+import goatIconImg    from '../assets/goat/goat-icon.png';
+import poultryIconImg from '../assets/poultry/poultry-icon.png';
+import rabbitIconImg  from '../assets/rabbit/rabbit-icon.png';
+
+const SPECIES_IMG = {
+  bee: beeIconImg, cow: cowIconImg, sheep: sheepIconImg,
+  goat: goatIconImg, poultry: poultryIconImg, rabbit: rabbitIconImg,
+};
 
 const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
 const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
@@ -25,9 +36,26 @@ export default function AnimalCard({ unit }) {
       {/* Top — species color band */}
       <div className="anim-card-top" style={{ background: `linear-gradient(135deg, ${spColor}18, ${spColor}06)` }}>
         <div className="anim-card-accent" style={{ background: spColor }} />
-        <div className="anim-card-species-icon" style={{ background: `${spColor}20`, color: spColor }}>
-          {SPECIES_EMOJI[sp] || '🐾'}
-        </div>
+
+        {SPECIES_IMG[sp] ? (
+          /* Watercolor image for all known species */
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
+            border: `2px solid ${spColor}50`,
+            boxShadow: `0 3px 10px ${spColor}30`,
+            background: '#f8fafc',
+          }}>
+            <img
+              src={SPECIES_IMG[sp]}
+              alt={sp}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+        ) : (
+          <div className="anim-card-species-icon" style={{ background: `${spColor}20`, color: spColor }}>
+            {SPECIES_EMOJI[sp] || '🐾'}
+          </div>
+        )}
         <div className="anim-card-info">
           <div className="anim-card-name">{unit.name}</div>
           <div className="anim-card-meta">

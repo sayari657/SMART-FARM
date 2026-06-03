@@ -1,0 +1,93 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🚀 Start All Services",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\start_all.ps1",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "⚡ Backend Dev Server",
+      "type": "shell",
+      "command": ".venv\\Scripts\\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new", "group": "servers" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎨 Frontend Dev Server",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new", "group": "servers" },
+      "problemMatcher": []
+    },
+    {
+      "label": "📊 MLflow UI",
+      "type": "shell",
+      "command": ".venv\\Scripts\\python.exe -m mlflow ui --backend-store-uri sqlite:///mlruns.db --port 5000",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🧪 Backend Tests",
+      "type": "shell",
+      "command": "..\\.venv\\Scripts\\python.exe -m pytest tests/ -v --cov=app --cov-report=term-missing",
+      "options": { "cwd": "${workspaceFolder}/backend",
+        "env": { "DATABASE_URL": "sqlite:///./test.db", "SECRET_KEY": "test-secret", "LITE_MODE": "true" }
+      },
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🎭 E2E Tests (Playwright)",
+      "type": "shell",
+      "command": "npm run test:e2e",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "group": "test",
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "📦 Frontend Build",
+      "type": "shell",
+      "command": "npm run build",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🌱 Seed SuperAdmin",
+      "type": "shell",
+      "command": "..\\.venv\\Scripts\\python.exe seed_superadmin.py",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🤖 Register MLflow Models",
+      "type": "shell",
+      "command": ".venv\\Scripts\\python.exe register_all_models_mlflow.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🛑 Stop All (PowerShell)",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File .\\start_all.ps1 -Stop",
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "shared" },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -23,7 +23,8 @@
     "sheep": "Moutons",
     "goat": "Chèvres",
     "rabbit": "Lapins",
-    "entrepot": "Entrepôt"
+    "entrepot": "Entrepôt",
+    "iot_devices": "Capteurs IoT"
   },
   "navbar": {
     "title": "Smart Farm AI",

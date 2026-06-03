@@ -1,0 +1,67 @@
+---
+description: Backend FastAPI rules — apply when editing Python files in backend/
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend — FastAPI + SQLAlchemy Rules
+
+## Architecture
+- Entry point: `backend/app/main.py` (lifespan, middleware, routers)
+- All routes registered in `backend/app/api/v1/api.py`
+- New routers → add to api.py at bottom with comment
+- Services in `backend/app/services/` — pure business logic, no HTTP imports
+- Repositories in `backend/app/repositories/` — DB queries only
+
+## Dependency Injection Pattern
+```python
+# Always use these in order:
+db: Session = Depends(get_db)
+user = Depends(get_current_user)           # any authenticated user
+user = Depends(require_roles("owner"))     # owner + superadmin
+user = Depends(require_superadmin)         # superadmin only
+farm_ids = Depends(get_scoped_farm_ids)    # multi-tenant scoping
+```
+
+## Cache Pattern
+```python
+from app.core.cache import cached, cache_delete
+
+@router.get("/items")
+@cached("items", ttl=300)  # 5 minutes
+def list_items(...):
+    ...
+
+@router.post("/items")
+def create_item(...):
+    cache_delete("items:*")  # invalidate after write
+    ...
+```
+
+## Error Handling
+- Use `HTTPException(status_code, detail)` in endpoints
+- Use `logger.warning()` in services for non-critical failures
+- Never let unhandled exceptions reach the client
+
+## DB Migrations (SQLite-safe)
+```python
+from sqlalchemy import inspect, text
+insp = inspect(engine)
+cols = [c['name'] for c in insp.get_columns('table_name')]
+with engine.connect() as conn:
+    if 'new_column' not in cols:
+        conn.execute(text("ALTER TABLE table_name ADD COLUMN new_column VARCHAR(100)"))
+        conn.commit()
+```
+
+## Scheduler Jobs (APScheduler)
+- Add new jobs in `backend/app/core/scheduler.py`
+- Jobs registered in `start_scheduler()` function
+- Always use `replace_existing=True` to avoid duplicates
+
+## Push Notifications
+```python
+from app.services.push_service import send_to_user, broadcast_push, notify_alert
+# FCM_SERVER_KEY must be set in .env
+send_to_user(db, user_id, "Title", "Body", {"key": "value"})
+```

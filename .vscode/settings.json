@@ -12,6 +12,29 @@
   "python.analysis.useLibraryCodeForTypes": true,
   "python.analysis.typeCheckingMode": "basic",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
-  }
+    "editor.defaultFormatter": "ms-python.python",
+    "editor.tabSize": 4
+  },
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.rulers": [100],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/mlruns": true,
+    "**/*.pt": true,
+    "**/iot_telemetry.csv": true
+  },
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "emmet.includeLanguages": { "javascript": "javascriptreact" },
+  "cursor.chat.projectContext": true,
+  "cursor.chat.includeOpenFiles": true,
+  "cursor.cpp.disabledLanguages": [],
+  "cursor.general.gitCommitMessageEnabled": true
 }

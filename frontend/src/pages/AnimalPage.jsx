@@ -1,4 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
+import cowIconImg     from '../assets/cow/cow-icon.png';
+import sheepIconImg   from '../assets/sheep/sheep-icon.png';
+import goatIconImg    from '../assets/goat/goat-icon.png';
+import poultryIconImg from '../assets/poultry/poultry-icon.png';
+import rabbitIconImg  from '../assets/rabbit/rabbit-icon.png';
+import cowHeroImg     from '../assets/cow/cow-hero.png';
+import sheepHeroImg   from '../assets/sheep/sheep-hero.png';
+import goatHeroImg    from '../assets/goat/goat-hero.png';
+import poultryHeroImg from '../assets/poultry/poultry-hero.png';
+import rabbitHeroImg  from '../assets/rabbit/rabbit-hero.png';
 import {
   Activity, AlertTriangle, TrendingUp, Bell, BarChart2,
   Heart, DollarSign, Eye, Calendar, CheckCircle, Shield,
@@ -35,12 +45,13 @@ const ANIM_CSS = `
   }
 `;
 
-// ─── Hero images per species ─────────────────────────────────────────────────
+// ─── Hero watercolor images (scenic, for banner) ─────────────────────────────
 const HERO_IMG = {
-  cow:    null,
-  sheep:  '/sheep_monitoring_ia.png',
-  goat:   '/goat_monitoring_ia.png',
-  rabbit: '/rabbit_monitoring_ia.png',
+  cow:     cowHeroImg,
+  sheep:   sheepHeroImg,
+  goat:    goatHeroImg,
+  poultry: poultryHeroImg,
+  rabbit:  rabbitHeroImg,
 };
 
 // ─── Species config ──────────────────────────────────────────────────────────
@@ -319,28 +330,33 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
         borderRadius:20, padding:'52px 44px', marginBottom:28,
         position:'relative', overflow:'hidden', color:'white',
       }}>
-        {/* Decorative circles */}
-        <div style={{position:'absolute',top:-50,right:-50,width:180,height:180,borderRadius:'50%',background:'rgba(255,255,255,.06)'}} />
-        <div style={{position:'absolute',bottom:-30,left:-30,width:140,height:140,borderRadius:'50%',background:'rgba(255,255,255,.04)'}} />
-        {/* Species hero image */}
+        {/* Watercolor image — right side, fully visible with left fade */}
         {HERO_IMG[cfg.apiSpecies] && (
-          <img
-            src={HERO_IMG[cfg.apiSpecies]}
-            alt={cfg.name}
-            style={{
-              position:'absolute', right:0, top:0, height:'100%', width:'45%',
-              objectFit:'cover', opacity:.18,
-              maskImage:'linear-gradient(to left, rgba(0,0,0,.8), transparent)',
-              WebkitMaskImage:'linear-gradient(to left, rgba(0,0,0,.8), transparent)',
-            }}
-          />
-        )}
-        {/* Emoji fallback (cow) */}
-        {!HERO_IMG[cfg.apiSpecies] && (
-          <div style={{position:'absolute',right:60,top:'50%',transform:'translateY(-50%)',fontSize:120,opacity:.1,userSelect:'none'}}>
-            {cfg.emoji}
+          <div style={{
+            position:'absolute', right:0, top:0,
+            height:'100%', width:'42%',
+            overflow:'hidden',
+          }}>
+            <img
+              src={HERO_IMG[cfg.apiSpecies]}
+              alt={cfg.name}
+              style={{
+                width:'100%', height:'100%',
+                objectFit:'cover', objectPosition:'center',
+                display:'block',
+              }}
+            />
+            {/* Fade left edge into gradient */}
+            <div style={{
+              position:'absolute', inset:0,
+              background:'linear-gradient(to right, rgba(0,0,0,.85) 0%, rgba(0,0,0,.3) 40%, transparent 100%)',
+              pointerEvents:'none',
+            }}/>
           </div>
         )}
+        {/* Decorative circles */}
+        <div style={{position:'absolute',top:-50,right:-50,width:180,height:180,borderRadius:'50%',background:'rgba(255,255,255,.04)',pointerEvents:'none'}} />
+        <div style={{position:'absolute',bottom:-30,left:-30,width:140,height:140,borderRadius:'50%',background:'rgba(255,255,255,.03)',pointerEvents:'none'}} />
         <div style={{position:'relative',zIndex:2,maxWidth:600}}>
           <div className="ap-f1" style={{
             display:'inline-flex', alignItems:'center', gap:6,

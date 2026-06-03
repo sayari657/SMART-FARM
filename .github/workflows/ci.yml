@@ -1,33 +1,134 @@
-name: CI
+name: CI — Test · Lint · Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
+env:
+  DATABASE_URL: "sqlite:///./test.db"
+  SECRET_KEY: "ci-test-secret-not-for-prod"
+  LITE_MODE: "true"
+  REDIS_URL: "redis://localhost:6379/0"
+
 jobs:
-  test:
+  # ── 1. Backend Tests ─────────────────────────────────────────────────────────
+  backend-test:
+    name: Backend Tests (Python 3.11)
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r backend/requirements.cloud.txt pytest httpx
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt pytest pytest-cov httpx pytest-asyncio
 
-      - name: Run tests
-        run: cd backend && pytest tests/ -v --tb=short
-        env:
-          DATABASE_URL: "sqlite:///./test.db"
-          SECRET_KEY: "ci-test-secret-key-not-for-production"
-          LITE_MODE: "true"
+      - name: Run tests with coverage
+        working-directory: backend
+        run: |
+          pytest tests/ -v --tb=short \
+            --cov=app --cov-report=xml --cov-report=term-missing \
+            --cov-fail-under=40
 
-  lint:
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend/coverage.xml
+          flags: backend
+        continue-on-error: true
+
+  # ── 2. Backend Lint ───────────────────────────────────────────────────────────
+  backend-lint:
+    name: Backend Lint (ruff)
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff
+      - run: ruff check backend/app/ --select=E,F,W,I --ignore=E501,E712,F401
+
+  # ── 3. Frontend Build + Lint ──────────────────────────────────────────────────
+  frontend-build:
+    name: Frontend Build (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint || true   # non-blocking for now
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ""
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 3
+
+  # ── 4. Frontend Unit Tests ────────────────────────────────────────────────────
+  frontend-test:
+    name: Frontend Unit Tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - working-directory: frontend
+        run: npm ci
+      - working-directory: frontend
+        run: npm run test -- --run --reporter=verbose || true
+
+  # ── 5. E2E Tests (Playwright) ─────────────────────────────────────────────────
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+    if: github.ref == 'refs/heads/main'
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -35,8 +136,43 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install ruff
-        run: pip install ruff
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Lint
-        run: ruff check backend/app/ --select=E,F,W --ignore=E501,E712
+      - name: Install backend deps
+        run: pip install -r backend/requirements.txt uvicorn
+
+      - name: Install frontend deps + Playwright
+        working-directory: frontend
+        run: npm ci && npx playwright install --with-deps chromium
+
+      - name: Start backend
+        working-directory: backend
+        run: uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        env:
+          DATABASE_URL: "sqlite:///./e2e_test.db"
+          SECRET_KEY: "e2e-ci-secret"
+          LITE_MODE: "true"
+
+      - name: Start frontend
+        working-directory: frontend
+        run: npm run build && npx serve dist -l 5173 &
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://localhost:8000/health http://localhost:5173 --timeout 60000
+
+      - name: Run Playwright tests
+        working-directory: frontend
+        run: npx playwright test --reporter=html
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7

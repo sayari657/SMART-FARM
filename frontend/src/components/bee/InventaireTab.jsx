@@ -4,6 +4,7 @@ import { COLORS, gradeColor, gradeLabel } from './BeeConstants';
 import { beeApi } from '../../services/beeApi';
 import { QrModal, QueenDispatchModal } from './HiveModals.jsx';
 import HiveWizardForm from './HiveWizardForm.jsx';
+import beeIconImg from '../../assets/bee/bee-icon.png';
 
 /* ── Feu tricolore santé ── */
 function HealthLight({ score }) {
@@ -335,44 +336,60 @@ export default function InventaireTab({
                   cursor: 'pointer', textAlign: 'left', overflow: 'hidden',
                   position: 'relative', width: '100%' }}>
 
-                <div style={{ height: 3, background: `linear-gradient(90deg, ${gc}, ${gc}50, transparent)` }} />
-                <div style={{ position: 'absolute', top: -30, right: -30, width: 140, height: 140,
-                  borderRadius: '50%', background: `radial-gradient(circle, ${gc}10 0%, transparent 70%)`,
-                  pointerEvents: 'none' }} />
-
-                <div style={{ padding: '20px 22px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 14,
-                        background: `${gc}18`, border: `1px solid ${gc}25`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Hexagon size={22} color={gc} />
-                      </div>
-                      <div>
-                        <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 17, letterSpacing: '-0.01em' }}>
-                          {r.identifier}
-                        </div>
-                        <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2,
-                          display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <MapPin size={10} /> {site?.name || 'Site ?'}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                      <HealthLight score={sc} />
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700 }}>
-                        <span style={{ width: 5, height: 5, borderRadius: '50%',
-                          background: isActive ? COLORS.gradeA : COLORS.textMuted, display: 'inline-block',
-                          boxShadow: isActive ? `0 0 6px ${COLORS.gradeA}` : 'none',
-                          animation: isActive ? 'pulse 2s infinite' : 'none' }} />
-                        <span style={{ color: isActive ? COLORS.gradeA : COLORS.textMuted }}>
-                          {isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </span>
-                    </div>
+                {/* ── Full-width watercolor image banner ── */}
+                <div style={{ position: 'relative', height: 145, overflow: 'hidden',
+                  background: '#fffbeb' }}>
+                  <img
+                    src={beeIconImg}
+                    alt="bee aquarelle"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      objectPosition: 'center',
+                      display: 'block',
+                    }}
+                  />
+                  {/* warm honey overlay at bottom for text contrast */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60,
+                    background: 'linear-gradient(to top, rgba(254,243,199,.95) 0%, transparent 100%)',
+                    pointerEvents: 'none' }} />
+                  {/* Grade badge — top right */}
+                  <div style={{ position: 'absolute', top: 10, right: 10,
+                    background: gc, color: '#fff', borderRadius: 8, padding: '3px 9px',
+                    fontSize: 11, fontWeight: 900, boxShadow: `0 2px 8px ${gc}50` }}>
+                    G{gradeLabel(sc)}
                   </div>
+                  {/* Active status — top left */}
+                  <div style={{ position: 'absolute', top: 10, left: 10,
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: 'rgba(255,255,255,.88)', borderRadius: 8,
+                    padding: '3px 9px', fontSize: 10, fontWeight: 700,
+                    color: isActive ? COLORS.gradeA : COLORS.textMuted }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%',
+                      background: isActive ? COLORS.gradeA : COLORS.textMuted,
+                      boxShadow: isActive ? `0 0 6px ${COLORS.gradeA}` : 'none',
+                      animation: isActive ? 'pulse 2s infinite' : 'none' }} />
+                    {isActive ? 'Active' : 'Inactive'}
+                  </div>
+                  {/* Hive name over the gradient */}
+                  <div style={{ position: 'absolute', bottom: 8, left: 14, right: 14,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                    <div>
+                      <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 17,
+                        letterSpacing: '-0.01em', lineHeight: 1.1 }}>{r.identifier}</div>
+                      <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2,
+                        display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <MapPin size={10} /> {site?.name || 'Site ?'}
+                      </div>
+                    </div>
+                    <HealthLight score={sc} />
+                  </div>
+                </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', paddingTop: 6 }}>
+                {/* ── Card body ── */}
+                <div style={{ padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', paddingTop: 4 }}>
                     <HoneyJar level={r.honey_level ?? 5} />
                     <BeeStrength level={r.force_level ?? 5} />
                   </div>
@@ -424,7 +441,7 @@ export default function InventaireTab({
 
                   {/* Footer */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    marginTop: 16, paddingTop: 14, borderTop: `1px solid ${COLORS.border}` }}>
+                    marginTop: 12, paddingTop: 12, borderTop: `1px solid ${COLORS.border}` }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <span style={{ color: COLORS.textMuted, fontSize: 11 }}>
                         {r.hive_type === 'queen_bank' ? '👑 Banque de Reines' : (r.hive_type || 'Ruche')}

@@ -2,6 +2,17 @@ import React, { Suspense } from 'react';
 import StableCanvas from './StableCanvas';
 import { Float, Html, ContactShadows, PresentationControls, Billboard } from '@react-three/drei';
 import { useTranslation } from 'react-i18next';
+import beeIconImg     from '../assets/bee/bee-icon.png';
+import cowIconImg     from '../assets/cow/cow-icon.png';
+import sheepIconImg   from '../assets/sheep/sheep-icon.png';
+import goatIconImg    from '../assets/goat/goat-icon.png';
+import poultryIconImg from '../assets/poultry/poultry-icon.png';
+import rabbitIconImg  from '../assets/rabbit/rabbit-icon.png';
+
+const SPECIES_IMG = {
+  bee: beeIconImg, cow: cowIconImg, sheep: sheepIconImg,
+  goat: goatIconImg, poultry: poultryIconImg, rabbit: rabbitIconImg,
+};
 
 function AnimalScene({ emoji, color, isActive }) {
   return (
@@ -58,6 +69,8 @@ function AnimalScene({ emoji, color, isActive }) {
 
 const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
   const { t } = useTranslation();
+  const speciesImg = SPECIES_IMG[sp];
+
   return (
     <div
       className={`summary-card ${isActive ? 'active' : ''}`}
@@ -68,15 +81,37 @@ const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
         overflow: 'hidden',
         position: 'relative',
         touchAction: 'manipulation',
+        border: isActive ? `2px solid ${color}` : undefined,
       }}
     >
-      {/* 3D Canvas Layer */}
-      <div style={{ width: '100%', height: 'clamp(110px, 14vw, 160px)' }}>
-        <StableCanvas camera={{ position: [0, 0, 8], fov: 40 }} dpr={[1, Math.min(window.devicePixelRatio, 2)]}>
-          <Suspense fallback={null}>
-            <AnimalScene emoji={emoji} color={color} isActive={isActive} />
-          </Suspense>
-        </StableCanvas>
+      {/* ── Watercolor image for every species ── */}
+      <div style={{
+        width: '100%',
+        height: 'clamp(110px, 14vw, 160px)',
+        position: 'relative',
+        overflow: 'hidden',
+        background: '#f8fafc',
+      }}>
+        <img
+          src={speciesImg}
+          alt={`${sp} aquarelle`}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            display: 'block',
+            transition: 'transform .35s ease',
+            transform: isActive ? 'scale(1.08)' : 'scale(1)',
+          }}
+        />
+        {isActive && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: `radial-gradient(circle at center, ${color}25 0%, transparent 70%)`,
+            pointerEvents: 'none',
+          }} />
+        )}
       </div>
 
       {/* Info Layer */}

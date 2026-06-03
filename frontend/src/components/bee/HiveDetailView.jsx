@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { COLORS, gradeColor } from './BeeConstants';
 import { useHiveRefresh } from './useHiveRefresh';
+import beeIconImg from '../../assets/bee/bee-icon.png';
 import FieldModeTab      from './FieldModeTab';
 import EntranceMonitorTab from './EntranceMonitorTab';
 import InspectionTab     from './HiveInspectionTab';
@@ -47,12 +48,19 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
           <ArrowLeft size={16} />
         </button>
 
-        <div style={{ width: 46, height: 46, borderRadius: 13,
-          background: isQBBank ? COLORS.accent + '22' : gradeColor(score) + '18',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          border: `1px solid ${isQBBank ? COLORS.accent + '40' : gradeColor(score) + '30'}`,
-          fontSize: isQBBank ? 22 : undefined }}>
-          {isQBBank ? '👑' : <Hexagon size={22} color={gradeColor(score)} />}
+        <div style={{
+          width: 54, height: 54, borderRadius: 16, flexShrink: 0,
+          border: `2px solid ${isQBBank ? COLORS.accent + '60' : gradeColor(score) + '60'}`,
+          boxShadow: `0 4px 14px ${isQBBank ? COLORS.accent : gradeColor(score)}35`,
+          background: '#fffbeb',
+          overflow: 'hidden', padding: 3,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+        }}>
+          {isQBBank ? '👑' : (
+            <img src={beeIconImg} alt="bee watercolor"
+              style={{ width: '100%', height: '100%', objectFit: 'contain',
+                display: 'block', borderRadius: 12 }}/>
+          )}
         </div>
 
         <div style={{ flex: 1 }}>

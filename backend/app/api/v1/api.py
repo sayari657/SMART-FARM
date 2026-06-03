@@ -85,3 +85,19 @@ api_router.include_router(drift_router)
 # Model A/B Testing
 from app.api.v1.endpoints.ab_testing_routes import router as ab_router  # noqa: E402
 api_router.include_router(ab_router)
+
+# SuperAdmin — platform management (commercial + maintenance)
+from app.api.v1.endpoints.superadmin_routes import router as superadmin_router  # noqa: E402
+api_router.include_router(superadmin_router)
+
+# 2FA TOTP
+from app.api.v1.endpoints.totp_routes import router as totp_router  # noqa: E402
+api_router.include_router(totp_router)
+
+# IoT Device Management
+from app.api.v1.endpoints.iot_devices_routes import router as iot_devices_router  # noqa: E402
+api_router.include_router(iot_devices_router)
+
+# Stripe Billing
+from app.api.v1.endpoints.billing_routes import router as billing_router  # noqa: E402
+api_router.include_router(billing_router)

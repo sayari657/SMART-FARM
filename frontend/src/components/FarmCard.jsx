@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, X, PawPrint, AlertTriangle, Heart, Layers, ArrowRight, CheckCircle2, Clock, Wrench } from 'lucide-react';
+import farmCardImg from '../assets/farm/farm-card.png';
 
 const STATUS_CONFIG = {
   active:      { label: 'Actif',       color: '#16a34a', bg: 'rgba(22,163,74,.12)',  dot: '#4ade80',  grad: 'linear-gradient(135deg, #064e3b 0%, #166534 50%, #16a34a 100%)' },
@@ -17,35 +18,61 @@ export default function FarmCard({ farm, onDelete }) {
   return (
     <div className="fcard" onClick={() => navigate(`/farms/${farm.id}`)}>
 
-      {/* ── gradient header ────────────────────────────────────────────── */}
-      <div className="fcard-header" style={{ background: cfg.grad }}>
-        {/* status dot */}
-        <div className="fcard-status-row">
-          <span className="fcard-status-dot" style={{ background: cfg.dot }} />
-          <span className="fcard-status-label" style={{ color: cfg.dot }}>{cfg.label}</span>
-        </div>
+      {/* ── watercolor image header ───────────────────────────────────── */}
+      <div className="fcard-header" style={{ position: 'relative', overflow: 'hidden', background: cfg.grad }}>
 
-        {/* farm name */}
-        <div className="fcard-name">{farm.name}</div>
+        {/* Watercolor farm image */}
+        <img
+          src={farmCardImg}
+          alt=""
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center',
+            display: 'block',
+            opacity: 0.45,
+            mixBlendMode: 'luminosity',
+            pointerEvents: 'none',
+          }}
+        />
+        {/* Bottom gradient for text readability */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%)',
+          pointerEvents: 'none',
+        }}/>
 
-        {/* location */}
-        <div className="fcard-location">
-          <MapPin size={11} style={{ flexShrink: 0 }} />
-          <span>{farm.location || 'Emplacement non défini'}</span>
-        </div>
-
-        {/* area chip */}
-        {farm.total_area_ha > 0 && (
-          <div className="fcard-area-chip">
-            <Layers size={10} /> {farm.total_area_ha} ha
+        {/* Content on top of image */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          {/* status dot */}
+          <div className="fcard-status-row">
+            <span className="fcard-status-dot" style={{ background: cfg.dot }} />
+            <span className="fcard-status-label" style={{ color: cfg.dot }}>{cfg.label}</span>
           </div>
-        )}
+
+          {/* farm name */}
+          <div className="fcard-name">{farm.name}</div>
+
+          {/* location */}
+          <div className="fcard-location">
+            <MapPin size={11} style={{ flexShrink: 0 }} />
+            <span>{farm.location || 'Emplacement non défini'}</span>
+          </div>
+
+          {/* area chip */}
+          {farm.total_area_ha > 0 && (
+            <div className="fcard-area-chip">
+              <Layers size={10} /> {farm.total_area_ha} ha
+            </div>
+          )}
+        </div>
 
         {/* delete */}
         {onDelete && (
           <button
             className="fcard-delete-btn"
             title="Supprimer"
+            style={{ zIndex: 3 }}
             onClick={e => { e.stopPropagation(); onDelete(farm); }}
           >
             <X size={13} />

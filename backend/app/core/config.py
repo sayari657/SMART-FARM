@@ -119,6 +119,28 @@ class Settings(BaseSettings):
 
 
 
+    # ── Redis ─────────────────────────────────────────────────────
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    CACHE_TTL_SECONDS: int = int(os.getenv("CACHE_TTL_SECONDS", "300"))  # 5 min default
+
+    # ── FCM Push Notifications (Firebase) ─────────────────────────
+    FCM_SERVER_KEY: str = os.getenv("FCM_SERVER_KEY", "")  # Firebase Cloud Messaging
+
+    # ── Stripe Billing ────────────────────────────────────────────
+    STRIPE_SECRET_KEY: str      = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_WEBHOOK_SECRET: str  = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_PRICE_PRO: str        = os.getenv("STRIPE_PRICE_PRO", "")        # Stripe Price ID
+    STRIPE_PRICE_ENTERPRISE: str = os.getenv("STRIPE_PRICE_ENTERPRISE", "")
+
+    # ── 2FA TOTP ──────────────────────────────────────────────────
+    TOTP_ISSUER: str = os.getenv("TOTP_ISSUER", "SmartFarmAI")
+
+    # ── APScheduler (auto-retraining) ─────────────────────────────
+    RETRAIN_THRESHOLD: int  = int(os.getenv("RETRAIN_THRESHOLD", "50"))
+    PSI_WARNING: float      = float(os.getenv("PSI_WARNING", "0.1"))
+    PSI_CRITICAL: float     = float(os.getenv("PSI_CRITICAL", "0.2"))
+
     # ── OTP Channels ──────────────────────────────────────────────
     # Gmail SMTP (Email OTP)
     SMTP_EMAIL: str = os.getenv("SMTP_EMAIL", "")

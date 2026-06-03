@@ -132,12 +132,43 @@ async def app_lifespan(_app: FastAPI):
                 pass
 
     asyncio.create_task(_async_warmup())
+
+    # c. APScheduler — drift check, plan expiry, push notifications, audit cleanup
+    try:
+        from app.core.scheduler import start_scheduler
+        start_scheduler()
+    except Exception as _se:
+        logger.warning("[STARTUP] Scheduler not started: %s", _se)
+
     yield
     # -- SHUTDOWN --
+    try:
+        from app.core.scheduler import stop_scheduler
+        stop_scheduler()
+    except Exception:
+        pass
     logger.info("[SHUTDOWN] Cleaning up...")
 
-# 3. Initialize FastAPI App
-limiter = Limiter(key_func=get_remote_address)
+# 3. Initialize FastAPI App — per-user rate limiting (falls back to IP)
+def _user_or_ip_key(request: Request) -> str:
+    """Use authenticated user ID as rate limit key; fall back to IP for anonymous."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        try:
+            from jose import jwt as _jwt
+            payload = _jwt.decode(
+                auth[7:], settings.SECRET_KEY,
+                algorithms=[settings.ALGORITHM],
+                options={"verify_exp": False},
+            )
+            sub = payload.get("sub")
+            if sub:
+                return f"user:{sub}"
+        except Exception:
+            pass
+    return request.client.host if request.client else "unknown"
+
+limiter = Limiter(key_func=_user_or_ip_key)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -193,6 +224,10 @@ except ImportError:
 # (slowapi decorators on specific endpoints override these global defaults)
 from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
 app.add_middleware(SlowAPIMiddleware)
+
+# CSRF protection — validates X-CSRF-Token on mutations for owner/superadmin
+from app.core.csrf import CSRFMiddleware  # noqa: E402
+app.add_middleware(CSRFMiddleware)
 
 # 7. Routing
 app.include_router(api_router, prefix=settings.API_V1_STR)

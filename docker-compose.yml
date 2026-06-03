@@ -16,6 +16,36 @@
 
 services:
 
+  # ── Redis (caching + sessions) ─────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --save ""
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Mosquitto MQTT Broker ──────────────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"    # WebSocket MQTT (browser clients)
+    volumes:
+      - ./monitoring/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t health -m ping -q 0 2>/dev/null && echo ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
   # ── PostgreSQL ─────────────────────────────────────────────────────────────
   db:
     image: postgres:16-alpine
@@ -41,10 +71,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
     env_file: .env.production
     environment:
       DATABASE_URL: postgresql+psycopg2://${DB_USER:-admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-smart_farm}
-      MQTT_BROKER:  "${MQTT_BROKER:-broker.hivemq.com}"
+      REDIS_URL:    "redis://redis:6379/0"
+      MQTT_BROKER:  "mosquitto"
       MQTT_PORT:    "1883"
     volumes:
       - ./iot:/app/iot:ro              # IoT CSV files (read-only)
@@ -96,5 +131,7 @@ services:
 volumes:
   postgres_data:
   sqlite_data:
+  mosquitto_data:
+  mosquitto_log:
   # caddy_data:
   # caddy_config:

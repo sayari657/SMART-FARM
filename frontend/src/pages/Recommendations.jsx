@@ -1,599 +1,907 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
-  Lightbulb, Sprout, AlertOctagon, AlertTriangle,
-  CheckCircle2, TrendingUp, Zap, Brain, Leaf,
-  Search, X, Filter, RefreshCw, ChevronRight, Wifi, WifiOff,
-  CheckCircle, Clock, Info, Activity, Play, Star,
-  Download, Eye, BarChart2, MessageCircle, Wind,
+  Brain, AlertOctagon, AlertTriangle, CheckCircle2, Lightbulb,
+  RefreshCw, Play, Download, Zap, Activity, Flame, Heart,
+  Shield, Wind, Check, MessageCircle, Info,
+  Building2, ChevronDown, ChevronUp,
+  Sparkles, Target, TrendingUp, AlertCircle, Filter, X,
+  Database, Bell,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import { recsAPI, farmsAPI } from '../services/api';
+import { recsAPI, alertsAPI, anomalyAPI, dashboardAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-/* ─── Config ────────────────────────────────────────────────────────────── */
-const POLL_INTERVAL_MS = 30_000;
-const WS_BASE = (import.meta.env.VITE_WS_URL || 'ws://localhost:8000');
-const URGENCY_LEVELS = ['all', 'critical', 'high', 'medium', 'low'];
-
-const URGENCY_CFG = {
-  critical: { color: '#ef4444', bg: '#fef2f2', label: 'Critique',  icon: AlertOctagon },
-  high:     { color: '#f59e0b', bg: '#fffbeb', label: 'Haute',     icon: AlertTriangle },
-  medium:   { color: '#3b82f6', bg: '#eff6ff', label: 'Moyenne',   icon: Info },
-  low:      { color: '#22c55e', bg: '#f0fdf4', label: 'Basse',     icon: Lightbulb },
+/* ── Design System — Neo-Minimalist Light Theme ──────────────────────── */
+const T = {
+  bg:       '#f8fafc',
+  surface:  '#ffffff',
+  card:     '#ffffff',
+  raised:   '#f1f5f9',
+  border:   '#e2e8f0',
+  muted:    '#94a3b8',
+  dim:      '#64748b',
+  sub:      '#475569',
+  text:     '#0f172a',
+  white:    '#ffffff',
+  primary:  '#4f46e5',
+  green:    '#10b981',
+  red:      '#ef4444',
+  amber:    '#f59e0b',
+  sky:      '#0ea5e9',
+  purple:   '#8b5cf6',
+  indigo:   '#4f46e5',
 };
 
-const TYPE_COLORS = {
-  weather:       '#0ea5e9',
-  sovereign_rag: '#8b5cf6',
-  operational:   '#22c55e',
-  ai_analysis:   '#f59e0b',
-  default:       '#6366f1',
+const URGENCY = {
+  critical: { color: '#ef4444', bg: '#fef2f2', label: 'Critique', icon: AlertOctagon,  dot: '🔴' },
+  high:     { color: '#f59e0b', bg: '#fffbeb', label: 'Haute',    icon: AlertTriangle, dot: '🟡' },
+  medium:   { color: '#0ea5e9', bg: '#f0f9ff', label: 'Moyenne',  icon: Info,          dot: '🔵' },
+  low:      { color: '#10b981', bg: '#ecfdf5', label: 'Basse',    icon: Lightbulb,     dot: '🟢' },
 };
 
-function fmtTime(ts) {
+const ALERT_ICONS = {
+  fire_detection: Flame,
+  health: Heart,
+  test: Shield,
+  default: AlertTriangle,
+};
+
+const PLANTS = [
+  'Herbe','Blé','Orge','Luzerne','Trèfle','Maïs',
+  'Tournesol','Sorgho','Olive','Agrumes','Tomate','Pomme de terre',
+];
+
+/* ── Helpers ─────────────────────────────────────────────────────────── */
+const ago = (ts) => {
   if (!ts) return '';
-  const d = new Date(ts);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return 'À l\'instant';
-  if (diffMin < 60) return `il y a ${diffMin} min`;
-  if (diffMin < 1440) return `il y a ${Math.floor(diffMin / 60)}h`;
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  const d = Math.floor((Date.now() - new Date(ts)) / 60000);
+  if (d < 1)    return "à l'instant";
+  if (d < 60)   return `${d}m`;
+  if (d < 1440) return `${Math.floor(d / 60)}h`;
+  return new Date(ts).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+};
+const scoreColor = (v) => v >= 80 ? T.green : v >= 60 ? T.amber : T.red;
+
+/* ── Badge ────────────────────────────────────────────────────────────── */
+function Badge({ children, color, small }) {
+  return (
+    <span style={{
+      fontSize: small ? 9 : 10, fontWeight: 700, letterSpacing: 0.5,
+      color, background: `${color}18`, border: `1px solid ${color}28`,
+      padding: small ? '2px 7px' : '3px 9px', borderRadius: 99,
+      textTransform: 'uppercase', whiteSpace: 'nowrap',
+    }}>{children}</span>
+  );
 }
 
-/* ─── Recommendation Card ────────────────────────────────────────────────── */
-function RecCard({ rec, onAction }) {
-  const [actioning, setActioning] = useState(false);
-  const u = URGENCY_CFG[rec.urgency_level] || URGENCY_CFG.medium;
-  const Icon = u.icon;
-
-  const handleAction = async () => {
-    setActioning(true);
-    try { await onAction(rec.id); } finally { setActioning(false); }
-  };
-
+/* ── Pill ─────────────────────────────────────────────────────────────── */
+function Pill({ label, count, active, color, onClick }) {
   return (
-    <div style={{
-      background: rec.is_actioned ? 'var(--color-surface-2)' : u.bg,
-      border: `1px solid ${rec.is_actioned ? 'var(--color-border)' : u.color + '35'}`,
-      borderLeft: `4px solid ${rec.is_actioned ? 'var(--color-border)' : u.color}`,
-      borderRadius: 12, padding: '16px 20px', marginBottom: 12,
-      opacity: rec.is_actioned ? 0.7 : 1,
-      transition: 'all .2s',
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
+      borderRadius: 99, border: `1px solid ${active ? color : T.border}`,
+      background: active ? `${color}10` : T.white, color: active ? color : T.dim,
+      fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer',
+      transition: 'all .15s', outline: 'none',
+      boxShadow: active ? `0 0 0 3px ${color}18` : 'none',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 9, flexShrink: 0, marginTop: 2,
-          background: rec.is_actioned ? 'var(--color-border)' : `${u.color}18`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon size={17} style={{ color: rec.is_actioned ? 'var(--color-text-3)' : u.color }} />
+      {label}
+      {count != null && (
+        <span style={{
+          fontSize: 10, background: active ? `${color}20` : T.raised,
+          color: active ? color : T.muted, padding: '0 6px', borderRadius: 99, fontWeight: 700,
+        }}>{count}</span>
+      )}
+    </button>
+  );
+}
+
+/* ── LiveDot ──────────────────────────────────────────────────────────── */
+function LiveDot({ status, light }) {
+  const c = { connected: T.green, connecting: T.amber, disconnected: T.red }[status] || T.muted;
+  const textColor = light ? 'rgba(255,255,255,.9)' : c;
+  const bg        = light ? 'rgba(255,255,255,.15)' : `${c}12`;
+  const bd        = light ? 'rgba(255,255,255,.25)' : `${c}25`;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      fontSize: 10, fontWeight: 700, color: textColor,
+      background: bg, border: `1px solid ${bd}`, padding: '4px 10px', borderRadius: 99,
+    }}>
+      <span style={{
+        width: 5, height: 5, borderRadius: '50%',
+        background: light ? '#4ade80' : c,
+        animation: status === 'connected' ? 'livePulse 2s infinite' : 'none',
+      }} />
+      {status === 'connected' ? 'LIVE' : status === 'connecting' ? 'Connexion…' : 'Hors-ligne'}
+    </span>
+  );
+}
+
+/* ── KPI Card ─────────────────────────────────────────────────────────── */
+function KpiCard({ label, value, color, icon: Icon, pulse }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: T.white, borderRadius: 14, padding: '16px 18px',
+        border: `1px solid ${hov ? color + '40' : T.border}`,
+        boxShadow: hov ? `0 8px 24px ${color}12` : '0 1px 4px rgba(0,0,0,.05)',
+        transform: hov ? 'translateY(-2px)' : 'none',
+        transition: 'all .2s', position: 'relative', overflow: 'hidden',
+      }}
+    >
+      {pulse && <span style={{ position:'absolute', top:10, right:10, width:6, height:6, borderRadius:'50%', background:color, animation:'livePulse 2s infinite' }} />}
+      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+        <div style={{ background:`${color}12`, borderRadius:8, padding:6 }}>
+          <Icon size={12} color={color} />
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-
-          {/* Header row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span className={`badge badge-${rec.urgency_level === 'critical' ? 'danger' : rec.urgency_level === 'high' ? 'warning' : rec.urgency_level === 'low' ? 'success' : 'info'}`}
-                style={{ fontSize: 10, padding: '2px 8px' }}>
-                {u.label.toUpperCase()}
-              </span>
-              {rec.unit_name && (
-                <span style={{ fontSize: 11, color: 'var(--color-text-2)', fontWeight: 600, background: 'var(--color-surface)', padding: '2px 8px', borderRadius: 6, border: '1px solid var(--color-border)' }}>
-                  {rec.unit_name}
-                </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              {rec.confidence_score != null && (
-                <div style={{ fontSize: 11, color: 'var(--color-text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <BarChart2 size={11} />
-                  Confiance: <strong style={{ color: rec.confidence_score >= 80 ? '#22c55e' : rec.confidence_score >= 60 ? '#f59e0b' : '#ef4444' }}>
-                    {rec.confidence_score.toFixed(0)}%
-                  </strong>
-                </div>
-              )}
-              <span style={{ fontSize: 11, color: 'var(--color-text-3)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Clock size={11} /> {fmtTime(rec.timestamp)}
-              </span>
-            </div>
-          </div>
-
-          {/* Cause */}
-          {rec.probable_cause && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                Cause probable
-              </div>
-              <p style={{ fontSize: 13, color: 'var(--color-text-2)', lineHeight: 1.6, margin: 0 }}>
-                {rec.probable_cause}
-              </p>
-            </div>
-          )}
-
-          {/* Recommendation */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-              Action recommandée
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--color-text)', whiteSpace: 'pre-line', lineHeight: 1.7, fontWeight: 500 }}>
-              {rec.recommendation_text}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            {rec.is_actioned ? (
-              <span style={{ fontSize: 12, color: '#22c55e', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 600 }}>
-                <CheckCircle size={13} /> Traité
-              </span>
-            ) : (
-              <button
-                onClick={handleAction}
-                disabled={actioning}
-                style={{
-                  padding: '5px 14px', borderRadius: 8, border: 'none',
-                  background: u.color, color: '#fff', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-                  opacity: actioning ? 0.7 : 1, transition: 'opacity .2s',
-                }}
-              >
-                {actioning ? <><span className="farms-spinner" style={{ width: 10, height: 10 }} /> Traitement…</> : <><CheckCircle2 size={13} /> Marquer traité</>}
-              </button>
-            )}
-          </div>
-        </div>
+        <span style={{ fontSize:9, color:T.muted, fontWeight:700, letterSpacing:0.6, textTransform:'uppercase' }}>{label}</span>
       </div>
+      <div style={{ fontSize:24, fontWeight:900, color, lineHeight:1 }}>{value}</div>
     </div>
   );
 }
 
-/* ─── AI Generated Card ──────────────────────────────────────────────────── */
-function AiRecCard({ rec, idx }) {
-  const color = TYPE_COLORS[rec.type] || TYPE_COLORS.default;
+/* ── AI Recommendation Card ───────────────────────────────────────────── */
+function AiRecommendationCard({ rec }) {
+  const cfg = {
+    weather:       { color: T.sky,    icon: Wind,     label: 'Météo' },
+    sovereign_rag: { color: T.purple, icon: Brain,    label: 'RAG Souverain' },
+    operational:   { color: T.green,  icon: Activity, label: 'Opérationnel' },
+    ai_analysis:   { color: T.amber,  icon: Zap,      label: 'Analyse IA' },
+  }[rec.type] || { color: T.indigo, icon: Lightbulb, label: rec.type || 'IA' };
+  const Icon = cfg.icon;
+  const [hov, setHov] = useState(false);
   return (
-    <div style={{
-      background: '#fff', border: `1px solid ${color}30`,
-      borderRadius: 12, padding: 16,
-      borderTop: `3px solid ${color}`,
-      boxShadow: '0 2px 8px rgba(0,0,0,.05)',
-    }}>
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
-        fontSize: 10, fontWeight: 700, color, textTransform: 'uppercase',
-        letterSpacing: '0.06em', marginBottom: 8, padding: '2px 8px',
-        background: `${color}15`, borderRadius: 99,
-      }}>
-        <Zap size={10} /> {rec.type?.replace('_', ' ')} Layer
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: T.white, border: `1px solid ${hov ? cfg.color + '50' : T.border}`,
+        borderTop: `3px solid ${cfg.color}`, borderRadius: 14, padding: '18px 20px',
+        transition: 'all .2s', cursor: 'default',
+        boxShadow: hov ? `0 8px 24px ${cfg.color}14` : '0 1px 4px rgba(0,0,0,.05)',
+        transform: hov ? 'translateY(-2px)' : 'none',
+      }}
+    >
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+        <div style={{ background:`${cfg.color}12`, borderRadius:8, padding:'6px 7px' }}>
+          <Icon size={13} color={cfg.color} />
+        </div>
+        <Badge color={cfg.color}>{cfg.label}</Badge>
       </div>
-      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: 'var(--color-text)' }}>
+      <div style={{ fontSize:14, fontWeight:700, color:T.text, marginBottom:8, lineHeight:1.4 }}>
         {rec.title}
       </div>
-      <div style={{ fontSize: 13, color: 'var(--color-text-2)', lineHeight: 1.65, marginBottom: 8 }}>
-        <strong style={{ color: 'var(--color-text)' }}>Action :</strong> {rec.action}
+      <div style={{ fontSize:12, color:T.dim, lineHeight:1.65, marginBottom:10 }}>
+        <span style={{ color:cfg.color, fontWeight:600 }}>↳ </span>{rec.action}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--color-text-3)', fontStyle: 'italic', lineHeight: 1.5 }}>
-        <em>Raison :</em> {rec.reason}
+      <div style={{
+        fontSize:11, color:T.dim, lineHeight:1.5, padding:'8px 10px',
+        background:T.raised, borderRadius:8, borderLeft:`3px solid ${cfg.color}40`,
+      }}>
+        {rec.reason}
       </div>
     </div>
   );
 }
 
-/* ─── Main Component ─────────────────────────────────────────────────────── */
+/* ── RecRow ───────────────────────────────────────────────────────────── */
+function RecRow({ rec, onAction }) {
+  const [acting, setActing] = useState(false);
+  const [open, setOpen]     = useState(false);
+  const u = URGENCY[rec.urgency_level] || URGENCY.medium;
+  const Icon = u.icon;
+  return (
+    <div style={{
+      background: T.white, border: `1px solid ${T.border}`,
+      borderLeft: `4px solid ${rec.is_actioned ? T.border : u.color}`,
+      borderRadius: 12, marginBottom: 8, overflow: 'hidden',
+      opacity: rec.is_actioned ? 0.6 : 1,
+      boxShadow: '0 1px 3px rgba(0,0,0,.04)',
+    }}>
+      <div style={{ padding:'12px 16px', display:'flex', gap:12, alignItems:'center', cursor:'pointer' }}
+        onClick={() => setOpen(o => !o)}>
+        <div style={{ background:u.bg, borderRadius:8, padding:7, flexShrink:0 }}>
+          <Icon size={13} color={u.color} />
+        </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap', marginBottom:2 }}>
+            <Badge color={u.color} small>{u.label}</Badge>
+            {rec.unit_name && <span style={{ fontSize:10, color:T.dim }}>{rec.unit_name}</span>}
+          </div>
+          <div style={{
+            fontSize:13, color:T.text, fontWeight:500, lineHeight:1.4,
+            overflow:'hidden', textOverflow:'ellipsis', whiteSpace: open ? 'normal' : 'nowrap',
+          }}>
+            {rec.recommendation_text}
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:10, alignItems:'center', flexShrink:0 }}>
+          {rec.confidence_score != null && (
+            <span style={{ fontSize:11, fontWeight:700, color:scoreColor(rec.confidence_score) }}>
+              {Math.round(rec.confidence_score)}%
+            </span>
+          )}
+          <span style={{ fontSize:10, color:T.muted }}>{ago(rec.timestamp)}</span>
+          {open ? <ChevronUp size={13} color={T.muted} /> : <ChevronDown size={13} color={T.muted} />}
+        </div>
+      </div>
+      {open && (
+        <div style={{ borderTop:`1px solid ${T.border}`, padding:'12px 16px', background:T.raised }}>
+          {rec.probable_cause && (
+            <div style={{ marginBottom:10 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:T.muted, textTransform:'uppercase', letterSpacing:0.5, marginBottom:4 }}>
+                Cause probable
+              </div>
+              <p style={{ fontSize:12, color:T.dim, margin:0, lineHeight:1.6 }}>{rec.probable_cause}</p>
+            </div>
+          )}
+          <div style={{ fontSize:13, color:T.text, lineHeight:1.65, marginBottom:12 }}>{rec.recommendation_text}</div>
+          <div style={{ display:'flex', justifyContent:'flex-end' }}>
+            {rec.is_actioned
+              ? <span style={{ fontSize:11, color:T.green, fontWeight:700, display:'flex', alignItems:'center', gap:4 }}>
+                  <Check size={11} /> Traité
+                </span>
+              : <button
+                  onClick={async (e) => { e.stopPropagation(); setActing(true); try { await onAction(rec.id); } finally { setActing(false); } }}
+                  disabled={acting}
+                  style={{
+                    padding:'7px 18px', borderRadius:8, border:'none',
+                    background:u.color, color:'#fff', fontSize:12, fontWeight:700,
+                    cursor:'pointer', display:'flex', alignItems:'center', gap:6,
+                    opacity:acting ? 0.6 : 1, transition:'opacity .2s',
+                  }}>
+                  {acting ? 'Traitement…' : <><CheckCircle2 size={12} /> Marquer traité</>}
+                </button>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── AlertRow ─────────────────────────────────────────────────────────── */
+function AlertRow({ alert, onResolve }) {
+  const [resolving, setResolving] = useState(false);
+  const sevColor = { critical: T.red, warning: T.amber, info: T.sky }[alert.severity] || T.muted;
+  const sevBg    = { critical: '#fef2f2', warning: '#fffbeb', info: '#f0f9ff' }[alert.severity] || T.raised;
+  const Icon     = ALERT_ICONS[alert.alert_type] || ALERT_ICONS.default;
+  return (
+    <div style={{
+      display:'flex', gap:12, alignItems:'flex-start',
+      padding:'14px 16px', background:T.white, border:`1px solid ${T.border}`,
+      borderLeft:`4px solid ${alert.is_resolved ? T.border : sevColor}`,
+      borderRadius:12, marginBottom:8,
+      opacity:alert.is_resolved ? 0.55 : 1,
+      boxShadow:'0 1px 3px rgba(0,0,0,.04)',
+    }}>
+      <div style={{ background:sevBg, borderRadius:8, padding:8, flexShrink:0, marginTop:1 }}>
+        <Icon size={13} color={sevColor} />
+      </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:5, flexWrap:'wrap' }}>
+          <Badge color={sevColor} small>{alert.severity}</Badge>
+          <span style={{ fontSize:10, color:T.dim, background:T.raised, padding:'1px 7px', borderRadius:6, border:`1px solid ${T.border}` }}>
+            {alert.alert_type?.replace(/_/g,' ')}
+          </span>
+          <span style={{ fontSize:10, color:T.muted, marginLeft:'auto' }}>{ago(alert.timestamp)}</span>
+        </div>
+        <div style={{ fontSize:13, color:T.text, lineHeight:1.5, marginBottom:8 }}>{alert.message}</div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontSize:10, color:T.muted }}>
+            {alert.farm_name}{alert.unit_name && ` · ${alert.unit_name}`}
+          </span>
+          {!alert.is_resolved
+            ? <button
+                onClick={async () => { setResolving(true); try { await onResolve(alert.id); } finally { setResolving(false); } }}
+                disabled={resolving}
+                style={{
+                  padding:'5px 14px', borderRadius:8, border:`1px solid ${T.green}30`,
+                  background:'#ecfdf5', color:T.green, fontSize:11, fontWeight:700, cursor:'pointer',
+                }}>
+                {resolving ? '…' : '✓ Résoudre'}
+              </button>
+            : <span style={{ fontSize:10, color:T.green, fontWeight:600 }}>✓ Résolu</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════ */
 export default function Recommendations() {
-  const { farmId, farms: authFarms } = useAuth();   // use context farm, not global list
-  const [recs, setRecs]             = useState([]);
-  const [aiRecs, setAiRecs]         = useState(null);
-  const [selectedFarmId, setSelectedFarmId] = useState(farmId);
-  const [selectedPlant, setSelectedPlant]   = useState('grass');
-  const [loading, setLoading]       = useState(true);
-  const [aiLoading, setAiLoading]   = useState(false);
-  const [filter, setFilter]         = useState('all');
-  const [search, setSearch]         = useState('');
-  const [showActioned, setShowActioned] = useState(false);
-  const [wsStatus, setWsStatus]     = useState('connecting');
-  const [lastRefresh, setLastRefresh] = useState(null);
-  const wsRef   = useRef(null);
+  const { farmId, farms: authFarms } = useAuth();
+
+  const [tab, setTab]             = useState('ai');
+  const [recs, setRecs]           = useState([]);
+  const [aiResult, setAiResult]   = useState(null);
+  const [alerts, setAlerts]       = useState([]);
+  const [anomalies, setAnomalies] = useState([]);
+  const [dashStats, setDashStats] = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [selectedFarm, setFarm]   = useState(farmId || null);
+  const [selectedPlant, setPlant] = useState('Herbe');
+  const [urgencyFilter, setUrgencyFilter] = useState('all');
+  const [showResolved, setShowResolved]   = useState(false);
+  const [wsStatus, setWsStatus]   = useState('connecting');
+  const [search, setSearch]       = useState('');
   const pollRef = useRef(null);
 
-  // Keep selectedFarmId in sync when the navbar farm selector changes
-  useEffect(() => { if (farmId) setSelectedFarmId(farmId); }, [farmId]);
+  useEffect(() => { if (farmId) setFarm(farmId); }, [farmId]);
 
-  /* ── Fetch DB recommendations — scoped to selected farm ─────── */
-  const fetchRecs = useCallback(async () => {
+  const loadAll = useCallback(async () => {
     try {
-      const r = await recsAPI.list(showActioned, farmId);   // pass farmId
-      setRecs(r.data);
-      setLastRefresh(new Date());
+      const fid = selectedFarm;
+      const [r1, r2, r3, r4] = await Promise.allSettled([
+        recsAPI.list(showResolved, fid),
+        alertsAPI.list(fid),
+        anomalyAPI.recent(50, fid),
+        dashboardAPI.stats(fid),
+      ]);
+      if (r1.status === 'fulfilled') setRecs(r1.value.data || []);
+      if (r2.status === 'fulfilled') setAlerts(r2.value.data || []);
+      if (r3.status === 'fulfilled') setAnomalies(r3.value.data || []);
+      if (r4.status === 'fulfilled') setDashStats(r4.value.data);
     } catch {}
-  }, [showActioned, farmId]);
+  }, [selectedFarm, showResolved]);
 
-  /* ── Initial load ─────────────────────────────────────────────── */
+  useEffect(() => { loadAll().finally(() => setLoading(false)); }, [loadAll]);
   useEffect(() => {
-    fetchRecs().finally(() => setLoading(false));
-  }, [fetchRecs]);
-
-  /* ── Auto-polling every 30s ──────────────────────────────────── */
-  useEffect(() => {
-    pollRef.current = setInterval(fetchRecs, POLL_INTERVAL_MS);
+    pollRef.current = setInterval(loadAll, 30_000);
     return () => clearInterval(pollRef.current);
-  }, [fetchRecs]);
+  }, [loadAll]);
 
-  /* ── WebSocket for real-time push ────────────────────────────── */
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { setWsStatus('disconnected'); return; }
-
-    let ws;
-    let reconnectTimer;
-
+    let ws, timer;
     const connect = () => {
       setWsStatus('connecting');
       try {
-        ws = new WebSocket(`${WS_BASE}/ws/events?token=${token}`);
-        wsRef.current = ws;
-
-        ws.onopen = () => setWsStatus('connected');
-
-        ws.onmessage = (e) => {
-          try {
-            const msg = JSON.parse(e.data);
-            // Trigger a refresh when any event comes in (recommendation or alert)
-            if (msg.type === 'recommendation' || msg.type === 'alert' || msg.type === 'anomaly') {
-              fetchRecs();
-            }
-          } catch {}
-        };
-
-        ws.onerror = () => setWsStatus('disconnected');
-        ws.onclose = () => {
-          setWsStatus('disconnected');
-          // Auto-reconnect after 5s
-          reconnectTimer = setTimeout(connect, 5000);
-        };
-      } catch {
-        setWsStatus('disconnected');
-      }
+        ws = new WebSocket(`${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/ws/events?token=${token}`);
+        ws.onopen    = () => setWsStatus('connected');
+        ws.onmessage = e => { try { const m = JSON.parse(e.data); if (['recommendation','alert','anomaly'].includes(m.type)) loadAll(); } catch {} };
+        ws.onerror   = () => setWsStatus('disconnected');
+        ws.onclose   = () => { setWsStatus('disconnected'); timer = setTimeout(connect, 5000); };
+      } catch { setWsStatus('disconnected'); }
     };
-
     connect();
-    return () => {
-      clearTimeout(reconnectTimer);
-      if (ws) ws.close();
-    };
-  }, []); // WS connects once; fetchRecs is stable via ref
-
-  /* ── Generate AI recommendations on-demand ─────────────────── */
-  const generateAI = useCallback(async () => {
-    if (!selectedFarmId) return;
-    setAiLoading(true);
-    try {
-      const res = await recsAPI.generate(selectedFarmId, selectedPlant);
-      setAiRecs(res.data);
-    } catch (err) {
-      // Don't crash the page — just hide AI panel
-      setAiRecs(null);
-      console.warn('AI recommendations unavailable:', err?.response?.status);
-    } finally { setAiLoading(false); }
-  }, [selectedFarmId, selectedPlant]);
-
-  /* ── Auto-generate when farm selected ───────────────────────── */
-  useEffect(() => {
-    if (selectedFarmId) generateAI();
-  }, [selectedFarmId, selectedPlant]); // eslint-disable-line
-
-  /* ── Mark as actioned ────────────────────────────────────────── */
-  const handleAction = useCallback(async (recId) => {
-    await recsAPI.action(recId);
-    setRecs(prev => prev.map(r => r.id === recId ? { ...r, is_actioned: true } : r));
+    return () => { clearTimeout(timer); ws?.close(); };
   }, []);
 
-  /* ── Filter logic ────────────────────────────────────────────── */
-  const counts = Object.fromEntries(
-    URGENCY_LEVELS.filter(l => l !== 'all').map(l => [l, recs.filter(r => r.urgency_level === l).length])
+  const generateAI = async () => {
+    if (!selectedFarm) return;
+    setAiLoading(true); setAiResult(null);
+    try {
+      const { data } = await recsAPI.generate(
+        selectedFarm,
+        selectedPlant.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      );
+      setAiResult(data);
+    } catch {}
+    finally { setAiLoading(false); }
+  };
+  useEffect(() => { if (selectedFarm) generateAI(); }, [selectedFarm]);
+
+  const handleRecAction = async (id) => {
+    await recsAPI.action(id);
+    setRecs(p => p.map(r => r.id === id ? { ...r, is_actioned: true } : r));
+  };
+  const handleResolve = async (id) => {
+    await alertsAPI.resolve(id, 'owner');
+    setAlerts(p => p.map(a => a.id === id ? { ...a, is_resolved: true } : a));
+  };
+
+  const unresolvedAlerts = alerts.filter(a => !a.is_resolved);
+  const criticalAlerts   = alerts.filter(a => a.severity === 'critical' && !a.is_resolved);
+
+  const filteredRecs = recs.filter(r => {
+    if (!showResolved && r.is_actioned) return false;
+    if (urgencyFilter !== 'all' && r.urgency_level !== urgencyFilter) return false;
+    if (search) return (r.recommendation_text + (r.probable_cause || '') + (r.unit_name || '')).toLowerCase().includes(search.toLowerCase());
+    return true;
+  });
+  const filteredAlerts = (showResolved ? alerts : unresolvedAlerts).filter(a =>
+    !search || a.message?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filtered = recs.filter(r => {
-    if (!showActioned && r.is_actioned) return false;
-    const matchFilter = filter === 'all' || r.urgency_level === filter;
-    const matchSearch = !search || (r.probable_cause + ' ' + r.recommendation_text + ' ' + (r.unit_name || '')).toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  const alertTypeData = Object.entries(
+    alerts.reduce((acc, a) => { acc[a.alert_type] = (acc[a.alert_type] || 0) + 1; return acc; }, {})
+  ).map(([name, value]) => ({ name: name.replace('_', ' '), value }));
 
-  /* ── Export ──────────────────────────────────────────────────── */
-  const exportJSON = () => {
-    const blob = new Blob([JSON.stringify({ recs, aiRecs, exportedAt: new Date().toISOString() }, null, 2)], { type: 'application/json' });
+  const TABS = [
+    { id:'ai',        label:'IA Souveraine',   count: aiResult?.recommendations?.length,    color: T.purple },
+    { id:'db',        label:'Recommandations', count: recs.filter(r=>!r.is_actioned).length, color: T.indigo },
+    { id:'alerts',    label:'Alertes',         count: unresolvedAlerts.length,               color: T.red    },
+    { id:'anomalies', label:'Anomalies',       count: anomalies.length,                      color: T.amber  },
+    { id:'analyse',   label:'Analyse',         count: null,                                  color: T.green  },
+  ];
+
+  const handleExport = () => {
+    const b = new Blob([JSON.stringify({ recs, alerts: unresolvedAlerts, ai: aiResult, ts: new Date().toISOString() }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `recommendations_${new Date().toISOString().split('T')[0]}.json`;
+    a.href = URL.createObjectURL(b);
+    a.download = `recs_${Date.now()}.json`;
     a.click();
   };
 
-  /* ─── Render ───────────────────────────────────────────────── */
-  return (
-    <>
-      <Navbar
-        title="Recommandations IA"
-        subtitle="Moteur d'optimisation · Temps réel · Agronomie intelligente"
-        actions={
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* WS Status */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 12px', borderRadius: 99, fontSize: 11, fontWeight: 600,
-              background: wsStatus === 'connected' ? '#f0fdf4' : wsStatus === 'connecting' ? '#fffbeb' : '#fef2f2',
-              color: wsStatus === 'connected' ? '#16a34a' : wsStatus === 'connecting' ? '#92400e' : '#dc2626',
-              border: `1px solid ${wsStatus === 'connected' ? '#bbf7d0' : wsStatus === 'connecting' ? '#fde68a' : '#fecaca'}`,
-            }}>
-              {wsStatus === 'connected'
-                ? <><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block', animation: 'pulse 2s infinite' }} /> LIVE</>
-                : wsStatus === 'connecting'
-                  ? <><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} /> Connexion…</>
-                  : <><WifiOff size={11} /> Hors-ligne</>}
-            </div>
+  /* ── FEATURES: 3 highlights shown in hero area ── */
+  const FEATURES = [
+    { icon: Sparkles, color: T.purple, title: 'IA Souveraine',       desc: 'RAG UTAP/AVFA · Ollama · Open-Meteo — analyses sans cloud externe' },
+    { icon: Bell,     color: T.red,    title: 'Alertes Temps-Réel',  desc: 'WebSocket live · détection incendie · santé animale · seuils IoT' },
+    { icon: TrendingUp, color: T.green, title: 'Analyse Prédictive', desc: 'Isolation Forest · scores de confiance · distribution urgences' },
+  ];
 
-            <button className="farms-hero-btn"
-              onClick={fetchRecs}
-              style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-2)', padding: '6px 12px' }}>
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:T.bg, fontFamily:"'Inter', system-ui, sans-serif" }}>
+
+      {/* ── Navbar ── */}
+      <Navbar
+        title="Intelligence Agronomique"
+        subtitle="Recommandations · Alertes · Anomalies"
+        actions={
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <LiveDot status={wsStatus} />
+            <button onClick={loadAll} title="Actualiser"
+              style={{ padding:'7px 10px', background:T.white, border:`1px solid ${T.border}`, borderRadius:9, color:T.dim, cursor:'pointer', display:'flex', alignItems:'center', transition:'all .2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = T.raised}
+              onMouseLeave={e => e.currentTarget.style.background = T.white}>
               <RefreshCw size={13} />
             </button>
-
-            <button className="farms-hero-btn" onClick={exportJSON}
-              style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-2)' }}>
-              <Download size={13} /> Export
+            <button onClick={handleExport}
+              style={{ padding:'7px 14px', background:T.white, border:`1px solid ${T.border}`, borderRadius:9, color:T.dim, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontSize:12, fontWeight:600, transition:'all .2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = T.raised}
+              onMouseLeave={e => e.currentTarget.style.background = T.white}>
+              <Download size={12} /> Export
             </button>
           </div>
         }
       />
 
-      <div className="page-content">
+      <div style={{ flex:1, overflowY:'auto', overscrollBehaviorY:'contain' }}>
 
-        {/* ── Hero KPI strip ──────────────────────────────────────────── */}
-        <div className="rc-hero">
-          <div className="rc-hero-left">
-            <div className="rc-hero-eyebrow">
-              <Brain size={11} /> AI RECOMMENDATIONS · MOTEUR TEMPS RÉEL
+        {/* ═══ HERO ════════════════════════════════════════════════════════ */}
+        <div style={{ background:'linear-gradient(135deg, #3730a3 0%, #4f46e5 45%, #7c3aed 100%)', padding:'36px 32px', position:'relative', overflow:'hidden' }}>
+          {/* decorative blobs */}
+          <div style={{ position:'absolute', top:-80, right:-60, width:260, height:260, borderRadius:'50%', background:'rgba(255,255,255,.05)', pointerEvents:'none' }} />
+          <div style={{ position:'absolute', bottom:-60, left:'35%', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,.04)', pointerEvents:'none' }} />
+
+          <div style={{ position:'relative', zIndex:2, display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:32, flexWrap:'wrap' }}>
+
+            {/* Left: title + desc + CTAs */}
+            <div style={{ flex:1, minWidth:280 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                <div style={{ background:'rgba(255,255,255,.15)', borderRadius:99, padding:'5px 13px', display:'flex', alignItems:'center', gap:6, border:'1px solid rgba(255,255,255,.2)' }}>
+                  <Sparkles size={11} color="#fff" />
+                  <span style={{ fontSize:10, color:'#fff', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase' }}>IA Souveraine</span>
+                </div>
+                <LiveDot status={wsStatus} light />
+              </div>
+
+              <h1 style={{ fontSize:30, fontWeight:900, color:'#fff', margin:'0 0 10px', letterSpacing:-.5, lineHeight:1.2 }}>
+                Intelligence Agronomique
+              </h1>
+              <p style={{ fontSize:14, color:'rgba(255,255,255,.72)', maxWidth:460, lineHeight:1.75, margin:'0 0 24px' }}>
+                Recommandations IA temps-réel, alertes intelligentes et analyse prédictive
+                pour optimiser chaque décision de votre exploitation agricole.
+              </p>
+
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                <button onClick={generateAI} disabled={aiLoading || !selectedFarm}
+                  style={{
+                    display:'flex', alignItems:'center', gap:7,
+                    padding:'10px 22px', borderRadius:10, border:'none',
+                    background:'rgba(255,255,255,.95)', color:T.indigo,
+                    fontSize:13, fontWeight:700, cursor: aiLoading || !selectedFarm ? 'not-allowed' : 'pointer',
+                    boxShadow:'0 4px 14px rgba(0,0,0,.22)', opacity: aiLoading || !selectedFarm ? 0.65 : 1,
+                    transition:'all .2s',
+                  }}
+                  onMouseEnter={e => { if (!aiLoading && selectedFarm) e.currentTarget.style.transform='translateY(-1px)'; }}
+                  onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+                  {aiLoading
+                    ? <><RefreshCw size={13} style={{animation:'spin .8s linear infinite'}}/> Analyse en cours…</>
+                    : <><Play size={13} /> Analyser la Ferme</>}
+                </button>
+                <button onClick={loadAll}
+                  style={{
+                    display:'flex', alignItems:'center', gap:7,
+                    padding:'10px 22px', borderRadius:10,
+                    border:'1px solid rgba(255,255,255,.3)', background:'rgba(255,255,255,.1)',
+                    color:'#fff', fontSize:13, fontWeight:600, cursor:'pointer', transition:'all .2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.18)'}
+                  onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,.1)'}>
+                  <RefreshCw size={13} /> Actualiser
+                </button>
+              </div>
             </div>
-            <h1 className="rc-hero-title">Recommandations Intelligentes</h1>
-            <p className="rc-hero-sub">
-              Analyse IA continue · WebSocket + Polling {POLL_INTERVAL_MS/1000}s · {authFarms.length} ferme{authFarms.length !== 1 ? 's' : ''}
-              {lastRefresh && <span style={{ marginLeft: 8, color: 'var(--color-text-3)' }}>· Màj {fmtTime(lastRefresh)}</span>}
-            </p>
+
+            {/* Right: farm selector + status */}
+            <div style={{ display:'flex', flexDirection:'column', gap:10, minWidth:200 }}>
+              <div style={{ background:'rgba(255,255,255,.12)', borderRadius:14, padding:'14px 16px', border:'1px solid rgba(255,255,255,.18)' }}>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', fontWeight:700, textTransform:'uppercase', letterSpacing:0.7, marginBottom:7, display:'flex', alignItems:'center', gap:4 }}>
+                  <Building2 size={10} /> Exploitation
+                </div>
+                <select value={selectedFarm || ''} onChange={e => setFarm(+e.target.value)}
+                  style={{ width:'100%', padding:'7px 10px', background:'rgba(255,255,255,.15)', border:'1px solid rgba(255,255,255,.25)', borderRadius:8, color:'#fff', fontSize:13, cursor:'pointer', outline:'none' }}>
+                  {authFarms.map(f => <option key={f.id} value={f.id} style={{background:'#3730a3'}}>{f.name}</option>)}
+                </select>
+              </div>
+
+              {aiResult?.overall_status && (
+                <div style={{ background:'rgba(255,255,255,.12)', borderRadius:14, padding:'12px 16px', border:'1px solid rgba(255,255,255,.18)' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                    <span style={{ width:7, height:7, borderRadius:'50%', background: aiResult.overall_status==='Nominal'?'#4ade80':T.amber }} />
+                    <span style={{ fontSize:13, color:'#fff', fontWeight:700 }}>{aiResult.overall_status}</span>
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,.55)' }}>
+                    {aiResult.recommendations?.length||0} analyse(s) · Ferme #{aiResult.farm_id}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="rc-kpi-strip">
-            {[
-              { val: recs.length,                                label: 'Total',     color: '#60a5fa', icon: Lightbulb },
-              { val: counts.critical || 0,                       label: 'Critiques', color: '#f87171', icon: AlertOctagon },
-              { val: counts.high || 0,                           label: 'Priorité',  color: '#fbbf24', icon: AlertTriangle },
-              { val: recs.filter(r => r.is_actioned).length,     label: 'Traités',   color: '#4ade80', icon: CheckCircle2 },
-            ].map(({ val, label, color, icon: Icon }) => (
-              <div key={label} className="rc-kpi">
-                <Icon size={18} color={color} />
-                <div className="rc-kpi-val" style={{ color }}>{val}</div>
-                <div className="rc-kpi-label">{label}</div>
+
+          {/* FEATURES row inside hero */}
+          <div style={{ position:'relative', zIndex:2, display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginTop:28 }}>
+            {FEATURES.map(({ icon: Icon, color, title, desc }) => (
+              <div key={title} style={{ background:'rgba(255,255,255,.09)', borderRadius:14, padding:'14px 16px', border:'1px solid rgba(255,255,255,.14)' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                  <div style={{ background:'rgba(255,255,255,.15)', borderRadius:8, padding:6 }}>
+                    <Icon size={13} color="#fff" />
+                  </div>
+                  <span style={{ fontSize:12, fontWeight:700, color:'#fff' }}>{title}</span>
+                </div>
+                <p style={{ fontSize:11, color:'rgba(255,255,255,.58)', margin:0, lineHeight:1.6 }}>{desc}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── AI Generation Panel ─────────────────────────────────────── */}
-        <div style={{
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderRadius: 16, padding: 24, marginBottom: 24,
-          boxShadow: '0 8px 32px rgba(0,0,0,.15)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(139,92,246,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Brain size={20} color="#a78bfa" />
+        {/* ═══ KPI BAR ══════════════════════════════════════════════════════ */}
+        <div style={{ padding:'24px 32px', borderBottom:`1px solid ${T.border}`, background:T.bg }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:12 }}>
+            {[
+              { label:'Recommandations IA', value: aiResult?.recommendations?.length ?? '—', color:T.purple, icon:Sparkles },
+              { label:'Critiques',          value: criticalAlerts.length, color: criticalAlerts.length>0?T.red:T.muted, icon:AlertOctagon, pulse:criticalAlerts.length>0 },
+              { label:'Non résolues',       value: unresolvedAlerts.length, color:T.amber, icon:AlertCircle },
+              { label:'Traitées',           value: recs.filter(r=>r.is_actioned).length, color:T.green, icon:CheckCircle2 },
+              { label:'Anomalies 24h',      value: anomalies.length, color:T.sky, icon:Activity },
+              { label:'Score santé',        value: dashStats?.health_score ?? '—', color:T.indigo, icon:Target },
+            ].map(item => <KpiCard key={item.label} {...item} />)}
+          </div>
+        </div>
+
+        {/* ═══ MAIN CONTENT ══════════════════════════════════════════════════ */}
+        <div style={{ padding:'24px 32px' }}>
+
+          {/* Controls row */}
+          <div style={{ display:'flex', gap:12, alignItems:'center', marginBottom:20, flexWrap:'wrap' }}>
+            <div style={{ position:'relative', flex:1, maxWidth:320 }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher…"
+                style={{ width:'100%', padding:'9px 12px 9px 36px', background:T.white, border:`1px solid ${T.border}`, borderRadius:10, color:T.text, fontSize:13, outline:'none', boxSizing:'border-box', boxShadow:'0 1px 3px rgba(0,0,0,.04)' }} />
+              <Filter size={13} style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', color:T.muted, pointerEvents:'none' }} />
+              {search && <button onClick={() => setSearch('')} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', color:T.muted }}><X size={11}/></button>}
             </div>
-            <div>
-              <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: 15 }}>Moteur IA Souverain</div>
-              <div style={{ color: '#94a3b8', fontSize: 12 }}>Ollama → Groq · RAG UTAP/AVFA · Météo Open-Meteo</div>
+
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+              <Pill label="Tout" count={recs.length} active={urgencyFilter==='all'} color={T.indigo} onClick={() => setUrgencyFilter('all')} />
+              {Object.entries(URGENCY).map(([k,v]) => (
+                <Pill key={k} label={v.dot+' '+v.label} count={recs.filter(r=>r.urgency_level===k).length} active={urgencyFilter===k} color={v.color} onClick={() => setUrgencyFilter(k)} />
+              ))}
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
-                background: 'rgba(139,92,246,.2)', color: '#a78bfa',
-                border: '1px solid rgba(139,92,246,.3)',
-              }}>SOUVERAIN</span>
-            </div>
+
+            <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:T.dim, cursor:'pointer', marginLeft:'auto', whiteSpace:'nowrap' }}>
+              <input type="checkbox" checked={showResolved} onChange={e => setShowResolved(e.target.checked)} style={{ accentColor:T.indigo }} />
+              Afficher traités
+            </label>
           </div>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            {/* Farm selector */}
-            <div>
-              <label style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>FERME</label>
-              <select
-                value={selectedFarmId || ''}
-                onChange={e => setSelectedFarmId(+e.target.value)}
+          {/* Horizontal tabs */}
+          <div style={{ display:'flex', gap:0, borderBottom:`2px solid ${T.border}`, marginBottom:20, overflowX:'auto' }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
                 style={{
-                  background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)',
-                  color: '#f8fafc', borderRadius: 8, padding: '8px 12px', fontSize: 13,
-                  cursor: 'pointer', minWidth: 160,
-                }}
-              >
-                {authFarms.map(f => (
-                  <option key={f.id} value={f.id} style={{ background: '#1e293b' }}>{f.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Plant type */}
-            <div>
-              <label style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, display: 'block', marginBottom: 6 }}>CULTURE</label>
-              <select
-                value={selectedPlant}
-                onChange={e => setSelectedPlant(e.target.value)}
-                style={{
-                  background: 'rgba(255,255,255,.07)', border: '1px solid rgba(255,255,255,.12)',
-                  color: '#f8fafc', borderRadius: 8, padding: '8px 12px', fontSize: 13,
-                  cursor: 'pointer',
-                }}
-              >
-                {['grass', 'wheat', 'barley', 'alfalfa', 'clover', 'maize', 'sunflower', 'sorghum'].map(p => (
-                  <option key={p} value={p} style={{ background: '#1e293b' }}>{p}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Generate button */}
-            <button
-              onClick={generateAI}
-              disabled={aiLoading || !selectedFarmId}
-              style={{
-                padding: '9px 24px', borderRadius: 9, border: 'none', cursor: 'pointer',
-                background: aiLoading ? 'rgba(139,92,246,.3)' : 'linear-gradient(135deg, #7c3aed, #4f46e5)',
-                color: '#fff', fontWeight: 700, fontSize: 13,
-                display: 'flex', alignItems: 'center', gap: 8,
-                boxShadow: '0 4px 14px rgba(124,58,237,.4)',
-                transition: 'all .2s',
-              }}
-            >
-              {aiLoading
-                ? <><span className="farms-spinner" style={{ borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Analyse IA…</>
-                : <><Play size={13} /> Générer Recommandations</>}
-            </button>
-          </div>
-
-          {/* AI Results */}
-          {aiRecs && (
-            <div style={{ marginTop: 20 }}>
-              {/* Status bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: aiRecs.overall_status === 'Nominal' ? '#22c55e' : '#f59e0b', display: 'inline-block' }} />
-                  <span style={{ color: '#94a3b8' }}>État :</span>
-                  <span style={{ color: '#f8fafc', fontWeight: 600 }}>{aiRecs.overall_status}</span>
-                </div>
-                {aiRecs.output_derja && (
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>
-                    <MessageCircle size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                    Traduction Darija disponible
-                  </div>
-                )}
-              </div>
-
-              {/* Derja summary */}
-              {aiRecs.output_derja && aiRecs.output_derja !== 'Khidma Ola' && (
-                <div style={{
-                  background: 'rgba(255,255,255,.05)', borderRadius: 10,
-                  padding: '12px 16px', marginBottom: 16,
-                  border: '1px solid rgba(255,255,255,.08)',
+                  padding:'10px 20px', background:'transparent', border:'none',
+                  borderBottom: tab===t.id ? `2px solid ${t.color}` : '2px solid transparent',
+                  marginBottom:-2, cursor:'pointer', whiteSpace:'nowrap',
+                  display:'flex', alignItems:'center', gap:7,
+                  fontSize:13, fontWeight: tab===t.id ? 700 : 500,
+                  color: tab===t.id ? t.color : T.dim, transition:'all .15s', outline:'none',
                 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-                    <MessageCircle size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} /> ملخص بالدارجة التونسية
-                  </div>
-                  <div style={{ fontSize: 14, color: '#e2e8f0', lineHeight: 1.7, direction: 'rtl', fontFamily: 'inherit' }}>
-                    {aiRecs.output_derja}
-                  </div>
+                {t.label}
+                {t.count != null && (
+                  <span style={{
+                    fontSize:10, fontWeight:700, padding:'1px 7px', borderRadius:99,
+                    background: tab===t.id ? `${t.color}15` : T.raised,
+                    color: tab===t.id ? t.color : T.muted,
+                  }}>{t.count}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Bento grid: tab content + right sidebar */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 268px', gap:20, alignItems:'start' }}>
+
+            {/* ── LEFT: Tab content ── */}
+            <div style={{ minWidth:0 }}>
+
+              {/* TAB: IA Souveraine */}
+              {tab==='ai' && (
+                <div>
+                  {aiLoading && (
+                    <div style={{ textAlign:'center', padding:'70px 0' }}>
+                      <div style={{ width:52, height:52, borderRadius:'50%', background:`${T.purple}12`, display:'inline-flex', alignItems:'center', justifyContent:'center', animation:'livePulse 1.5s infinite', marginBottom:16 }}>
+                        <Brain size={24} color={T.purple} />
+                      </div>
+                      <div style={{ fontSize:15, fontWeight:700, color:T.text, marginBottom:6 }}>Analyse souveraine en cours…</div>
+                      <div style={{ fontSize:12, color:T.muted }}>RAG UTAP/AVFA · Météo Open-Meteo · Ollama Llava</div>
+                    </div>
+                  )}
+                  {!aiLoading && !aiResult && (
+                    <div style={{ textAlign:'center', padding:'70px 0', color:T.muted }}>
+                      <Sparkles size={40} style={{ opacity:.2, marginBottom:14, color:T.purple }} />
+                      <div style={{ fontSize:16, fontWeight:700, color:T.dim }}>Lancez l'analyse souveraine</div>
+                      <div style={{ fontSize:13, marginTop:6 }}>Sélectionnez une culture et cliquez sur "Analyser"</div>
+                    </div>
+                  )}
+                  {!aiLoading && aiResult && (
+                    <div>
+                      {/* Status banner */}
+                      <div style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:12, padding:'13px 18px', marginBottom:16, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ width:8, height:8, borderRadius:'50%', background: aiResult.overall_status==='Nominal'?T.green:T.amber }} />
+                          <span style={{ fontSize:14, fontWeight:700, color:T.text }}>{aiResult.overall_status}</span>
+                        </div>
+                        <span style={{ fontSize:12, color:T.muted }}>{aiResult.recommendations?.length||0} analyse(s) · Ferme #{aiResult.farm_id}</span>
+                        {aiResult.output_derja && aiResult.output_derja!=='Khidma Ola' && (
+                          <span style={{ fontSize:11, color:T.purple, display:'flex', alignItems:'center', gap:4 }}>
+                            <MessageCircle size={11}/> Darija disponible
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Darija block */}
+                      {aiResult.output_derja && aiResult.output_derja!=='Khidma Ola' && (
+                        <div style={{ background:`${T.purple}08`, border:`1px solid ${T.purple}25`, borderRadius:12, padding:'14px 18px', marginBottom:16 }}>
+                          <div style={{ fontSize:10, fontWeight:700, color:T.purple, textTransform:'uppercase', letterSpacing:0.7, marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                            <MessageCircle size={11}/> ملخص بالدارجة التونسية
+                          </div>
+                          <div style={{ fontSize:14, color:T.text, lineHeight:1.8, direction:'rtl' }}>{aiResult.output_derja}</div>
+                        </div>
+                      )}
+
+                      {/* AI rec grid */}
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:14 }}>
+                        {aiResult.recommendations?.map((r,i) => <AiRecommendationCard key={i} rec={r}/>)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* AI recommendation cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
-                {aiRecs.recommendations?.map((ar, idx) => (
-                  <AiRecCard key={idx} rec={ar} idx={idx} />
+              {/* TAB: Recommandations DB */}
+              {tab==='db' && (
+                <div>
+                  {loading && <div style={{ textAlign:'center', padding:60, color:T.muted }}>Chargement…</div>}
+                  {!loading && filteredRecs.length===0 && (
+                    <div style={{ textAlign:'center', padding:'70px 0', color:T.muted }}>
+                      <Lightbulb size={40} style={{ opacity:.2, marginBottom:14 }}/>
+                      <div style={{ fontSize:15, fontWeight:700, color:T.dim }}>Aucune recommandation</div>
+                      <div style={{ fontSize:13, marginTop:6 }}>Les recommandations sont générées automatiquement par le monitoring</div>
+                    </div>
+                  )}
+                  {filteredRecs.map(r => <RecRow key={r.id} rec={r} onAction={handleRecAction}/>)}
+                </div>
+              )}
+
+              {/* TAB: Alertes */}
+              {tab==='alerts' && (
+                <div>
+                  {alerts.length > 0 && (
+                    <div style={{ display:'flex', gap:16, padding:'12px 16px', background:T.white, border:`1px solid ${T.border}`, borderRadius:12, marginBottom:16, flexWrap:'wrap', alignItems:'center', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+                      <div style={{ display:'flex', height:6, flex:1, borderRadius:3, overflow:'hidden', minWidth:120 }}>
+                        {[{s:'critical',c:T.red},{s:'warning',c:T.amber},{s:'info',c:T.sky}].map(({s,c})=>{
+                          const n=alerts.filter(a=>a.severity===s).length;
+                          const pct=n/alerts.length*100;
+                          return pct>0&&<div key={s} style={{width:`${pct}%`,background:c}} title={`${s}: ${n}`}/>;
+                        })}
+                      </div>
+                      {[{s:'critical',c:T.red,l:'Critique'},{s:'warning',c:T.amber,l:'Alerte'},{s:'info',c:T.sky,l:'Info'}].map(({s,c,l})=>{
+                        const n=alerts.filter(a=>a.severity===s).length;
+                        return n>0&&<span key={s} style={{fontSize:11,color:T.dim,display:'flex',alignItems:'center',gap:5}}>
+                          <span style={{width:7,height:7,borderRadius:'50%',background:c}}/>{l}: <strong style={{color:T.text}}>{n}</strong>
+                        </span>;
+                      })}
+                      <span style={{fontSize:11,color:T.muted,marginLeft:'auto'}}>{unresolvedAlerts.length} non résolue(s)</span>
+                    </div>
+                  )}
+                  {filteredAlerts.length===0
+                    ? <div style={{textAlign:'center',padding:'60px 0',color:T.muted}}>
+                        <CheckCircle2 size={40} color={T.green} style={{opacity:.35,marginBottom:12}}/>
+                        <div style={{fontSize:14,fontWeight:600,color:T.dim}}>Aucune alerte active</div>
+                      </div>
+                    : filteredAlerts.map(a => <AlertRow key={a.id} alert={a} onResolve={handleResolve}/>)}
+                </div>
+              )}
+
+              {/* TAB: Anomalies */}
+              {tab==='anomalies' && (
+                <div>
+                  {anomalies.length===0
+                    ? <div style={{textAlign:'center',padding:'70px 0',color:T.muted}}>
+                        <Shield size={40} color={T.green} style={{opacity:.3,marginBottom:14}}/>
+                        <div style={{fontSize:15,fontWeight:700,color:T.dim}}>Aucune anomalie détectée</div>
+                        <div style={{fontSize:13,marginTop:6}}>Le monitoring temps-réel est actif</div>
+                      </div>
+                    : anomalies.map(a => (
+                        <div key={a.id} style={{ background:T.white, border:`1px solid ${T.border}`, borderLeft:`4px solid ${T.amber}`, borderRadius:12, padding:'13px 16px', marginBottom:8, boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
+                          <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                            <Badge color={T.amber}>{a.anomaly_type}</Badge>
+                            <span style={{fontSize:10,color:T.muted}}>{ago(a.timestamp)}</span>
+                          </div>
+                          <div style={{fontSize:13,color:T.text}}>{a.description}</div>
+                          {a.isolation_score!=null && <div style={{fontSize:11,color:T.muted,marginTop:5}}>Score: <strong style={{color:T.amber}}>{(a.isolation_score*100).toFixed(1)}%</strong> · {a.severity}</div>}
+                        </div>
+                      ))}
+                </div>
+              )}
+
+              {/* TAB: Analyse */}
+              {tab==='analyse' && (
+                <div>
+                  {recs.length>0 && (
+                    <div style={{background:T.white,border:`1px solid ${T.border}`,borderRadius:14,padding:'20px 22px',marginBottom:16,boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
+                      <div style={{fontSize:11,fontWeight:700,color:T.muted,textTransform:'uppercase',letterSpacing:0.6,marginBottom:12}}>Distribution urgences</div>
+                      <div style={{display:'flex',height:10,borderRadius:5,overflow:'hidden',marginBottom:12}}>
+                        {Object.entries(URGENCY).map(([k,v])=>{
+                          const n=recs.filter(r=>r.urgency_level===k).length;
+                          const pct=recs.length>0?(n/recs.length)*100:0;
+                          return pct>0&&<div key={k} style={{width:`${pct}%`,background:v.color}} title={`${v.label}: ${n}`}/>;
+                        })}
+                      </div>
+                      <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
+                        {Object.entries(URGENCY).map(([k,v])=>{
+                          const n=recs.filter(r=>r.urgency_level===k).length;
+                          return <div key={k} style={{fontSize:12,color:T.dim,display:'flex',alignItems:'center',gap:7}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:v.color}}/>{v.label}: <strong style={{color:T.text}}>{n}</strong>
+                          </div>;
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {dashStats && (
+                    <div style={{background:T.white,border:`1px solid ${T.border}`,borderRadius:14,padding:'20px 22px',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
+                      <div style={{fontSize:11,fontWeight:700,color:T.muted,textTransform:'uppercase',letterSpacing:0.6,marginBottom:16}}>Statistiques ferme</div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+                        {Object.entries(dashStats).filter(([,v])=>typeof v==='number').slice(0,9).map(([k,v])=>(
+                          <div key={k} style={{background:T.raised,borderRadius:10,padding:'12px 14px',textAlign:'center',border:`1px solid ${T.border}`}}>
+                            <div style={{fontSize:22,fontWeight:900,color:T.text}}>{v}</div>
+                            <div style={{fontSize:9,color:T.muted,marginTop:3,textTransform:'uppercase',letterSpacing:0.4}}>{k.replace(/_/g,' ')}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {!dashStats && recs.length===0 && (
+                    <div style={{textAlign:'center',padding:'70px 0',color:T.muted}}>
+                      <TrendingUp size={40} style={{opacity:.2,marginBottom:14}}/>
+                      <div style={{fontSize:15,fontWeight:600,color:T.dim}}>Données insuffisantes</div>
+                      <div style={{fontSize:13,marginTop:6}}>Générez des recommandations IA d'abord</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── RIGHT SIDEBAR ── */}
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+              {/* AI Engine card */}
+              <div style={{ background:'linear-gradient(160deg, #1e1b4b, #312e81)', border:'1px solid rgba(99,102,241,.3)', borderRadius:16, overflow:'hidden' }}>
+                <div style={{ padding:'15px 17px', borderBottom:'1px solid rgba(99,102,241,.2)' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+                    <div style={{ background:'rgba(165,180,252,.18)', borderRadius:8, padding:7 }}>
+                      <Sparkles size={14} color="#a5b4fc" />
+                    </div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:'#e0e7ff' }}>Moteur IA Souverain</div>
+                      <div style={{ fontSize:10, color:'rgba(99,102,241,.8)' }}>Ollama · RAG UTAP · Open-Meteo</div>
+                    </div>
+                  </div>
+                  {aiResult?.overall_status && (
+                    <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ width:6, height:6, borderRadius:'50%', background: aiResult.overall_status==='Nominal'?'#4ade80':T.amber }} />
+                      <span style={{ fontSize:11, color:'#c7d2fe', fontWeight:600 }}>{aiResult.overall_status}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding:'13px 17px' }}>
+                  <label style={{ fontSize:10, color:'#818cf8', fontWeight:700, display:'block', marginBottom:5, textTransform:'uppercase', letterSpacing:0.5 }}>
+                    Culture / Espèce
+                  </label>
+                  <select value={selectedPlant} onChange={e => setPlant(e.target.value)}
+                    style={{ width:'100%', padding:'7px 10px', marginBottom:10, background:'rgba(99,102,241,.18)', border:'1px solid rgba(99,102,241,.3)', borderRadius:7, color:'#c7d2fe', fontSize:12, cursor:'pointer', outline:'none' }}>
+                    {PLANTS.map(p => <option key={p} value={p} style={{background:'#1e1b4b'}}>{p}</option>)}
+                  </select>
+                  <button onClick={generateAI} disabled={aiLoading || !selectedFarm}
+                    style={{
+                      width:'100%', padding:'9px', borderRadius:9, border:'none', cursor:'pointer',
+                      background: aiLoading ? 'rgba(99,102,241,.3)' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                      color:'#fff', fontWeight:700, fontSize:13,
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                      boxShadow: aiLoading ? 'none' : '0 4px 14px rgba(79,70,229,.45)',
+                      transition:'all .2s', opacity: !selectedFarm ? 0.6 : 1,
+                    }}>
+                    {aiLoading
+                      ? <><RefreshCw size={13} style={{animation:'spin .8s linear infinite'}}/> Analyse…</>
+                      : <><Play size={13}/> Analyser</>}
+                  </button>
+                </div>
+              </div>
+
+              {/* Alert distribution mini chart */}
+              {alertTypeData.length > 0 && (
+                <div style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:14, padding:'14px 16px', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:T.muted, textTransform:'uppercase', letterSpacing:0.6, marginBottom:12 }}>Alertes par type</div>
+                  <ResponsiveContainer width="100%" height={90}>
+                    <BarChart data={alertTypeData} layout="vertical" margin={{left:0,right:0,top:0,bottom:0}}>
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" width={88} tick={{fill:T.dim,fontSize:10}} axisLine={false} tickLine={false}/>
+                      <Tooltip contentStyle={{background:T.white,border:`1px solid ${T.border}`,borderRadius:8,fontSize:11,color:T.text}} />
+                      <Bar dataKey="value" radius={[0,4,4,0]}>
+                        {alertTypeData.map((_,i) => <Cell key={i} fill={[T.red,T.amber,T.sky][i%3]}/>)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Social proof — system stats */}
+              <div style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:14, padding:'14px 16px', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+                <div style={{ fontSize:10, fontWeight:700, color:T.muted, textTransform:'uppercase', letterSpacing:0.6, marginBottom:12 }}>Système</div>
+                {[
+                  { label:'Recommandations totales', value: recs.length, color: T.indigo },
+                  { label:'Traitées',                value: recs.filter(r=>r.is_actioned).length, color: T.green },
+                  { label:'Alertes actives',         value: unresolvedAlerts.length, color: T.amber },
+                  { label:'Anomalies détectées',     value: anomalies.length, color: T.sky },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'7px 0', borderBottom:`1px solid ${T.border}` }}>
+                    <span style={{ fontSize:12, color:T.dim }}>{label}</span>
+                    <span style={{ fontSize:14, fontWeight:800, color }}>{value}</span>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* ── Toolbar ─────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-          <div className="farms-search-wrap">
-            <Search size={14} className="farms-search-icon" />
-            <input className="farms-search-input" placeholder="Rechercher…"
-              value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button className="farms-search-clear" onClick={() => setSearch('')}><X size={12} /></button>}
-          </div>
-
-          <div className="farms-filter-pills">
-            {URGENCY_LEVELS.map(l => {
-              const cfg = URGENCY_CFG[l];
-              return (
-                <button key={l}
-                  className={`farms-filter-pill ${filter === l ? 'active' : ''}`}
-                  onClick={() => setFilter(l)}
-                  style={filter === l && l !== 'all' ? { background: cfg?.color, borderColor: cfg?.color, color: '#fff' } : {}}>
-                  {l === 'all' ? 'Toutes' : cfg?.label}{l !== 'all' ? ` (${counts[l] || 0})` : ''}
-                </button>
-              );
-            })}
-          </div>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--color-text-2)', cursor: 'pointer', marginLeft: 'auto' }}>
-            <input type="checkbox" checked={showActioned} onChange={e => setShowActioned(e.target.checked)} style={{ accentColor: 'var(--color-primary)' }} />
-            Afficher les traités
-          </label>
-
-          <div className="farms-count" style={{ flexShrink: 0 }}>
-            <Activity size={13} /> {filtered.length} recommandation{filtered.length !== 1 ? 's' : ''}
           </div>
         </div>
 
-        {/* ── Priority Urgency Bar ─────────────────────────────────────── */}
-        {recs.length > 0 && (
-          <div style={{
-            background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
-            borderRadius: 12, padding: '14px 20px', marginBottom: 20,
-            display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center',
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Distribution des urgences
-            </div>
-            <div style={{ flex: 1, display: 'flex', gap: 0, borderRadius: 99, overflow: 'hidden', height: 10, minWidth: 200 }}>
-              {Object.entries(counts).map(([level, count]) => {
-                const pct = recs.length > 0 ? (count / recs.length) * 100 : 0;
-                if (pct === 0) return null;
-                return (
-                  <div key={level} title={`${URGENCY_CFG[level]?.label}: ${count}`}
-                    style={{ width: `${pct}%`, background: URGENCY_CFG[level]?.color, transition: 'width .4s' }} />
-                );
-              })}
-            </div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              {Object.entries(counts).map(([level, count]) => (
-                <div key={level} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--color-text-2)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: URGENCY_CFG[level]?.color, display: 'inline-block' }} />
-                  {URGENCY_CFG[level]?.label}: <strong>{count}</strong>
-                </div>
-              ))}
-            </div>
+        {/* ═══ FOOTER ═══════════════════════════════════════════════════════ */}
+        <footer style={{ borderTop:`1px solid ${T.border}`, padding:'16px 32px', display:'flex', justifyContent:'space-between', alignItems:'center', background:T.white }}>
+          <div style={{ display:'flex', gap:16, alignItems:'center' }}>
+            <span style={{ fontSize:12, color:T.muted, fontWeight:500 }}>Smart Farm AI — Intelligence Agronomique</span>
+            <LiveDot status={wsStatus} />
           </div>
-        )}
-
-        {/* ── Recommendations list ─────────────────────────────────────── */}
-        {loading && <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}><div className="spinner" /></div>}
-
-        {!loading && filtered.length === 0 && (
-          <div className="al-empty">
-            <Lightbulb size={48} color="#94a3b8" />
-            <h3>Aucune recommandation</h3>
-            <p>
-              {recs.length === 0
-                ? 'Le système n\'a pas généré de recommandations. Utilisez le bouton "Générer Recommandations" ci-dessus pour lancer l\'analyse IA.'
-                : 'Aucune recommandation ne correspond aux filtres sélectionnés.'}
-            </p>
-          </div>
-        )}
-
-        <div className="rc-list">
-          {filtered.map(r => (
-            <RecCard key={r.id} rec={r} onAction={handleAction} />
-          ))}
-        </div>
-
+          <button onClick={handleExport}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 16px', borderRadius:9, border:`1px solid ${T.border}`, background:T.white, color:T.dim, fontSize:12, fontWeight:600, cursor:'pointer', transition:'all .2s' }}
+            onMouseEnter={e => { e.currentTarget.style.background=T.raised; e.currentTarget.style.borderColor=T.indigo; e.currentTarget.style.color=T.indigo; }}
+            onMouseLeave={e => { e.currentTarget.style.background=T.white; e.currentTarget.style.borderColor=T.border; e.currentTarget.style.color=T.dim; }}>
+            <Download size={12}/> Exporter les données
+          </button>
+        </footer>
       </div>
 
-      {/* Pulse animation for live indicator */}
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: .6; transform: scale(1.3); }
-        }
+        @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
       `}</style>
-    </>
+    </div>
   );
 }

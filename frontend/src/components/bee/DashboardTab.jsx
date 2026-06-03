@@ -6,6 +6,7 @@ import {
   CalendarClock, CheckCircle, Clock, AlertOctagon,
   PackageSearch, ChevronDown, ChevronUp, Bell, Play
 } from 'lucide-react';
+import beeIconImg from '../../assets/bee/bee-icon.png';
 import { COLORS } from './BeeConstants';
 
 import { beeApi } from '../../services/beeApi';
@@ -370,19 +371,43 @@ export default function DashboardTab({ ruches = [], emplacements = [], isProcess
       <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 16 }}>
         <PlanningWidget />
 
-        <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: COLORS.accentGlow, border: `1px solid ${COLORS.accentDark}30`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Hexagon size={16} color={COLORS.accent} />
-              </div>
+        <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+          {/* ── Watercolor image banner ── */}
+          <div style={{ position: 'relative', height: 160, overflow: 'hidden', background: '#fffbeb', flexShrink: 0 }}>
+            <img
+              src={beeIconImg}
+              alt="bee aquarelle"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+            />
+            {/* gradient overlay bottom */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70,
+              background: 'linear-gradient(to top, rgba(255,251,235,1) 0%, transparent 100%)',
+              pointerEvents: 'none' }} />
+            {/* title over image */}
+            <div style={{ position: 'absolute', bottom: 10, left: 16, right: 16,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
               <div>
-                <div style={{ fontWeight: 800, color: COLORS.text, fontSize: 13 }}>Carte Santé Colonies</div>
-                <div style={{ fontSize: 10, color: COLORS.textMuted }}>{ruches.length} ruches · {activeRuches.length} actives</div>
+                <div style={{ fontWeight: 900, color: COLORS.text, fontSize: 14, letterSpacing: '-0.02em' }}>
+                  Carte Santé Colonies
+                </div>
+                <div style={{ fontSize: 10, color: COLORS.textMuted, marginTop: 2 }}>
+                  {ruches.length} ruches · {activeRuches.length} actives
+                </div>
+              </div>
+              {/* Honey badge */}
+              <div style={{ background: COLORS.accent, color: '#fff', borderRadius: 8,
+                padding: '3px 10px', fontSize: 11, fontWeight: 800,
+                boxShadow: `0 2px 8px ${COLORS.accent}50` }}>
+                🐝 Colonies
               </div>
             </div>
+          </div>
+
+          {/* ── Heatmap + legend ── */}
+          <div style={{ padding: '16px 20px' }}>
             <ColonyHeatmap ruches={ruches} />
-            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               {[['A', COLORS.gradeA, '≥8'], ['B', COLORS.gradeB, '6-8'], ['C', COLORS.gradeC, '4-6'], ['D', COLORS.gradeD, '<4']].map(([g, c, r]) => (
                 <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 8, height: 8, borderRadius: 2, background: c }} />

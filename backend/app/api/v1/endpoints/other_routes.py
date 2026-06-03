@@ -71,7 +71,14 @@ def list_alerts(
     farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
     """Alerts scoped to the selected farm (farm_id param) or all user farms."""
-    return [_serialize_alert(a) for a in AlertService(db).list_alerts_by_farms(farm_ids, limit=limit)]
+    from app.core.cache import cache_get, cache_set
+    key = f"alerts:{sorted(farm_ids)}:{limit}"
+    hit = cache_get(key)
+    if hit is not None:
+        return hit
+    result = [_serialize_alert(a) for a in AlertService(db).list_alerts_by_farms(farm_ids, limit=limit)]
+    cache_set(key, result, ttl=30)   # 30s — alertes = données fraîches
+    return result
 
 @alert_router.get("/critical")
 def critical_alerts(
@@ -169,9 +176,16 @@ def list_recommendations(
     farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
     """Recommendations scoped to the selected farm (farm_id param) or all user farms."""
+    from app.core.cache import cache_get, cache_set
+    key = f"recs:{sorted(farm_ids)}:{include_actioned}"
+    hit = cache_get(key)
+    if hit is not None:
+        return hit
     svc = RecommendationService(db)
     recs = svc.get_all_by_farms(farm_ids) if include_actioned else svc.get_pending_by_farms(farm_ids)
-    return [_serialize_rec(r) for r in recs]
+    result = [_serialize_rec(r) for r in recs]
+    cache_set(key, result, ttl=60)
+    return result
 
 @rec_router.put("/{rec_id}/action")
 def action_recommendation(rec_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
@@ -317,7 +331,14 @@ def dashboard_stats(
     farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
     """Stats scoped to the selected farm (farm_id param) or all user farms."""
-    return DashboardService(db).get_stats(farm_ids=farm_ids)
+    from app.core.cache import cache_get, cache_set
+    key = f"dashboard:stats:{sorted(farm_ids)}"
+    hit = cache_get(key)
+    if hit is not None:
+        return hit
+    result = DashboardService(db).get_stats(farm_ids=farm_ids)
+    cache_set(key, result if isinstance(result, dict) else result.model_dump(), ttl=60)
+    return result
 
 
 @dashboard_router.get("/analytics")
@@ -327,6 +348,12 @@ def dashboard_analytics(
     farm_ids: List[int] = Depends(get_scoped_farm_ids),
 ):
     """Analytics scoped to the selected farm (farm_id param) or all user farms."""
+    from app.core.cache import cache_get, cache_set
+    key = f"dashboard:analytics:{sorted(farm_ids)}:{days}"
+    hit = cache_get(key)
+    if hit is not None:
+        return hit
+
     from app.models.domain import Anomaly, Alert, AnimalUnit, AnimalType
     from sqlalchemy import func
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -407,7 +434,7 @@ def dashboard_analytics(
         elif row.severity == "warning":
             day_map[key]["alerts_warning"] = row.count
 
-    return {
+    analytics_result = {
         "timeline": sorted(day_map.values(), key=lambda x: x["day"]),
         "species_health": [
             {
@@ -420,6 +447,8 @@ def dashboard_analytics(
         "alert_severity_distribution": [{"severity": r.severity, "count": r.count} for r in alert_severity_dist],
         "anomaly_type_distribution":   [{"type": r.anomaly_type, "count": r.count} for r in anomaly_type_dist],
     }
+    cache_set(key, analytics_result, ttl=300)
+    return analytics_result
 
 
 # ---------------------------------------------------------------------------

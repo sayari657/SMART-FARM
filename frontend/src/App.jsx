@@ -9,6 +9,7 @@ import { usePinLock, PinLockScreen } from './components/PinLock';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './layouts/MainLayout';
 import WorkerLayout from './layouts/WorkerLayout';
+import SuperAdminLayout from './layouts/SuperAdminLayout';
 import NoFarmGuard from './components/NoFarmGuard';
 
 // Pages — lazy-loaded for code splitting
@@ -45,6 +46,17 @@ const WorkerScan          = lazy(() => import('./pages/worker/WorkerScan'));
 const WorkerReport        = lazy(() => import('./pages/worker/WorkerReport'));
 const WorkerSettings      = lazy(() => import('./pages/worker/WorkerSettings'));
 const WorkerInstructions  = lazy(() => import('./pages/worker/WorkerInstructions'));
+const IoTDevices          = lazy(() => import('./pages/IoTDevices'));
+const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
+const SuperAdminTenants   = lazy(() => import('./pages/superadmin/SuperAdminTenants'));
+const SuperAdminUsers     = lazy(() => import('./pages/superadmin/SuperAdminUsers'));
+const SuperAdminPlans     = lazy(() => import('./pages/superadmin/SuperAdminPlans'));
+const SuperAdminFlags     = lazy(() => import('./pages/superadmin/SuperAdminFlags'));
+const SuperAdminModels    = lazy(() => import('./pages/superadmin/SuperAdminModels'));
+const SuperAdminAudit     = lazy(() => import('./pages/superadmin/SuperAdminAudit'));
+const SuperAdminBroadcast = lazy(() => import('./pages/superadmin/SuperAdminBroadcast'));
+const SuperAdminSystem    = lazy(() => import('./pages/superadmin/SuperAdminSystem'));
+const SuperAdmin2FA       = lazy(() => import('./pages/superadmin/SuperAdmin2FA'));
 
 const PageLoader = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0f1117' }}>
@@ -52,11 +64,20 @@ const PageLoader = () => (
   </div>
 );
 
+function SuperAdminRoute({ children }) {
+  const { user } = useAuth();
+  const token = localStorage.getItem('token');
+  if (!token) return <Navigate to="/login" replace />;
+  if (user?.role !== 'superadmin') return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function OwnerRoute({ children }) {
   const { user } = useAuth();
   const token = localStorage.getItem('token');
   if (!token) return <Navigate to="/login" replace />;
   if (user?.role === 'worker') return <Navigate to="/worker" replace />;
+  if (user?.role === 'superadmin') return <Navigate to="/superadmin" replace />;
   return children;
 }
 
@@ -106,7 +127,8 @@ function AppRoutes() {
         <Route path="about-project" element={<AboutProject />} />
         <Route path="trees" element={<ArbresPlantations />} />
         <Route path="map" element={<MapCenter />} />
-        <Route path="entrepot" element={<Entrepot />} />
+        <Route path="entrepot"    element={<Entrepot />} />
+        <Route path="iot-devices" element={<NoFarmGuard><IoTDevices /></NoFarmGuard>} />
       </Route>
 
       {/* Worker Protected layout (PWA) */}
@@ -121,6 +143,24 @@ function AppRoutes() {
         <Route path="report" element={<WorkerReport />} />
         <Route path="settings" element={<WorkerSettings />} />
         <Route path="instructions" element={<WorkerInstructions />} />
+      </Route>
+
+      {/* SuperAdmin Portal — isolated layout */}
+      <Route path="/superadmin" element={
+        <SuperAdminRoute>
+          <SuperAdminLayout />
+        </SuperAdminRoute>
+      }>
+        <Route index              element={<SuperAdminDashboard />} />
+        <Route path="tenants"   element={<SuperAdminTenants />} />
+        <Route path="users"     element={<SuperAdminUsers />} />
+        <Route path="plans"     element={<SuperAdminPlans />} />
+        <Route path="flags"     element={<SuperAdminFlags />} />
+        <Route path="models"    element={<SuperAdminModels />} />
+        <Route path="audit"     element={<SuperAdminAudit />} />
+        <Route path="broadcast" element={<SuperAdminBroadcast />} />
+        <Route path="system"    element={<SuperAdminSystem />} />
+        <Route path="2fa"       element={<SuperAdmin2FA />} />
       </Route>
 
       {/* 404 */}

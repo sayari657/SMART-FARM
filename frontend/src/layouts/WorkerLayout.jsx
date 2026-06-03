@@ -3,10 +3,12 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { Home, CheckSquare, Camera, AlertTriangle, LogOut, Wifi, WifiOff, CloudOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNetworkSync } from '../hooks/useNetworkSync';
+import { usePWAVersion } from '../hooks/usePWAVersion';
 
 function WorkerLayout() {
   const { user, logout } = useAuth();
   const { isOnline, syncing, pendingCount } = useNetworkSync();
+  const { updateAvailable, newVersion, dismiss, applyUpdate } = usePWAVersion();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -23,6 +25,23 @@ function WorkerLayout() {
       maxWidth:480, margin:'0 auto', position:'relative',
       overscrollBehavior:'none',
     }}>
+      {/* ── PWA Update Banner ── */}
+      {updateAvailable && (
+        <div style={{ background: '#7c3aed', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: '#fff', fontWeight: 500 }}>
+            Mise à jour disponible : v{newVersion}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={applyUpdate} style={{ padding: '4px 12px', background: '#fff', color: '#7c3aed', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              Mettre à jour
+            </button>
+            <button onClick={dismiss} style={{ padding: '4px 8px', background: 'transparent', color: '#ffffff99', border: 'none', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── TOP BAR ── */}
       <header style={{
         background:'rgba(15,23,42,0.95)',

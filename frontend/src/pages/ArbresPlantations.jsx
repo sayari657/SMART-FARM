@@ -10,6 +10,15 @@ import {
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { agentAPI, cvAPI, diagnosticAPI } from '../services/api';
+import agLeavesImg    from '../assets/agronomie/leaves.jpg';
+import agLemonImg     from '../assets/agronomie/lemon.jpg';
+import agOrangeImg    from '../assets/agronomie/orange.jpg';
+import agOliveImg     from '../assets/agronomie/olive.jpg';
+import agInsectsImg   from '../assets/agronomie/insects.jpg';
+import agPlantdocImg  from '../assets/agronomie/plantdoc.jpg';
+import agGroupAgroImg  from '../assets/agronomie/group-agronomie.jpg';
+import agGroupPhytoImg  from '../assets/agronomie/group-phyto.jpg';
+import agHeroImg        from '../assets/agronomie/hero-agronomie-phyto.jpg';
 
 /* ══════════════════════════════════════════════════════════
    DESIGN TOKENS — Enterprise Light
@@ -61,7 +70,7 @@ const saveReps = (g, rs) => localStorage.setItem(`pb_${g}_reps`, JSON.stringify(
 /* ══════════════════════════════════════════════════════════
    SCANNER PANEL
 ══════════════════════════════════════════════════════════ */
-function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon, onAnalyze }) {
+function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon, cardImg, onAnalyze }) {
   const { t } = useTranslation();
   const [img,       setImg]       = useState(null);
   const [dets,      setDets]      = useState([]);
@@ -201,12 +210,15 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
         display:'flex',alignItems:'center',gap:10,
       }}>
         <div style={{
-          width:38,height:38,borderRadius:11,flexShrink:0,
-          background:`linear-gradient(135deg,${accent},${accent}cc)`,
-          display:'flex',alignItems:'center',justifyContent:'center',
-          boxShadow:`0 4px 10px ${accent}44`,
+          width:48,height:48,borderRadius:12,flexShrink:0,
+          overflow:'hidden',
+          boxShadow:`0 4px 12px ${accent}44`,
+          border:`2px solid ${accent}30`,
         }}>
-          <Icon size={18} color="#fff"/>
+          {cardImg
+            ? <img src={cardImg} alt={title} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }}/>
+            : <div style={{ width:'100%',height:'100%',background:`linear-gradient(135deg,${accent},${accent}cc)`,display:'flex',alignItems:'center',justifyContent:'center' }}><Icon size={20} color="#fff"/></div>
+          }
         </div>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13,fontWeight:800,color:T.textPri,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{title}</div>
@@ -356,7 +368,7 @@ function ReportCard({ report, onDelete, accent, accentLt }) {
 /* ══════════════════════════════════════════════════════════
    GROUP SECTION (scanners + isolated reports)
 ══════════════════════════════════════════════════════════ */
-function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners, reports, reportLoading, detCount, onDeleteReport }) {
+function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, cardImg, scanners, reports, reportLoading, detCount, onDeleteReport }) {
   const { t } = useTranslation();
   const progress = detCount % REPORT_EVERY;
   const nextIn   = REPORT_EVERY - (progress || REPORT_EVERY);
@@ -370,8 +382,11 @@ function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, scanners,
         padding:'16px 22px', marginBottom:16,
         boxShadow:T.shadowMd, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
       }}>
-        <div style={{width:46,height:46,borderRadius:14,background:`linear-gradient(135deg,${accent},${accent}aa)`,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:`0 5px 15px ${accent}44`,flexShrink:0}}>
-          <Icon size={22} color="#fff"/>
+        <div style={{width:52,height:52,borderRadius:14,overflow:'hidden',boxShadow:`0 5px 15px ${accent}44`,flexShrink:0,border:`2px solid ${accent}30`}}>
+          {cardImg
+            ? <img src={cardImg} alt={title} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+            : <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${accent},${accent}aa)`,display:'flex',alignItems:'center',justifyContent:'center'}}><Icon size={22} color="#fff"/></div>
+          }
         </div>
         <div style={{flex:1,minWidth:160}}>
           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
@@ -619,29 +634,37 @@ export default function ArbresPlantations() {
 
         {/* ── Hero ───────────────────────────────────────── */}
         <div style={{
-          background:'linear-gradient(135deg,#ffffff 0%,#f7fdf9 60%,#fffefa 100%)',
+          background:'#0f3d1f',
           borderBottom:`1.5px solid ${T.border}`,
           padding:'clamp(14px,3vw,24px) clamp(14px,4vw,40px) 20px',
-          position:'relative',overflow:'hidden',
+          position:'relative',overflow:'hidden',minHeight:110,
         }}>
-          <div style={{position:'absolute',top:-50,right:60,width:220,height:220,borderRadius:'50%',background:`radial-gradient(circle,${T.green}0d 0%,transparent 70%)`,pointerEvents:'none'}}/>
-          <div style={{position:'absolute',top:-30,right:280,width:140,height:140,borderRadius:'50%',background:`radial-gradient(circle,${T.amber}0d 0%,transparent 70%)`,pointerEvents:'none'}}/>
+          {/* Watercolor hero image */}
+          <img src={agHeroImg} alt="" style={{
+            position:'absolute',inset:0,width:'100%',height:'100%',
+            objectFit:'cover',objectPosition:'center',pointerEvents:'none',
+          }}/>
+          {/* Overlay */}
+          <div style={{
+            position:'absolute',inset:0,pointerEvents:'none',
+            background:'linear-gradient(120deg,rgba(10,50,20,.82) 0%,rgba(16,80,35,.68) 55%,rgba(20,110,50,.40) 100%)',
+          }}/>
 
-          <div style={{maxWidth:1600,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',position:'relative'}}>
+          <div style={{maxWidth:1600,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',position:'relative',zIndex:2}}>
             <div style={{display:'flex',alignItems:'center',gap:16}}>
-              <div style={{width:52,height:52,borderRadius:17,background:`linear-gradient(135deg,${T.green},#15803d)`,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:`0 8px 22px ${T.green}44`,flexShrink:0}}>
-                <TreePine size={26} color="#fff"/>
+              <div style={{width:56,height:56,borderRadius:17,overflow:'hidden',boxShadow:`0 8px 22px rgba(0,0,0,.35)`,flexShrink:0,border:'2px solid rgba(255,255,255,.25)'}}>
+                <img src={agHeroImg} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
               </div>
               <div>
-                <div style={{fontSize:10,color:T.textMut,textTransform:'uppercase',letterSpacing:2,fontWeight:700,marginBottom:3}}>Smart Farm · Phyto Intelligence</div>
-                <h1 style={{margin:0,fontSize:24,fontWeight:900,color:T.textPri,letterSpacing:-0.5}}>{t('trees.agronomy_phyto_vision')}</h1>
-                <p style={{margin:'3px 0 0',fontSize:11,color:T.textMut}}>{t('trees.diagnostic_subtitle_full')}</p>
+                <div style={{fontSize:10,color:'rgba(255,255,255,.65)',textTransform:'uppercase',letterSpacing:2,fontWeight:700,marginBottom:3}}>Smart Farm · Phyto Intelligence</div>
+                <h1 style={{margin:0,fontSize:24,fontWeight:900,color:'#fff',letterSpacing:-0.5,textShadow:'0 2px 10px rgba(0,0,0,.3)'}}>{t('trees.agronomy_phyto_vision')}</h1>
+                <p style={{margin:'3px 0 0',fontSize:11,color:'rgba(255,255,255,.65)'}}>{t('trees.diagnostic_subtitle_full')}</p>
               </div>
             </div>
             <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
               {[{icon:Globe,label:'YOLO v8'},{icon:Shield,label:'RAG UTAP'},{icon:Sparkles,label:'Labess-7B'}].map(({icon:Ic,label})=>(
-                <div key={label} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'#ffffff',border:`1.5px solid ${T.border}`,borderRadius:99,fontSize:10,color:T.textSec,fontWeight:700,boxShadow:T.shadow}}>
-                  <Ic size={11} color={T.green}/>{label}
+                <div key={label} style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',background:'rgba(255,255,255,.15)',backdropFilter:'blur(8px)',border:'1px solid rgba(255,255,255,.25)',borderRadius:99,fontSize:10,color:'#fff',fontWeight:700}}>
+                  <Ic size={11} color="#4ade80"/>{label}
                 </div>
               ))}
               <button onClick={()=>{fetchStats();fetchHistory();}} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 16px',background:`linear-gradient(135deg,${T.green},#15803d)`,border:'none',borderRadius:99,fontSize:10,color:'#fff',fontWeight:700,cursor:'pointer',boxShadow:`0 4px 12px ${T.green}44`}}>
@@ -685,21 +708,21 @@ export default function ArbresPlantations() {
           <GroupSection
             title={t('trees.agronomy')}
             subtitle={t('trees.agronomy_desc')}
-            accent={T.green} accentLt={T.greenLt} icon={Leaf}
+            accent={T.green} accentLt={T.greenLt} icon={Leaf} cardImg={agGroupAgroImg}
             detCount={agronCnt} reports={agronReps} reportLoading={repLoading.agronomie}
             onDeleteReport={id=>deleteReport('agronomie',id)}
             scanners={[
               <ScannerPanel key="leaves"
                 title={t('trees.leaf_diseases')}   subtitle="Beans · Strawberry · Tomato"
-                category="leaves" accent={T.green} accentLt={T.greenLt} icon={Leaf}
+                category="leaves" accent={T.green} accentLt={T.greenLt} icon={Leaf} cardImg={agLeavesImg}
                 onAnalyze={onAnalyze}/>,
               <ScannerPanel key="lemon"
                 title={t('trees.lemon_diseases')}      subtitle="Lemon leaf pathologies"
-                category="lemon"  accent={T.yellow} accentLt={T.yellowLt} icon={Citrus}
+                category="lemon"  accent={T.yellow} accentLt={T.yellowLt} icon={Citrus} cardImg={agLemonImg}
                 onAnalyze={onAnalyze}/>,
               <ScannerPanel key="orange"
                 title={t('trees.orange_diseases')}         subtitle="Orange leaf pathologies"
-                category="orange" accent={T.orange} accentLt={T.orangeLt} icon={Citrus}
+                category="orange" accent={T.orange} accentLt={T.orangeLt} icon={Citrus} cardImg={agOrangeImg}
                 onAnalyze={onAnalyze}/>,
             ]}
           />
@@ -708,17 +731,17 @@ export default function ArbresPlantations() {
           <GroupSection
             title={t('trees.phyto_vision')}
             subtitle={t('trees.phyto_vision_desc')}
-            accent={T.amber} accentLt={T.amberLt} icon={Flower2}
+            accent={T.amber} accentLt={T.amberLt} icon={Flower2} cardImg={agGroupPhytoImg}
             detCount={phytoCnt} reports={phytoReps} reportLoading={repLoading.phyto}
             onDeleteReport={id=>deleteReport('phyto',id)}
             scanners={[
               <ScannerPanel key="olive"
                 title={t('trees.olive_diseases')}    subtitle="Peacock spot · Anthracnose · Psyllid"
-                category="olive"   accent={T.amber} accentLt={T.amberLt} icon={Flower2}
+                category="olive"   accent={T.amber} accentLt={T.amberLt} icon={Flower2} cardImg={agOliveImg}
                 onAnalyze={onAnalyze}/>,
               <ScannerPanel key="insects"
                 title={t('trees.insects_pests')}     subtitle="Army worm · Legume beetle · Rice pest"
-                category="insects" accent={T.red}   accentLt={T.redLt}   icon={Bug}
+                category="insects" accent={T.red}   accentLt={T.redLt}   icon={Bug} cardImg={agInsectsImg}
                 onAnalyze={onAnalyze}/>,
             ]}
           />
@@ -727,14 +750,14 @@ export default function ArbresPlantations() {
           <GroupSection
             title="PlantDoc — Multi-espèces"
             subtitle="Apple · Tomato · Grape · Potato · Corn · Strawberry · 13 espèces · 30 maladies"
-            accent={T.blue} accentLt={T.blueLt} icon={Leaf}
+            accent={T.blue} accentLt={T.blueLt} icon={Leaf} cardImg={agPlantdocImg}
             detCount={plantdocCnt} reports={plantdocReps} reportLoading={repLoading.plantdoc}
             onDeleteReport={id=>deleteReport('plantdoc',id)}
             scanners={[
               <ScannerPanel key="plantdoc"
                 title="PlantDoc Disease Detection"
                 subtitle="30 classes · Apple Scab · Tomato Blight · Grape Rot · Corn Rust · Potato Blight..."
-                category="plantdoc" accent={T.blue} accentLt={T.blueLt} icon={Leaf}
+                category="plantdoc" accent={T.blue} accentLt={T.blueLt} icon={Leaf} cardImg={agPlantdocImg}
                 onAnalyze={onAnalyze}/>,
             ]}
           />

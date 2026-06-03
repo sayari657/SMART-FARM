@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CloudRain, Sun, Wind, Cloud, Building2, PawPrint, AlertTriangle, AlertOctagon,
@@ -10,10 +10,28 @@ import Navbar from '../components/Navbar';
 import KPIBox from '../components/KPIBox';
 import AlertCard from '../components/AlertCard';
 import TelemetryChart from '../components/TelemetryChart';
-import api, { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, farmsAPI, externalAPI } from '../services/api';
+import api, { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, externalAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import AIScanner from '../components/AIScanner';
-import ExpertAssistant from '../components/expert/ExpertAssistant';
+
+const AIScanner       = lazy(() => import('../components/AIScanner'));
+const ExpertAssistant = lazy(() => import('../components/expert/ExpertAssistant'));
+import beeIconImg     from '../assets/bee/bee-icon.png';
+import cowIconImg     from '../assets/cow/cow-icon.png';
+import sheepIconImg   from '../assets/sheep/sheep-icon.png';
+import goatIconImg    from '../assets/goat/goat-icon.png';
+import poultryIconImg from '../assets/poultry/poultry-icon.png';
+import rabbitIconImg  from '../assets/rabbit/rabbit-icon.png';
+import dashHeroImg    from '../assets/dashboard-hero.jpg';
+import agLeavesImg   from '../assets/agronomie/leaves.jpg';
+import agLemonImg    from '../assets/agronomie/lemon.jpg';
+import agOrangeImg   from '../assets/agronomie/orange.jpg';
+import agOliveImg    from '../assets/agronomie/olive.jpg';
+import agInsectsImg  from '../assets/agronomie/insects.jpg';
+
+const SPECIES_IMG = {
+  bee: beeIconImg, cow: cowIconImg, sheep: sheepIconImg,
+  goat: goatIconImg, poultry: poultryIconImg, rabbit: rabbitIconImg,
+};
 
 const SPECIES_ROUTES = {
   bee:     '/aboutbee',
@@ -98,7 +116,7 @@ export default function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     const fetchIot = () => {
-      api.get('/iot/latest')
+      api.get('/iot/latest', { timeout: 5000 })
         .then(res => {
           if (cancelled) return;
           if (res.data?.nodeA && res.data?.nodeB) {
@@ -143,16 +161,15 @@ export default function Dashboard() {
     }).finally(() => setLoading(false));
   }, [farmId]);
 
-  /* ── IA Souveraine — load dynamic Darija insight ── */
-  const loadAiInsight = () => {
+  /* ── IA Souveraine — manual only, not auto-loaded on mount ── */
+  const loadAiInsight = useCallback(() => {
     if (!farmId) return;
     setAiLoading(true);
     dashboardAPI.aiInsight(farmId)
       .then(res => setAiInsight(res.data))
       .catch(() => setAiInsight(null))
       .finally(() => setAiLoading(false));
-  };
-  useEffect(() => { loadAiInsight(); }, [farmId]);
+  }, [farmId]);
 
   const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
   const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
@@ -175,7 +192,18 @@ export default function Dashboard() {
             HERO BANNER — new premium section
         ═══════════════════════════════════════════════════════════ */}
         <div className="dash-hero">
-          <div className="dash-hero-row">
+          {/* Watercolor hero image */}
+          <img src={dashHeroImg} alt="" style={{
+            position:'absolute', inset:0, width:'100%', height:'100%',
+            objectFit:'cover', objectPosition:'center',
+            pointerEvents:'none',
+          }}/>
+          {/* Overlay for legibility */}
+          <div style={{
+            position:'absolute', inset:0, pointerEvents:'none',
+            background:'linear-gradient(120deg, rgba(8,40,16,.80) 0%, rgba(15,70,30,.65) 55%, rgba(20,100,45,.35) 100%)',
+          }}/>
+          <div className="dash-hero-row" style={{ position:'relative', zIndex:2, width:'100%' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <span style={{ fontSize: 28, lineHeight: 1 }}>🌱</span>
@@ -386,31 +414,102 @@ export default function Dashboard() {
 
           <div className="species-grid-v2">
             {[
-              { sp: 'bee',     label: 'Abeilles',  shadow: 'rgba(217,119,6,.45)',   grad: 'linear-gradient(145deg,#d97706,#b45309)' },
-              { sp: 'cow',     label: 'Bovins',    shadow: 'rgba(124,58,237,.45)',  grad: 'linear-gradient(145deg,#7c3aed,#5b21b6)' },
-              { sp: 'poultry', label: 'Volailles', shadow: 'rgba(8,145,178,.45)',   grad: 'linear-gradient(145deg,#0891b2,#0369a1)' },
-              { sp: 'sheep',   label: 'Ovins',     shadow: 'rgba(5,150,105,.45)',   grad: 'linear-gradient(145deg,#059669,#047857)' },
-              { sp: 'goat',    label: 'Caprins',   shadow: 'rgba(220,38,38,.45)',   grad: 'linear-gradient(145deg,#dc2626,#b91c1c)' },
-              { sp: 'rabbit',  label: 'Lapins',    shadow: 'rgba(22,163,74,.45)',   grad: 'linear-gradient(145deg,#16a34a,#15803d)' },
-            ].map(({ sp, label, shadow, grad }) => {
-              const count = stats?.units_by_species?.[sp] || 0;
-              const emoji = SPECIES_EMOJI[sp] || '🐾';
+              { sp: 'bee',     label: 'Abeilles',  color: '#d97706', shadow: 'rgba(217,119,6,.35)'  },
+              { sp: 'cow',     label: 'Bovins',    color: '#7c3aed', shadow: 'rgba(124,58,237,.35)' },
+              { sp: 'poultry', label: 'Volailles', color: '#0891b2', shadow: 'rgba(8,145,178,.35)'  },
+              { sp: 'sheep',   label: 'Ovins',     color: '#059669', shadow: 'rgba(5,150,105,.35)'  },
+              { sp: 'goat',    label: 'Caprins',   color: '#dc2626', shadow: 'rgba(220,38,38,.35)'  },
+              { sp: 'rabbit',  label: 'Lapins',    color: '#16a34a', shadow: 'rgba(22,163,74,.35)'  },
+            ].map(({ sp, label, color, shadow }) => {
+              const count      = stats?.units_by_species?.[sp] || 0;
+              const speciesImg = SPECIES_IMG[sp];
               return (
                 <div
                   key={sp}
-                  className="species-card-v2"
-                  data-emoji={emoji}
                   onClick={() => navigate(SPECIES_ROUTES[sp])}
-                  style={{ background: grad, boxShadow: `0 8px 28px ${shadow}` }}
+                  style={{
+                    borderRadius: 20,
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    boxShadow: `0 8px 28px ${shadow}`,
+                    minHeight: 176,
+                    transition: 'transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s',
+                    userSelect: 'none',
+                    background: '#1a1a2e',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-7px) scale(1.02)'; e.currentTarget.style.boxShadow = `0 20px 44px ${shadow}`; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; e.currentTarget.style.boxShadow = `0 8px 28px ${shadow}`; }}
                 >
-                  <div className="sv2-status">
-                    <span className="sv2-dot" />
-                    ONLINE
+                  {/* ── Full watercolor image banner ── */}
+                  <div style={{ position: 'absolute', inset: 0 }}>
+                    {speciesImg && (
+                      <img
+                        src={speciesImg}
+                        alt={label}
+                        style={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover', objectPosition: 'center',
+                          display: 'block',
+                        }}
+                      />
+                    )}
+                    {/* dark gradient overlay — bottom-to-top for text readability */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: `linear-gradient(
+                        to bottom,
+                        rgba(0,0,0,.08) 0%,
+                        rgba(0,0,0,.10) 50%,
+                        rgba(0,0,0,.72) 100%
+                      )`,
+                    }}/>
+                    {/* colored accent glow at bottom edge */}
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0, height: 4,
+                      background: color,
+                    }}/>
                   </div>
-                  <div className="sv2-emoji">{emoji}</div>
-                  <div className="sv2-count">{count}</div>
-                  <div className="sv2-unit">unités</div>
-                  <div className="sv2-name">{label}</div>
+
+                  {/* ── Overlaid content ── */}
+                  {/* ONLINE badge — top right */}
+                  <div style={{
+                    position: 'absolute', top: 10, right: 10, zIndex: 2,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    background: 'rgba(255,255,255,.18)', backdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255,255,255,.25)',
+                    borderRadius: 99, padding: '3px 9px',
+                    fontSize: 9, fontWeight: 800, color: '#fff', letterSpacing: .6,
+                    textTransform: 'uppercase',
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ade80',
+                      boxShadow: '0 0 6px #4ade80', display: 'inline-block' }}/>
+                    LIVE
+                  </div>
+
+                  {/* Bottom info */}
+                  <div style={{
+                    position: 'absolute', bottom: 14, left: 14, right: 14, zIndex: 2,
+                  }}>
+                    {/* Count */}
+                    <div style={{
+                      fontSize: 36, fontWeight: 900, color: '#fff', lineHeight: 1,
+                      letterSpacing: -1, fontVariantNumeric: 'tabular-nums',
+                      textShadow: '0 2px 8px rgba(0,0,0,.4)',
+                    }}>{count}</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: .8, marginTop: 1 }}>unités</div>
+
+                    {/* Species name + color chip */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      marginTop: 8, paddingTop: 8,
+                      borderTop: '1px solid rgba(255,255,255,.2)' }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#fff',
+                        textTransform: 'uppercase', letterSpacing: .8 }}>{label}</span>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: color,
+                        boxShadow: `0 0 8px ${color}`, display: 'inline-block' }}/>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -439,49 +538,49 @@ export default function Dashboard() {
           <div className="phyto-cards-grid">
             {[
               {
-                emoji: '🍃',
+                img: agLeavesImg,
                 name: 'Maladies des Feuilles',
                 desc: 'Haricot · Fraise · Tomate',
                 color: '#16a34a',
                 bg: '#dcfce7',
               },
               {
-                emoji: '🍋',
+                img: agLemonImg,
                 name: 'Maladies Citronnier',
                 desc: 'Pathologies feuilles citron',
                 color: '#ca8a04',
                 bg: '#fef9c3',
               },
               {
-                emoji: '🍊',
+                img: agOrangeImg,
                 name: "Maladies Oranger",
                 desc: 'Pathologies feuilles orange',
                 color: '#ea580c',
                 bg: '#ffedd5',
               },
               {
-                emoji: '🫒',
+                img: agOliveImg,
                 name: "Maladies de l'Olivier",
                 desc: "Œil de paon · Anthracnose · Psylle",
                 color: '#d97706',
                 bg: '#fef3c7',
               },
               {
-                emoji: '🐛',
+                img: agInsectsImg,
                 name: 'Insectes & Ravageurs',
                 desc: 'Légionnaire · Criocère · Riziculture',
                 color: '#dc2626',
                 bg: '#fee2e2',
               },
-            ].map(({ emoji, name, desc, color, bg }) => (
+            ].map(({ img, name, desc, color, bg }) => (
               <div
                 key={name}
                 className="phyto-card-item"
                 onClick={() => navigate('/trees')}
                 style={{ '--phyto-accent': color }}
               >
-                <div className="phyto-card-icon" style={{ background: bg }}>
-                  {emoji}
+                <div className="phyto-card-icon" style={{ background: bg, overflow:'hidden', padding:0 }}>
+                  <img src={img} alt={name} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
                 </div>
                 <div>
                   <div className="phyto-card-name">{name}</div>
@@ -603,12 +702,14 @@ export default function Dashboard() {
             AI SCANNER + SAFETY PROTOCOL (existing)
         ═══════════════════════════════════════════════════════════ */}
         <div className="grid-2-1" style={{ marginBottom: 28, gap: 24 }}>
-          <AIScanner
-            category="fire"
-            title={t('dashboard.sovereign_emergency_monitor')}
-            color="#ef4444"
-            onAnalysisComplete={handleFireDetection}
-          />
+          <Suspense fallback={<div className="card" style={{ minHeight: 200, display:'flex', alignItems:'center', justifyContent:'center' }}><div className="spinner"/></div>}>
+            <AIScanner
+              category="fire"
+              title={t('dashboard.sovereign_emergency_monitor')}
+              color="#ef4444"
+              onAnalysisComplete={handleFireDetection}
+            />
+          </Suspense>
 
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <div className="card-header" style={{ borderBottom: '1px solid var(--color-border)' }}>
@@ -775,7 +876,9 @@ export default function Dashboard() {
         </div>
 
       </div>
-      <ExpertAssistant species="fire" color="#ef4444" />
+      <Suspense fallback={null}>
+        <ExpertAssistant species="fire" color="#ef4444" />
+      </Suspense>
     </>
   );
 }

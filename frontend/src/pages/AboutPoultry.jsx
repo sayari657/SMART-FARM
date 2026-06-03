@@ -4,6 +4,8 @@ import {
   Heart, DollarSign, Eye, Calendar,
   CheckCircle, Shield, Layers, Users, ChevronRight,
 } from 'lucide-react';
+import poultryHeroImg from '../assets/poultry/poultry-hero.png';
+import poultryIconImg from '../assets/poultry/poultry-icon.png';
 import { useTranslation } from 'react-i18next';
 import {
   ComposedChart, AreaChart, Area, Bar, XAxis, YAxis, CartesianGrid,
@@ -210,8 +212,32 @@ function AperçuTab({ onGoToERP }) {
         borderRadius: 16, padding: '52px 44px', marginBottom: 28,
         position: 'relative', overflow: 'hidden', color: 'white',
       }}>
-        <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,.06)' }} />
-        <div style={{ position: 'absolute', bottom: -30, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,.04)' }} />
+        {/* Watercolor image — right side */}
+        <div style={{
+          position: 'absolute', right: 0, top: 0,
+          height: '100%', width: '40%', overflow: 'hidden',
+        }}>
+          <img
+            src={poultryHeroImg}
+            alt="volailles aquarelle"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+          />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to right, rgba(8,145,178,.95) 0%, rgba(8,145,178,.4) 40%, transparent 100%)',
+            pointerEvents: 'none',
+          }} />
+        </div>
+
+        {/* Circular icon bottom-right corner */}
+        <div style={{
+          position: 'absolute', bottom: 20, right: 20, zIndex: 3,
+          width: 64, height: 64, borderRadius: '50%',
+          overflow: 'hidden', border: '3px solid rgba(255,255,255,.55)',
+          boxShadow: '0 4px 16px rgba(0,0,0,.25)',
+        }}>
+          <img src={poultryIconImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </div>
 
         <div style={{ position: 'relative', zIndex: 2, maxWidth: 600 }}>
           <div className="p-fade-1" style={{

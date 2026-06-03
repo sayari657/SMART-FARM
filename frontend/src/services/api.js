@@ -9,18 +9,51 @@ const api = axios.create({
   timeout: 120000 
 });
 
-// Attach JWT token to every request
+// Attach JWT + CSRF token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  // Send CSRF token on all mutating requests (POST/PUT/PATCH/DELETE)
+  const mutatingMethods = ['post', 'put', 'patch', 'delete'];
+  if (mutatingMethods.includes((config.method || '').toLowerCase())) {
+    const csrfToken = localStorage.getItem('csrf_token');
+    if (csrfToken) config.headers['X-CSRF-Token'] = csrfToken;
+  }
+
   return config;
 });
 
-// Response interceptor — handles auth + backend-offline errors
+// Response interceptor — handles auth + CSRF + backend-offline errors
+let _csrfRefreshing = false;
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
     const status = err.response?.status;
+    const detail = err.response?.data?.detail || '';
+
+    // 403 CSRF — auto-refresh token and retry once
+    if (status === 403 && detail === 'CSRF token invalide ou absent' && !err.config._csrfRetry) {
+      if (!_csrfRefreshing) {
+        _csrfRefreshing = true;
+        try {
+          const { data } = await api.get('/auth/csrf-token');
+          if (data?.csrf_token) localStorage.setItem('csrf_token', data.csrf_token);
+        } catch (_) {
+          /* ignore — fall through to reject */
+        } finally {
+          _csrfRefreshing = false;
+        }
+      }
+      // Retry original request with new token
+      const newCsrf = localStorage.getItem('csrf_token');
+      if (newCsrf) {
+        err.config._csrfRetry = true;
+        err.config.headers['X-CSRF-Token'] = newCsrf;
+        return api.request(err.config);
+      }
+    }
 
     // 401 — token expired / invalid → redirect to login
     if (status === 401) {
@@ -28,6 +61,7 @@ api.interceptors.response.use(
       try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) {}
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('csrf_token');
       window.location.href = user?.role === 'worker' ? '/worker-login' : '/login';
     }
 
@@ -45,6 +79,7 @@ api.interceptors.response.use(
 // ---- Auth
 export const authAPI = {
   login: (creds) => api.post('/auth/login', creds),
+  getCsrfToken: () => api.get('/auth/csrf-token'),
   workerRequestOtp: (phone_number) => api.post('/auth/worker/request-otp', { phone_number }),
   workerVerifyOtp: (phone_number, otp) => api.post('/auth/worker/verify-otp', { phone_number, otp }),
   register: (data) => api.post('/auth/register', data),

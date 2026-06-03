@@ -1,10 +1,11 @@
 import React from 'react';
-import { Bell, RefreshCw, Languages, Menu, ChevronRight, ChevronDown, Sun, Moon } from 'lucide-react';
+import { RefreshCw, Languages, Menu, ChevronRight, ChevronDown, Sun, Moon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import FarmSelector from './FarmSelector';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar({ title, subtitle, actions }) {
   const { t, i18n } = useTranslation();
@@ -81,9 +82,7 @@ export default function Navbar({ title, subtitle, actions }) {
         <button className="btn btn-secondary btn-sm" onClick={() => window.location.reload()} title="Refresh">
           <RefreshCw size={11} />
         </button>
-        <button className="btn btn-secondary btn-sm" title="Notifications">
-          <Bell size={11} />
-        </button>
+        <NotificationBell />
 
         {/* User avatar chip */}
         {displayName && (

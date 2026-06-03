@@ -119,9 +119,11 @@ if ($Stop -or $Restart) {
     Kill-PID "backend"
     Kill-PID "frontend"
     Kill-PID "prometheus"
+    Kill-PID "mlflow"
     Free-Port 8000
     Free-Port 5173
     Free-Port 4173
+    Free-Port 5000
     OK "Tous les services arretes."
     Write-Host ""
     if (-not $Restart) { exit 0 }
@@ -141,6 +143,7 @@ if ($Status) {
         @{N="Frontend (Vite)";   P=5173; U="http://localhost:5173"},
         @{N="Worker PWA";        P=4173; U=$null},
         @{N="Prometheus";        P=9090; U=$null},
+        @{N="MLflow UI";         P=5000; U="http://localhost:5000"},
         @{N="Ollama";            P=11434;U="http://localhost:11434/api/tags"}
     )
     foreach ($s in $svcs) {
@@ -282,8 +285,27 @@ if ((Test-Path $promExe) -and (Test-Path $promCfg)) {
     Write-Host ""
 }
 
-# ── 6. Firewall (silencieux si pas admin) ─────────────────────────────────────
-foreach ($p in @(8000, 5173, 4173)) {
+# ── 6. MLflow UI ─────────────────────────────────────────────────────────────
+STEP "[6] MLflow UI :5000..."
+Free-Port 5000; Start-Sleep -Milliseconds 200
+
+$mlflowDbUri = "sqlite:///$Root\mlruns.db"
+$proc = Start-Window `
+    -Title "SmartFarm | MLflow UI :5000" `
+    -WorkDir $Root `
+    -Cmd "& '$Python' -m mlflow ui --backend-store-uri '$mlflowDbUri' --port 5000 --host 0.0.0.0"
+
+if ($proc) { Save-PID "mlflow" $proc.Id }
+
+if (Wait-Port 5000 20 "MLflow") {
+    OK "MLflow UI pret"
+} else {
+    Write-Host "  [--] MLflow lent -- verifiez la fenetre MLflow" -ForegroundColor Yellow
+}
+Write-Host ""
+
+# ── 7. Firewall (silencieux si pas admin) ─────────────────────────────────────
+foreach ($p in @(8000, 5173, 4173, 5000)) {
     if (-not (Get-NetFirewallRule -DisplayName "SmartFarm $p" -ErrorAction SilentlyContinue)) {
         try {
             New-NetFirewallRule -DisplayName "SmartFarm $p" -Direction Inbound `
@@ -306,6 +328,7 @@ Write-Host "   Dashboard Owner  ->  http://localhost:5173" -ForegroundColor Whit
 Write-Host "   API (Swagger)    ->  http://localhost:8000/docs" -ForegroundColor White
 Write-Host "   Metrics          ->  http://localhost:8000/metrics" -ForegroundColor White
 Write-Host "   Prometheus       ->  http://localhost:9090" -ForegroundColor White
+Write-Host "   MLflow UI        ->  http://localhost:5000" -ForegroundColor White
 Write-Host "   Grafana Cloud    ->  https://medsayari2001.grafana.net" -ForegroundColor White
 Write-Host "   Worker PWA (LAN) ->  https://${LocalIP}:4173/worker-login" -ForegroundColor Magenta
 Write-Host ""
