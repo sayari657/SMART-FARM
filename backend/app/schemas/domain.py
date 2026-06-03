@@ -141,6 +141,7 @@ class AnimalUnitBase(BaseModel):
     type_id: int
     name: str = Field(..., min_length=1, max_length=100)
     identifier: Optional[str] = None
+    tag_id: Optional[str] = None          # Official ear tag (étiquette oreille officielle)
     status: str = "healthy"
     health_score: float = Field(default=100.0, ge=0.0, le=100.0)
     notes: Optional[str] = None

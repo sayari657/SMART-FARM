@@ -1,7 +1,14 @@
-import React, { Suspense } from 'react';
-import StableCanvas from './StableCanvas';
-import { Float, Html, ContactShadows, PresentationControls, Billboard } from '@react-three/drei';
+import React, { useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import beeImg     from '../assets/bee/bee-sketch.png';
+import cowImg     from '../assets/cow/cow-hero.png';
+import sheepImg   from '../assets/sheep/sheep-hero.png';
+import goatImg    from '../assets/goat/goat-hero.png';
+import poultryImg from '../assets/poultry/poultry-hero.png';
+import rabbitImg  from '../assets/rabbit/rabbit-hero.png';
+
 import beeIconImg     from '../assets/bee/bee-icon.png';
 import cowIconImg     from '../assets/cow/cow-icon.png';
 import sheepIconImg   from '../assets/sheep/sheep-icon.png';
@@ -9,118 +16,207 @@ import goatIconImg    from '../assets/goat/goat-icon.png';
 import poultryIconImg from '../assets/poultry/poultry-icon.png';
 import rabbitIconImg  from '../assets/rabbit/rabbit-icon.png';
 
-const SPECIES_IMG = {
+const HERO_IMG = {
+  bee: beeImg, cow: cowImg, sheep: sheepImg,
+  goat: goatImg, poultry: poultryImg, rabbit: rabbitImg,
+};
+
+const ICON_IMG = {
   bee: beeIconImg, cow: cowIconImg, sheep: sheepIconImg,
   goat: goatIconImg, poultry: poultryIconImg, rabbit: rabbitIconImg,
 };
 
-function AnimalScene({ emoji, color, isActive }) {
-  return (
-    <>
-      <ambientLight intensity={0.7} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-      
-      <Float
-        speed={2} 
-        rotationIntensity={1.5} 
-        floatIntensity={2.5}
-      >
-        <PresentationControls
-          global={false}
-          cursor={true}
-          snap={true}
-          speed={2}
-          zoom={1}
-          rotation={[0, 0, 0]}
-          polar={[-0.2, 0.2]}
-          azimuth={[-0.4, 0.4]}
-        >
-          <Billboard>
-            <Html
-              center
-              transform
-              sprite
-              distanceFactor={8}
-              style={{
-                userSelect: 'none',
-                pointerEvents: 'none',
-                fontSize: '80px',
-                filter: isActive ? `drop-shadow(0 0 20px ${color})` : 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
-                transition: 'all 0.3s ease',
-                transform: isActive ? 'scale(1.2)' : 'scale(1)',
-              }}
-            >
-              {emoji}
-            </Html>
-          </Billboard>
-        </PresentationControls>
-      </Float>
+const SPECIES_META = {
+  bee: {
+    color: '#d97706',
+    label: 'Bee',
+    description: 'Surveillance acoustique des ruches · Diagnostics santé IA · Prévision automatique de récolte du miel.',
+  },
+  cow: {
+    color: '#7c3aed',
+    label: 'Cow',
+    description: 'Analyse de rumination · Prévision production laitière · Monitoring biométrique bovin complet.',
+  },
+  goat: {
+    color: '#dc2626',
+    label: 'Goat',
+    description: 'Gestion de troupeau caprin · Indexation activité par agilité · Suivi production laitière.',
+  },
+  poultry: {
+    color: '#0891b2',
+    label: 'Poultry',
+    description: 'Contrôle environnement avicole · Suivi automatisé production œufs · Détection précoce de pathologies.',
+  },
+  rabbit: {
+    color: '#db2777',
+    label: 'Rabbit',
+    description: 'Monitoring reproduction lagomorphe optimisé · Indice prolificité · Gestion IA des clapiers.',
+  },
+  sheep: {
+    color: '#059669',
+    label: 'Sheep',
+    description: 'Analyse comportement de pâturage · Suivi poids et croissance · Prévision qualité laine.',
+  },
+};
 
-      <ContactShadows 
-        position={[0, -2.5, 0]} 
-        opacity={0.4} 
-        scale={8} 
-        blur={2} 
-        far={4.5} 
-      />
-    </>
-  );
-}
-
-const ThreeSpeciesCard = ({ sp, count, emoji, color, isActive, onClick }) => {
+const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
   const { t } = useTranslation();
-  const speciesImg = SPECIES_IMG[sp];
+  const [hov, setHov] = useState(false);
+
+  const meta = SPECIES_META[sp] || { color: '#6b7280', label: sp, description: '' };
+  const c = meta.color;
 
   return (
     <div
       className={`summary-card ${isActive ? 'active' : ''}`}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
       onClick={onClick}
       style={{
-        height: 'clamp(180px, 22vw, 240px)',
-        padding: '0',
+        height: 'auto',
+        padding: 0,
         overflow: 'hidden',
         position: 'relative',
-        touchAction: 'manipulation',
-        border: isActive ? `2px solid ${color}` : undefined,
+        border: isActive ? `2px solid ${c}` : `1px solid ${hov ? c + '50' : '#e2e8f0'}`,
+        borderRadius: 16,
+        background: '#ffffff',
+        boxShadow: hov || isActive
+          ? `0 12px 32px ${c}18`
+          : '0 2px 8px rgba(0,0,0,0.06)',
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        transform: hov && !isActive ? 'translateY(-4px)' : 'none',
       }}
     >
-      {/* ── Watercolor image for every species ── */}
+      {/* Image area — frontal, contain for full body view */}
       <div style={{
         width: '100%',
-        height: 'clamp(110px, 14vw, 160px)',
-        position: 'relative',
+        height: 200,
+        background: 'linear-gradient(180deg, #f8f9fc 0%, #f1f5f9 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         overflow: 'hidden',
-        background: '#f8fafc',
+        position: 'relative',
       }}>
         <img
-          src={speciesImg}
-          alt={`${sp} aquarelle`}
+          src={HERO_IMG[sp]}
+          alt={meta.label}
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            objectFit: 'contain',
             objectPosition: 'center',
             display: 'block',
-            transition: 'transform .35s ease',
-            transform: isActive ? 'scale(1.08)' : 'scale(1)',
+            transition: 'transform 0.35s ease',
+            transform: hov || isActive ? 'scale(1.07)' : 'scale(1)',
+            padding: '12px',
           }}
         />
         {isActive && (
           <div style={{
             position: 'absolute', inset: 0,
-            background: `radial-gradient(circle at center, ${color}25 0%, transparent 70%)`,
+            background: `radial-gradient(circle at center, ${c}20 0%, transparent 70%)`,
             pointerEvents: 'none',
           }} />
         )}
       </div>
 
-      {/* Info Layer */}
-      <div style={{ padding: '0 12px 16px', textAlign: 'center', zIndex: 1, pointerEvents: 'none' }}>
-        <div className="summary-card-title">{t(`sidebar.${sp}`)}</div>
-        <div className="summary-card-count">{count} {t('animals.population')}</div>
+      {/* Info area */}
+      <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+        {/* Species name + LIVE badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: c, display: 'inline-block', flexShrink: 0,
+            }} />
+            <img
+              src={ICON_IMG[sp]}
+              alt=""
+              style={{ width: 22, height: 22, objectFit: 'contain' }}
+            />
+            <span style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+              {meta.label}
+            </span>
+          </div>
+
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '3px 10px', borderRadius: 99,
+            border: `1px solid ${c}40`,
+            background: `${c}10`,
+          }}>
+            <span style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: c, display: 'inline-block',
+              animation: 'livePulse 2s ease-in-out infinite',
+            }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: c, letterSpacing: 0.5 }}>
+              LIVE
+            </span>
+          </div>
+        </div>
+
+        {/* Description */}
+        <p style={{
+          fontSize: 12,
+          color: '#64748b',
+          lineHeight: 1.65,
+          margin: '0 0 14px',
+          flex: 1,
+        }}>
+          {meta.description}
+        </p>
+
+        {/* Footer: animal count + button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: c,
+            background: `${c}12`, border: `1px solid ${c}25`,
+            padding: '3px 10px', borderRadius: 99, whiteSpace: 'nowrap',
+          }}>
+            {count} {count === 1 ? 'animal' : 'animaux'}
+          </span>
+
+          <button
+            onClick={e => { e.stopPropagation(); onClick?.(); }}
+            style={{
+              marginLeft: 'auto',
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 14px', borderRadius: 8,
+              border: `1px solid ${c}35`,
+              background: `${c}0d`,
+              color: c, fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = `${c}1a`;
+              e.currentTarget.style.transform = 'translateX(2px)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = `${c}0d`;
+              e.currentTarget.style.transform = 'translateX(0)';
+            }}
+          >
+            En savoir plus <ArrowRight size={11} />
+          </button>
+        </div>
       </div>
 
-      <div className="summary-card-accent" style={{ background: color }} />
+      {/* Bottom color accent stripe */}
+      <div className="summary-card-accent" style={{ background: c }} />
+
+      <style>{`
+        @keyframes livePulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.5; transform: scale(0.8); }
+        }
+      `}</style>
     </div>
   );
 };

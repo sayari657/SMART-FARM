@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Plus, X, Activity, Users, AlertTriangle,
-  ChevronRight, PawPrint,
+  ChevronRight, PawPrint, Tag,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
@@ -32,7 +32,7 @@ export default function Animals() {
   const [farmFilter, setFf]       = useState('');
   const [showForm, setShowForm]   = useState(false);
   // farm_id defaults to the currently selected farm — not farm 1
-  const [form, setForm]           = useState({ name: '', farm_id: farmId || '', type_id: '', identifier: '', notes: '' });
+  const [form, setForm]           = useState({ name: '', farm_id: farmId || '', type_id: '', identifier: '', tag_id: '', notes: '' });
   const [saving, setSaving]       = useState(false);
   const navigate = useNavigate();
 
@@ -62,9 +62,14 @@ export default function Animals() {
     e.preventDefault();
     setSaving(true);
     try {
-      await animalsAPI.create({ ...form, farm_id: +form.farm_id, type_id: +form.type_id });
+      await animalsAPI.create({
+        ...form,
+        farm_id: +form.farm_id,
+        type_id: +form.type_id,
+        tag_id: form.tag_id || null,
+      });
       setShowForm(false);
-      setForm({ name: '', farm_id: '', type_id: '', identifier: '', notes: '' });
+      setForm({ name: '', farm_id: '', type_id: '', identifier: '', tag_id: '', notes: '' });
       load();
     } finally { setSaving(false); }
   };
@@ -112,7 +117,7 @@ export default function Animals() {
 
         {/* ── Species navigation grid ── */}
         <div className="anim-section-label">ESPÈCES SURVEILLÉES — CLIQUER POUR ACCÉDER AU MODULE</div>
-        <div className="summary-grid">
+        <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => (
             <ThreeSpeciesCard
               key={sp}
@@ -179,6 +184,78 @@ export default function Animals() {
                   </select>
                 </div>
               </div>
+              {/* ── Ear Tags — visible only for cow, goat, sheep ── */}
+              {['cow', 'goat', 'sheep'].includes(
+                types.find(t => String(t.id) === String(form.type_id))?.species
+              ) && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                  border: '1.5px solid #fcd34d',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                    <div style={{
+                      background: '#fbbf24', borderRadius: 8,
+                      padding: '5px 7px', display: 'flex', alignItems: 'center',
+                    }}>
+                      <Tag size={13} color="#78350f" />
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: '#92400e', letterSpacing: 1, textTransform: 'uppercase' }}>
+                      Étiquettes d'oreille
+                    </span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: '#b45309', fontWeight: 600 }}>
+                      Identification officielle
+                    </span>
+                  </div>
+
+                  <div className="farms-form-row" style={{ gap: 12 }}>
+                    {/* Left ear — internal tag */}
+                    <div className="farms-form-group">
+                      <label className="farms-form-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{
+                          width: 14, height: 14, background: '#fbbf24',
+                          borderRadius: 3, display: 'inline-flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#78350f',
+                        }}>G</span>
+                        Oreille Gauche (interne)
+                      </label>
+                      <input
+                        className="farms-form-input"
+                        placeholder="Ex: BOV-2025-001"
+                        value={form.identifier}
+                        onChange={e => setForm(p => ({ ...p, identifier: e.target.value }))}
+                        style={{ borderColor: '#fcd34d', background: '#fffef7' }}
+                      />
+                    </div>
+
+                    {/* Right ear — official tag */}
+                    <div className="farms-form-group">
+                      <label className="farms-form-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{
+                          width: 14, height: 14, background: '#f59e0b',
+                          borderRadius: 3, display: 'inline-flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#78350f',
+                        }}>D</span>
+                        Oreille Droite (officielle)
+                      </label>
+                      <input
+                        className="farms-form-input"
+                        placeholder="Ex: TN 56 1234 56789"
+                        value={form.tag_id}
+                        onChange={e => setForm(p => ({ ...p, tag_id: e.target.value }))}
+                        style={{ borderColor: '#fcd34d', background: '#fffef7' }}
+                      />
+                    </div>
+                  </div>
+
+                  <p style={{ margin: '8px 0 0', fontSize: 10, color: '#b45309', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Tag size={9} /> Le numéro officiel est unique — format national tunisien ou européen.
+                  </p>
+                </div>
+              )}
+
               <div className="farms-form-group">
                 <label className="farms-form-label">{t('common.notes')}</label>
                 <input className="farms-form-input" placeholder={t('animals.notes_placeholder')}
