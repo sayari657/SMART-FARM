@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import BottomNav from '../components/BottomNav';
 import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 
 function Shell() {
@@ -12,6 +13,7 @@ function Shell() {
       <div className="main-area" style={{ position: 'relative', zIndex: 1 }}>
         <Outlet />
       </div>
+      <BottomNav />
     </div>
   );
 }

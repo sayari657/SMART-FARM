@@ -1,6 +1,6 @@
 import {
   Wallet, Plus, X, Trash2, TrendingUp,
-  MapPin, Calendar, BarChart2
+  MapPin, Calendar, BarChart2, TrendingDown, AlertCircle
 } from 'lucide-react';
 import { COLORS, EXPENSE_CATEGORIES } from './BeeConstants';
 
@@ -12,11 +12,14 @@ export default function DepensesTab({
   depenseForm, setDepenseForm,
   handleAddDepense, onDelete
 }) {
-  const total = depenses.reduce((s, d) => s + (parseFloat(d.montantReel) || 0), 0);
+  const total     = depenses.reduce((s, d) => s + (parseFloat(d.montantReel)   || 0), 0);
+  const totalEst  = depenses.reduce((s, d) => s + (parseFloat(d.montantEstime) || 0), 0);
+  const variance  = total - totalEst;  // positive = over budget
   const byCategory = EXPENSE_CATEGORIES.map(cat => ({
     ...cat,
-    sum: depenses.filter(d => d.type === cat.id).reduce((s, d) => s + (parseFloat(d.montantReel) || 0), 0)
-  })).filter(c => c.sum > 0);
+    sum:    depenses.filter(d => d.type === cat.id).reduce((s, d) => s + (parseFloat(d.montantReel)   || 0), 0),
+    sumEst: depenses.filter(d => d.type === cat.id).reduce((s, d) => s + (parseFloat(d.montantEstime) || 0), 0),
+  })).filter(c => c.sum > 0 || c.sumEst > 0);
 
   const inputStyle = {
     width: '100%', height: 48,
@@ -53,7 +56,13 @@ export default function DepensesTab({
             <span style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: 700 }}>TOTAL DÉPENSES</span>
           </div>
           <div style={{ fontSize: 32, fontWeight: 900, color: 'white' }}>{total.toFixed(2)} <span style={{ fontSize: 16, color: COLORS.textMuted }}>DT</span></div>
-          <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>{depenses.length} écriture(s) comptable(s)</div>
+          <div style={{ fontSize: 12, color: COLORS.textMuted, marginTop: 4 }}>
+            Prévisionnel : <span style={{ color: COLORS.info, fontWeight: 700 }}>{totalEst.toFixed(2)} DT</span>
+          </div>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: variance > 0 ? COLORS.error : COLORS.success }}>
+            {variance > 0 ? <AlertCircle size={12}/> : <TrendingDown size={12}/>}
+            {variance > 0 ? `Dépassement : +${variance.toFixed(2)} DT` : `Économie : ${Math.abs(variance).toFixed(2)} DT`}
+          </div>
         </div>
 
         <div style={{ background: COLORS.surface, borderRadius: 24, padding: 24, border: `1px solid ${COLORS.border}` }}>
@@ -107,7 +116,7 @@ export default function DepensesTab({
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-                {['CATÉGORIE', 'MONTANT', 'DATE', 'SITE', 'DESCRIPTION', 'ACTION'].map(h => (
+                {['CATÉGORIE', 'RÉEL', 'PRÉVU', 'ÉCART', 'DATE', 'SITE', ''].map(h => (
                   <th key={h} style={{ padding: '14px 20px', textAlign: 'left', color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px' }}>{h}</th>
                 ))}
               </tr>
@@ -128,9 +137,30 @@ export default function DepensesTab({
                         <span style={{ color: 'white', fontWeight: 700, fontSize: 13 }}>{d.type}</span>
                       </div>
                     </td>
+                    {/* Réel */}
                     <td style={{ padding: '16px 20px' }}>
-                      <span style={{ color: COLORS.accent, fontWeight: 900, fontSize: 16 }}>{parseFloat(d.montantReel || 0).toFixed(2)}</span>
-                      <span style={{ color: COLORS.textMuted, fontSize: 11, marginLeft: 4 }}>DT</span>
+                      <span style={{ color: COLORS.accent, fontWeight: 900, fontSize: 15 }}>{parseFloat(d.montantReel || 0).toFixed(2)}</span>
+                      <span style={{ color: COLORS.textMuted, fontSize: 10, marginLeft: 3 }}>DT</span>
+                    </td>
+                    {/* Prévu */}
+                    <td style={{ padding: '16px 20px' }}>
+                      {d.montantEstime ? (
+                        <>
+                          <span style={{ color: COLORS.info, fontWeight: 700, fontSize: 14 }}>{parseFloat(d.montantEstime).toFixed(2)}</span>
+                          <span style={{ color: COLORS.textMuted, fontSize: 10, marginLeft: 3 }}>DT</span>
+                        </>
+                      ) : <span style={{ color: COLORS.textMuted, fontSize: 12 }}>—</span>}
+                    </td>
+                    {/* Écart */}
+                    <td style={{ padding: '16px 20px' }}>
+                      {d.montantEstime ? (() => {
+                        const ecart = (parseFloat(d.montantReel || 0) - parseFloat(d.montantEstime || 0));
+                        return (
+                          <span style={{ fontSize: 12, fontWeight: 800, color: ecart > 0 ? COLORS.error : COLORS.success }}>
+                            {ecart > 0 ? '+' : ''}{ecart.toFixed(2)}
+                          </span>
+                        );
+                      })() : <span style={{ color: COLORS.textMuted }}>—</span>}
                     </td>
                     <td style={{ padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textMuted, fontSize: 13 }}>
@@ -141,11 +171,6 @@ export default function DepensesTab({
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textMuted, fontSize: 13 }}>
                         <MapPin size={12} /> {site?.name || 'Frais Généraux'}
                       </div>
-                    </td>
-                    <td style={{ padding: '16px 20px', color: COLORS.textMuted, fontSize: 13, maxWidth: 180 }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                        {d.description || '—'}
-                      </span>
                     </td>
                     <td style={{ padding: '16px 20px' }}>
                       {onDelete && (
@@ -184,16 +209,33 @@ export default function DepensesTab({
 
             <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 22 }}>
 
-              {/* Amount */}
-              <div>
-                <label style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px', marginBottom: 8, display: 'block' }}>MONTANT (DT) *</label>
-                <input
-                  type="number" min="0" step="0.01"
-                  placeholder="0.00"
-                  value={depenseForm.montantReel}
-                  onChange={e => setDepenseForm({ ...depenseForm, montantReel: e.target.value })}
-                  style={{ ...inputStyle, fontSize: 20, fontWeight: 800, height: 56, border: `1px solid ${COLORS.accent}50` }}
-                />
+              {/* Amounts: réel + prévu */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px', marginBottom: 8, display: 'block' }}>
+                    💸 MONTANT RÉEL (DT) *
+                  </label>
+                  <input
+                    type="number" min="0" step="0.01" placeholder="0.00"
+                    value={depenseForm.montantReel}
+                    onChange={e => setDepenseForm({ ...depenseForm, montantReel: e.target.value })}
+                    style={{ ...inputStyle, fontSize: 18, fontWeight: 800, height: 52, border: `1px solid ${COLORS.accent}50` }}
+                  />
+                </div>
+                <div>
+                  <label style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px', marginBottom: 8, display: 'block' }}>
+                    📋 MONTANT PRÉVU (DT)
+                  </label>
+                  <input
+                    type="number" min="0" step="0.01" placeholder="Budget estimé…"
+                    value={depenseForm.montantEstime || ''}
+                    onChange={e => setDepenseForm({ ...depenseForm, montantEstime: e.target.value })}
+                    style={{ ...inputStyle, fontSize: 18, fontWeight: 800, height: 52, border: `1px solid ${COLORS.info}40` }}
+                  />
+                  <div style={{ fontSize: 10, color: COLORS.textMuted, marginTop: 5 }}>
+                    Préparer les fonds avant la visite
+                  </div>
+                </div>
               </div>
 
               {/* Category */}

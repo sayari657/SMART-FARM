@@ -42,14 +42,20 @@ function WorkerLayout() {
         </div>
       )}
 
-      {/* ── TOP BAR ── */}
+      {/* ── TOP BAR — safe-area-inset-top for notch/island phones ── */}
       <header style={{
         background:'rgba(15,23,42,0.95)',
         backdropFilter:'blur(20px)',
+        WebkitBackdropFilter:'blur(20px)',
         borderBottom:'1px solid rgba(255,255,255,0.06)',
-        padding:'12px 20px',
+        /* Pad top to account for phone notch in standalone PWA */
+        paddingTop:'calc(12px + env(safe-area-inset-top))',
+        paddingBottom:'12px',
+        paddingLeft:'20px',
+        paddingRight:'20px',
         display:'flex', justifyContent:'space-between', alignItems:'center',
-        position:'sticky', top:0, zIndex:50
+        position:'sticky', top:0, zIndex:50,
+        flexShrink: 0,
       }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <div style={{

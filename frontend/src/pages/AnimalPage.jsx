@@ -24,6 +24,7 @@ import LivestockERP from '../components/LivestockERP';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import SpeciesIntelligenceWidget from '../components/SpeciesIntelligenceWidget';
+import LivestockAICharts from '../components/LivestockAICharts';
 
 const ANIM_CSS = `
   @keyframes ap-fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
@@ -1511,6 +1512,7 @@ const TABS = [
   {id:'today',        label:"Aujourd'hui",    icon:CheckCircle},
   {id:'animaux',      label:'ERP Système',    icon:Package  },
   {id:'surveillance', label:'Surveillance IA',icon:Eye      },
+  {id:'analytics',    label:'Analytics IA',   icon:BarChart2},
   {id:'protocols',    label:'Protocoles',     icon:Calendar },
 ];
 
@@ -1571,6 +1573,9 @@ export default function AnimalPage({ species }) {
             {activeTab==='today'        && <TodayWorkspace  cfg={cfg} animals={animals} farmId={farmId} workers={workers} />}
             {activeTab==='animaux'      && <LivestockERP    species={cfg.apiSpecies} color={cfg.color} farmId={farmId} />}
             {activeTab==='surveillance' && <SurveillanceTab cfg={cfg} />}
+            {activeTab==='analytics'    && (
+              <LivestockAICharts cfg={cfg} animals={animals} farmId={farmId}/>
+            )}
             {activeTab==='protocols'    && <ProtocolsTab    cfg={cfg} farmId={farmId} workers={workers} />}
           </>
         )}

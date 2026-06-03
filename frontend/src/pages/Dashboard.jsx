@@ -135,30 +135,44 @@ export default function Dashboard() {
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  /* ── Main data load — scoped to selected farm ── */
+  /* ── Main data load — all calls in parallel, non-blocking render ── */
   useEffect(() => {
     if (!farmId) { setLoading(false); return; }
     setLoading(true);
-    Promise.all([
-      dashboardAPI.stats(farmId),
-      alertsAPI.list(farmId),
-      cvAPI.recent(10, farmId),              // CV events of THIS farm only
-      animalsAPI.list({ farm_id: farmId }),
-    ]).then(([statsRes, alertsRes, cvRes, unitsRes]) => {
-      setStats(statsRes.data);
-      setAlerts((Array.isArray(alertsRes.data) ? alertsRes.data : []).slice(0, 5));
-      setCvEvents((Array.isArray(cvRes.data) ? cvRes.data : []).slice(0, 6));
-      const units = Array.isArray(unitsRes.data) ? unitsRes.data : [];
-      if (units.length > 0) {
-        telemetryAPI.history(units[0].id, 48).then(r => setRT(r.data));
-      }
-      externalAPI.weather.current(farmId)
-        .then(res => setWeather(res.data))
-        .catch(() => {});
-      externalAPI.weather.forecast(farmId)
-        .then(res => { setWeather(prev => prev ? { ...prev, forecast: res.data } : null); })
-        .catch(() => {});
-    }).finally(() => setLoading(false));
+
+    // Priority 1 — critical path: stats + alerts (unblock hero/KPIs fast)
+    dashboardAPI.stats(farmId)
+      .then(r => setStats(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));   // hide spinner as soon as stats arrive
+
+    alertsAPI.list(farmId)
+      .then(r => setAlerts((Array.isArray(r.data) ? r.data : []).slice(0, 5)))
+      .catch(() => {});
+
+    // Priority 2 — secondary (non-blocking, each independent)
+    cvAPI.recent(10, farmId)
+      .then(r => setCvEvents((Array.isArray(r.data) ? r.data : []).slice(0, 6)))
+      .catch(() => {});
+
+    animalsAPI.list({ farm_id: farmId })
+      .then(r => {
+        const units = Array.isArray(r.data) ? r.data : [];
+        if (units.length > 0) {
+          telemetryAPI.history(units[0].id, 48)
+            .then(tr => setRT(tr.data))
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
+
+    // Priority 3 — external weather (slowest, fully independent)
+    externalAPI.weather.current(farmId)
+      .then(r => setWeather(r.data))
+      .catch(() => {});
+    externalAPI.weather.forecast(farmId)
+      .then(r => setWeather(prev => prev ? { ...prev, forecast: r.data } : null))
+      .catch(() => {});
   }, [farmId]);
 
   /* ── IA Souveraine — manual only, not auto-loaded on mount ── */
@@ -174,7 +188,7 @@ export default function Dashboard() {
   const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
   const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
 
-  if (loading) return <div className="page-content"><div className="spinner" /></div>;
+  // No full-page block — page renders immediately with skeletons per section
 
   const today            = new Date().toLocaleDateString(i18n.language, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const activeAlertsCount = alerts.filter(a => !a.is_resolved).length;
@@ -335,14 +349,27 @@ export default function Dashboard() {
         {/* ═══════════════════════════════════════════════════════════
             KPI ROW (existing)
         ═══════════════════════════════════════════════════════════ */}
-        <div className="kpi-grid" style={{ marginBottom: 24 }}>
-          <KPIBox icon={Building2}     value={stats?.total_farms}     label={t('dashboard.kpi.total_farms')}     colorClass="green" />
-          <KPIBox icon={PawPrint}      value={stats?.total_units}     label={t('dashboard.kpi.animal_units')}    colorClass="blue" />
-          <KPIBox icon={AlertTriangle} value={stats?.active_alerts}   label={t('dashboard.kpi.active_alerts')}   colorClass="yellow" />
-          <KPIBox icon={AlertOctagon}  value={stats?.critical_alerts} label={t('dashboard.kpi.critical_alerts')} colorClass="red" />
-          <KPIBox icon={Heart}         value={stats?.avg_health_score} label={t('dashboard.kpi.health_score')}   colorClass="green" unit="%" />
-          <KPIBox icon={Cpu}           value={stats?.recent_anomalies} label={t('dashboard.kpi.anomalies')}      colorClass="teal" />
-        </div>
+        {loading ? (
+          <div className="kpi-grid" style={{ marginBottom: 24 }}>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} style={{
+                height: 88, borderRadius: 14,
+                background: 'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)',
+                backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
+              }}/>
+            ))}
+          </div>
+        ) : (
+          <div className="kpi-grid" style={{ marginBottom: 24 }}>
+            <KPIBox icon={Building2}     value={stats?.total_farms}     label={t('dashboard.kpi.total_farms')}     colorClass="green" />
+            <KPIBox icon={PawPrint}      value={stats?.total_units}     label={t('dashboard.kpi.animal_units')}    colorClass="blue" />
+            <KPIBox icon={AlertTriangle} value={stats?.active_alerts}   label={t('dashboard.kpi.active_alerts')}   colorClass="yellow" />
+            <KPIBox icon={AlertOctagon}  value={stats?.critical_alerts} label={t('dashboard.kpi.critical_alerts')} colorClass="red" />
+            <KPIBox icon={Heart}         value={stats?.avg_health_score} label={t('dashboard.kpi.health_score')}   colorClass="green" unit="%" />
+            <KPIBox icon={Cpu}           value={stats?.recent_anomalies} label={t('dashboard.kpi.anomalies')}      colorClass="teal" />
+          </div>
+        )}
+        <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
 
         {/* ═══════════════════════════════════════════════════════════
             SOVEREIGN AI WIDGET (existing)

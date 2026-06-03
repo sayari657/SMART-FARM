@@ -1,11 +1,13 @@
-﻿import { useRef, useState } from 'react';
+﻿import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, QrCode, Calendar, Navigation,
   ThumbsUp, AlertTriangle, AlertCircle, Droplets, Camera,
   Plus, Package, X, Upload, ShieldPlus, Trash2, MapPin,
-  Heart, Search, Thermometer, CheckCircle
+  Heart, Search, Thermometer, CheckCircle, Grid3X3
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
+
+const DRAFT_KEY = 'bee_visit_draft';
 
 const HEALTH_OPTIONS = [
   { id: 'health',    label: 'En bonne santé',   icon: ThumbsUp,     color: COLORS.success },
@@ -33,19 +35,43 @@ export default function VisitesTab({
   visiteForm = {}, setVisiteForm,
   handleAddVisite, onDelete
 }) {
-  const photoInputRef = useRef(null);
-  const videoRef = useRef(null);
-  const [showCamera, setShowCamera] = useState(false);
-  const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterHealth, setFilterHealth] = useState('');
+  const photoInputRef    = useRef(null);
+  const nativePhotoRef   = useRef(null);
+  const videoRef         = useRef(null);
+  const [showCamera,     setShowCamera]     = useState(false);
+  const [photoMenuOpen,  setPhotoMenuOpen]  = useState(false);
+  const [showHiveGrid,   setShowHiveGrid]   = useState(false);
+  const [searchTerm,     setSearchTerm]     = useState('');
+  const [filterHealth,   setFilterHealth]   = useState('');
+  const [draftSaved,     setDraftSaved]     = useState(false);
+
+  /* ── Draft auto-save (localStorage) ── */
+  useEffect(() => {
+    if (!isAddingVisit) return;
+    const t = setTimeout(() => {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(visiteForm));
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 1500);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [visiteForm, isAddingVisit]);
+
+  /* Load draft on open */
+  useEffect(() => {
+    if (isAddingVisit && !visiteForm.hive_id) {
+      try {
+        const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+        if (draft.hive_id) setVisiteForm(prev => ({ ...prev, ...draft }));
+      } catch {}
+    }
+  }, [isAddingVisit]); // eslint-disable-line
 
   /* ── Photo helpers ── */
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => { setVisiteForm({ ...visiteForm, photo_url: reader.result }); setPhotoMenuOpen(false); };
+    reader.onloadend = () => { setVisiteForm(f => ({ ...f, photo_url: reader.result })); setPhotoMenuOpen(false); };
     reader.readAsDataURL(file);
   };
 
@@ -102,42 +128,122 @@ export default function VisitesTab({
 
       {/* Header */}
       <div style={{ padding: '28px 40px', borderBottom: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
-        <button onClick={() => setIsAddingVisit(false)} style={{ background: 'none', border: 'none', color: COLORS.textMuted, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
-          <ArrowLeft size={18} /> Retour à l'historique
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: COLORS.accent + '20', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <QrCode size={28} color={COLORS.accent} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <button onClick={() => { setIsAddingVisit(false); setShowHiveGrid(false); }}
+            style={{ background: 'none', border: 'none', color: COLORS.textMuted,
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+            <ArrowLeft size={18}/> Retour à l'historique
+          </button>
+          {draftSaved && (
+            <span style={{ fontSize: 11, color: COLORS.success, fontWeight: 800,
+              background: COLORS.success + '15', padding: '4px 12px', borderRadius: 8 }}>
+              ✓ Brouillon sauvegardé
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: COLORS.accent + '20',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <QrCode size={28} color={COLORS.accent}/>
           </div>
           <div style={{ flex: 1 }}>
-            <h2 style={{ color: COLORS.text, fontSize: 22, fontWeight: 900, margin: 0 }}>Nouvelle Inspection</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: 12 }}>
-              {/* Ruche selector */}
-              <select
-                value={visiteForm.hive_id || ''}
-                onChange={(e) => {
-                  const ruche = ruches.find(r => r.id === Number(e.target.value));
-                  setVisiteForm({ ...visiteForm, hive_id: e.target.value, apiary_id: ruche?.apiary_id || '' });
-                }}
-                style={{ background: 'transparent', border: 'none', color: COLORS.text, fontSize: 20, fontWeight: 800, cursor: 'pointer', outline: 'none' }}
-              >
-                <option value="">Sélectionner une ruche...</option>
-                {ruches.map(r => <option key={r.id} value={r.id}>{r.identifier} ({emplacements.find(e => e.id === r.apiary_id)?.name || 'Site ?'})</option>)}
-              </select>
-              {/* Date */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.accentLight, fontWeight: 700 }}>
-                <Calendar size={16} />
-                <input
-                  type="date"
-                  value={visiteForm.visit_date || new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setVisiteForm({ ...visiteForm, visit_date: e.target.value })}
-                  style={{ background: 'transparent', border: 'none', color: COLORS.accentLight, fontWeight: 700, cursor: 'pointer', outline: 'none' }}
-                />
+            <h2 style={{ color: COLORS.text, fontSize: 22, fontWeight: 900, margin: '0 0 14px' }}>Nouvelle Inspection</h2>
+
+            {/* ── Ruche selection ── */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>SÉLECTIONNER UNE RUCHE</div>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Dropdown fallback */}
+                <select
+                  value={visiteForm.hive_id || ''}
+                  onChange={e => {
+                    const ruche = ruches.find(r => r.id === Number(e.target.value));
+                    setVisiteForm(f => ({ ...f, hive_id: e.target.value, apiary_id: ruche?.apiary_id || '' }));
+                    setShowHiveGrid(false);
+                  }}
+                  style={{ height: 42, padding: '0 14px', background: COLORS.bg2,
+                    border: `1px solid ${visiteForm.hive_id ? COLORS.accent : COLORS.border}`,
+                    borderRadius: 12, color: COLORS.text, outline: 'none', fontSize: 13, fontWeight: 700,
+                    maxWidth: 260 }}>
+                  <option value="">Choisir dans la liste…</option>
+                  {ruches.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.identifier} ({emplacements.find(e => e.id === r.apiary_id)?.name || '?'})
+                    </option>
+                  ))}
+                </select>
+                {/* Visual grid toggle */}
+                <button onClick={() => setShowHiveGrid(v => !v)}
+                  style={{ height: 42, padding: '0 14px', borderRadius: 12, cursor: 'pointer',
+                    background: showHiveGrid ? COLORS.accent + '20' : COLORS.bg2,
+                    border: `1px solid ${showHiveGrid ? COLORS.accent : COLORS.border}`,
+                    color: showHiveGrid ? COLORS.accent : COLORS.textMuted,
+                    fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <Grid3X3 size={14}/> Grille visuelle
+                </button>
+                {visiteForm.hive_id && (
+                  <span style={{ padding: '4px 12px', borderRadius: 99, background: COLORS.accent + '18',
+                    color: COLORS.accent, fontWeight: 800, fontSize: 12,
+                    border: `1px solid ${COLORS.accent}30` }}>
+                    🔶 {ruches.find(r => String(r.id) === String(visiteForm.hive_id))?.identifier || 'Ruche sélectionnée'}
+                  </span>
+                )}
               </div>
-              {/* GPS */}
-              <button onClick={captureGPS} style={{ display: 'flex', alignItems: 'center', gap: 8, color: visiteForm.gps_coords ? COLORS.success : COLORS.textMuted, background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-                <Navigation size={16} color={visiteForm.gps_coords ? COLORS.success : COLORS.accent} />
-                {visiteForm.gps_coords ? '✓ GPS capturé' : 'Capturer GPS'}
+
+              {/* ── Visual hive grid ── */}
+              {showHiveGrid && (
+                <div style={{ marginTop: 12, padding: 16, background: COLORS.bg2,
+                  borderRadius: 16, border: `1px solid ${COLORS.border}`,
+                  maxHeight: 220, overflowY: 'auto' }}>
+                  <div style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 700, marginBottom: 10 }}>
+                    {ruches.length} ruches — cliquez pour sélectionner
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {ruches.map(r => {
+                      const sel = String(visiteForm.hive_id) === String(r.id);
+                      const site = emplacements.find(e => e.id === r.apiary_id);
+                      const sc = r.health_score ?? 7;
+                      const hc = sc >= 8 ? COLORS.gradeA : sc >= 6 ? COLORS.gradeB : sc >= 4 ? COLORS.gradeC : COLORS.gradeD;
+                      return (
+                        <button key={r.id}
+                          onClick={() => { setVisiteForm(f => ({ ...f, hive_id: String(r.id), apiary_id: r.apiary_id || '' })); setShowHiveGrid(false); }}
+                          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                            padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
+                            background: sel ? hc + '25' : COLORS.surface,
+                            border: `2px solid ${sel ? hc : COLORS.border}`,
+                            minWidth: 80, touchAction: 'manipulation',
+                            boxShadow: sel ? `0 0 12px ${hc}30` : 'none', transition: 'all .15s' }}>
+                          <div style={{ width: 20, height: 20, borderRadius: 6, background: hc + '30',
+                            border: `1.5px solid ${hc}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: hc }}/>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.text }}>{r.identifier}</span>
+                          <span style={{ fontSize: 9, color: COLORS.textMuted }}>{site?.name || '?'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Date + GPS (optional) ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.accentLight, fontWeight: 700 }}>
+                <Calendar size={16}/>
+                <input type="date"
+                  value={visiteForm.visit_date || new Date().toISOString().split('T')[0]}
+                  onChange={e => setVisiteForm(f => ({ ...f, visit_date: e.target.value }))}
+                  style={{ background: 'transparent', border: 'none', color: COLORS.accentLight,
+                    fontWeight: 700, cursor: 'pointer', outline: 'none' }}/>
+              </div>
+              <button onClick={captureGPS}
+                style={{ display: 'flex', alignItems: 'center', gap: 6,
+                  color: visiteForm.gps_coords ? COLORS.success : COLORS.textMuted,
+                  background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
+                <Navigation size={14} color={visiteForm.gps_coords ? COLORS.success : COLORS.textMuted}/>
+                {visiteForm.gps_coords ? '✓ GPS capturé' : 'GPS (optionnel)'}
               </button>
             </div>
           </div>
@@ -251,7 +357,10 @@ export default function VisitesTab({
                 <Camera size={18} color={COLORS.textMuted} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>CONSTAT VISUEL</span>
               </div>
-              <input type="file" ref={photoInputRef} onChange={handlePhotoUpload} accept="image/*" style={{ display: 'none' }} />
+              {/* Hidden inputs */}
+              <input type="file" ref={photoInputRef} onChange={handlePhotoUpload} accept="image/*" style={{ display: 'none' }}/>
+              {/* Native capture — opens camera directly on mobile */}
+              <input type="file" ref={nativePhotoRef} onChange={handlePhotoUpload} accept="image/*" capture="environment" style={{ display: 'none' }}/>
 
               {showCamera ? (
                 <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', height: 260, background: 'black' }}>
@@ -278,11 +387,15 @@ export default function VisitesTab({
                   </button>
                   {photoMenuOpen && (
                     <div style={{ position: 'absolute', top: '110%', left: 0, right: 0, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 8, zIndex: 10, boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
+                      <button onClick={() => { nativePhotoRef.current?.click(); setPhotoMenuOpen(false); }}
+                        style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
+                        <Camera size={16} color={COLORS.accent}/> 📸 Prendre une photo (caméra native)
+                      </button>
                       <button onClick={startCamera} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
-                        <Camera size={16} color={COLORS.accent} /> Prendre une photo
+                        <Camera size={16} color={COLORS.accent}/> Caméra in-app (webcam)
                       </button>
                       <button onClick={() => photoInputRef.current?.click()} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
-                        <Upload size={16} color={COLORS.accent} /> Galerie / Fichier
+                        <Upload size={16} color={COLORS.accent}/> Galerie / Fichier
                       </button>
                     </div>
                   )}
@@ -336,12 +449,12 @@ export default function VisitesTab({
 
         {/* Submit */}
         <button
-          onClick={() => handleAddVisite(visiteForm)}
+          onClick={() => { localStorage.removeItem(DRAFT_KEY); handleAddVisite(visiteForm); }}
           style={{ width: '100%', height: 68, borderRadius: 20, background: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDark} 100%)`, border: 'none', color: 'white', fontSize: 17, fontWeight: 900, marginTop: 32, cursor: 'pointer', letterSpacing: '0.5px', boxShadow: `0 12px 30px -8px ${COLORS.accent}60`, transition: 'transform 0.2s' }}
           onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
         >
-          Valider l'Inspection & Mettre à jour l'Écosystème
+          ✓ Valider l'Inspection & Mettre à jour l'Écosystème
         </button>
       </div>
     </div>

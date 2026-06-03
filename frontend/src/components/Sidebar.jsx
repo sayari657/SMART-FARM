@@ -5,10 +5,11 @@ import {
   LayoutDashboard, Building2, PawPrint, Activity, Eye,
   AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf,
   Layers, Bot, TreePine, Map, X, ChevronLeft, ChevronRight,
-  ChevronDown, Warehouse, Cpu,
+  ChevronDown, Warehouse, Cpu, Sun, Moon, Languages,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
+import { useTheme } from '../context/ThemeContext';
 
 const NAV = [
   {
@@ -54,9 +55,16 @@ const SPECIES_NAV = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth() || {};
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { close } = useSidebar();
+  const { dark, toggleTheme } = useTheme();
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    document.documentElement.dir  = lng === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = lng;
+  };
 
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar-collapsed') === 'true'
@@ -173,6 +181,36 @@ export default function Sidebar() {
           </>
         )}
       </button>
+
+      {/* Mobile-only: language + theme controls ─────────────── */}
+      <div className="sidebar-mobile-controls">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderTop: '1px solid var(--color-border)' }}>
+          <Languages size={14} color="var(--color-primary)" style={{ flexShrink: 0 }} />
+          <select
+            onChange={e => changeLanguage(e.target.value)}
+            value={i18n.language}
+            style={{
+              flex: 1, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)', color: 'var(--color-text)', fontSize: 13, fontWeight: 600,
+            }}
+          >
+            <option value="fr">🇫🇷 Français</option>
+            <option value="ar">🇹🇳 العربية</option>
+            <option value="en">🇬🇧 English</option>
+          </select>
+          <button
+            onClick={toggleTheme}
+            title={dark ? 'Mode clair' : 'Mode sombre'}
+            style={{
+              background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+              borderRadius: 8, padding: '6px 10px', cursor: 'pointer',
+              color: 'var(--color-text)', display: 'flex', alignItems: 'center', flexShrink: 0,
+            }}
+          >
+            {dark ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        </div>
+      </div>
 
       {/* User footer */}
       <div className="sidebar-footer">

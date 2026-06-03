@@ -25,9 +25,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
+      strategies: 'injectManifest',   // use custom src/sw.js instead of generateSW
+      srcDir: 'src',
+      filename: 'sw.js',
       devOptions: {
-        enabled: true,
-        type: 'module',
+        enabled: false,   // SW disabled in dev — bare workbox imports break without bundling
       },
       manifest: {
         name: "Smart Farm AI",
@@ -42,55 +44,49 @@ export default defineConfig({
         background_color: "#0f172a",
         lang: "fr",
         prefer_related_applications: false,
+        categories: ["agriculture", "business", "productivity"],
         icons: [
-          { src: "/icons/icon-72.png", sizes: "72x72", type: "image/png" },
+          { src: "/icons/icon-72.png",  sizes: "72x72",   type: "image/png" },
+          { src: "/icons/icon-96.png",  sizes: "96x96",   type: "image/png" },
+          { src: "/icons/icon-128.png", sizes: "128x128", type: "image/png" },
+          { src: "/icons/icon-144.png", sizes: "144x144", type: "image/png" },
+          { src: "/icons/icon-152.png", sizes: "152x152", type: "image/png" },
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/icon-384.png", sizes: "384x384", type: "image/png" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
           { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
         ],
         shortcuts: [
-          { name: "Scanner IA", short_name: "Scanner", url: "/worker/scan", icons: [{ src: "/icons/scan.png", sizes: "96x96" }] },
-          { name: "Mes Tâches", short_name: "Tâches", url: "/worker/tasks", icons: [{ src: "/icons/tasks.png", sizes: "96x96" }] },
-          { name: "Dashboard", short_name: "Dash", url: "/dashboard", icons: [{ src: "/icons/dash.png", sizes: "96x96" }] }
-        ]
+          { name: "Scanner IA",   short_name: "Scanner", url: "/worker/scan",   icons: [{ src: "/icons/icon-96.png", sizes: "96x96" }] },
+          { name: "Mes Tâches",   short_name: "Tâches",  url: "/worker/tasks",  icons: [{ src: "/icons/icon-96.png", sizes: "96x96" }] },
+          { name: "Worker Home",  short_name: "Worker",  url: "/worker",        icons: [{ src: "/icons/icon-96.png", sizes: "96x96" }] },
+          { name: "Dashboard",    short_name: "Dash",    url: "/dashboard",     icons: [{ src: "/icons/icon-96.png", sizes: "96x96" }] }
+        ],
+        screenshots: [
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', form_factor: 'narrow',  label: 'Smart Farm AI — Terrain mobile' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', form_factor: 'wide',    label: 'Smart Farm AI — Dashboard' },
+        ],
+        id: '/smart-farm-ai',   /* stable PWA identity — required for re-install detection */
+        protocol_handlers: []
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        maximumFileSizeToCacheInBytes: 10000000,
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/ws\//],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: { cacheName: 'google-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: { cacheName: 'gstatic-fonts-cache', expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 } }
-          },
-          {
-            urlPattern: /\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache', expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 } }
-          },
-          {
-            urlPattern: /^https:\/\/tile\.openstreetmap\.org\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'osm-tiles-cache', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 } }
-          },
-          {
-            urlPattern: /\/map-tiles\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'local-tiles-cache', expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 7 } }
-          }
-        ]
+      injectManifest: {
+        // Exclude large monitoring images (+800 KB each) — loaded lazily, not needed at install
+        globIgnores: [
+          '**/goat_monitoring_ia.png',
+          '**/poultry_monitoring_ia.png',
+          '**/rabbit_monitoring_ia.png',
+          '**/sheep_monitoring_ia.png',
+          '**/sw-offline-sync.js',          // dead file removed
+          '**/models/**',                   // 3D GLB models — too large
+          '**/models designe/**',
+        ],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg,woff2}'],
+        maximumFileSizeToCacheInBytes: 5000000,   // 5 MB max per file (was 12 MB)
       }
     })
   ],
   preview: {
-    port: 4173,
+    port: 5173,       // same port as dev — workers access https://192.168.0.9:5173/worker-login
     host: true,
     https: loadCerts(),
     allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],

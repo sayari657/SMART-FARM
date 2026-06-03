@@ -26,27 +26,37 @@
       })();
     </script>
 
-    <!-- Viewport -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Viewport — viewport-fit:cover for notch/island phones -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
 
     <!-- Primary Meta -->
     <title>Smart Farm AI</title>
     <meta name="description" content="Plateforme agricole intelligente — Monitoring temps réel, IA prédictive, gestion du bétail." />
-    <meta name="theme-color" content="#16a34a" />
+    <meta name="theme-color" content="#16a34a" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a"  media="(prefers-color-scheme: dark)" />
     <meta name="format-detection" content="telephone=no" />
+    <meta name="color-scheme" content="light dark" />
 
     <!-- PWA — Android / Chrome -->
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="FarmAI" />
 
     <!-- PWA — iOS / Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FarmAI" />
+
+    <!-- iOS touch icons -->
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
 
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="32x32"  href="/icons/icon-72.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -55,13 +65,28 @@
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Apple PWA Splash Screens -->
-    <link rel="apple-touch-startup-image" href="/icons/icon-512.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
-    <link rel="apple-touch-startup-image" href="/icons/icon-512.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" />
-    <link rel="apple-touch-startup-image" href="/icons/icon-512.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" />
-    <link rel="apple-touch-startup-image" href="/icons/icon-512.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" />
-    <link rel="apple-touch-startup-image" href="/icons/icon-512.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)" />
-    <link rel="apple-touch-startup-image" href="/icons/icon-512.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
+    <!-- Apple PWA Splash Screens — generated for each device -->
+    <!-- iPhone SE (750×1334 @2x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-iphone-se.png"
+          media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" />
+    <!-- iPhone 14 (1170×2532 @3x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-iphone-14.png"
+          media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" />
+    <!-- iPhone 14 Pro (1179×2556 @3x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-iphone-14-pro.png"
+          media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" />
+    <!-- iPhone 14 Plus (1284×2778 @3x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-iphone-14-plus.png"
+          media="(device-width:428px) and (device-height:926px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" />
+    <!-- iPhone 14 Pro Max (1290×2796 @3x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-iphone-14-pro-max.png"
+          media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)" />
+    <!-- iPad Pro 11" (1668×2388 @2x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-ipad-pro-11.png"
+          media="(device-width:834px) and (device-height:1194px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" />
+    <!-- iPad Pro 12.9" (2048×2732 @2x) -->
+    <link rel="apple-touch-startup-image" href="/splash/splash-ipad-pro-12.png"
+          media="(device-width:1024px) and (device-height:1366px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)" />
   </head>
   <body>
     <div id="root"></div>

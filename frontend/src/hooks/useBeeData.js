@@ -1,5 +1,14 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { beeApi } from '../services/beeApi';
+
+/* ── Offline queue ─────────────────────────────────────────────────
+   Pending requests are stored in localStorage as JSON.
+   On reconnect, they are replayed in order.
+─────────────────────────────────────────────────────────────────── */
+const QUEUE_KEY = 'bee_offline_queue';
+const getQueue  = ()    => { try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch { return []; } };
+const saveQueue = (q)   => localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+const pushQueue = (item) => saveQueue([...getQueue(), item]);
 
 export function useBeeData(toast) {
   const [emplacements, setEmplacements] = useState([]);
@@ -8,8 +17,11 @@ export function useBeeData(toast) {
   const [visites,      setVisites]      = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [syncing,      setSyncing]      = useState(false);
+  const [isOnline,     setIsOnline]     = useState(navigator.onLine);
+  const [pendingCount, setPendingCount] = useState(() => getQueue().length);
+  const syncRef = useRef(false);
 
-  /* stats dérivées — recalculées automatiquement, jamais stale */
+  /* stats dérivées */
   const stats = useMemo(() => {
     const honey     = productions.reduce((a, p) => a + (parseFloat(p.honey_kg) || 0), 0);
     const avgHealth = ruches.length
@@ -23,7 +35,9 @@ export function useBeeData(toast) {
     };
   }, [productions, ruches]);
 
+  /* ── Refresh from server ── */
   const refresh = useCallback(async (showSpin = true) => {
+    if (!navigator.onLine) return;
     if (showSpin) setSyncing(true);
     setLoading(true);
     try {
@@ -38,14 +52,52 @@ export function useBeeData(toast) {
       setProductions( productionsRes.ok ? await productionsRes.json() : []);
       setVisites(     visitsRes.ok      ? await visitsRes.json()      : []);
     } catch {
-      toast('Erreur de connexion au serveur', 'error');
+      /* silent — offline banner handles visibility */
     } finally {
       setLoading(false);
       setSyncing(false);
     }
-  }, [toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
-  useEffect(() => { refresh(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  /* ── Replay offline queue when back online ── */
+  const replayQueue = useCallback(async () => {
+    if (syncRef.current) return;
+    const queue = getQueue();
+    if (queue.length === 0) return;
+    syncRef.current = true;
+    setSyncing(true);
+    const failed = [];
+    for (const item of queue) {
+      try {
+        const res = await beeApi.call(item.url, { method: item.method, body: item.body });
+        if (!res.ok) failed.push(item);
+      } catch {
+        failed.push(item);
+      }
+    }
+    saveQueue(failed);
+    setPendingCount(failed.length);
+    syncRef.current = false;
+    setSyncing(false);
+    if (failed.length < queue.length) {
+      toast(`${queue.length - failed.length} opération(s) synchronisée(s)`, 'success');
+      refresh();
+    }
+  }, [refresh, toast]);
+
+  /* ── Online/offline listeners ── */
+  useEffect(() => {
+    const handleOnline  = () => { setIsOnline(true);  replayQueue(); };
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online',  handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online',  handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [replayQueue]);
+
+  useEffect(() => { refresh(false); }, []); // eslint-disable-line
 
   /* ── Emplacements ── */
   const addApiary = useCallback(async (formData) => {
@@ -79,10 +131,73 @@ export function useBeeData(toast) {
     return false;
   }, [refresh, toast]);
 
+  /* ── Visite — createVisit + applyVisit cascade ── */
+  const addVisit = useCallback(async (visitForm) => {
+    if (!visitForm.hive_id) {
+      toast('Sélectionnez une ruche', 'error');
+      return false;
+    }
+
+    const payload = {
+      hive_id:          Number(visitForm.hive_id),
+      apiary_id:        visitForm.apiary_id ? Number(visitForm.apiary_id) : undefined,
+      visit_date:       visitForm.visit_date || new Date().toISOString().split('T')[0],
+      health_state:     visitForm.health_state || 'health',
+      temperature:      visitForm.temperature ? parseFloat(visitForm.temperature) : null,
+      honey_level:      visitForm.honey_level || 'Moyen',
+      needs_sirop:      Number(visitForm.needs_sirop)      || 0,
+      needs_pate:       Number(visitForm.needs_pate)        || 0,
+      needs_traitement: Number(visitForm.needs_traitement)  || 0,
+      harvest_kg:       parseFloat(visitForm.harvest_kg)    || 0,
+      pollen_kg:        parseFloat(visitForm.pollen_kg)     || 0,
+      notes:            visitForm.notes     || '',
+      photo_url:        visitForm.photo_url || '',
+      gps_coords:       visitForm.gps_coords || '',
+    };
+
+    /* Offline mode — queue the mutation */
+    if (!navigator.onLine) {
+      pushQueue({
+        url:    `${import.meta.env.VITE_API_URL || '/api/v1'}/bee/history/visits`,
+        method: 'POST',
+        body:   JSON.stringify(payload),
+      });
+      setPendingCount(q => q + 1);
+      toast('Visite sauvegardée hors-ligne · sera synchronisée au retour', 'warning');
+      /* Optimistic local update */
+      setVisites(prev => [{ ...payload, id: Date.now(), _offline: true }, ...prev]);
+      return true;
+    }
+
+    /* Online mode — save + apply cascade */
+    try {
+      const res = await beeApi.createVisit(payload);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast(err?.detail || 'Erreur lors de l\'enregistrement', 'error');
+        return false;
+      }
+      const saved = await res.json();
+      toast('Inspection enregistrée ✓', 'success');
+
+      /* Apply cascade: updates ruche health, stock, production */
+      if (saved?.id) {
+        beeApi.applyVisit(saved.id).catch(() => {});
+      }
+
+      /* Refresh all data without blocking the UI */
+      refresh(false);
+      return true;
+    } catch {
+      toast('Erreur réseau — réessayez', 'error');
+      return false;
+    }
+  }, [refresh, toast]);
+
   return {
     emplacements, ruches, productions, visites,
-    loading, syncing, stats,
+    loading, syncing, isOnline, pendingCount, stats,
     refresh,
-    addApiary, removeApiary, addProduction,
+    addApiary, removeApiary, addProduction, addVisit,
   };
 }

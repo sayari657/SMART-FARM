@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { cvAPI, anomalyAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import CVModelsDashboard from '../components/CVModelsDashboard';
 
 const SEV_CFG = {
   critical: { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', label: 'Critique', icon: AlertOctagon },
@@ -43,6 +44,7 @@ export default function CVMonitoring() {
   const [selectMode, setSelectMode] = useState(false);
   const [deleting, setDeleting]     = useState(false);
   const [showNoPreview, setShowNoPreview] = useState(false);
+  const [activeTab, setActiveTab] = useState('events'); // 'events' | 'dashboard'
 
   const load = async (spin = false) => {
     if (spin) setRefreshing(true);
@@ -216,6 +218,35 @@ export default function CVMonitoring() {
           </div>
         }
       />
+      {/* ── Tab switcher ── */}
+      <div style={{ display:'flex', gap:4, padding:'12px 24px 0', background:'#0f172a', borderBottom:'1px solid rgba(255,255,255,.07)' }}>
+        {[
+          { key:'events',    label:'📡 Événements Live' },
+          { key:'dashboard', label:'🧠 ML / DL / CV Dashboard' },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            style={{
+              padding:'9px 20px', borderRadius:'10px 10px 0 0', border:'none', cursor:'pointer',
+              fontWeight:800, fontSize:12, letterSpacing:.3,
+              background: activeTab===tab.key ? '#1e293b' : 'transparent',
+              color: activeTab===tab.key ? '#6366f1' : '#64748b',
+              borderBottom: activeTab===tab.key ? '2px solid #6366f1' : '2px solid transparent',
+              transition:'all .15s',
+            }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── ML/DL Dashboard tab ── */}
+      {activeTab === 'dashboard' && (
+        <div className="page-content" style={{ background:'#0f172a', minHeight:'100vh' }}>
+          <CVModelsDashboard farmId={farmId} />
+        </div>
+      )}
+
+      {/* ── Live events tab ── */}
+      {activeTab === 'events' && (
       <div className="page-content" style={{ direction: rtl ? 'rtl' : 'ltr' }}>
 
         {/* ── Hero ── */}
@@ -497,6 +528,7 @@ export default function CVMonitoring() {
           </div>
         )}
       </div>
+      )} {/* end events tab */}
     </>
   );
 }

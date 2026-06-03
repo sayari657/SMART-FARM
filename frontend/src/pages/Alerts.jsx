@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ShieldAlert, AlertTriangle, AlertOctagon, CheckCircle2,
   Clock, Search, X, RefreshCw, Bell, Filter,
@@ -7,6 +7,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { alertsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const SEV_CONFIG = {
   CRITICAL: { color: '#ef4444', bg: '#fef2f2', border: '#fecaca', dot: '#ef4444', icon: AlertOctagon, label: 'Critique' },
@@ -22,23 +23,25 @@ const PRIO_CONFIG = {
 
 export default function Alerts() {
   const { t, i18n } = useTranslation();
-  const [alerts, setAlerts]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
-  const [sevFilter, setSev]       = useState('all');
-  const [expanded, setExpanded]   = useState(null);
+  const { farmId } = useAuth();
+  const [alerts, setAlerts]         = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [search, setSearch]         = useState('');
+  const [sevFilter, setSev]         = useState('all');
+  const [expanded, setExpanded]     = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = async (showSpin = false) => {
     if (showSpin) setRefreshing(true);
     try {
-      const res = await alertsAPI.critical();
+      // Pass farmId to scope query to current farm only — avoids full-table scan
+      const res = await alertsAPI.critical(farmId);
       setAlerts(Array.isArray(res.data) ? res.data : []);
     } catch { setAlerts([]); }
     finally { setLoading(false); if (showSpin) setRefreshing(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [farmId]);
 
   const filtered = alerts.filter(a => {
     const matchSev    = sevFilter === 'all' || a.alert_type === sevFilter;
@@ -70,8 +73,23 @@ export default function Alerts() {
       />
       <div className="page-content" style={{ direction: rtl ? 'rtl' : 'ltr' }}>
 
+        {/* ── Skeleton strips while loading (replaces blank white page) ── */}
+        {loading && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+            {[200, 60, 60, 60, 60].map((h, i) => (
+              <div key={i} style={{
+                height: h, borderRadius: 14,
+                background: 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.4s infinite',
+              }} />
+            ))}
+            <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+          </div>
+        )}
+
         {/* ── Hero ── */}
-        <div className="al-hero">
+        {!loading && <div className="al-hero">
           <div className="al-hero-left">
             <div className="al-hero-eyebrow">
               <span className="al-pulse" style={{ background: counts.CRITICAL > 0 ? '#ef4444' : '#22c55e' }} />
@@ -94,7 +112,7 @@ export default function Alerts() {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* ── Toolbar ── */}
         <div className="al-toolbar">

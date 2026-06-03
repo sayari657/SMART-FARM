@@ -10,6 +10,7 @@ import beeIconImg from '../../assets/bee/bee-icon.png';
 import { COLORS } from './BeeConstants';
 
 import { beeApi } from '../../services/beeApi';
+import BeeAICharts from './BeeAICharts';
 
 /* ── Circular health ring ── */
 const HealthRing = ({ value = 0, max = 10, size = 80, stroke = 6, color }) => {
@@ -229,7 +230,7 @@ function LogisticsWidget({ emplacements = [] }) {
   );
 }
 
-export default function DashboardTab({ ruches = [], emplacements = [], isProcessing, onAction, stats, onSync }) {
+export default function DashboardTab({ ruches = [], emplacements = [], productions = [], visites = [], stock = {}, isProcessing, onAction, stats, onSync }) {
   const activeRuches = ruches.filter(r => r.is_active !== false);
   const avgHealth = ruches.length ? ruches.reduce((s, r) => s + (r.health_score || 0), 0) / ruches.length : 0;
   const [simpleMode, setSimpleMode] = useState(() => localStorage.getItem('bee_simple_mode') !== 'false');
@@ -473,6 +474,15 @@ export default function DashboardTab({ ruches = [], emplacements = [], isProcess
       </div>
 
       </>}
+
+      {/* ══════════ AI / Data Science Analytics ══════════ */}
+      <BeeAICharts
+        ruches={ruches}
+        emplacements={emplacements}
+        productions={productions}
+        visites={visites}
+        stock={stock}
+      />
     </div>
   );
 }

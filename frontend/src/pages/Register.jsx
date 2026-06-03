@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Leaf, Eye, EyeOff, Zap, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import ThreeBackground from '../components/ThreeBackground';
 import ThreeFarmBackground from '../components/ThreeFarmBackground';
@@ -15,6 +15,11 @@ const ROLE_DESC = {
   worker: 'Opérations terrain : tâches assignées, signalements incidents, scan IA, rapports — optimisé mobile avec mode hors-ligne.',
 };
 
+const PLAN_META = {
+  pro:  { label: 'Professionnel · 29€/mois', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: Zap },
+  free: { label: 'Initiation · Gratuit',      color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', icon: CheckCircle },
+};
+
 export default function Register() {
   const [form, setForm] = useState({ username:'', email:'', phone_number:'+216', full_name:'', password:'', role:'owner' });
   const [error, setError]     = useState('');
@@ -22,6 +27,8 @@ export default function Register() {
   const [showPw, setShowPw]   = useState(false);
   const { register, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const plan = searchParams.get('plan'); // 'free' | 'pro' | null
 
   const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
@@ -86,6 +93,26 @@ export default function Register() {
         <div className="auth-card">
           <h1>Créer un compte</h1>
           <p>Renseignez vos informations pour rejoindre la plateforme</p>
+
+          {/* Plan badge */}
+          {plan && PLAN_META[plan] && (() => {
+            const m = PLAN_META[plan];
+            const Icon = m.icon;
+            return (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: m.bg, border: `1.5px solid ${m.border}`,
+                borderRadius: 10, padding: '10px 14px', marginBottom: 4,
+              }}>
+                <Icon size={15} color={m.color} />
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: m.color, textTransform: 'uppercase', letterSpacing: .6 }}>Plan sélectionné</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{m.label}</div>
+                </div>
+                <Link to="/#pricing" style={{ marginLeft: 'auto', fontSize: 11, color: m.color, textDecoration: 'underline', fontWeight: 600 }}>Changer</Link>
+              </div>
+            );
+          })()}
 
           {success && (
             <div className="alert-banner success" style={{ marginBottom:16 }}>

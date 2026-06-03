@@ -15,6 +15,7 @@ import Navbar from '../components/Navbar';
 import AnimalERP from '../components/AnimalERP';
 import AIScanner from '../components/AIScanner';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
+import LivestockAICharts from '../components/LivestockAICharts';
 import { farmsAPI, workerTasksAPI, farmWorkersAPI, poultryAPI, settingsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -2447,6 +2448,7 @@ function TodayWorkspace() {
 
 export default function AboutPoultry() {
   const { i18n, t } = useTranslation();
+  const { farmId: poultryFarmId } = useAuth();
   const isAr = i18n.language === 'ar';
   const [activeTab, setActiveTab]     = useState('apercu');
   const [farmLoading, setFarmLoading] = useState(true);
@@ -2462,6 +2464,7 @@ export default function AboutPoultry() {
     { id: 'today',        label: t('poultry.tabs.today'),        icon: CheckCircle },
     { id: 'erp',          label: t('poultry.tabs.erp'),          icon: Layers      },
     { id: 'surveillance', label: t('poultry.tabs.surveillance'), icon: Eye         },
+    { id: 'analytics',    label: 'Analytics IA',                 icon: BarChart2   },
     { id: 'protocols',    label: t('poultry.tabs.protocols'),    icon: Calendar    },
   ];
 
@@ -2516,6 +2519,17 @@ export default function AboutPoultry() {
 
         {/* ── SURVEILLANCE IA ── */}
         {activeTab === 'surveillance' && <SurveillanceTab />}
+
+        {/* ── ANALYTICS IA — ML/DL Dashboard ── */}
+        {activeTab === 'analytics' && (
+          <LivestockAICharts
+            cfg={{ color:'#f59e0b', dark:'#b45309', emoji:'🐔',
+              name:'Volailles', apiSpecies:'poultry',
+              totalDays:42, cycleLabel:'Cycle Poulet (42 j)' }}
+            animals={[]}
+            farmId={poultryFarmId}
+          />
+        )}
 
         {/* ── PROTOCOLES & CALENDRIER ── */}
         {activeTab === 'protocols' && <ProtocolsTab />}

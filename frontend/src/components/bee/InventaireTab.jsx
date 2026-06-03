@@ -4,6 +4,7 @@ import { COLORS, gradeColor, gradeLabel } from './BeeConstants';
 import { beeApi } from '../../services/beeApi';
 import { QrModal, QueenDispatchModal } from './HiveModals.jsx';
 import HiveWizardForm from './HiveWizardForm.jsx';
+import HiveMetricCard from './HiveMetricCard.jsx';
 import beeIconImg from '../../assets/bee/bee-icon.png';
 
 /* ── Feu tricolore santé ── */
@@ -99,9 +100,10 @@ export default function InventaireTab({
   const grades = { A: 0, B: 0, C: 0, D: 0 };
   ruches.forEach(r => { grades[gradeLabel(r.health_score ?? 7)]++; });
 
-  const handleSubmit = async () => {
-    if (!form.apiary_id) { toast('Site requis.', 'warning'); return; }
-    const payload = { ...form, apiary_id: Number(form.apiary_id) };
+  const handleSubmit = async (overrideForm) => {
+    const base = overrideForm || form;
+    if (!base.apiary_id) { toast('Site requis.', 'warning'); return; }
+    const payload = { ...base, apiary_id: Number(base.apiary_id) };
     const res = await beeApi.createHive(payload);
     if (!res.ok) {
       toast((await beeApi.json(res)).detail || 'Erreur création ruche', 'error');
@@ -394,48 +396,14 @@ export default function InventaireTab({
                     <BeeStrength level={r.force_level ?? 5} />
                   </div>
 
-                  {/* Quick edit */}
+                  {/* Quick edit — HiveMetricCard enterprise stepper */}
                   {expandedQuick === r.id && (
-                    <div onClick={e => e.stopPropagation()}
-                      style={{ marginTop: 14, padding: '12px 14px', borderRadius: 14,
-                        background: COLORS.bg2, border: `1px solid ${COLORS.borderHigh}` }}>
-                      <div style={{ fontSize: 9, color: COLORS.accent, fontWeight: 800, letterSpacing: '1px', marginBottom: 10 }}>
-                        ⚡ ÉDITION RAPIDE
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {[
-                          { key: 'health_score', label: 'Santé', color: gc },
-                          { key: 'honey_level',  label: 'Miel',  color: COLORS.accent },
-                          { key: 'force_level',  label: 'Force', color: COLORS.gradeA },
-                        ].map(m => (
-                          <div key={m.key} style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: 9, color: COLORS.textMuted, fontWeight: 700, marginBottom: 6 }}>
-                              {m.label}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <button onClick={e => { e.stopPropagation(); setQuickVals(v => ({ ...v, [r.id]: { ...qv, [m.key]: Math.max(0, +(qv[m.key] ?? 5) - 0.5) } })); }}
-                                style={{ width: 28, height: 28, borderRadius: 8, cursor: 'pointer',
-                                  border: `1px solid ${COLORS.border}`, background: COLORS.surface,
-                                  color: COLORS.text, fontSize: 16, display: 'flex',
-                                  alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>−</button>
-                              <span style={{ flex: 1, color: m.color, fontWeight: 900, fontSize: 12, textAlign: 'center' }}>
-                                {(qv[m.key] ?? 5).toFixed(1)}
-                              </span>
-                              <button onClick={e => { e.stopPropagation(); setQuickVals(v => ({ ...v, [r.id]: { ...qv, [m.key]: Math.min(10, +(qv[m.key] ?? 5) + 0.5) } })); }}
-                                style={{ width: 28, height: 28, borderRadius: 8, cursor: 'pointer',
-                                  border: `1px solid ${COLORS.border}`, background: COLORS.surface,
-                                  color: COLORS.text, fontSize: 16, display: 'flex',
-                                  alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>+</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={e => handleQuickSave(e, r.id)}
-                        style={{ marginTop: 10, width: '100%', height: 32, borderRadius: 10, cursor: 'pointer',
-                          background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`,
-                          border: 'none', color: 'white', fontWeight: 800, fontSize: 12 }}>
-                        ✓ Sauvegarder
-                      </button>
+                    <div onClick={e => e.stopPropagation()} style={{ marginTop: 14 }}>
+                      <HiveMetricCard
+                        hive={r}
+                        compact
+                        onSaved={() => { onAddRuche(); setExpandedQuick(null); }}
+                      />
                     </div>
                   )}
 

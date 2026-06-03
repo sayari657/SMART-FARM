@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast }   from '../hooks/useToast';
 import { useBeeNav }  from '../hooks/useBeeNav';
 import { useBeeData } from '../hooks/useBeeData';
@@ -7,7 +8,8 @@ import beeSketchImg from '../assets/bee/bee-sketch.png';
 import {
   LayoutDashboard, MapPin, Hexagon, Bell, RefreshCw,
   ChevronRight, CheckCircle, XCircle, AlertTriangle, ArrowLeft,
-  Droplets, Package, CalendarClock,
+  Droplets, Package, CalendarClock, Tractor, WifiOff, Wifi, Upload,
+  Brain,
 } from 'lucide-react';
 import { COLORS } from '../components/bee/BeeConstants';
 import DashboardTab    from '../components/bee/DashboardTab';
@@ -17,6 +19,12 @@ import InventaireTab   from '../components/bee/InventaireTab';
 import ProductionTab   from '../components/bee/ProductionTab';
 import StockTab        from '../components/bee/StockTab';
 import PrevisionsTab   from '../components/bee/PrevisionsTab';
+import VisitesTab      from '../components/bee/VisitesTab';
+import HiveMetricCard  from '../components/bee/HiveMetricCard';
+import BeeMLDashboard  from '../components/bee/BeeMLDashboard';
+import { beeApi }      from '../services/beeApi';
+import api             from '../services/api';
+import { useAuth }     from '../context/AuthContext';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
 
 /* ── Image paths (watercolor assets) ─────────────────────────────────── */
@@ -48,9 +56,12 @@ const NAV_TABS = [
   { id: 'dashboard',  label: "Vue d'ensemble", icon: LayoutDashboard, emoji: '🏡' },
   { id: 'sites',      label: 'Sites GIS',       icon: MapPin,          emoji: '📍' },
   { id: 'inventaire', label: 'Inventaire',       icon: Hexagon,         emoji: '🔶' },
+  { id: 'visites',    label: 'Inspections',      icon: Bell,            emoji: '🔍' },
   { id: 'production', label: 'Production',       icon: Droplets,        emoji: '🍯' },
   { id: 'stock',      label: 'Stock',            icon: Package,         emoji: '📦' },
   { id: 'previsions', label: 'Missions',         icon: CalendarClock,   emoji: '🗓️' },
+  { id: 'analytics',  label: 'Analytics IA',     icon: Brain,           emoji: '🧠' },
+  { id: 'terrain',    label: 'Mode Terrain',     icon: Tractor,         emoji: '🚜' },
 ];
 
 /* ── Toast ───────────────────────────────────────────────────────────── */
@@ -119,9 +130,125 @@ function HoneycombPattern({ opacity = 0.04 }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   MODE TERRAIN — mise à jour rapide sans formulaire lourd
+══════════════════════════════════════════════════════════════════════ */
+function TerrainMode({ ruches, emplacements, onRefresh }) {
+  const [filterSite,  setFilterSite]  = useState('');
+  const [searchTerm,  setSearchTerm]  = useState('');
+  const [updatedIds,  setUpdatedIds]  = useState(new Set());
+  const online = navigator.onLine;
+
+  const filtered = ruches
+    .filter(r => r.is_active !== false)
+    .filter(r => !filterSite || String(r.apiary_id) === filterSite)
+    .filter(r => !searchTerm || r.identifier?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const alertCount = ruches.filter(r => (r.health_score ?? 10) < 4).length;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header */}
+      <div style={{ padding: '20px 24px', borderRadius: 20,
+        background: 'linear-gradient(135deg,#78350f,#d97706)',
+        position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, opacity: .05 }}>
+          <svg width="100%" height="100%"><defs><pattern id="hx3" x="0" y="0" width="40" height="46" patternUnits="userSpaceOnUse"><polygon points="20,2 36,11 36,35 20,44 4,35 4,11" fill="none" stroke="white" strokeWidth="1"/></pattern></defs><rect width="100%" height="100%" fill="url(#hx3)"/></svg>
+        </div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+            <span style={{ fontSize: 28 }}>🚜</span>
+            <div>
+              <div style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>Mode Terrain</div>
+              <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 12 }}>
+                {online ? '🟢 En ligne' : '🔴 Hors-ligne'} · {filtered.length} ruche{filtered.length !== 1 ? 's' : ''} active{filtered.length !== 1 ? 's' : ''}
+                {alertCount > 0 && ` · ⚠ ${alertCount} alerte${alertCount > 1 ? 's' : ''}`}
+              </div>
+            </div>
+          </div>
+          <div style={{ color: 'rgba(255,255,255,.65)', fontSize: 11, lineHeight: 1.5 }}>
+            Mettez à jour Santé · Miel · Force avec les boutons +/− · Auto-sauvegarde 1s · Fonctionne hors-ligne
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+          placeholder="🔍 Chercher une ruche…"
+          style={{ flex: 1, minWidth: 160, height: 42, padding: '0 14px',
+            background: W.warm, border: `1px solid ${W.border}`, borderRadius: 12,
+            color: W.text, outline: 'none', fontSize: 13 }}/>
+        <select value={filterSite} onChange={e => setFilterSite(e.target.value)}
+          style={{ height: 42, padding: '0 14px', background: W.warm,
+            border: `1px solid ${W.border}`, borderRadius: 12,
+            color: W.text, outline: 'none', fontSize: 13 }}>
+          <option value="">Tous les sites</option>
+          {emplacements.map(e => <option key={e.id} value={String(e.id)}>{e.name}</option>)}
+        </select>
+      </div>
+
+      {/* Urgent alerts strip */}
+      {ruches.filter(r => (r.health_score ?? 10) < 4).length > 0 && (
+        <div style={{ padding: '12px 18px', borderRadius: 14,
+          background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.3)' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: W.red, marginBottom: 8 }}>
+            🚨 Ruches urgentes — Inspection requise
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {ruches.filter(r => (r.health_score ?? 10) < 4).map(r => (
+              <span key={r.id} style={{ padding: '3px 10px', borderRadius: 99,
+                background: 'rgba(239,68,68,.12)', color: W.red,
+                fontSize: 11, fontWeight: 800, border: '1px solid rgba(239,68,68,.25)' }}>
+                🔶 {r.identifier}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hive metric cards */}
+      {filtered.length === 0 ? (
+        <div style={{ height: 200, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 10,
+          color: W.textMuted, border: `2px dashed ${W.border}`, borderRadius: 20 }}>
+          <span style={{ fontSize: 36 }}>🔶</span>
+          <div style={{ fontWeight: 700 }}>Aucune ruche active</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {filtered.map(r => (
+            <HiveMetricCard
+              key={r.id}
+              hive={r}
+              onSaved={() => {
+                setUpdatedIds(s => new Set([...s, r.id]));
+                setTimeout(() => setUpdatedIds(s => { const n = new Set(s); n.delete(r.id); return n; }), 3000);
+                onRefresh?.();
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {updatedIds.size > 0 && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          padding: '10px 20px', borderRadius: 12, background: W.green,
+          color: '#fff', fontWeight: 800, fontSize: 13, zIndex: 1000,
+          boxShadow: '0 8px 24px rgba(5,150,105,.35)', animation: 'fadeUp .2s ease' }}>
+          ✓ {updatedIds.size} ruche{updatedIds.size > 1 ? 's' : ''} mise{updatedIds.size > 1 ? 's' : ''} à jour
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════════════════════ */
 export default function AboutBee() {
+  const navigate = useNavigate();
+  const { farmId } = useAuth();
+
   const [modalActive,  setModalActive] = useState(null);
   const [filterApiary, setFilterApiary] = useState('');
   const [prodForm,     setProdForm]    = useState({ production_date:'', apiary_id:'', honey_kg:'', pollen_kg:'' });
@@ -131,14 +258,23 @@ export default function AboutBee() {
   const [previsions, setPrevisions] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bee_previsions') || '[]'); } catch { return []; }
   });
+  const [workers, setWorkers] = useState([]);
+
+  const [isAddingVisit,  setIsAddingVisit]  = useState(false);
+  const [visiteForm,     setVisiteForm]    = useState({
+    hive_id:'', apiary_id:'', visit_date: new Date().toISOString().split('T')[0],
+    health_state:'health', temperature:'', honey_level:'Moyen',
+    needs_sirop:0, needs_pate:0, needs_traitement:0,
+    harvest_kg:0, pollen_kg:0, notes:'', photo_url:'', gps_coords:'',
+  });
 
   const { toasts, toast, dismiss }                    = useToast();
   const { activePage, setActivePage,
           selectedHive, setSelectedHive,
           openHive, closeHive }                       = useBeeNav();
   const { emplacements, ruches, productions, visites,
-          loading, syncing, stats, refresh,
-          addApiary, removeApiary, addProduction }    = useBeeData(toast);
+          loading, syncing, isOnline, pendingCount, stats, refresh,
+          addApiary, removeApiary, addProduction, addVisit } = useBeeData(toast);
 
   useEffect(() => {
     if (selectedHive) {
@@ -146,6 +282,14 @@ export default function AboutBee() {
       if (updated) setSelectedHive(updated);
     }
   }, [ruches]); // eslint-disable-line
+
+  /* Fetch farm workers for mission assignment */
+  useEffect(() => {
+    if (!farmId) return;
+    api.get(`/farms/${farmId}/workers`)
+      .then(r => setWorkers(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {});
+  }, [farmId]);
 
   const handleAddApiary = async fd => { const ok = await addApiary(fd); if (ok) setModalActive(null); };
   const handleDeleteApiary = async id => { if (!confirm('Supprimer ce site et ses ruches ?')) return; await removeApiary(id); };
@@ -167,7 +311,14 @@ export default function AboutBee() {
     });
   };
   const handleAddPrevision = p => {
-    const next = [...previsions, { ...p, id:Date.now(), tasks:p.tasks.map((t,i) => ({ id:i, text:t, status:'todo' })) }];
+    const next = [...previsions, {
+      ...p,
+      id: Date.now(),
+      tasks: p.tasks.map((t, i) => ({ id: i, text: t, status: 'todo' })),
+      /* worker fields from form */
+      workerId:   p.workerId   || null,
+      workerName: p.workerName || null,
+    }];
     setPrevisions(next);
     localStorage.setItem('bee_previsions', JSON.stringify(next));
   };
@@ -177,6 +328,29 @@ export default function AboutBee() {
       : p);
     setPrevisions(next);
     localStorage.setItem('bee_previsions', JSON.stringify(next));
+  };
+  const handleAssignWorker = (prevId, workerId, workerName) => {
+    const next = previsions.map(p => p.id === prevId ? { ...p, workerId, workerName } : p);
+    setPrevisions(next);
+    localStorage.setItem('bee_previsions', JSON.stringify(next));
+  };
+  const handleDeletePrevision = (prevId) => {
+    const next = previsions.filter(p => p.id !== prevId);
+    setPrevisions(next);
+    localStorage.setItem('bee_previsions', JSON.stringify(next));
+  };
+
+  const handleAddVisite = async (form) => {
+    const ok = await addVisit(form);
+    if (ok) {
+      setIsAddingVisit(false);
+      setVisiteForm({
+        hive_id:'', apiary_id:'', visit_date: new Date().toISOString().split('T')[0],
+        health_state:'health', temperature:'', honey_level:'Moyen',
+        needs_sirop:0, needs_pate:0, needs_traitement:0,
+        harvest_kg:0, pollen_kg:0, notes:'', photo_url:'', gps_coords:'',
+      });
+    }
   };
 
   const alertCount = parseInt(stats.alertes) || 0;
@@ -209,142 +383,274 @@ export default function AboutBee() {
         .action-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(217,119,6,.25) !important; }
         select option { background:#FEF9EE !important; color:#2C1A0E !important; }
         input::placeholder, textarea::placeholder { color:#A07850 !important; }
+
+        /* ── Responsive navbar ─────────────────────────── */
+        /* Hide watercolor image on small screens */
+        @media (max-width: 640px) {
+          .bee-header-watercolor { display: none !important; }
+          .bee-brand-sub { display: none; }
+          .bee-tab-label { font-size: 11px !important; }
+        }
+        /* Extra small — icon-only tabs */
+        @media (max-width: 380px) {
+          .bee-tab-label { display: none; }
+        }
+        /* Hide tabs scrollbar on Webkit */
+        nav::-webkit-scrollbar { display: none; }
       `}</style>
 
       <ToastContainer toasts={toasts} onRemove={dismiss}/>
 
       {/* ══════════════════════════════════════════════════════════
-          HEADER — warm honey gradient + watercolor decoration
+          HEADER — responsive honey navbar
       ══════════════════════════════════════════════════════════ */}
       <header style={{
         flexShrink:0, position:'relative', overflow:'hidden',
         background:'linear-gradient(135deg, #78350f 0%, #92400e 20%, #b45309 50%, #d97706 80%, #fbbf24 100%)',
         zIndex:200,
+        /* Safe area for notch / Dynamic Island */
+        paddingTop:'env(safe-area-inset-top)',
       }}>
         {/* Honeycomb pattern overlay */}
         <HoneycombPattern opacity={0.06}/>
 
-        {/* Organic wax blobs */}
+        {/* Organic wax blobs — desktop only */}
         <WaxBlob x="-40px" y="-30px" size={160} opacity={0.12} color="#fbbf24"/>
         <WaxBlob x="55%" y="-50px" size={200} opacity={0.08} color="#92400e"/>
         <WaxBlob x="78%" y="-20px" size={120} opacity={0.10} color="#fef3c7"/>
 
-        {/* Watercolor bee image — right side decoration */}
-        <div style={{
+        {/* Watercolor bee — decorative right side (hidden on small screens via CSS) */}
+        <div className="bee-header-watercolor" style={{
           position:'absolute', right:0, top:0, bottom:0, width:220, overflow:'hidden',
           maskImage:'linear-gradient(to left, rgba(0,0,0,.35) 0%, transparent 100%)',
           WebkitMaskImage:'linear-gradient(to left, rgba(0,0,0,.35) 0%, transparent 100%)',
           pointerEvents:'none',
         }}>
           <img src={IMG_WATERCOLOR} alt="" style={{ width:'100%', height:'100%',
-            objectFit:'cover', objectPosition:'center', opacity:.4,
-            mixBlendMode:'luminosity' }}/>
+            objectFit:'cover', objectPosition:'center', opacity:.4, mixBlendMode:'luminosity' }}/>
         </div>
 
-        {/* Main header content */}
-        <div style={{ position:'relative', zIndex:2, padding:'0 20px',
-          display:'flex', alignItems:'center', gap:0, height:70 }}>
+        {/* ── TOP ROW: back + brand + right actions ── */}
+        <div style={{
+          position:'relative', zIndex:2,
+          padding:'0 clamp(12px, 3vw, 20px)',
+          display:'flex', alignItems:'center', gap:8,
+          height:60,
+          minWidth:0,
+        }}>
+
+          {/* Back to animals */}
+          <button
+            onClick={() => navigate('/animals')}
+            title="Retour aux espèces"
+            style={{
+              display:'flex', alignItems:'center', justifyContent:'center',
+              width:36, height:36, borderRadius:10, flexShrink:0,
+              background:'rgba(255,255,255,.15)', border:'1.5px solid rgba(255,255,255,.28)',
+              color:'#fff', cursor:'pointer', transition:'all .18s',
+              touchAction:'manipulation',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.25)'}
+            onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,.15)'}
+          >
+            <ArrowLeft size={16}/>
+          </button>
+
+          {/* Vertical divider */}
+          <div style={{ width:1, height:26, background:'rgba(255,255,255,.22)', flexShrink:0 }}/>
 
           {/* Brand */}
-          <div style={{ display:'flex', alignItems:'center', gap:12, marginRight:20, flexShrink:0 }}>
-            <div style={{ position:'relative', width:44, height:44, flexShrink:0 }}>
-              <img src={IMG_SKETCH} alt="bee"
-                style={{ width:44, height:44, borderRadius:'50%', objectFit:'cover',
-                  border:'2px solid rgba(255,255,255,.5)',
-                  boxShadow:'0 2px 12px rgba(139,68,14,.4)' }}
-                onError={e => { e.target.style.display='none'; }}/>
-              <div style={{ position:'absolute', inset:0, borderRadius:'50%',
-                background:'rgba(217,119,6,.2)', display:'flex', alignItems:'center',
-                justifyContent:'center', fontSize:22 }}
-                id="bee-icon-fallback">🐝</div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0, minWidth:0 }}>
+            <div style={{ position:'relative', width:38, height:38, flexShrink:0 }}>
+              <img src={IMG_SKETCH} alt="bee" style={{
+                width:38, height:38, borderRadius:'50%', objectFit:'cover',
+                border:'2px solid rgba(255,255,255,.5)',
+                boxShadow:'0 2px 12px rgba(139,68,14,.4)',
+              }} onError={e => { e.target.style.display='none'; }}/>
             </div>
-            <div>
-              <div style={{ color:'#fff', fontWeight:900, fontSize:16, letterSpacing:'.5px',
-                lineHeight:1, textShadow:'0 1px 3px rgba(0,0,0,.25)' }}>APICRAFT</div>
-              <div style={{ color:'rgba(255,255,255,.65)', fontSize:9, letterSpacing:'2.5px',
-                fontWeight:700, lineHeight:1, marginTop:3 }}>APICULTURE · IA</div>
+            <div style={{ minWidth:0 }}>
+              <div style={{ color:'#fff', fontWeight:900, fontSize:15, letterSpacing:'.4px',
+                lineHeight:1, textShadow:'0 1px 3px rgba(0,0,0,.25)',
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                APICRAFT
+              </div>
+              <div className="bee-brand-sub" style={{ color:'rgba(255,255,255,.65)',
+                fontSize:9, letterSpacing:'2px', fontWeight:700, lineHeight:1, marginTop:2 }}>
+                APICULTURE · IA
+              </div>
             </div>
           </div>
 
-          {/* Divider */}
-          <div style={{ width:1, height:30, background:'rgba(255,255,255,.22)', marginRight:16, flexShrink:0 }}/>
+          {/* Hive breadcrumb — only when a hive is open */}
+          {selectedHive && (
+            <div style={{ display:'flex', alignItems:'center', gap:6, flex:1, minWidth:0 }}>
+              <ChevronRight size={12} color="rgba(255,255,255,.5)" style={{ flexShrink:0 }}/>
+              <button onClick={closeHive} style={{
+                background:'rgba(255,255,255,.12)', border:'1px solid rgba(255,255,255,.25)',
+                borderRadius:8, color:'rgba(255,255,255,.85)', cursor:'pointer',
+                padding:'4px 10px', fontSize:11, fontWeight:600,
+                display:'flex', alignItems:'center', gap:5, touchAction:'manipulation',
+              }}>
+                <ArrowLeft size={11}/> Inventaire
+              </button>
+              <ChevronRight size={11} color="rgba(255,255,255,.45)" style={{ flexShrink:0 }}/>
+              <span style={{ color:'#fff', fontWeight:800, fontSize:12,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {selectedHive.identifier}
+              </span>
+            </div>
+          )}
 
-          {/* Tab nav */}
-          <nav style={{ display:'flex', height:'100%', gap:4, flex:1, alignItems:'center',
-            overflowX:'auto', paddingBottom:2, scrollbarWidth:'none' }}>
+          {/* Spacer */}
+          <div style={{ flex:1 }}/>
+
+          {/* ── Right: stats chips + refresh ── */}
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+
+            {/* 🍯 Honey total */}
+            <div style={{
+              height:32, padding:'0 10px', borderRadius:99,
+              background:'rgba(255,255,255,.90)', border:'1px solid rgba(255,255,255,.65)',
+              display:'flex', alignItems:'center', gap:5,
+              boxShadow:'0 2px 8px rgba(0,0,0,.1)',
+            }}>
+              <span style={{ fontSize:14 }}>🍯</span>
+              <span style={{ color:W.honeyDk, fontWeight:800, fontSize:12 }}>
+                {stats.totalMiel}
+              </span>
+            </div>
+
+            {/* 🔔 Alert badge */}
+            {alertCount > 0 && (
+              <div style={{
+                height:32, padding:'0 10px', borderRadius:99, background:W.red,
+                display:'flex', alignItems:'center', gap:5,
+                boxShadow:'0 2px 8px rgba(239,68,68,.35)',
+              }}>
+                <Bell size={12} color="#fff" style={{ animation:'badge 2s ease-in-out infinite' }}/>
+                <span style={{ color:'#fff', fontSize:12, fontWeight:800 }}>{alertCount}</span>
+              </div>
+            )}
+
+            {/* Offline / pending sync indicator */}
+            {!isOnline && (
+              <div style={{ height:32, padding:'0 10px', borderRadius:99,
+                background:'rgba(245,158,11,.15)', border:'1px solid rgba(245,158,11,.4)',
+                display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ fontSize:9 }}>📡</span>
+                <span style={{ color:'#fbbf24', fontSize:10, fontWeight:800 }}>
+                  {pendingCount > 0 ? `${pendingCount} en attente` : 'Hors-ligne'}
+                </span>
+              </div>
+            )}
+
+            {/* Refresh */}
+            <button onClick={() => refresh()} disabled={syncing}
+              title="Actualiser"
+              style={{
+                height:32, width:32, borderRadius:99, cursor:'pointer',
+                background:'rgba(255,255,255,.90)', border:'1px solid rgba(255,255,255,.65)',
+                color:W.honeyDk, fontSize:12, fontWeight:700,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                transition:'all .2s', flexShrink:0, touchAction:'manipulation',
+              }}>
+              <RefreshCw size={13} style={{ animation:syncing?'spin 0.8s linear infinite':'none' }}/>
+            </button>
+          </div>
+        </div>
+
+        {/* ── OFFLINE SYNC BANNER ── */}
+        {(!isOnline || pendingCount > 0) && (
+          <div style={{
+            position: 'relative', zIndex: 2,
+            margin: '0 clamp(12px,3vw,20px) 4px',
+            padding: '10px 18px', borderRadius: 12,
+            background: !isOnline
+              ? 'rgba(245,158,11,0.18)'
+              : 'rgba(251,191,36,0.15)',
+            border: `1px solid ${!isOnline ? 'rgba(245,158,11,0.5)' : 'rgba(251,191,36,0.4)'}`,
+            display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+          }}>
+            {!isOnline
+              ? <WifiOff size={15} color="#fbbf24"/>
+              : <Wifi size={15} color="#fbbf24"/>}
+            <div style={{ flex: 1 }}>
+              <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: 12 }}>
+                {!isOnline ? '📡 Mode Hors-Ligne' : '🔄 Synchronisation en attente'}
+              </span>
+              {pendingCount > 0 && (
+                <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>
+                  {pendingCount} modification{pendingCount > 1 ? 's' : ''} en attente
+                </span>
+              )}
+              {!isOnline && (
+                <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>
+                  · Les données terrain sont sauvegardées localement
+                </span>
+              )}
+            </div>
+            {isOnline && pendingCount > 0 && (
+              <button onClick={() => refresh()}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                  borderRadius: 8, background: 'rgba(251,191,36,0.25)',
+                  border: '1px solid rgba(251,191,36,0.5)', color: '#fbbf24',
+                  cursor: 'pointer', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>
+                <Upload size={11}/> Synchroniser maintenant
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB ROW — scrollable pills ── */}
+        {!selectedHive && (
+          <nav style={{
+            position:'relative', zIndex:2,
+            display:'flex', gap:4, alignItems:'center',
+            overflowX:'auto', scrollbarWidth:'none',
+            padding:'0 clamp(12px, 3vw, 20px) 12px',
+            WebkitOverflowScrolling:'touch',
+          }}>
             {NAV_TABS.map(tab => {
-              const isActive = activePage === tab.id && !selectedHive;
+              const isActive = activePage === tab.id;
               return (
-                <button key={tab.id} onClick={() => { setActivePage(tab.id); closeHive(); }}
+                <button
+                  key={tab.id}
+                  onClick={() => { setActivePage(tab.id); closeHive(); }}
                   className="bee-nav-btn"
                   style={{
-                    display:'flex', alignItems:'center', gap:7, padding:'7px 14px',
-                    borderRadius:99, cursor:'pointer', flexShrink:0, transition:'all .18s',
-                    background: isActive
-                      ? 'rgba(255,255,255,.92)'
-                      : 'rgba(255,255,255,.10)',
-                    border: `1.5px solid ${isActive ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.18)'}`,
+                    display:'flex', alignItems:'center', gap:6,
+                    padding:'7px clamp(10px, 2vw, 16px)',
+                    borderRadius:99, cursor:'pointer', flexShrink:0,
+                    background: isActive ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.10)',
+                    border:`1.5px solid ${isActive ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.18)'}`,
                     color: isActive ? W.honeyDk : 'rgba(255,255,255,.85)',
                     fontWeight: isActive ? 700 : 500,
-                    fontSize:13,
+                    fontSize: 'clamp(11px, 1.5vw, 13px)',
                     boxShadow: isActive ? '0 3px 14px rgba(0,0,0,.15)' : 'none',
                     position:'relative',
-                  }}>
-                  <span style={{ fontSize:15 }}>{tab.emoji}</span>
-                  <span>{tab.label}</span>
+                    touchAction:'manipulation',
+                    minHeight:36,
+                    transition:'all .18s cubic-bezier(.22,1,.36,1)',
+                  }}
+                >
+                  <span style={{ fontSize:14 }}>{tab.emoji}</span>
+                  <span className="bee-tab-label">{tab.label}</span>
                   {tab.id === 'dashboard' && alertCount > 0 && (
-                    <span style={{ position:'absolute', top:-6, right:-6, width:17, height:17,
-                      borderRadius:'50%', background:W.red, color:'#fff', fontSize:9,
+                    <span style={{
+                      position:'absolute', top:-5, right:-5,
+                      width:16, height:16, borderRadius:'50%',
+                      background:W.red, color:'#fff', fontSize:8,
                       fontWeight:900, display:'flex', alignItems:'center', justifyContent:'center',
-                      animation:'badge 1.5s ease-in-out infinite', border:'2px solid #fff' }}>
+                      animation:'badge 1.5s ease-in-out infinite', border:'2px solid #fff',
+                    }}>
                       {alertCount}
                     </span>
                   )}
                 </button>
               );
             })}
-
-            {/* Hive breadcrumb */}
-            {selectedHive && (
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'0 12px', fontSize:13 }}>
-                <button onClick={closeHive} style={{ background:'rgba(255,255,255,.15)',
-                  border:'1px solid rgba(255,255,255,.3)', borderRadius:8, color:'#fff',
-                  cursor:'pointer', padding:'5px 10px', fontSize:12,
-                  display:'flex', alignItems:'center', gap:6, fontWeight:700 }}>
-                  <ArrowLeft size={13}/> Inventaire
-                </button>
-                <ChevronRight size={12} color="rgba(255,255,255,.6)"/>
-                <span style={{ color:'#fff', fontWeight:900, fontSize:13 }}>{selectedHive.identifier}</span>
-              </div>
-            )}
           </nav>
-
-          {/* Right actions */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-            {/* Honey counter */}
-            <div style={{ height:34, padding:'0 12px', borderRadius:99,
-              background:'rgba(255,255,255,.90)', border:'1px solid rgba(255,255,255,.65)',
-              display:'flex', alignItems:'center', gap:6, boxShadow:'0 2px 8px rgba(0,0,0,.1)' }}>
-              <span style={{ fontSize:16 }}>🍯</span>
-              <span style={{ color:W.honeyDk, fontWeight:800, fontSize:12 }}>{stats.totalMiel}</span>
-            </div>
-            {alertCount > 0 && (
-              <div style={{ height:34, padding:'0 12px', borderRadius:99, background:W.red,
-                display:'flex', alignItems:'center', gap:6, boxShadow:'0 2px 8px rgba(239,68,68,.35)' }}>
-                <Bell size={12} color="#fff" style={{ animation:'badge 2s ease-in-out infinite' }}/>
-                <span style={{ color:'#fff', fontSize:12, fontWeight:800 }}>{alertCount}</span>
-              </div>
-            )}
-            <button onClick={() => refresh()} disabled={syncing}
-              style={{ height:34, padding:'0 14px', borderRadius:99, cursor:'pointer',
-                background:'rgba(255,255,255,.90)', border:'1px solid rgba(255,255,255,.65)',
-                color:W.honeyDk, fontSize:12, fontWeight:700,
-                display:'flex', alignItems:'center', gap:6, transition:'all .2s' }}>
-              <RefreshCw size={12} style={{ animation:syncing?'spin 0.8s linear infinite':'none' }}/>
-              {syncing ? 'Sync…' : 'Actualiser'}
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Organic wave bottom border */}
         <svg viewBox="0 0 1440 24" style={{ display:'block', width:'100%', height:24,
@@ -582,8 +888,11 @@ export default function AboutBee() {
               {/* ── TAB CONTENT ── */}
               <div className="bee-tab-content">
                 {activePage==='dashboard' && (
-                  <DashboardTab ruches={ruches} emplacements={emplacements} stats={stats}
-                    onAction={handleAction} onSync={refresh} isProcessing={syncing}/>
+                  <DashboardTab
+                    ruches={ruches} emplacements={emplacements} stats={stats}
+                    productions={productions} visites={visites} stock={stock}
+                    onAction={handleAction} onSync={refresh} isProcessing={syncing}
+                  />
                 )}
                 {activePage==='sites' && (
                   <EmplacementsTab emplacements={emplacements} onAction={handleAction}
@@ -597,6 +906,15 @@ export default function AboutBee() {
                     onSelectHive={h => { openHive(h); setActivePage('inventaire'); }}
                     onAddRuche={refresh} toast={toast}/>
                 )}
+                {activePage==='visites' && (
+                  <VisitesTab
+                    visites={visites} ruches={ruches} emplacements={emplacements}
+                    isAddingVisit={isAddingVisit} setIsAddingVisit={setIsAddingVisit}
+                    visiteForm={visiteForm} setVisiteForm={setVisiteForm}
+                    handleAddVisite={handleAddVisite}
+                    onDelete={async id => { await beeApi.deleteVisit(id); refresh(); }}
+                  />
+                )}
                 {activePage==='production' && (
                   <ProductionTab productions={productions} emplacements={emplacements}
                     ruches={ruches} visites={visites} stock={stock}
@@ -608,8 +926,28 @@ export default function AboutBee() {
                   <StockTab stock={stock} visites={visites} ruches={ruches} onUpdate={handleStockUpdate}/>
                 )}
                 {activePage==='previsions' && (
-                  <PrevisionsTab emplacements={emplacements} ruches={ruches}
-                    previsions={previsions} onAdd={handleAddPrevision} onUpdateTask={handleUpdateTask}/>
+                  <PrevisionsTab
+                    emplacements={emplacements} ruches={ruches}
+                    previsions={previsions}
+                    workers={workers}
+                    onAdd={handleAddPrevision}
+                    onUpdateTask={handleUpdateTask}
+                    onAssignWorker={handleAssignWorker}
+                    onDelete={handleDeletePrevision}
+                  />
+                )}
+                {activePage==='analytics' && (
+                  <BeeMLDashboard
+                    ruches={ruches}
+                    emplacements={emplacements}
+                    productions={productions}
+                    visites={visites}
+                    stock={stock}
+                    farmId={farmId}
+                  />
+                )}
+                {activePage==='terrain' && (
+                  <TerrainMode ruches={ruches} emplacements={emplacements} onRefresh={refresh}/>
                 )}
               </div>
 

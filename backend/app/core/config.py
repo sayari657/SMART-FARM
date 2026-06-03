@@ -123,8 +123,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     CACHE_TTL_SECONDS: int = int(os.getenv("CACHE_TTL_SECONDS", "300"))  # 5 min default
 
-    # ── FCM Push Notifications (Firebase) ─────────────────────────
-    FCM_SERVER_KEY: str = os.getenv("FCM_SERVER_KEY", "")  # Firebase Cloud Messaging
+    # ── Push Notifications ────────────────────────────────────────
+    FCM_SERVER_KEY:    str = os.getenv("FCM_SERVER_KEY",    "")   # FCM legacy
+    VAPID_PRIVATE_KEY: str = os.getenv("VAPID_PRIVATE_KEY", "fxbpsbCvai7Bpj9yxXMEPR7jaL5IvVcHpkoHzovw2Xs")
+    VAPID_EMAIL:       str = os.getenv("VAPID_EMAIL",       "medsayari2001@gmail.com")
 
     # ── Stripe Billing ────────────────────────────────────────────
     STRIPE_SECRET_KEY: str      = os.getenv("STRIPE_SECRET_KEY", "")

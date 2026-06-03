@@ -4,9 +4,9 @@ let apiEnv = import.meta.env.VITE_API_URL;
 if (apiEnv) apiEnv = apiEnv.replace(/^["']+|["']+$/g, '');
 const BASE_URL = apiEnv || '/api/v1';
 
-const api = axios.create({ 
+const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 120000 
+  timeout: 12000,   // 12 s — overridden per-request for heavy AI calls
 });
 
 // Attach JWT + CSRF token to every request

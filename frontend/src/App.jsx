@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
+import PushNotificationSetup from './components/PushNotificationSetup';
 import { usePinLock, PinLockScreen } from './components/PinLock';
 import ErrorBoundary from './components/ErrorBoundary';
 import MainLayout from './layouts/MainLayout';
@@ -187,6 +188,7 @@ function AppWithPin() {
         toastOptions={{ duration: 4000, style: { fontSize: 13, fontWeight: 700, maxWidth: 'min(420px, calc(100vw - 32px))' } }}
       />
       <PWAInstallPrompt />
+      <PushNotificationSetup />
     </>
   );
 }
