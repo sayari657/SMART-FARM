@@ -124,6 +124,17 @@ class TestBilling:
         }, headers=headers)
         assert r.status_code != 422
 
+    def test_checkout_https_localhost_passes(self, client, db):
+        # Dev server runs on HTTPS (mkcert) → https://localhost must be allowed
+        # even though CORS_ORIGINS only lists the http variant.
+        headers = _make_owner(client, f"bill_{uuid.uuid4().hex[:8]}")
+        r = client.post("/api/v1/billing/checkout", json={
+            "plan": "pro",
+            "success_url": "https://localhost:5173/settings?payment=success",
+            "cancel_url": "https://127.0.0.1:4173/settings?payment=cancel",
+        }, headers=headers)
+        assert r.status_code != 422
+
     def test_subscription_requires_owner_role(self, client, auth_headers):
         # auth_headers fixture registers role 'admin' (unprivileged)
         r = client.get("/api/v1/billing/subscription", headers=auth_headers)

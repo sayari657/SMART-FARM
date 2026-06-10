@@ -85,6 +85,9 @@ class CheckoutRequest(BaseModel):
         parsed = urlparse(v)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             raise ValueError("URL must be an absolute http(s) URL")
+        # Always allow loopback for local dev (any scheme/port: http/https, 5173/4173…)
+        if (parsed.hostname or "") in ("localhost", "127.0.0.1"):
+            return v
         origin = f"{parsed.scheme}://{parsed.netloc}"
         if origin not in _allowed_redirect_origins():
             raise ValueError("URL host is not in the allowed redirect origins (CORS_ORIGINS)")
