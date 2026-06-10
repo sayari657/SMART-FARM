@@ -8,8 +8,8 @@ import beeSketchImg from '../assets/bee/bee-sketch.png';
 import {
   LayoutDashboard, MapPin, Hexagon, Bell, RefreshCw,
   ChevronRight, CheckCircle, XCircle, AlertTriangle, ArrowLeft,
-  Droplets, Package, CalendarClock, Tractor, WifiOff, Wifi, Upload,
-  Brain,
+  Droplets, Package, CalendarClock, WifiOff, Wifi, Upload,
+  Brain, Wallet,
 } from 'lucide-react';
 import { COLORS } from '../components/bee/BeeConstants';
 import DashboardTab    from '../components/bee/DashboardTab';
@@ -17,10 +17,11 @@ import EmplacementsTab from '../components/bee/EmplacementsTab';
 import HiveDetailView  from '../components/bee/HiveDetailView';
 import InventaireTab   from '../components/bee/InventaireTab';
 import ProductionTab   from '../components/bee/ProductionTab';
-import StockTab        from '../components/bee/StockTab';
+import EntrepotCatalogue from '../components/EntrepotCatalogue';
 import PrevisionsTab   from '../components/bee/PrevisionsTab';
-import VisitesTab      from '../components/bee/VisitesTab';
-import HiveMetricCard  from '../components/bee/HiveMetricCard';
+import VisitesTab        from '../components/bee/VisitesTab';
+import GlobalFinanceTab  from '../components/bee/GlobalFinanceTab';
+import HiveMetricCard    from '../components/bee/HiveMetricCard';
 import BeeMLDashboard  from '../components/bee/BeeMLDashboard';
 import { beeApi }      from '../services/beeApi';
 import api             from '../services/api';
@@ -56,12 +57,12 @@ const NAV_TABS = [
   { id: 'dashboard',  label: "Vue d'ensemble", icon: LayoutDashboard, emoji: '🏡' },
   { id: 'sites',      label: 'Sites GIS',       icon: MapPin,          emoji: '📍' },
   { id: 'inventaire', label: 'Inventaire',       icon: Hexagon,         emoji: '🔶' },
-  { id: 'visites',    label: 'Inspections',      icon: Bell,            emoji: '🔍' },
+  { id: 'visites',    label: 'Visites',          icon: Bell,            emoji: '🔍' },
   { id: 'production', label: 'Production',       icon: Droplets,        emoji: '🍯' },
   { id: 'stock',      label: 'Stock',            icon: Package,         emoji: '📦' },
   { id: 'previsions', label: 'Missions',         icon: CalendarClock,   emoji: '🗓️' },
   { id: 'analytics',  label: 'Analytics IA',     icon: Brain,           emoji: '🧠' },
-  { id: 'terrain',    label: 'Mode Terrain',     icon: Tractor,         emoji: '🚜' },
+  { id: 'finance',    label: 'Finance',           icon: Wallet,          emoji: '💰' },
 ];
 
 /* ── Toast ───────────────────────────────────────────────────────────── */
@@ -133,6 +134,7 @@ function HoneycombPattern({ opacity = 0.04 }) {
    MODE TERRAIN — mise à jour rapide sans formulaire lourd
 ══════════════════════════════════════════════════════════════════════ */
 function TerrainMode({ ruches, emplacements, onRefresh }) {
+  const { t } = useTranslation();
   const [filterSite,  setFilterSite]  = useState('');
   const [searchTerm,  setSearchTerm]  = useState('');
   const [updatedIds,  setUpdatedIds]  = useState(new Set());
@@ -158,7 +160,7 @@ function TerrainMode({ ruches, emplacements, onRefresh }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <span style={{ fontSize: 28 }}>🚜</span>
             <div>
-              <div style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>Mode Terrain</div>
+              <div style={{ color: '#fff', fontWeight: 900, fontSize: 18 }}>{t('bee.terrain.title', 'Mode Terrain')}</div>
               <div style={{ color: 'rgba(255,255,255,.7)', fontSize: 12 }}>
                 {online ? '🟢 En ligne' : '🔴 Hors-ligne'} · {filtered.length} ruche{filtered.length !== 1 ? 's' : ''} active{filtered.length !== 1 ? 's' : ''}
                 {alertCount > 0 && ` · ⚠ ${alertCount} alerte${alertCount > 1 ? 's' : ''}`}
@@ -212,7 +214,7 @@ function TerrainMode({ ruches, emplacements, onRefresh }) {
           alignItems: 'center', justifyContent: 'center', gap: 10,
           color: W.textMuted, border: `2px dashed ${W.border}`, borderRadius: 20 }}>
           <span style={{ fontSize: 36 }}>🔶</span>
-          <div style={{ fontWeight: 700 }}>Aucune ruche active</div>
+          <div style={{ fontWeight: 700 }}>{t('bee.terrain.no_hive', 'Aucune ruche active')}</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -245,7 +247,9 @@ function TerrainMode({ ruches, emplacements, onRefresh }) {
 /* ══════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ══════════════════════════════════════════════════════════════════════ */
+import { useTranslation } from 'react-i18next';
 export default function AboutBee() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { farmId } = useAuth();
 
@@ -442,7 +446,7 @@ export default function AboutBee() {
           {/* Back to animals */}
           <button
             onClick={() => navigate('/animals')}
-            title="Retour aux espèces"
+            title={t('common.back', 'Retour aux espèces')}
             style={{
               display:'flex', alignItems:'center', justifyContent:'center',
               width:36, height:36, borderRadius:10, flexShrink:0,
@@ -634,7 +638,7 @@ export default function AboutBee() {
                   }}
                 >
                   <span style={{ fontSize:14 }}>{tab.emoji}</span>
-                  <span className="bee-tab-label">{tab.label}</span>
+                  <span className="bee-tab-label">{t(`bee.tabs.${tab.id}`, tab.label)}</span>
                   {tab.id === 'dashboard' && alertCount > 0 && (
                     <span style={{
                       position:'absolute', top:-5, right:-5,
@@ -923,7 +927,7 @@ export default function AboutBee() {
                     handleAddProd={handleAddProd} onSync={refresh} syncing={syncing}/>
                 )}
                 {activePage==='stock' && (
-                  <StockTab stock={stock} visites={visites} ruches={ruches} onUpdate={handleStockUpdate}/>
+                  <EntrepotCatalogue />
                 )}
                 {activePage==='previsions' && (
                   <PrevisionsTab
@@ -946,8 +950,8 @@ export default function AboutBee() {
                     farmId={farmId}
                   />
                 )}
-                {activePage==='terrain' && (
-                  <TerrainMode ruches={ruches} emplacements={emplacements} onRefresh={refresh}/>
+                {activePage==='finance' && (
+                  <GlobalFinanceTab ruches={ruches} emplacements={emplacements} />
                 )}
               </div>
 
