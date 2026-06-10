@@ -297,7 +297,7 @@ class TelemetryPayload(BaseModel):
     value: float = Field(ge=-1e6, le=1e6)
 
 @app.post("/api/v1/iot/telemetry")
-@limiter.limit("60/minute")
+@limiter.limit(settings.IOT_TELEMETRY_RATE_LIMIT)
 def post_telemetry(request: Request, payload: TelemetryPayload):
     import os
     import csv

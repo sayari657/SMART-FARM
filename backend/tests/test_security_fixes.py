@@ -105,6 +105,25 @@ class TestBilling:
         }, headers=headers)
         assert r.status_code == 422
 
+    def test_checkout_external_domain_rejected(self, client, db):
+        headers = _make_owner(client, f"bill_{uuid.uuid4().hex[:8]}")
+        r = client.post("/api/v1/billing/checkout", json={
+            "plan": "pro",
+            "success_url": "https://evil.example.com/steal",
+        }, headers=headers)
+        assert r.status_code == 422
+
+    def test_checkout_trusted_url_passes_validation(self, client, db):
+        # A trusted localhost origin must pass schema validation (then 503 since
+        # Stripe is not configured in tests) — never a 422.
+        headers = _make_owner(client, f"bill_{uuid.uuid4().hex[:8]}")
+        r = client.post("/api/v1/billing/checkout", json={
+            "plan": "pro",
+            "success_url": "http://localhost:5173/settings?payment=success",
+            "cancel_url": "http://localhost:5173/settings?payment=cancel",
+        }, headers=headers)
+        assert r.status_code != 422
+
     def test_subscription_requires_owner_role(self, client, auth_headers):
         # auth_headers fixture registers role 'admin' (unprivileged)
         r = client.get("/api/v1/billing/subscription", headers=auth_headers)

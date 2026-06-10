@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     MQTT_PORT: int = 1883
     MQTT_TOPIC_PREFIX: str = "smart_farm"
 
+    # IoT telemetry ingest rate limit (shared per source IP — raise if many sensors share a NAT)
+    IOT_TELEMETRY_RATE_LIMIT: str = os.getenv("IOT_TELEMETRY_RATE_LIMIT", "60/minute")
+
     # CORS
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000")
 

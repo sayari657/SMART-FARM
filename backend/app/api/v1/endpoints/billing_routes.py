@@ -68,6 +68,11 @@ PLANS = [
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
+def _allowed_redirect_origins() -> set[str]:
+    """Trusted origins for Stripe redirect URLs — same allowlist as CORS."""
+    return {o.strip().rstrip("/") for o in settings.CORS_ORIGINS.split(",") if o.strip()}
+
+
 class CheckoutRequest(BaseModel):
     plan: Literal["pro", "enterprise"]
     success_url: str = "http://localhost:5173/settings?payment=success"
@@ -75,9 +80,14 @@ class CheckoutRequest(BaseModel):
 
     @field_validator("success_url", "cancel_url")
     @classmethod
-    def _must_be_http(cls, v: str) -> str:
-        if not v.startswith(("http://", "https://")):
-            raise ValueError("URL must start with http:// or https://")
+    def _must_be_trusted_url(cls, v: str) -> str:
+        from urllib.parse import urlparse
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError("URL must be an absolute http(s) URL")
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        if origin not in _allowed_redirect_origins():
+            raise ValueError("URL host is not in the allowed redirect origins (CORS_ORIGINS)")
         return v
 
 class PortalRequest(BaseModel):
