@@ -1,8 +1,44 @@
+import json
 import logging
+from functools import lru_cache
+from pathlib import Path
 from typing import List, Dict
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+_KB_PATH = Path(__file__).parent.parent / "data" / "agri_knowledge.json"
+
+
+@lru_cache(maxsize=1)
+def load_knowledge_base() -> List[Dict]:
+    """Load the sovereign agronomic knowledge base (animals, bee, plants, trees)."""
+    try:
+        with open(_KB_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        entries = data.get("entries", [])
+        logger.info("Loaded %d knowledge entries from %s", len(entries), _KB_PATH.name)
+        return entries
+    except Exception as exc:
+        logger.error("Could not load knowledge base %s: %s", _KB_PATH, exc)
+        return []
+
+
+def _search_knowledge_base(query: str, species: str = None, top_k: int = 3) -> List[str]:
+    """Keyword + species scoring over the knowledge base (used when ChromaDB is offline)."""
+    entries = load_knowledge_base()
+    if not entries:
+        return []
+    q = (query or "").lower()
+    scored = []
+    for e in entries:
+        score = sum(1 for kw in e.get("keywords", []) if kw.lower() in q)
+        if species and e.get("species") == species:
+            score += 2  # boost entries matching the requested species
+        if score > 0:
+            scored.append((score, e["doc"]))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [doc for _, doc in scored[:top_k]]
 
 # Lazy/conditional imports of ChromaDB to support Lite Mode (no chromadb dependency)
 HAS_CHROMADB = False
@@ -84,8 +120,13 @@ class RAGService:
     async def query_wisdom(self, query: str, species: str = None, n_results: int = 3) -> List[str]:
         """Search the local vector database for specific agricultural advice."""
         if not self.is_active:
-            # EXPERT SYNTHETIC KNOWLEDGE BASE (Tunisian Context)
-            # Keys are lists of keywords to match the query effectively.
+            # ChromaDB offline → retrieve from the JSON knowledge base
+            # (animals, bee, plants, trees). This is real data, not hardcoded.
+            kb_hits = _search_knowledge_base(query, species=species, top_k=n_results)
+            if kb_hits:
+                return kb_hits
+
+            # Last-resort legacy derja tips (kept for offline UX continuity)
             expert_kb = {
                 ("بطاطا", "batata", "نزرع"): (
                     "لزراعة البطاطا في تونس، يلزمك تربة خفيفة. أحسن وقت هو أكتوبر (فصل الخريف) و فيفري (فصل الربيع). "

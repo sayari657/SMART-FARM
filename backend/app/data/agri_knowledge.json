@@ -1,0 +1,195 @@
+{
+  "_meta": {
+    "name": "Smart Farm AI — Sovereign Agronomic Knowledge Base",
+    "version": "1.0",
+    "context": "Tunisie (FAO-56, AVFA, ENMV Sidi Thabet, UTAP, CRDA)",
+    "language": "fr + termes ar/derja",
+    "categories": ["bovin", "ovin", "caprin", "lapin", "volaille", "abeille", "olivier", "agrumes", "palmier_dattier", "cereales", "maraichage", "irrigation"]
+  },
+  "entries": [
+    {
+      "id": "bovin-alimentation",
+      "category": "animal", "species": "cow",
+      "topic": "Alimentation vache laitière",
+      "keywords": ["vache", "بقرة", "حليب", "bovin", "cow", "milk", "fourrage", "fessa", "علف"],
+      "doc": "Une vache laitière (بقرة حلوب) a besoin de fourrage vert (luzerne/fessa فصة) riche en protéines et de concentrés énergétiques (orge, son). Comptez ~3 % du poids vif en matière sèche par jour, et 4-5 L d'eau par litre de lait produit. Un déséquilibre énergie/protéine fait chuter la production. Source : AVFA — guides d'alimentation bovine.",
+      "source": "AVFA Tunisie"
+    },
+    {
+      "id": "bovin-mammite",
+      "category": "animal", "species": "cow",
+      "topic": "Prévention mammite",
+      "keywords": ["vache", "mammite", "mastite", "ضرع", "حلب", "udder", "mastitis"],
+      "doc": "La mammite (التهاب الضرع) est la 1ʳᵉ perte économique en élevage laitier. Nettoyez et séchez le pis avant la traite, désinfectez les trayons (trempage post-traite), et éliminez les premiers jets. Un lait grumeleux ou un pis chaud/gonflé impose un test CMT et un traitement vétérinaire rapide. Source : ENMV Sidi Thabet.",
+      "source": "ENMV Sidi Thabet"
+    },
+    {
+      "id": "bovin-stress-thermique",
+      "category": "animal", "species": "cow",
+      "topic": "Stress thermique bovin",
+      "keywords": ["vache", "chaleur", "سخانة", "heat", "stress", "ombre", "ventilation"],
+      "doc": "Au-delà de 25-27 °C avec forte humidité (THI > 72), la vache réduit son ingestion et sa production laitière chute. Offrez de l'ombre, de la ventilation et un accès permanent à l'eau fraîche. Décalez l'alimentation aux heures fraîches (matin/soir). Source : recommandations CRDA été tunisien.",
+      "source": "CRDA"
+    },
+    {
+      "id": "ovin-engraissement",
+      "category": "animal", "species": "sheep",
+      "topic": "Engraissement agneau (Aïd)",
+      "keywords": ["mouton", "علوش", "خروف", "sheep", "engraissement", "تسمين", "aid", "علفة", "شعير"],
+      "doc": "Pour l'Aïd, démarrez l'engraissement de l'agneau (علوش) 3-4 mois avant, avec une ration équilibrée : orge (شعير) pour l'énergie, son et tourteau pour les protéines, foin/paille à volonté, eau propre et minéraux. Transition alimentaire progressive sur 10-15 jours pour éviter l'acidose. Visez un GMQ de 200-300 g/jour. Source : AVFA — engraissement ovin.",
+      "source": "AVFA Tunisie"
+    },
+    {
+      "id": "ovin-piétin",
+      "category": "animal", "species": "sheep",
+      "topic": "Boiterie / piétin",
+      "keywords": ["mouton", "boiterie", "عرج", "piétin", "foot rot", "ضلف", "lameness"],
+      "doc": "La détection précoce de la boiterie (العرج) évite le piétin (تعفن الظلف / foot rot). Parez les onglons, isolez les animaux atteints et faites un pédiluve au sulfate de cuivre ou de zinc selon le protocole ENMV. Un sol sec et propre limite la contamination. Source : ENMV Sidi Thabet.",
+      "source": "ENMV Sidi Thabet"
+    },
+    {
+      "id": "caprin-elevage",
+      "category": "animal", "species": "goat",
+      "topic": "Élevage caprin & lait",
+      "keywords": ["chèvre", "ماعز", "goat", "caprin", "lait", "chevreau", "browse"],
+      "doc": "La chèvre (ماعز) valorise le parcours et les ligneux mieux que le mouton. Pour la production laitière, complétez le parcours par de la luzerne et un concentré en début de lactation. Surveillez la coccidiose et les parasites internes chez les chevreaux ; vermifugez selon coproscopie. Source : AVFA — élevage caprin.",
+      "source": "AVFA Tunisie"
+    },
+    {
+      "id": "lapin-chaleur-nid",
+      "category": "animal", "species": "rabbit",
+      "topic": "Cuniculture : chaleur & nid",
+      "keywords": ["lapin", "أرنب", "rabbit", "arneb", "nid", "ventilation", "chaleur"],
+      "doc": "Le lapin est très sensible à la chaleur (> 30 °C = baisse de fertilité et de consommation). Le clapier doit être ventilé et ombragé. La température du nid (عش) doit rester 20-25 °C : utilisez assez de paille pour protéger les lapereaux du froid. Suivez la consommation quotidienne d'aliment comme indicateur de santé. Source : protocoles vétérinaires TN.",
+      "source": "Protocoles vétérinaires TN"
+    },
+    {
+      "id": "volaille-broiler-biosecurite",
+      "category": "animal", "species": "poultry",
+      "topic": "Poulet de chair & biosécurité",
+      "keywords": ["volaille", "دجاج", "poulet", "broiler", "chicken", "grippe", "أنفلونزا", "biosécurité"],
+      "doc": "En cas de mortalité subite dans un lot de poulets de chair (broiler), isolez immédiatement le bâtiment et contactez les services vétérinaires (CRDA). La prévention de la grippe aviaire repose sur la biosécurité : pédiluves, désinfection entrée/sortie, contrôle des visiteurs, vide sanitaire entre lots. Source : Guide aviculture AVFA.",
+      "source": "AVFA Tunisie"
+    },
+    {
+      "id": "volaille-pondeuse",
+      "category": "animal", "species": "poultry",
+      "topic": "Poules pondeuses",
+      "keywords": ["volaille", "poule", "ponte", "œuf", "بيض", "دجاجة", "laying", "calcium"],
+      "doc": "Une poule pondeuse a besoin d'environ 14-16 h de lumière/jour et d'un aliment riche en calcium (3,5-4 %) pour la qualité de la coquille. Une chute de ponte signale souvent stress thermique, manque d'eau, ou parasitisme (poux rouges). Ramassez les œufs plusieurs fois par jour. Source : AVFA aviculture.",
+      "source": "AVFA Tunisie"
+    },
+    {
+      "id": "abeille-stress-thermique",
+      "category": "bee", "species": "bee",
+      "topic": "Rucher : stress thermique",
+      "keywords": ["abeille", "نحل", "nahl", "hive", "rucher", "سخانة", "couvain", "ombre"],
+      "doc": "Si la température du couvain dépasse 37 °C, la ponte et les larves souffrent et la colonie peut déserter. Installez les ruches à l'ombre l'été, assurez une source d'eau propre à proximité, et améliorez la ventilation (plancher aéré). Hiver : regroupez et isolez. Source : Association tunisienne d'apiculture.",
+      "source": "Assoc. Apiculture TN"
+    },
+    {
+      "id": "abeille-varroa",
+      "category": "bee", "species": "bee",
+      "topic": "Lutte Varroa",
+      "keywords": ["abeille", "varroa", "فاروا", "traitement", "acaricide", "nahl"],
+      "doc": "Le Varroa destructor est le principal ennemi du rucher. Surveillez la chute naturelle d'acariens (lange graissé) et traitez à l'automne après récolte (acide oxalique, amitraze, ou thymol bio) puis en hiver hors couvain. Un seuil > 3 % d'infestation impose un traitement immédiat. Source : guides apicoles TN/FAO.",
+      "source": "FAO / Apiculture TN"
+    },
+    {
+      "id": "abeille-essaimage",
+      "category": "bee", "species": "bee",
+      "topic": "Essaimage & poids ruche",
+      "keywords": ["abeille", "essaimage", "تطريد", "poids", "weight", "swarm", "miellée"],
+      "doc": "Une perte de poids brutale de la ruche (> 1,5-2 kg en peu de temps) signale un essaimage ou un vol. Au printemps, prévenez l'essaimage en posant des hausses à temps, en supprimant les cellules royales et en renouvelant la reine. Une prise de poids régulière indique une miellée active. Source : apiculture pratique.",
+      "source": "Apiculture pratique TN"
+    },
+    {
+      "id": "abeille-nourrissement",
+      "category": "bee", "species": "bee",
+      "topic": "Nourrissement",
+      "keywords": ["abeille", "sirop", "pâte", "nourrissement", "تغذية", "candi", "stimulation"],
+      "doc": "Nourrissement de stimulation au sirop léger (1:1) au printemps pour relancer la ponte ; sirop lourd (2:1) ou candi en automne/hiver pour les réserves. Ne nourrissez jamais pendant une miellée destinée à la récolte (risque de contamination du miel). Source : guides apicoles.",
+      "source": "Apiculture TN"
+    },
+    {
+      "id": "olivier-recolte-taille",
+      "category": "plant", "species": "olive",
+      "topic": "Olivier : récolte & taille",
+      "keywords": ["olivier", "زيتون", "zitoun", "huile", "olive", "récolte", "taille", "تقليم"],
+      "doc": "En Tunisie, la récolte des olives démarre vers novembre. La taille (تقليم) annuelle aère l'arbre, équilibre la fructification et réduit l'alternance. Pressez les olives sous 24-48 h après récolte pour une huile de qualité (faible acidité). Source : Institut de l'Olivier (Sfax).",
+      "source": "Institut de l'Olivier"
+    },
+    {
+      "id": "olivier-mouche",
+      "category": "plant", "species": "olive",
+      "topic": "Mouche de l'olive",
+      "keywords": ["olivier", "mouche", "العسيلة", "ذبابة", "olive fly", "بقع", "ravageur"],
+      "doc": "La mouche de l'olive (Bactrocera oleae / ذبابة الزيتون) pond dans le fruit et provoque sa chute et l'augmentation de l'acidité. Surveillez avec des pièges chromatiques/à phéromone dès la nouaison ; traitez par appâtage protéiné ou lutte biologique si le seuil est dépassé. Source : Institut de l'Olivier.",
+      "source": "Institut de l'Olivier"
+    },
+    {
+      "id": "agrumes-chlorose-fer",
+      "category": "plant", "species": "citrus",
+      "topic": "Agrumes : chlorose ferrique",
+      "keywords": ["agrumes", "قوارص", "orange", "citron", "برتقال", "ليمون", "citrus", "fer", "اصفرار", "jaune"],
+      "doc": "Le jaunissement internervaire des jeunes feuilles d'agrumes (قوارص) trahit souvent une carence en fer (chlorose ferrique), fréquente sur sols calcaires tunisiens. Apportez du fer chélaté (EDDHA) et améliorez le drainage. Irrigation régulière sans excès. Taille en fin d'hiver. Source : CRDA Cap Bon.",
+      "source": "CRDA Cap Bon"
+    },
+    {
+      "id": "agrumes-cochenille",
+      "category": "plant", "species": "citrus",
+      "topic": "Agrumes : cochenilles",
+      "keywords": ["agrumes", "cochenille", "بق", "scale", "fumagine", "citrus", "ravageur"],
+      "doc": "Les cochenilles sucent la sève et produisent un miellat favorisant la fumagine (noir) qui réduit la photosynthèse. Favorisez les auxiliaires (coccinelles), traitez à l'huile blanche en hiver, et évitez l'excès d'azote qui attire les ravageurs. Source : protection des végétaux TN.",
+      "source": "DGPCQPA Tunisie"
+    },
+    {
+      "id": "palmier-pollinisation",
+      "category": "plant", "species": "datte",
+      "topic": "Palmier dattier : pollinisation & ensachage",
+      "keywords": ["palmier", "datte", "نخل", "تمر", "دقلة", "degla", "pollinisation", "ذكار", "ensachage"],
+      "doc": "La Deglet Nour réussit dans le Sud (Tozeur, Kébili). La pollinisation manuelle (ذكار) se fait au printemps. L'ensachage des régimes en été protège la récolte de la pluie et du ver de la datte (Myelois). Éclaircissez les régimes pour calibrer les dattes. Source : Institut des Régions Arides.",
+      "source": "IRA Médenine"
+    },
+    {
+      "id": "cereales-conduite",
+      "category": "plant", "species": "cereal",
+      "topic": "Céréales : semis & fertilisation",
+      "keywords": ["céréale", "blé", "orge", "قمح", "شعير", "wheat", "barley", "semis", "azote", "rouille"],
+      "doc": "Le blé (قمح) et l'orge (شعير) se sèment en novembre en Tunisie. Un apport d'azote (ammonitrate) au tallage/montaison (février) booste fortement le rendement. Surveillez les adventices et la rouille (Rouille brune/jaune) au printemps ; traitez fongicide si nécessaire. Source : INGC / AVFA.",
+      "source": "INGC Tunisie"
+    },
+    {
+      "id": "maraichage-tomate",
+      "category": "plant", "species": "tomate",
+      "topic": "Tomate : conduite & mildiou",
+      "keywords": ["tomate", "طماطم", "tomato", "mildiou", "maladie", "maraîchage", "Kc", "irrigation"],
+      "doc": "La tomate a un Kc élevé en pleine production (~1,15) : pilotez l'irrigation au goutte-à-goutte selon l'ET₀ pour éviter le stress et l'éclatement des fruits. Le mildiou (Phytophthora) apparaît en conditions humides : aérez, évitez le mouillage du feuillage et traitez préventivement. Source : FAO-56 + CTV maraîchage.",
+      "source": "FAO-56 / CTV"
+    },
+    {
+      "id": "maraichage-pomme-terre",
+      "category": "plant", "species": "pomme_de_terre",
+      "topic": "Pomme de terre : saisons & potasse",
+      "keywords": ["pomme de terre", "بطاطا", "batata", "potato", "potasse", "tubercule", "saison"],
+      "doc": "En Tunisie, la pomme de terre se plante en saison d'automne (octobre) et de printemps (février), sur sol léger et bien drainé. La fertilisation potassique est essentielle pour le grossissement des tubercules. Choisissez des plants sains et évitez les sols salés. Source : GIL / AVFA.",
+      "source": "GIL Tunisie"
+    },
+    {
+      "id": "irrigation-et0-fao56",
+      "category": "irrigation", "species": "general",
+      "topic": "Besoins en eau (ET₀ / ETc FAO-56)",
+      "keywords": ["irrigation", "eau", "ري", "ET0", "ETc", "Kc", "humidité", "seuil", "goutte"],
+      "doc": "Le besoin en eau d'une culture = ETc = Kc × ET₀, où ET₀ (évapotranspiration de référence) se calcule par Penman-Monteith FAO-56 à partir de la météo (température, humidité, vent, rayonnement). Déclenchez l'irrigation quand l'humidité du sol passe sous le seuil sec (~35 %) et arrêtez vers 65 %. Adaptez Kc au stade phénologique. Source : FAO Irrigation & Drainage Paper 56.",
+      "source": "FAO-56 (Allen et al., 1998)"
+    },
+    {
+      "id": "irrigation-salinite",
+      "category": "irrigation", "species": "general",
+      "topic": "Salinité de l'eau & du sol",
+      "keywords": ["salinité", "ملوحة", "salinity", "eau", "sol", "drainage", "lessivage"],
+      "doc": "En Tunisie, beaucoup d'eaux d'irrigation sont saumâtres. Une CE élevée réduit le rendement des cultures sensibles. Pratiquez un lessivage des sels (fraction de lessivage), améliorez le drainage et privilégiez des cultures tolérantes (orge, palmier, olivier) sur sols salés. Source : INRGREF.",
+      "source": "INRGREF Tunisie"
+    }
+  ]
+}

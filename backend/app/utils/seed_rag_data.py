@@ -36,17 +36,34 @@ KNOWLEDGE_SAMPLES = [
 async def seed_rag():
     logger.info("Starting Sovereign RAG Seeding...")
 
-    documents = [s["doc"] for s in KNOWLEDGE_SAMPLES]
-    metadatas = [{"species": s["species"], **s["meta"]} for s in KNOWLEDGE_SAMPLES]
-    ids = [s["id"] for s in KNOWLEDGE_SAMPLES]
+    from app.services.rag_service import load_knowledge_base
+
+    documents, metadatas, ids = [], [], []
+
+    # 1. Full agronomic knowledge base (animals, bee, plants, trees)
+    for e in load_knowledge_base():
+        documents.append(e["doc"])
+        metadatas.append({
+            "species": e.get("species", "general"),
+            "category": e.get("category", "general"),
+            "topic": e.get("topic", ""),
+            "source": e.get("source", ""),
+        })
+        ids.append(e["id"])
+
+    # 2. Legacy curated samples (kept for backward-compat ids)
+    for s in KNOWLEDGE_SAMPLES:
+        documents.append(s["doc"])
+        metadatas.append({"species": s["species"], **s["meta"]})
+        ids.append(s["id"])
 
     await rag_service.add_knowledge_pack(
         documents=documents,
         metadatas=metadatas,
-        ids=ids
+        ids=ids,
     )
 
-    logger.info("Seeding complete. local knowledge base is now active.")
+    logger.info("Seeding complete: %d documents ingested into the knowledge base.", len(documents))
 
 if __name__ == "__main__":
     asyncio.run(seed_rag())
