@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { normalizeDetail } from '../utils/errors';
 
 let apiEnv = import.meta.env.VITE_API_URL;
 if (apiEnv) apiEnv = apiEnv.replace(/^["']+|["']+$/g, '');
@@ -31,6 +32,14 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const status = err.response?.status;
+
+    // Pydantic 422 returns detail as an array/object of error items. Collapse it
+    // to a string in place so no component can render the raw object into JSX
+    // ("Objects are not valid as a React child").
+    if (err.response?.data && err.response.data.detail != null
+        && typeof err.response.data.detail !== 'string') {
+      err.response.data.detail = normalizeDetail(err.response.data.detail);
+    }
     const detail = err.response?.data?.detail || '';
 
     // 403 CSRF — auto-refresh token and retry once
@@ -56,7 +65,15 @@ api.interceptors.response.use(
     }
 
     // 401 — token expired / invalid → redirect to login
-    if (status === 401) {
+    const requestUrl = err.config?.url || '';
+    const isCredentialSubmission = [
+      '/auth/login',
+      '/auth/worker/verify-otp',
+      '/auth/reset-password',
+    ].some(endpoint => requestUrl.endsWith(endpoint));
+
+    // Credential failures stay on their form; other 401 responses expire the session.
+    if (status === 401 && !isCredentialSubmission) {
       let user = {};
       try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch (_) {}
       localStorage.removeItem('token');

@@ -1,4 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 import { PinSetup } from '../components/PinLock';
 import {
   Save, Settings2, Bell, Cpu, Building2, CheckCircle2,
@@ -7,11 +10,13 @@ import {
   Shield, Globe, Zap, Brain, Database, Lock, Mail, Phone,
   Server, Key, RefreshCw, Info, MessageCircle,
   CheckCircle, XCircle, ToggleLeft, ToggleRight, Sliders,
-  AlertCircle, ChevronDown, Hash, Link2, Users,
+  AlertCircle, ChevronDown, Hash, Link2, Users, CreditCard, Star,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import { settingsAPI, farmsAPI } from '../services/api';
+import { billingApi, redirectToCheckout } from '../services/billingApi';
+import { normalizeDetail } from '../utils/errors';
 import { useTheme } from '../context/ThemeContext';
 
 /* ─── Field Types ─────────────────────────────────────────────────────── */
@@ -26,6 +31,7 @@ const SECTIONS = [
   { id: 'integrations',label: 'Intégrations',      emoji: '🔌', color: '#0891b2', bg: '#e0f2fe' },
   { id: 'security',    label: 'Sécurité',          emoji: '🔒', color: '#16a34a', bg: '#f0fdf4' },
   { id: 'farms',       label: 'Fermes',            emoji: '🌾', color: '#d97706', bg: '#fef3c7' },
+  { id: 'billing',     label: 'Plan & Abonnement', emoji: '💳', color: '#7c3aed', bg: '#f5f3ff' },
 ];
 
 const FIELD_DEFS = {
@@ -165,6 +171,8 @@ function StatusDot({ status }) {
 /* ─── Main Component ───────────────────────────────────────────────────── */
 export default function Settings() {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
+  const { user, refreshProfile } = useAuth();
   const [settings, setSettings]         = useState({});
   const [farms, setFarms]               = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -173,8 +181,24 @@ export default function Settings() {
   const [sectionStatus, setSectionStatus] = useState({}); // 'saved' | 'error' per section
   const [dirty, setDirty]               = useState({});
   const { dark: darkMode, toggleTheme: toggleDark } = useTheme();
-  // { sectionId: bool }
   const origRef = useRef({});
+  const [billingLoading, setBillingLoading] = useState(false);
+  const [billingError,   setBillingError]   = useState('');
+
+  /* Handle Stripe redirect callbacks (?payment=success|cancel) */
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const payment = params.get('payment');
+    if (payment === 'success') {
+      refreshProfile().then(() => {
+        toast.success('Paiement réussi ! Votre plan Professionnel est maintenant actif.', { duration: 6000 });
+      });
+      window.history.replaceState({}, '', location.pathname);
+    } else if (payment === 'cancel') {
+      toast.error('Paiement annulé.', { duration: 4000 });
+      window.history.replaceState({}, '', location.pathname);
+    }
+  }, [location.search]);
 
   /* Load all settings + farms */
   useEffect(() => {
@@ -263,7 +287,7 @@ export default function Settings() {
   return (
     <>
       <Navbar
-        title="Paramètres Entreprise"
+        title={t("settings.title", "Paramètres Entreprise")}
         subtitle={`${SECTIONS.length} sections · ${Object.values(FIELD_DEFS).flat().length} paramètres · ${farms.length} ferme${farms.length !== 1 ? 's' : ''}`}
         actions={
           activeSection !== 'farms' && (
@@ -274,7 +298,7 @@ export default function Settings() {
                   onClick={() => resetSection(activeSection)}
                   style={{ background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-2)' }}
                 >
-                  <RefreshCw size={13} /> Réinitialiser
+                  <RefreshCw size={13} /> {t("common.reset", "Réinitialiser")}
                 </button>
               )}
               <button
@@ -297,7 +321,7 @@ export default function Settings() {
                     ? <><XCircle size={14} /> Erreur</>
                     : saving
                       ? <><span className="farms-spinner" /> Enregistrement…</>
-                      : <><Save size={14} /> Enregistrer la section</>}
+                      : <><Save size={14} /> {t("common.save_section", "Enregistrer la section")}</>}
               </button>
             </div>
           )
@@ -310,7 +334,7 @@ export default function Settings() {
         <div className="st-hero">
           <div className="st-hero-left">
             <div className="st-hero-eyebrow"><Settings2 size={11} /> CONFIGURATION ENTREPRISE</div>
-            <h1 className="st-hero-title">Paramètres & Configuration</h1>
+            <h1 className="st-hero-title">{t("settings.hero_title", "Paramètres & Configuration")}</h1>
             <p className="st-hero-sub">Calibration IA · Seuils · Notifications · Sécurité · {farms.length} ferme{farms.length !== 1 ? 's' : ''} connectée{farms.length !== 1 ? 's' : ''}</p>
           </div>
           <div className="st-hero-kpis">
@@ -352,10 +376,10 @@ export default function Settings() {
                 <span className="st-nav-emoji" style={{ background: s.bg }}>{s.emoji}</span>
                 <div className="st-nav-text">
                   <span className="st-nav-label" style={activeSection === s.id ? { color: s.color } : {}}>
-                    {s.label}
+                    {t(`settings.section.${s.id}`, s.label)}
                   </span>
                   <span className="st-nav-count">
-                    {s.id === 'farms' ? `${farms.length} fermes` : `${(FIELD_DEFS[s.id] || []).length} param.`}
+                    {s.id === 'farms' ? `${farms.length} fermes` : s.id === 'billing' ? (user?.plan === 'pro' || user?.plan === 'enterprise' ? 'Pro ✓' : 'Gratuit') : `${(FIELD_DEFS[s.id] || []).length} param.`}
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -393,10 +417,12 @@ export default function Settings() {
                 {sec.emoji}
               </div>
               <div style={{ flex: 1 }}>
-                <div className="st-panel-title">{sec.label}</div>
+                <div className="st-panel-title">{t(`settings.section.${sec.id}`, sec.label)}</div>
                 <div className="st-panel-sub">
                   {activeSection === 'farms'
                     ? `${farms.length} ferme${farms.length !== 1 ? 's' : ''} enregistrée${farms.length !== 1 ? 's' : ''}`
+                    : activeSection === 'billing'
+                    ? 'Gérez votre abonnement et vos paiements'
                     : `${fields.length} paramètre${fields.length !== 1 ? 's' : ''} configurables`}
                 </div>
               </div>
@@ -626,6 +652,148 @@ export default function Settings() {
                 </div>
               </div>
             )}
+
+            {/* ── Billing / Plan section ────────────────────────────── */}
+            {activeSection === 'billing' && (() => {
+              const isPro = user?.plan === 'pro' || user?.plan === 'enterprise';
+              const handleUpgrade = async () => {
+                setBillingLoading(true); setBillingError('');
+                const result = await redirectToCheckout('pro');
+                if (!result.ok && result.reason !== 'not_authed') {
+                  setBillingError(result.reason || 'Erreur Stripe');
+                  setBillingLoading(false);
+                }
+              };
+              const handlePortal = async () => {
+                setBillingLoading(true); setBillingError('');
+                try {
+                  const res = await billingApi.openPortal(`${window.location.origin}/settings`);
+                  if (res.ok) { const d = await res.json(); window.location.href = d.portal_url; }
+                  else { const d = await res.json(); setBillingError(normalizeDetail(d.detail) || 'Erreur portail'); setBillingLoading(false); }
+                } catch { setBillingError('Erreur réseau'); setBillingLoading(false); }
+              };
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 4 }}>
+
+                  {/* Current plan card */}
+                  <div style={{
+                    border: `2px solid ${isPro ? '#7c3aed' : 'var(--color-border)'}`,
+                    borderRadius: 16, padding: '24px 28px',
+                    background: isPro ? 'linear-gradient(135deg,#faf5ff,#f5f3ff)' : 'var(--color-surface)',
+                    position: 'relative', overflow: 'hidden',
+                  }}>
+                    {isPro && (
+                      <div style={{ position: 'absolute', top: 0, right: 0, background: '#7c3aed', color: '#fff', fontSize: 10, fontWeight: 800, padding: '4px 14px', borderRadius: '0 14px 0 10px', letterSpacing: .5 }}>
+                        ACTIF
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 12, background: isPro ? '#7c3aed' : '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {isPro ? <Star size={22} color="#fff" /> : <CreditCard size={22} color="#94a3b8" />}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: isPro ? '#7c3aed' : '#94a3b8', textTransform: 'uppercase', letterSpacing: .6, marginBottom: 3 }}>
+                          Plan actuel
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--color-text)', lineHeight: 1 }}>
+                          {isPro ? (user?.plan === 'enterprise' ? 'Entreprise' : 'Professionnel') : 'Initiation (Gratuit)'}
+                        </div>
+                        {isPro && <div style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600, marginTop: 4 }}>29€ / mois · Sans engagement</div>}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {(isPro
+                        ? ['Animaux illimités', '5 équipes workers', 'IA prédictive', 'Export PDF/Excel', 'Rapports avancés', 'Support prioritaire']
+                        : ['50 animaux max', '1 utilisateur', 'Historique 14 jours', '✗ IA prédictive', '✗ Export PDF', '✗ Rapports avancés']
+                      ).map(f => (
+                        <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: f.startsWith('✗') ? '#94a3b8' : (isPro ? '#5b21b6' : 'var(--color-text-2)'), fontWeight: 500 }}>
+                          {!f.startsWith('✗') && <span style={{ color: isPro ? '#7c3aed' : '#94a3b8', fontWeight: 900, fontSize: 14 }}>✓</span>}
+                          {f.replace('✗ ', '')}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Error */}
+                  {billingError && (
+                    <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#dc2626' }}>
+                      ⚠️ {billingError}
+                    </div>
+                  )}
+
+                  {/* CTA button */}
+                  {!isPro ? (
+                    <div>
+                      <button
+                        onClick={handleUpgrade}
+                        disabled={billingLoading}
+                        style={{
+                          width: '100%', padding: '15px', borderRadius: 13, border: 'none',
+                          background: billingLoading ? '#94a3b8' : 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+                          color: '#fff', fontSize: 15, fontWeight: 900,
+                          cursor: billingLoading ? 'not-allowed' : 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                          boxShadow: billingLoading ? 'none' : '0 6px 20px rgba(124,58,237,.35)',
+                          transition: 'all .2s',
+                        }}
+                      >
+                        <Zap size={18} />
+                        {billingLoading ? 'Redirection vers Stripe…' : 'Passer au Professionnel — 29€/mois'}
+                      </button>
+                      <div style={{ marginTop: 10, textAlign: 'center', fontSize: 11, color: 'var(--color-text-3)' }}>
+                        🔒 Paiement sécurisé via Stripe · Annulable à tout moment
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handlePortal}
+                      disabled={billingLoading}
+                      style={{
+                        width: '100%', padding: '13px', borderRadius: 12, border: '2px solid #7c3aed',
+                        background: 'transparent', color: '#7c3aed', fontSize: 14, fontWeight: 800,
+                        cursor: billingLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        transition: 'all .2s',
+                      }}
+                    >
+                      <CreditCard size={16} />
+                      {billingLoading ? 'Chargement…' : 'Gérer mon abonnement (portail Stripe)'}
+                    </button>
+                  )}
+
+                  {/* Comparison table */}
+                  <div style={{ border: '1px solid var(--color-border)', borderRadius: 14, overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--color-surface-2)', padding: '12px 20px', fontSize: 11, fontWeight: 800, color: 'var(--color-text-2)', textTransform: 'uppercase', letterSpacing: .6 }}>
+                      Comparatif des plans
+                    </div>
+                    {[
+                      { feature: 'Animaux',              free: '50 max',     pro: 'Illimité' },
+                      { feature: 'Fermes',               free: 'Illimité',   pro: 'Illimité' },
+                      { feature: 'Travailleurs',         free: '1',          pro: '5 équipes' },
+                      { feature: 'Historique données',   free: '14 jours',   pro: 'Illimité' },
+                      { feature: 'IA prédictive',        free: '✗',          pro: '✓' },
+                      { feature: 'Export PDF / Excel',   free: '✗',          pro: '✓' },
+                      { feature: 'Rapports avancés',     free: '✗',          pro: '✓' },
+                      { feature: 'Conseils IA',          free: '✗',          pro: '✓' },
+                      { feature: 'Support',              free: 'Communauté', pro: 'Prioritaire' },
+                    ].map(({ feature, free, pro }, i) => (
+                      <div key={feature} style={{
+                        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+                        padding: '11px 20px', fontSize: 13,
+                        background: i % 2 === 0 ? 'var(--color-surface)' : 'var(--color-surface-2)',
+                        borderTop: '1px solid var(--color-border)',
+                      }}>
+                        <span style={{ color: 'var(--color-text)', fontWeight: 500 }}>{feature}</span>
+                        <span style={{ color: free === '✗' ? '#94a3b8' : 'var(--color-text-2)', textAlign: 'center' }}>{free}</span>
+                        <span style={{ color: pro === '✓' || pro === 'Illimité' ? '#7c3aed' : 'var(--color-text-2)', fontWeight: 700, textAlign: 'center' }}>{pro}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {activeSection === 'security' && (
               <>
