@@ -6,6 +6,7 @@ import path from 'path'
 
 // mkcert certs — generated with: mkcert -key-file certs/key.pem -cert-file certs/cert.pem 192.168.0.9 localhost 127.0.0.1
 function loadCerts() {
+  if (process.env.VITE_E2E_HTTP === '1') return undefined
   const keyPath = path.resolve(__dirname, 'certs/key.pem')
   const certPath = path.resolve(__dirname, 'certs/cert.pem')
   if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
@@ -19,6 +20,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/tests/setup.js',
+    exclude: ['tests/e2e/**', 'node_modules/**', 'dist/**'],
   },
   plugins: [
     react(),
@@ -86,10 +88,10 @@ export default defineConfig({
     })
   ],
   preview: {
-    port: 5173,       // same port as dev — workers access https://192.168.0.9:5173/worker-login
-    host: true,
-    https: loadCerts(),
-    allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
+    port: 4173,
+    host: '0.0.0.0',
+    https: false,
+    allowedHosts: 'all',
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
@@ -110,7 +112,8 @@ export default defineConfig({
     port: 5173,
     host: true,
     https: loadCerts(),
-    allowedHosts: ['prudishly-stuffy-purebred.ngrok-free.dev'],
+    // Allow tunnel hosts (Cloudflare Quick Tunnel + ngrok) for public demos
+    allowedHosts: ['.trycloudflare.com', '.ngrok-free.dev', '.ngrok.app', 'localhost', '127.0.0.1'],
     proxy: {
       // REST API — all /api calls forwarded to FastAPI backend on :8000
       '/api': {
@@ -166,4 +169,3 @@ export default defineConfig({
     },
   },
 })
-

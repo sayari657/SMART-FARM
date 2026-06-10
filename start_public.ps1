@@ -80,5 +80,11 @@ Write-Host "        domain, see docker-compose.yml (enterprise setup)." -Foregro
 Write-Host "  ============================================================" -ForegroundColor Yellow
 Write-Host ""
 
-# Run tunnel in this window so the URL is visible here
-& $CFExe tunnel --url http://localhost:5173
+# Run tunnel in this window so the URL is visible here.
+# Vite serves HTTPS when certs/ exist (mkcert) -> target https + skip cert verify.
+$frontendScheme = if (Test-Path (Join-Path $Frontend "certs\cert.pem")) { "https" } else { "http" }
+if ($frontendScheme -eq "https") {
+    & $CFExe tunnel --url https://localhost:5173 --no-tls-verify
+} else {
+    & $CFExe tunnel --url http://localhost:5173
+}

@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Cloudflare Named Tunnel — exposes the FastAPI backend through Cloudflare's
+# network at a permanent custom hostname (e.g. api.votredomaine.com).
+#
+# The backend keeps running on this machine (or Oracle/VPS); Cloudflare provides
+# the public DNS, TLS certificate and CDN/DDoS protection in front of it.
+#
+# SETUP (run once, see CLOUDFLARE_DEPLOY.md):
+#   cloudflared tunnel login
+#   cloudflared tunnel create farmai
+#   cloudflared tunnel route dns farmai api.votredomaine.com
+#   copy this file to ~/.cloudflared/config.yml and fill in the values below
+#   cloudflared tunnel run farmai
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Replace with the Tunnel UUID printed by `cloudflared tunnel create farmai`
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: C:\Users\Mohamed\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  # Backend REST API + WebSockets → local FastAPI on :8000
+  - hostname: api.votredomaine.com
+    service: http://localhost:8000
+
+  # (Optional) MQTT-over-WebSocket bridge, if you expose it
+  # - hostname: mqtt.votredomaine.com
+  #   service: http://localhost:9001
+
+  # Required catch-all — every tunnel must end with a 404 rule
+  - service: http_status:404
