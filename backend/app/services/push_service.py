@@ -5,10 +5,9 @@ Supports two push backends:
   1. Web Push (VAPID) — for PWA browsers, preferred
   2. FCM legacy       — fallback for native apps
 
-VAPID keys (generated once):
-  Public:  BMIhtRO-3hwA1lq1ldCBniDypQzPbbv97OG32P82dbMxVWpqiemRlU5-GZ5x8yGdvXHPBhBywh8wqaw0RWbUJXc
-  Private: fxbpsbCvai7Bpj9yxXMEPR7jaL5IvVcHpkoHzovw2Xs
-  Store VAPID_PRIVATE_KEY in .env
+VAPID keys: the public key is embedded below (safe to expose, the frontend
+needs it). The PRIVATE key must only live in .env (VAPID_PRIVATE_KEY) —
+Web Push is disabled when it is not configured.
 """
 import json
 import logging
@@ -23,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 # ── VAPID / Web Push ───────────────────────────────────────────────────────
 VAPID_PUBLIC_KEY  = "BMIhtRO-3hwA1lq1ldCBniDypQzPbbv97OG32P82dbMxVWpqiemRlU5-GZ5x8yGdvXHPBhBywh8wqaw0RWbUJXc"
-VAPID_PRIVATE_KEY = getattr(settings, "VAPID_PRIVATE_KEY", "fxbpsbCvai7Bpj9yxXMEPR7jaL5IvVcHpkoHzovw2Xs")
-VAPID_EMAIL       = getattr(settings, "VAPID_EMAIL", "medsayari2001@gmail.com")
+VAPID_PRIVATE_KEY = getattr(settings, "VAPID_PRIVATE_KEY", "")
+VAPID_EMAIL       = getattr(settings, "VAPID_EMAIL", "")
 
 # ── FCM legacy ─────────────────────────────────────────────────────────────
 FCM_URL = "https://fcm.googleapis.com/fcm/send"
@@ -32,6 +31,9 @@ FCM_URL = "https://fcm.googleapis.com/fcm/send"
 
 def _send_webpush(subscription_json: str, title: str, body: str, data: Optional[dict] = None) -> bool:
     """Send a Web Push notification to a single VAPID subscription."""
+    if not VAPID_PRIVATE_KEY:
+        logger.warning("Web Push disabled — VAPID_PRIVATE_KEY not configured in .env")
+        return False
     try:
         from pywebpush import webpush, WebPushException
         sub = json.loads(subscription_json)

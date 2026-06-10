@@ -1,0 +1,16 @@
+# Mosquitto ACL — each ESP32 node may only publish on its own topics.
+# Activated by `acl_file` in mosquitto.conf (production mode).
+
+# Node A — irrigation (pump room)
+user node_a
+topic write smartfarm/node_a/#
+topic read  smartfarm/node_a/cmd
+
+# Node B — beehive monitor
+user node_b
+topic write smartfarm/node_b/#
+topic read  smartfarm/node_b/cmd
+
+# Backend — full access
+user backend
+topic readwrite smartfarm/#

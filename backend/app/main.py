@@ -4,12 +4,10 @@ Modern Lifespan management for background warm-up.
 """
 
 import logging
-import json
 import asyncio
 import os
 import uuid
 from contextlib import asynccontextmanager
-from typing import List
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import JSONResponse
@@ -55,6 +53,16 @@ def _run_column_migrations() -> None:
             ("warehouse_categories","farm_id",  "INTEGER REFERENCES farms(id) ON DELETE CASCADE"),
             ("users",               "refresh_token_hash", "VARCHAR(255)"),
             ("push_tokens",         "platform", "VARCHAR(50)"),
+            ("bee_visits",          "visit_name",   "VARCHAR(150)"),
+            ("bee_visits",          "type_ruche",   "VARCHAR(20)"),
+            ("bee_visits",          "reine",        "BOOLEAN"),
+            ("bee_visits",          "oeufs",        "BOOLEAN"),
+            ("bee_visits",          "couvain",      "BOOLEAN"),
+            ("bee_visits",          "population",   "VARCHAR(10)"),
+            ("bee_visits",          "pollen_level",  "VARCHAR(10)"),
+            ("bee_visits",          "nb_cadres",     "VARCHAR(30)"),
+            ("bee_visits",          "visited_by",    "VARCHAR(100)"),
+            ("bee_visits",          "visitor_role",  "VARCHAR(20)"),
         ]
 
         for table, col, col_def in _migrations:
@@ -76,7 +84,15 @@ async def app_lifespan(_app: FastAPI):
     """Handles startup and shutdown safely (Lifespan Pattern)"""
     # -- STARTUP --
 
-    # a. Secrets validation — warn if placeholder values are still in use
+    # a. Secrets validation — hard-fail in production (DEBUG=false), warn in dev
+    try:
+        from app.core.secrets_validator import validate_production_secrets
+        validate_production_secrets()
+    except SystemExit:
+        raise
+    except Exception as _sv_err:
+        logger.warning("[SECURITY] Secrets validator error: %s", _sv_err)
+
     _PLACEHOLDER_PATTERNS = ("CHANGE_ME", "REPLACE_WITH", "your@email", "gsk_5jVI")
     _secrets_to_check = {
         "SECRET_KEY": settings.SECRET_KEY,
@@ -97,27 +113,40 @@ async def app_lifespan(_app: FastAPI):
         _run_column_migrations()
 
 
-        # Seed default admin on first run (fresh DB has no users)
+        # Optional first-run bootstrap. Disabled unless explicit credentials are set.
         from app.core.security import hash_password
         from app.models.domain import User as _User
         from app.core.database import SessionLocal as _SL
         with _SL() as _seed_db:
-            if not _seed_db.query(_User).first():
+            bootstrap_username = settings.BOOTSTRAP_ADMIN_USERNAME.strip()
+            bootstrap_password = settings.BOOTSTRAP_ADMIN_PASSWORD
+            if (
+                bootstrap_username
+                and bootstrap_password
+                and not _seed_db.query(_User).first()
+            ):
                 _seed_db.add(_User(
-                    username="admin",
-                    email="admin@smartfarm.ai",
-                    full_name="Farm Admin",
-                    password_hash=hash_password("admin123"),
+                    username=bootstrap_username,
+                    email=settings.BOOTSTRAP_ADMIN_EMAIL.strip() or None,
+                    full_name="Bootstrap Farm Owner",
+                    password_hash=hash_password(bootstrap_password),
                     role="owner",
                     is_active=True,
                 ))
                 _seed_db.commit()
-                logger.info("[STARTUP] Default admin created → admin / admin123")
+                logger.info("[STARTUP] Explicit bootstrap owner created.")
 
     except Exception as e:
         logger.error(f"[STARTUP] DB/Startup Error: {e}")
 
-    # b. AI Background Warm-up (Floating task)
+    # b. Cache probe — run at startup so Redis unavailability is detected once, not per-request
+    try:
+        from app.core.cache import _get_redis
+        _get_redis()
+    except Exception:
+        pass
+
+    # c. AI Background Warm-up (Floating task)
     async def _async_warmup():
         from starlette.concurrency import run_in_threadpool
         from app.api.v1.endpoints.cv_routes import get_yolo_model
@@ -195,7 +224,7 @@ app.add_middleware(
     allow_origins=settings.CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID", "X-CSRF-Token"],
 )
 
 @app.exception_handler(Exception)
@@ -252,15 +281,16 @@ def api_versions():
         "v1_base_url": "/api/v1",
     }
 
-from pydantic import BaseModel  # noqa: E402
+from pydantic import BaseModel, Field  # noqa: E402
 
 class TelemetryPayload(BaseModel):
-    node: str
-    metric: str
-    value: float
+    node: str = Field(min_length=1, max_length=50, pattern=r"^[\w\s\-]+$")
+    metric: str = Field(min_length=1, max_length=50)
+    value: float = Field(ge=-1e6, le=1e6)
 
 @app.post("/api/v1/iot/telemetry")
-def post_telemetry(payload: TelemetryPayload):
+@limiter.limit("60/minute")
+def post_telemetry(request: Request, payload: TelemetryPayload):
     import os
     import csv
     from pathlib import Path
@@ -358,8 +388,10 @@ def get_latest_iot():
         logger.error(f"IoT latest error: {e}")
     return latest
 
+from fastapi import Query  # noqa: E402
+
 @app.get("/api/v1/iot/history")
-def get_iot_history(limit: int = 50):
+def get_iot_history(limit: int = Query(50, ge=1, le=1000)):
     import os
     import csv as _csv
     csv_path = _iot_csv_path()
@@ -405,38 +437,36 @@ def root(): return {"status": "Sovereign", "version": settings.VERSION}
 
 
 @app.get("/health")
-def health(): return {"status": "ok"}
+def health():
+    from datetime import datetime, timezone
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
-# -- WebSockets --
-class ConnectionManager:
-    def __init__(self): self.active: List[WebSocket] = []
-    async def connect(self, ws: WebSocket):
-        await ws.accept()
-        self.active.append(ws)
-    def disconnect(self, ws: WebSocket): self.active.remove(ws)
-    async def broadcast(self, message: dict):
-        data = json.dumps(message)
-        for ws in self.active:
-            try:
-                await ws.send_text(data)
-            except Exception:
-                pass
-
-manager = ConnectionManager()
-app.state.ws_manager = manager
-
-@app.websocket("/ws/telemetry")
-async def ws_telemetry(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-# -- WebSockets (Distributed Secure Gateway) --
+# -- WebSockets (tenant-isolated secure gateways) --
 from typing import Optional  # noqa: E402
 from app.core.websockets import socket_manager  # noqa: E402
 from app.core.security import get_ws_tenant_id  # noqa: E402
+
+app.state.ws_manager = socket_manager
+
+
+@app.websocket("/ws/telemetry")
+async def ws_telemetry(websocket: WebSocket, token: Optional[str] = None):
+    """Backward-compatible telemetry socket with the same tenant isolation as /ws/events."""
+    try:
+        tenant_id = get_ws_tenant_id(token)
+        await socket_manager.connect(websocket, tenant_id)
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        if 'tenant_id' in locals():
+            socket_manager.disconnect(websocket, tenant_id)
+    except Exception as exc:
+        logger.error(f"[WS/telemetry] Auth/Bridge Error: {exc}")
+        try:
+            await websocket.close(code=1008)
+        except Exception:
+            pass
+
 
 @app.websocket("/ws/events")
 async def websocket_endpoint(

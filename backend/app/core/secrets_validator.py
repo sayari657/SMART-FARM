@@ -9,12 +9,19 @@ WEAK_SECRETS = {
     "changeme", "secret", "password", "admin", "dev",
     "dev-secret-key-not-for-production-use-only",
     "smartfarm_dev_secret_key_change_in_prod_32ch",
+    "change-me-in-production-set-secret_key-env-var",
     "GENERATE_WITH__python_-c__import_secrets_print_secrets.token_hex_32__",
 }
 
 
 def validate_production_secrets() -> None:
-    """Call at startup in production — exits if secrets are insecure."""
+    """Call at startup in production — exits if secrets are insecure.
+
+    Reads from app settings (pydantic-settings), not os.getenv, because
+    values loaded from the .env file are not exported to os.environ.
+    """
+    from app.core.config import settings
+
     debug = os.getenv("DEBUG", "true").lower() in ("true", "1", "yes")
     if debug:
         logger.info("Skipping secrets validation (DEBUG=true)")
@@ -22,20 +29,20 @@ def validate_production_secrets() -> None:
 
     errors = []
 
-    secret_key = os.getenv("SECRET_KEY", "")
+    secret_key = settings.SECRET_KEY or ""
     if not secret_key or secret_key.lower() in WEAK_SECRETS or len(secret_key) < 32:
         errors.append("SECRET_KEY is missing or too weak (min 32 chars, no defaults)")
 
-    groq_key = os.getenv("GROQ_API_KEY", "")
+    groq_key = settings.GROQ_API_KEY or ""
     if groq_key and not groq_key.startswith("gsk_"):
         errors.append("GROQ_API_KEY format looks invalid (should start with gsk_)")
 
-    db_url = os.getenv("DATABASE_URL", "")
+    db_url = settings.DATABASE_URL or ""
     if "sqlite" in db_url and not debug:
         errors.append("SQLite is not recommended for production — use PostgreSQL")
 
-    cors = os.getenv("CORS_ORIGINS", "")
-    if "*" in cors:
+    cors = settings.CORS_ORIGINS or ""
+    if "*" in cors.split(","):
         errors.append("CORS_ORIGINS contains wildcard '*' — restrict to specific domains in production")
 
     if errors:

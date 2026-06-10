@@ -62,6 +62,9 @@ const unsigned long READ_INTERVAL = 5000UL;      // sensor read every 5 s
 const unsigned long IRRIGATE_CHECK = 30000UL;    // irrigation logic every 30 s
 const unsigned long MAX_IRRIGATE_MS = 1800000UL; // 30-min safety watchdog
 const unsigned long WIFI_CHECK_MS = 15000UL;     // WiFi watchdog interval
+const unsigned long VALVE_PUMP_DELAY_MS = 2000UL; // open valve BEFORE pump (water hammer)
+const unsigned long PUMP_PRIME_GRACE_MS = 15000UL; // ignore dry-pump check while priming
+const unsigned long MIN_CYCLE_REST_MS = 300000UL;  // 5-min anti short-cycle between runs
 
 // ── DS18B20
 // ───────────────────────────────────────────────────────────────────
@@ -83,6 +86,8 @@ bool g_fallback = false; // WiFi lost → run autonomously with stored threshold
 
 bool g_irrigating = false;
 unsigned long g_irrigateStart = 0;
+unsigned long g_irrigateStop = 0;   // last stop time — anti short-cycle
+bool g_hasIrrigated = false;        // true once a first cycle has run
 
 unsigned long g_lastRead = 0;
 unsigned long g_lastIrrigate = 0;
@@ -172,8 +177,11 @@ void safetyChecks() {
     stopIrrigation();
   }
 
-  // Dry pump: pump running but no water flowing
-  if (g_pump && g_flow < FLOW_LEAK_MIN) {
+  // Dry pump: pump running but no water flowing.
+  // Grace period after start: flow needs a few seconds to establish,
+  // otherwise every cycle would abort with a false DRY_PUMP fault.
+  if (g_pump && g_flow < FLOW_LEAK_MIN &&
+      (millis() - g_irrigateStart >= PUMP_PRIME_GRACE_MS)) {
     g_fault = true;
     publishAlert("DRY_PUMP", "flow=" + String(g_flow, 1) + " L/min");
     stopIrrigation();
@@ -205,7 +213,12 @@ void controlIrrigation() {
   }
 #endif
 
-  if (!g_irrigating && inSchedule && g_soil < DRY_THRESHOLD && !g_fault) {
+  // Anti short-cycle: wait MIN_CYCLE_REST_MS after the previous stop
+  bool restElapsed = !g_hasIrrigated ||
+                     (millis() - g_irrigateStop >= MIN_CYCLE_REST_MS);
+
+  if (!g_irrigating && inSchedule && restElapsed &&
+      g_soil < DRY_THRESHOLD && !g_fault) {
     startIrrigation();
   } else if (g_irrigating && g_soil > WET_THRESHOLD) {
     stopIrrigation();
@@ -216,11 +229,15 @@ void controlIrrigation() {
 void startIrrigation() {
   g_irrigating = true;
   g_irrigateStart = millis();
+
+  // Sequence: open valve FIRST, then start pump — never pump on a closed line
   g_valve = true;
-  g_pump = true;
   digitalWrite(PIN_RELAY_VALVE, HIGH);
-  digitalWrite(PIN_RELAY_PUMP, HIGH);
   digitalWrite(PIN_LED_VALVE, HIGH);
+  delay(VALVE_PUMP_DELAY_MS);
+
+  g_pump = true;
+  digitalWrite(PIN_RELAY_PUMP, HIGH);
   digitalWrite(PIN_LED_PUMP, HIGH);
   Serial.print("[IRRIGATION] START  reason:DRY_SOIL  soil=");
   Serial.print(g_soil, 1);
@@ -235,13 +252,23 @@ void startIrrigation() {
 }
 
 void stopIrrigation() {
+  bool wasIrrigating = g_irrigating;
   g_irrigating = false;
-  g_valve = false;
+
+  // Sequence: stop pump FIRST, then close valve — avoid dead-heading the pump
   g_pump = false;
-  digitalWrite(PIN_RELAY_VALVE, LOW);
   digitalWrite(PIN_RELAY_PUMP, LOW);
-  digitalWrite(PIN_LED_VALVE, LOW);
   digitalWrite(PIN_LED_PUMP, LOW);
+  delay(VALVE_PUMP_DELAY_MS);
+
+  g_valve = false;
+  digitalWrite(PIN_RELAY_VALVE, LOW);
+  digitalWrite(PIN_LED_VALVE, LOW);
+
+  if (wasIrrigating) {
+    g_irrigateStop = millis();
+    g_hasIrrigated = true;
+  }
   Serial.println("[IRRIGATION] STOP");
 
 #if USE_MQTT

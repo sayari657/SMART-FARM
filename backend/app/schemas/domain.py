@@ -3,7 +3,7 @@ Smart Farm AI - Pydantic Schemas
 Complete request/response schemas for all API endpoints.
 """
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List, Any, Dict
 from datetime import datetime
 
@@ -61,6 +61,14 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
 
+    @field_validator("role")
+    @classmethod
+    def _no_privileged_self_registration(cls, v: str) -> str:
+        # Public registration must never grant privileged roles (superadmin).
+        if v not in ("owner", "worker", "admin"):
+            raise ValueError("Rôle non autorisé à l'inscription")
+        return v
+
 class UserUpdate(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
@@ -71,6 +79,8 @@ class UserResponse(UserBase):
     """Public user profile — never includes password_hash."""
     id: int
     is_active: bool
+    plan: str = "free"
+    plan_expires_at: Optional[datetime] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

@@ -9,10 +9,10 @@ Endpoints :
   GET  /billing/subscription   → statut abonnement actuel
 """
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -69,15 +69,118 @@ PLANS = [
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 class CheckoutRequest(BaseModel):
-    plan: str                           # pro | enterprise
+    plan: Literal["pro", "enterprise"]
     success_url: str = "http://localhost:5173/settings?payment=success"
     cancel_url: str  = "http://localhost:5173/settings?payment=cancel"
+
+    @field_validator("success_url", "cancel_url")
+    @classmethod
+    def _must_be_http(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("URL must start with http:// or https://")
+        return v
 
 class PortalRequest(BaseModel):
     return_url: str = "http://localhost:5173/settings"
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
+@router.get("/config")
+def stripe_config():
+    """Public — returns Stripe publishable key and plan catalog for the frontend."""
+    return {
+        "publishable_key": settings.STRIPE_PUBLISHABLE_KEY or None,
+        "stripe_enabled":  bool(settings.STRIPE_SECRET_KEY),
+        "plans": PLANS,
+    }
+
+
+@router.get("/admin/overview")
+def admin_billing_overview(
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles("superadmin")),
+):
+    """
+    SuperAdmin only — live Stripe + DB billing overview.
+    Returns: Stripe config status, product info, real subscriber list.
+    """
+    from sqlalchemy import func as sqlfunc
+
+    # ── DB counts ──────────────────────────────────────────────────────────
+    plan_rows = (
+        db.query(User.plan, sqlfunc.count(User.id))
+        .filter(User.role == "owner")
+        .group_by(User.plan)
+        .all()
+    )
+    plan_dist = {p or "free": c for p, c in plan_rows}
+    mrr = plan_dist.get("pro", 0) * 29
+
+    # ── Stripe live data (optional — graceful fallback) ────────────────────
+    stripe_product = None
+    stripe_price   = None
+    stripe_ok      = bool(settings.STRIPE_SECRET_KEY)
+
+    if stripe_ok:
+        try:
+            s = _stripe()
+            if settings.STRIPE_PRICE_PRO:
+                price   = s.Price.retrieve(settings.STRIPE_PRICE_PRO)
+                product = s.Product.retrieve(price.product)
+                stripe_price   = {
+                    "id":       price.id,
+                    "amount":   price.unit_amount / 100,
+                    "currency": price.currency.upper(),
+                    "interval": price.recurring.interval if price.recurring else None,
+                    "active":   price.active,
+                }
+                stripe_product = {
+                    "id":     product.id,
+                    "name":   product.name,
+                    "active": product.active,
+                    "url":    f"https://dashboard.stripe.com/test/products/{product.id}",
+                }
+        except Exception as e:
+            logger.warning("Stripe fetch in admin overview failed: %s", e)
+
+    # ── Pro subscribers with stripe_customer_id ────────────────────────────
+    pro_users = (
+        db.query(User.id, User.email, User.full_name, User.plan,
+                 User.plan_expires_at, User.stripe_customer_id)
+        .filter(User.role == "owner", User.plan.in_(["pro", "enterprise"]))
+        .order_by(User.id.desc())
+        .limit(50)
+        .all()
+    )
+
+    return {
+        "stripe_enabled":     stripe_ok,
+        "stripe_configured":  bool(settings.STRIPE_PRICE_PRO),
+        "webhook_configured": bool(settings.STRIPE_WEBHOOK_SECRET),
+        "plan_dist":          plan_dist,
+        "mrr_eur":            mrr,
+        "arr_eur":            mrr * 12,
+        "stripe_product":     stripe_product,
+        "stripe_price":       stripe_price,
+        "dashboard_url":      "https://dashboard.stripe.com/test",
+        "subscribers": [
+            {
+                "id":                  u.id,
+                "email":               u.email,
+                "full_name":           u.full_name,
+                "plan":                u.plan,
+                "plan_expires_at":     u.plan_expires_at.isoformat() if u.plan_expires_at else None,
+                "stripe_customer_id":  u.stripe_customer_id,
+                "stripe_url": (
+                    f"https://dashboard.stripe.com/test/customers/{u.stripe_customer_id}"
+                    if u.stripe_customer_id else None
+                ),
+            }
+            for u in pro_users
+        ],
+    }
+
 
 @router.get("/plans")
 def list_plans():
@@ -188,13 +291,29 @@ async def stripe_webhook_test(
         raise HTTPException(400, f"Unsupported test event: {event_type}")
 
 
+def _subscription_period_end(stripe, subscription_id: Optional[str]):
+    """Fetch the subscription's current_period_end as an aware-naive UTC datetime."""
+    from datetime import datetime, timedelta
+    if subscription_id:
+        try:
+            sub = stripe.Subscription.retrieve(subscription_id)
+            if sub.get("current_period_end"):
+                return datetime.utcfromtimestamp(sub["current_period_end"])
+        except Exception as e:
+            logger.warning("Could not fetch subscription %s: %s", subscription_id, e)
+    # Fallback: monthly billing + 4 days of grace (renewal webhook will extend it)
+    return datetime.utcnow() + timedelta(days=35)
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Stripe webhook receiver.
     Events handled:
-      - checkout.session.completed → upgrade plan
-      - customer.subscription.deleted → downgrade to free
+      - checkout.session.completed     → upgrade plan + set expiry
+      - invoice.paid                   → renewal: extend plan expiry
+      - invoice.payment_failed         → log (Stripe retries; subscription.deleted downgrades)
+      - customer.subscription.deleted  → downgrade to free
     """
     if not settings.STRIPE_WEBHOOK_SECRET:
         raise HTTPException(503, "STRIPE_WEBHOOK_SECRET non configuré")
@@ -205,43 +324,56 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     try:
         event = stripe.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
+    except ValueError:
+        raise HTTPException(400, "Invalid payload")
     except stripe.error.SignatureVerificationError:
         raise HTTPException(400, "Invalid signature")
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        user_id = int(session.get("metadata", {}).get("user_id", 0))
-        plan    = session.get("metadata", {}).get("plan", "pro")
+        meta = session.get("metadata") or {}
+        try:
+            user_id = int(meta.get("user_id", 0))
+        except (TypeError, ValueError):
+            user_id = 0
+        plan = meta.get("plan", "pro")
+        if plan not in ("pro", "enterprise"):
+            logger.warning("Webhook checkout with unknown plan '%s' — ignored", plan)
+            return {"received": True}
         customer_id = session.get("customer")
 
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             user.plan = plan
-            # Store stripe customer id if column exists
-            try:
-                db.execute(
-                    __import__("sqlalchemy").text(
-                        "UPDATE users SET stripe_customer_id=:c WHERE id=:id"
-                    ),
-                    {"c": customer_id, "id": user_id},
-                )
-            except Exception:
-                pass
+            user.stripe_customer_id = customer_id
+            user.plan_expires_at = _subscription_period_end(stripe, session.get("subscription"))
             db.commit()
-            logger.info("Plan upgraded: user=%s plan=%s", user_id, plan)
+            logger.info("Plan upgraded: user=%s plan=%s customer=%s expires=%s",
+                        user_id, plan, customer_id, user.plan_expires_at)
+        else:
+            logger.warning("Webhook checkout for unknown user_id=%s — no action", user_id)
+
+    elif event["type"] == "invoice.paid":
+        invoice = event["data"]["object"]
+        customer_id = invoice.get("customer")
+        user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+        if user and user.plan in ("pro", "enterprise"):
+            user.plan_expires_at = _subscription_period_end(stripe, invoice.get("subscription"))
+            db.commit()
+            logger.info("Renewal: user=%s plan extended to %s", user.id, user.plan_expires_at)
+
+    elif event["type"] == "invoice.payment_failed":
+        customer_id = event["data"]["object"].get("customer")
+        logger.warning("Payment failed for customer=%s — Stripe will retry; "
+                       "subscription.deleted will downgrade if all retries fail", customer_id)
 
     elif event["type"] == "customer.subscription.deleted":
         customer_id = event["data"]["object"]["customer"]
-        try:
-            db.execute(
-                __import__("sqlalchemy").text(
-                    "UPDATE users SET plan='free' WHERE stripe_customer_id=:c"
-                ),
-                {"c": customer_id},
-            )
+        user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+        if user:
+            user.plan = "free"
+            user.plan_expires_at = None
             db.commit()
-        except Exception:
-            pass
         logger.info("Subscription cancelled for customer=%s → downgraded to free", customer_id)
 
     return {"received": True}

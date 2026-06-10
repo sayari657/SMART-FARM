@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production-set-SECRET_KEY-env-var"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week
+    OTP_TTL_MINUTES: int = int(os.getenv("OTP_TTL_MINUTES", "5"))
+
+    # Optional first-run bootstrap. No account is created unless both are set.
+    BOOTSTRAP_ADMIN_USERNAME: str = os.getenv("BOOTSTRAP_ADMIN_USERNAME", "")
+    BOOTSTRAP_ADMIN_PASSWORD: str = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
+    BOOTSTRAP_ADMIN_EMAIL: str = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "")
 
     # Database
     USE_SQLITE: bool = False
@@ -37,9 +43,6 @@ class Settings(BaseSettings):
     MQTT_BROKER: str = "mosquitto"
     MQTT_PORT: int = 1883
     MQTT_TOPIC_PREFIX: str = "smart_farm"
-
-    # Redis
-    REDIS_URL: str = "redis://redis:6379/0"
 
     # CORS
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000")
@@ -125,8 +128,8 @@ class Settings(BaseSettings):
 
     # ── Push Notifications ────────────────────────────────────────
     FCM_SERVER_KEY:    str = os.getenv("FCM_SERVER_KEY",    "")   # FCM legacy
-    VAPID_PRIVATE_KEY: str = os.getenv("VAPID_PRIVATE_KEY", "fxbpsbCvai7Bpj9yxXMEPR7jaL5IvVcHpkoHzovw2Xs")
-    VAPID_EMAIL:       str = os.getenv("VAPID_EMAIL",       "medsayari2001@gmail.com")
+    VAPID_PRIVATE_KEY: str = os.getenv("VAPID_PRIVATE_KEY", "")   # never hardcode — set in .env
+    VAPID_EMAIL:       str = os.getenv("VAPID_EMAIL",       "")
 
     # ── Stripe Billing ────────────────────────────────────────────
     STRIPE_SECRET_KEY: str      = os.getenv("STRIPE_SECRET_KEY", "")

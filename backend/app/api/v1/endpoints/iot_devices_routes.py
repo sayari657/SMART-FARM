@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_roles
-from app.models.domain import Farm, Sensor, User
+from app.models.domain import AnimalUnit, Farm, Sensor, User
 from app.core.cache import cached, cache_delete
 
 router = APIRouter(prefix="/iot", tags=["IoT Devices"])
@@ -65,6 +65,23 @@ def _farm_check(farm_id: int, user: User, db: Session) -> Farm:
     return farm
 
 
+def _get_owned_sensor(device_id: int, user: User, db: Session) -> Sensor:
+    """Fetch a sensor and verify the requesting user owns its farm (tenant isolation)."""
+    sensor = db.query(Sensor).filter(Sensor.id == device_id).first()
+    if not sensor:
+        raise HTTPException(404, "Device not found")
+    if user.role != "superadmin":
+        owns = (
+            db.query(Farm.id)
+            .join(AnimalUnit, AnimalUnit.farm_id == Farm.id)
+            .filter(AnimalUnit.id == sensor.unit_id, Farm.owner_id == user.id)
+            .first()
+        )
+        if not owns:
+            raise HTTPException(403, "Access denied to this device")
+    return sensor
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/devices")
@@ -104,10 +121,10 @@ def list_devices(
             "icon":        SENSOR_TYPE_ICONS.get(s.sensor_type, "🔌"),
             "is_active":   s.is_active,
             "last_seen":   s.last_seen.isoformat() if s.last_seen else None,
-            "metadata":    s.metadata,
-            "label":       (s.metadata or {}).get("label") if isinstance(s.metadata, dict) else None,
-            "location":    (s.metadata or {}).get("location") if isinstance(s.metadata, dict) else None,
-            "mqtt_topic":  (s.metadata or {}).get("mqtt_topic") if isinstance(s.metadata, dict) else None,
+            "metadata":    s.metadata_,
+            "label":       (s.metadata_ or {}).get("label") if isinstance(s.metadata_, dict) else None,
+            "location":    (s.metadata_ or {}).get("location") if isinstance(s.metadata_, dict) else None,
+            "mqtt_topic":  (s.metadata_ or {}).get("mqtt_topic") if isinstance(s.metadata_, dict) else None,
         }
         for s in sensors
     ]
@@ -166,7 +183,7 @@ def create_device(
         sensor_type=body.sensor_type,
         sensor_id=body.sensor_id,
         is_active=True,
-        metadata={
+        metadata_={
             "label":      body.label or body.sensor_id,
             "location":   body.location or "",
             "mqtt_topic": body.mqtt_topic or f"smart_farm/{body.farm_id}/{body.sensor_id}",
@@ -186,20 +203,18 @@ def update_device(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("owner", "superadmin")),
 ):
-    sensor = db.query(Sensor).filter(Sensor.id == device_id).first()
-    if not sensor:
-        raise HTTPException(404, "Device not found")
+    sensor = _get_owned_sensor(device_id, user, db)
 
     if body.sensor_type is not None:
         sensor.sensor_type = body.sensor_type
     if body.is_active is not None:
         sensor.is_active = body.is_active
 
-    meta = dict(sensor.metadata or {})
+    meta = dict(sensor.metadata_ or {})
     if body.label is not None:      meta["label"]      = body.label
     if body.location is not None:   meta["location"]   = body.location
     if body.mqtt_topic is not None: meta["mqtt_topic"] = body.mqtt_topic
-    sensor.metadata = meta
+    sensor.metadata_ = meta
 
     db.commit()
     return {"ok": True}
@@ -211,9 +226,7 @@ def delete_device(
     db: Session = Depends(get_db),
     user: User = Depends(require_roles("owner", "superadmin")),
 ):
-    sensor = db.query(Sensor).filter(Sensor.id == device_id).first()
-    if not sensor:
-        raise HTTPException(404, "Device not found")
+    sensor = _get_owned_sensor(device_id, user, db)
     db.delete(sensor)
     db.commit()
     return {"ok": True}
@@ -232,9 +245,9 @@ def device_ping(
     sensor.last_seen = datetime.utcnow()
     sensor.is_active = True
     if body.value is not None:
-        meta = dict(sensor.metadata or {})
+        meta = dict(sensor.metadata_ or {})
         meta["last_value"] = body.value
         meta["last_unit"]  = body.unit or ""
-        sensor.metadata = meta
+        sensor.metadata_ = meta
     db.commit()
     return {"ok": True}
