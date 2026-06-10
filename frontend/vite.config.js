@@ -25,6 +25,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // selfDestroying ships a service worker that unregisters itself and clears
+      // all caches on existing clients. The custom sw.js was breaking the
+      // cross-origin tunnel deployment: it intercepted cross-origin /api calls
+      // (caching failures), queued farm mutations for background replay, and
+      // returned redirected responses for navigations (breaking page loads).
+      // Disabled for now — the app runs fine as a plain SPA.
+      selfDestroying: true,
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       strategies: 'injectManifest',   // use custom src/sw.js instead of generateSW
