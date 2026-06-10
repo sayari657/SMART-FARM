@@ -2,13 +2,19 @@
 # ============================================================
 #  Smart Farm AI v3.0 -- Stable Launcher
 #  Usage:
-#    .\start_all.ps1              # start everything
-#    .\start_all.ps1 -Stop        # stop all services
-#    .\start_all.ps1 -Status      # show service status
-#    .\start_all.ps1 -Logs        # stream backend logs
-#    .\start_all.ps1 -Restart     # stop then start
+#    .\start_all.ps1                     # dev frontend (5173) only
+#    .\start_all.ps1 -Mode preview       # production preview (4173) instead
+#    .\start_all.ps1 -Cloud              # + expose publicly via Cloudflare Tunnel
+#    .\start_all.ps1 -Mode preview -Cloud
+#    .\start_all.ps1 -Stop               # stop all services
+#    .\start_all.ps1 -Status             # show service status
+#    .\start_all.ps1 -Logs               # stream backend logs
+#    .\start_all.ps1 -Restart            # stop then start
 # ============================================================
 param(
+    [ValidateSet('dev','preview')]
+    [string]$Mode = 'dev',
+    [switch]$Cloud,
     [switch]$Stop,
     [switch]$Status,
     [switch]$Logs,
@@ -26,6 +32,22 @@ $LogDir   = Join-Path $Root ".logs"
 
 $VEnvPy = Join-Path $Root ".venv\Scripts\python.exe"
 $Python  = if (Test-Path $VEnvPy) { $VEnvPy } else { "python" }
+$CFExe   = Join-Path $Root "cloudflared.exe"
+
+# ── Single frontend mode: dev (5173) OR preview (4173) ─────────────────────────
+$HasCerts = Test-Path (Join-Path $Frontend "certs\cert.pem")
+if ($Mode -eq 'preview') {
+    $FrontPort   = 4173
+    $FrontCmd    = "npm run build; if (`$LASTEXITCODE -eq 0) { npm run mobile } else { Write-Host 'BUILD ECHOUE' -ForegroundColor Red }"
+    $FrontScheme = "http"                                   # vite preview serves plain HTTP
+    $FrontLabel  = "Preview (production build)"
+} else {
+    $FrontPort   = 5173
+    $FrontCmd    = "npm run dev"
+    $FrontScheme = if ($HasCerts) { "https" } else { "http" } # vite dev uses mkcert certs if present
+    $FrontLabel  = "Dev (hot reload)"
+}
+$FrontUrl = "${FrontScheme}://localhost:$FrontPort"
 
 # ── Local IP for LAN access ───────────────────────────────────────────────────
 try {
@@ -118,8 +140,11 @@ if ($Stop -or $Restart) {
     STEP "Arret de tous les services..."
     Kill-PID "backend"
     Kill-PID "frontend"
+    Kill-PID "pwa"
+    Kill-PID "tunnel"
     Kill-PID "prometheus"
     Kill-PID "mlflow"
+    Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Free-Port 8000
     Free-Port 5173
     Free-Port 4173
@@ -238,33 +263,26 @@ if (Wait-Port 8000 35 "Backend") {
 }
 Write-Host ""
 
-# ── 3. Frontend Owner Dashboard ───────────────────────────────────────────────
-STEP "[3] Frontend Owner Dashboard :5173..."
-Free-Port 5173; Start-Sleep -Milliseconds 200
+# ── 3. Frontend (single port: dev 5173 OR preview 4173) ───────────────────────
+STEP "[3] Frontend $FrontLabel :$FrontPort..."
+Free-Port $FrontPort; Start-Sleep -Milliseconds 200
 
 $proc = Start-Window `
-    -Title "SmartFarm | Dashboard :5173" `
+    -Title "SmartFarm | Frontend :$FrontPort" `
     -WorkDir $Frontend `
-    -Cmd "npm run dev"
+    -Cmd $FrontCmd
 
 if ($proc) { Save-PID "frontend" $proc.Id }
 
-if (Wait-Port 5173 45 "Frontend") {
-    OK "Dashboard pret"
-} else {
-    FAIL "Frontend n'a pas demarre -- verifiez la fenetre Dashboard"
+if ($Mode -eq 'preview') {
+    Write-Host "       Build puis preview (1-2 min)..." -ForegroundColor DarkGray
 }
-Write-Host ""
-
-# ── 4. Worker PWA (build + preview) ──────────────────────────────────────────
-STEP "[4] Worker PWA :4173 (build en cours)..."
-$proc = Start-Window `
-    -Title "SmartFarm | Worker PWA :4173" `
-    -WorkDir $Frontend `
-    -Cmd "npm run build; if (`$LASTEXITCODE -eq 0) { npm run mobile } else { Write-Host 'BUILD ECHOUE' -ForegroundColor Red }"
-
-if ($proc) { Save-PID "pwa" $proc.Id }
-Write-Host "       Build en arriere-plan (1-2 min)..." -ForegroundColor DarkGray
+$waitSecs = if ($Mode -eq 'preview') { 180 } else { 45 }
+if (Wait-Port $FrontPort $waitSecs "Frontend") {
+    OK "Frontend pret -- $FrontUrl"
+} else {
+    FAIL "Frontend n'a pas demarre -- verifiez la fenetre Frontend"
+}
 Write-Host ""
 
 # ── 5. Prometheus (optionnel) ─────────────────────────────────────────────────
@@ -304,7 +322,34 @@ if (Wait-Port 5000 20 "MLflow") {
 }
 Write-Host ""
 
-# ── 7. Firewall (silencieux si pas admin) ─────────────────────────────────────
+# ── 7. Cloud : exposition publique via Cloudflare Tunnel (-Cloud) ─────────────
+if ($Cloud) {
+    STEP "[7] Cloudflare Tunnel (acces public HTTPS)..."
+
+    if (-not (Test-Path $CFExe)) {
+        Write-Host "       Telechargement de cloudflared.exe (premiere fois)..." -ForegroundColor DarkGray
+        $cfUrl = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+        try { Invoke-WebRequest -Uri $cfUrl -OutFile $CFExe -UseBasicParsing }
+        catch { FAIL "Telechargement cloudflared echoue -- recuperez-le manuellement." }
+    }
+
+    if (Test-Path $CFExe) {
+        # One tunnel on the chosen frontend port: Vite proxies /api + /ws to the
+        # backend, so a single public URL serves the whole app (no CORS setup).
+        if ($FrontScheme -eq "https") {
+            $tunnelCmd = "& '$CFExe' tunnel --url https://localhost:$FrontPort --no-tls-verify"
+        } else {
+            $tunnelCmd = "& '$CFExe' tunnel --url http://localhost:$FrontPort"
+        }
+        $proc = Start-Window -Title "SmartFarm | Cloudflare Tunnel" -WorkDir $Root -Cmd $tunnelCmd
+        if ($proc) { Save-PID "tunnel" $proc.Id }
+        OK "Tunnel lance -- URL publique https://*.trycloudflare.com dans la fenetre 'Cloudflare Tunnel'"
+        INFO "L'URL change a chaque redemarrage. Partagez-la pour une demo."
+    }
+    Write-Host ""
+}
+
+# ── 8. Firewall (silencieux si pas admin) ─────────────────────────────────────
 foreach ($p in @(8000, 5173, 4173, 5000)) {
     if (-not (Get-NetFirewallRule -DisplayName "SmartFarm $p" -ErrorAction SilentlyContinue)) {
         try {
@@ -314,9 +359,9 @@ foreach ($p in @(8000, 5173, 4173, 5000)) {
     }
 }
 
-# ── 7. Ouvrir le navigateur ───────────────────────────────────────────────────
+# ── 9. Ouvrir le navigateur ───────────────────────────────────────────────────
 Start-Sleep -Seconds 2
-Start-Process "http://localhost:5173"
+Start-Process $FrontUrl
 
 # ── 8. Recap ──────────────────────────────────────────────────────────────────
 Write-Host ""
@@ -324,26 +369,32 @@ Write-Host "  ============================================================" -For
 Write-Host "  SMART FARM AI -- TOUS LES SERVICES LANCES" -ForegroundColor Green
 Write-Host "  ============================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "   Dashboard Owner  ->  http://localhost:5173" -ForegroundColor White
+Write-Host "   Frontend ($Mode) ->  $FrontUrl" -ForegroundColor White
+Write-Host "   App (LAN)        ->  ${FrontScheme}://${LocalIP}:$FrontPort" -ForegroundColor Magenta
 Write-Host "   API (Swagger)    ->  http://localhost:8000/docs" -ForegroundColor White
 Write-Host "   Metrics          ->  http://localhost:8000/metrics" -ForegroundColor White
 Write-Host "   Prometheus       ->  http://localhost:9090" -ForegroundColor White
 Write-Host "   MLflow UI        ->  http://localhost:5000" -ForegroundColor White
 Write-Host "   Grafana Cloud    ->  https://medsayari2001.grafana.net" -ForegroundColor White
-Write-Host "   Worker PWA (LAN) ->  https://${LocalIP}:4173/worker-login" -ForegroundColor Magenta
+if ($Cloud) {
+    Write-Host "   Acces public     ->  voir fenetre 'Cloudflare Tunnel' (*.trycloudflare.com)" -ForegroundColor Cyan
+}
 Write-Host ""
 Write-Host "   Connexion Owner  :  admin / admin123" -ForegroundColor Yellow
 Write-Host "   Connexion Worker :  OTP WhatsApp" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "  ============================================================" -ForegroundColor Green
 Write-Host "  Commandes utiles:" -ForegroundColor DarkGray
-Write-Host "    .\start_all.ps1 -Status   # etat des services" -ForegroundColor DarkGray
-Write-Host "    .\start_all.ps1 -Logs     # logs backend en direct" -ForegroundColor DarkGray
-Write-Host "    .\start_all.ps1 -Stop     # arreter tout proprement" -ForegroundColor DarkGray
-Write-Host "    .\start_all.ps1 -Restart  # redemarrage complet" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1                  # dev (5173)" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1 -Mode preview    # preview prod (4173)" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1 -Cloud           # + acces public Cloudflare" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1 -Status          # etat des services" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1 -Logs            # logs backend en direct" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1 -Stop            # arreter tout proprement" -ForegroundColor DarkGray
+Write-Host "    .\start_all.ps1 -Restart         # redemarrage complet" -ForegroundColor DarkGray
 Write-Host "  ============================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Pour arreter : .\start_all.ps1 -Stop" -ForegroundColor DarkGray
-Write-Host "  (ou fermez les 4 fenetres de terminal)" -ForegroundColor DarkGray
+Write-Host "  (ou fermez les fenetres de terminal ouvertes)" -ForegroundColor DarkGray
 Write-Host ""
 Read-Host "  Appuyez sur Entree pour fermer ce lanceur"
