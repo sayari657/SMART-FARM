@@ -219,13 +219,11 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(CorrelationIDMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS.split(","),
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID", "X-CSRF-Token"],
-)
+# NOTE: CORSMiddleware is added LAST (see below) so it is the OUTERMOST layer.
+# Starlette runs the last-added middleware first, so CORS must be added after
+# CSRF/SlowAPI — otherwise those middlewares' direct 403/429 responses bypass
+# CORS and the browser reports them as opaque "CORS/Network" errors instead of
+# the real status, which also prevents the frontend's 403 self-heal from firing.
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
@@ -257,6 +255,16 @@ app.add_middleware(SlowAPIMiddleware)
 # CSRF protection — validates X-CSRF-Token on mutations for owner/superadmin
 from app.core.csrf import CSRFMiddleware  # noqa: E402
 app.add_middleware(CSRFMiddleware)
+
+# CORS — added LAST so it is the outermost middleware and its headers are
+# applied to EVERY response, including CSRF 403s and rate-limit 429s.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Request-ID", "X-CSRF-Token"],
+)
 
 # 7. Routing
 app.include_router(api_router, prefix=settings.API_V1_STR)
