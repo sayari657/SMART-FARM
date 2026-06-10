@@ -27,13 +27,19 @@ export function useBeeData(toast) {
     const avgHealth = ruches.length
       ? (ruches.reduce((a, r) => a + (r.health_score || 0), 0) / ruches.length) * 10
       : 100;
-    const critiques = ruches.filter(r => (r.health_score || 10) < 4).length;
+    // Alerts are data-driven: critical hives (health < 4/10) PLUS the most recent
+    // inspections flagged urgent/treatment. (Previously only checked hive health,
+    // so a hive marked "urgent" during a visit never raised an alert.)
+    const URGENT = new Set(['urgent', 'critique', 'critical', 'malade', 'treatment']);
+    const criticalHives = ruches.filter(r => (r.health_score ?? 10) < 4).length;
+    const urgentVisits  = visites.filter(v => URGENT.has(String(v.health_state || '').toLowerCase())).length;
+    const critiques = criticalHives + urgentVisits;
     return {
       totalMiel: `${honey.toFixed(1)} kg`,
       sante:     `${Math.round(avgHealth)}%`,
       alertes:   critiques.toString(),
     };
-  }, [productions, ruches]);
+  }, [productions, ruches, visites]);
 
   /* ── Refresh from server ── */
   const refresh = useCallback(async (showSpin = true) => {

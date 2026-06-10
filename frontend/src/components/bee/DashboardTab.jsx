@@ -237,6 +237,26 @@ export default function DashboardTab({ ruches = [], emplacements = [], productio
   const toggleSimple = () => { const n = !simpleMode; setSimpleMode(n); localStorage.setItem('bee_simple_mode', String(n)); };
   const alertCount = parseInt(stats?.alertes) || 0;
 
+  // Active alerts, data-driven: critical hives + inspections flagged urgent/treatment
+  const URGENT_STATES = new Set(['urgent', 'critique', 'critical', 'malade', 'treatment']);
+  const alertItems = [
+    ...ruches
+      .filter(r => (r.health_score ?? 10) < 4)
+      .map(r => ({
+        key: `h-${r.id}`, icon: '🔶',
+        label: r.identifier || `Ruche ${r.id}`,
+        reason: `Santé critique (${(r.health_score ?? 0).toFixed(1)}/10)`,
+      })),
+    ...visites
+      .filter(v => URGENT_STATES.has(String(v.health_state || '').toLowerCase()))
+      .slice(0, 12)
+      .map(v => ({
+        key: `v-${v.id}`, icon: '🔴',
+        label: v.visit_name || v.identifier || `Inspection ${v.visit_date || ''}`.trim(),
+        reason: v.notes ? `Urgent — ${v.notes}` : 'Inspection signalée urgente',
+      })),
+  ];
+
   const kpis = [
     { label: 'Ruches Actives', icon: Hexagon, color: COLORS.accent, val: activeRuches.length, sub: `/ ${ruches.length} total`, ring: activeRuches.length, ringMax: Math.max(ruches.length, 1), trend: '+2%' },
     { label: 'Récolte Totale', icon: Droplets, color: COLORS.info, val: stats?.totalMiel || '0 kg', sub: 'Cette saison', ring: null, trend: '+15%' },
@@ -286,10 +306,33 @@ export default function DashboardTab({ ruches = [], emplacements = [], productio
             <div>
               <div style={{ fontSize: 56, fontWeight: 900, color: alertCount > 0 ? COLORS.error : COLORS.success, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{alertCount}</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: alertCount > 0 ? COLORS.error : COLORS.success, marginTop: 4 }}>
-                {alertCount === 0 ? 'Toutes les ruches sont saines' : `ruche${alertCount > 1 ? 's' : ''} à visiter`}
+                {alertCount === 0 ? 'Toutes les ruches sont saines' : `alerte${alertCount > 1 ? 's' : ''} active${alertCount > 1 ? 's' : ''}`}
               </div>
             </div>
           </div>
+
+          {/* Active alert details */}
+          {alertItems.length > 0 && (
+            <div style={{ background: COLORS.error + '08', borderRadius: 18, border: `1.5px solid ${COLORS.error}30`, padding: '16px 20px' }}>
+              <div style={{ fontWeight: 800, color: COLORS.error, fontSize: 13, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                🚨 Alertes actives
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {alertItems.map(a => (
+                  <button key={a.key} onClick={() => onAction?.('visites')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                      background: COLORS.surface, border: `1px solid ${COLORS.error}25` }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{a.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, color: COLORS.text, fontSize: 13 }}>{a.label}</div>
+                      <div style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 2 }}>{a.reason}</div>
+                    </div>
+                    <span style={{ color: COLORS.error, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>Voir →</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div style={{ borderRadius: 24, padding: '24px 32px', background: COLORS.accent + '10', border: `2px solid ${COLORS.accent}30`, display: 'flex', alignItems: 'center', gap: 24 }}>
             <span style={{ fontSize: 48, flexShrink: 0 }}>🍯</span>
