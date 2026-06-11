@@ -1,10 +1,11 @@
 """Smart Farm AI - Anomaly, Alert, Recommendation, Report, Settings, Dashboard Routes"""
-from typing import Optional, List
+from typing import Optional, List, Literal as _PydLiteral
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel as _PydBaseModel, Field as _PydField
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_roles
 from app.core.farm_guard import get_user_farm_ids, assert_farm_owner, get_scoped_farm_ids
 from app.services.data_service import (
     AnomalyService, AlertService, RecommendationService,
@@ -101,6 +102,35 @@ def delete_alert(alert_id: int, db: Session = Depends(get_db), _=Depends(get_cur
     from app.models.domain import Alert
     db.query(Alert).filter(Alert.id == alert_id).delete()
     db.commit()
+
+class AlertNotifyRequest(_PydBaseModel):
+    farm_id: int
+    title: str = _PydField(..., min_length=1, max_length=120)
+    message: str = _PydField(..., min_length=1, max_length=2000)
+    target: _PydLiteral["all", "owner", "workers"] = "all"
+
+
+@alert_router.post("/notify")
+def notify_farm(
+    body: AlertNotifyRequest,
+    db: Session = Depends(get_db),
+    user=Depends(require_roles("owner", "superadmin")),
+):
+    """Dispatch an alert to the farm owner + assigned workers (WhatsApp + push)."""
+    from app.models.domain import Farm
+    from app.services.alert_notify_service import notify_farm_alert
+
+    farm = db.query(Farm).filter(Farm.id == body.farm_id).first()
+    if not farm:
+        raise HTTPException(404, "Ferme introuvable")
+    if user.role != "superadmin" and farm.owner_id != user.id:
+        raise HTTPException(403, "Accès non autorisé à cette ferme")
+
+    return notify_farm_alert(
+        db, body.farm_id, body.title, body.message,
+        target=body.target, sent_by=user.username,
+    )
+
 
 @alert_router.get("/emergency")
 def emergency_monitor(db: Session = Depends(get_db), _=Depends(get_current_user)):
@@ -508,8 +538,8 @@ analytics_router = APIRouter(prefix="/analytics", tags=["Analytics"])
 @analytics_router.get("/correlation", summary="Corrélation croisée entre deux métriques IoT")
 def correlation_endpoint(
     unit_id: int = Query(...),
-    metric_x: str = Query("temperature"),
-    metric_y: str = Query("hive_weight"),
+    metric_x: str = Query(...),
+    metric_y: str = Query(...),
     days: int = Query(30, ge=7, le=365),
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
@@ -542,8 +572,10 @@ def correlation_endpoint(
                 pass
 
     if len(xs) < 5:
-        return {"error": f"Données insuffisantes ({len(xs)} points — minimum 5 requis)",
-                "unit_id": unit_id, "metric_x": metric_x, "metric_y": metric_y}
+        raise HTTPException(
+            status_code=404,
+            detail=f"Données insuffisantes ({len(xs)} points — minimum 5 requis)",
+        )
 
     x_arr = np.array(xs)
     y_arr = np.array(ys)

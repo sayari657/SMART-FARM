@@ -10,6 +10,9 @@ import beeIconImg from '../../assets/bee/bee-icon.png';
 import { COLORS } from './BeeConstants';
 
 import { beeApi } from '../../services/beeApi';
+import { alertsAPI } from '../../services/api';
+import { getErrorMessage } from '../../utils/errors';
+import toast from 'react-hot-toast';
 import BeeAICharts from './BeeAICharts';
 
 /* ── Circular health ring ── */
@@ -230,7 +233,7 @@ function LogisticsWidget({ emplacements = [] }) {
   );
 }
 
-export default function DashboardTab({ ruches = [], emplacements = [], productions = [], visites = [], stock = {}, isProcessing, onAction, stats, onSync }) {
+export default function DashboardTab({ ruches = [], emplacements = [], productions = [], visites = [], stock = {}, farmId, isProcessing, onAction, stats, onSync }) {
   const activeRuches = ruches.filter(r => r.is_active !== false);
   const avgHealth = ruches.length ? ruches.reduce((s, r) => s + (r.health_score || 0), 0) / ruches.length : 0;
   const [simpleMode, setSimpleMode] = useState(() => localStorage.getItem('bee_simple_mode') !== 'false');
@@ -256,6 +259,24 @@ export default function DashboardTab({ ruches = [], emplacements = [], productio
         reason: v.notes ? `Urgent — ${v.notes}` : 'Inspection signalée urgente',
       })),
   ];
+
+  const [notifying, setNotifying] = useState('');
+  const dispatchAlerts = async (target) => {
+    if (!farmId) { toast.error('Sélectionnez une ferme'); return; }
+    if (!alertItems.length) { toast('Aucune alerte active'); return; }
+    setNotifying(target);
+    const title = `${alertItems.length} alerte${alertItems.length > 1 ? 's' : ''} rucher`;
+    const message = alertItems.map(a => `• ${a.label} — ${a.reason}`).join('\n');
+    try {
+      const { data } = await alertsAPI.notify(farmId, title, message, target);
+      toast.success(`Envoyé à ${data.recipients} destinataire${data.recipients > 1 ? 's' : ''}`
+        + (data.whatsapp_sent ? ` · ${data.whatsapp_sent} WhatsApp` : ''));
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Échec de l'envoi"));
+    } finally {
+      setNotifying('');
+    }
+  };
 
   const kpis = [
     { label: 'Ruches Actives', icon: Hexagon, color: COLORS.accent, val: activeRuches.length, sub: `/ ${ruches.length} total`, ring: activeRuches.length, ringMax: Math.max(ruches.length, 1), trend: '+2%' },
@@ -314,8 +335,24 @@ export default function DashboardTab({ ruches = [], emplacements = [], productio
           {/* Active alert details */}
           {alertItems.length > 0 && (
             <div style={{ background: COLORS.error + '08', borderRadius: 18, border: `1.5px solid ${COLORS.error}30`, padding: '16px 20px' }}>
-              <div style={{ fontWeight: 800, color: COLORS.error, fontSize: 13, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                🚨 Alertes actives
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                <div style={{ fontWeight: 800, color: COLORS.error, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  🚨 Alertes actives
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => dispatchAlerts('workers')} disabled={!!notifying}
+                    title="Envoyer aux ouvriers reliés à cette ferme (WhatsApp + notification)"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, cursor: notifying ? 'wait' : 'pointer',
+                      background: COLORS.info + '15', border: `1px solid ${COLORS.info}40`, color: COLORS.info, fontWeight: 800, fontSize: 12, opacity: notifying ? 0.6 : 1 }}>
+                    👷 {notifying === 'workers' ? 'Envoi…' : 'Ouvriers'}
+                  </button>
+                  <button onClick={() => dispatchAlerts('all')} disabled={!!notifying}
+                    title="Notifier le propriétaire ET les ouvriers (WhatsApp + notification)"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, cursor: notifying ? 'wait' : 'pointer',
+                      background: COLORS.error, border: 'none', color: '#fff', fontWeight: 800, fontSize: 12, opacity: notifying ? 0.6 : 1 }}>
+                    📲 {notifying === 'all' ? 'Envoi…' : 'Tout notifier'}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {alertItems.map(a => (

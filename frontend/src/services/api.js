@@ -222,6 +222,9 @@ export const alertsAPI = {
   resolve:   (id, by) => api.put(`/alerts/${id}/resolve`, { resolved_by: by }),
   delete:    (id)     => api.delete(`/alerts/${id}`),
   emergency: (farmId) => api.get('/alerts/emergency', { params: farmId ? { farm_id: farmId } : {} }),
+  /** Dispatch an alert to the farm owner + assigned workers (WhatsApp + push). */
+  notify:    (farmId, title, message, target = 'all') =>
+    api.post('/alerts/notify', { farm_id: farmId, title, message, target }),
 };
 
 // ---- Recommendations

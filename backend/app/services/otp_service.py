@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # OTP_STORE: { key: {"otp": str, "expires": datetime} }
 OTP_STORE: dict = {}
-OTP_TTL_MINUTES = 10
+OTP_TTL_MINUTES = settings.OTP_TTL_MINUTES
 
 
 def _generate_otp() -> str:
@@ -27,6 +27,11 @@ def _store_otp(key: str, otp: str) -> None:
         "otp": otp,
         "expires": datetime.now(timezone.utc) + timedelta(minutes=OTP_TTL_MINUTES),
     }
+
+
+def store_otp(channel: str, identifier: str, otp: str) -> None:
+    """Store a development OTP with the same TTL as real delivery channels."""
+    _store_otp(f"{channel}:{identifier}", otp)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -53,7 +58,7 @@ def send_otp_email(email: str) -> str:
 
       <h2 style="color: #f9fafb; font-size: 22px; margin: 0 0 12px;">Code de vérification</h2>
       <p style="color: #9ca3af; font-size: 14px; margin-bottom: 28px;">
-        Utilisez ce code pour réinitialiser votre mot de passe Smart Farm AI. Il expire dans <strong style="color:#f9fafb;">10 minutes</strong>.
+        Utilisez ce code pour réinitialiser votre mot de passe Smart Farm AI. Il expire dans <strong style="color:#f9fafb;">{OTP_TTL_MINUTES} minutes</strong>.
       </p>
 
       <div style="background: #1f2937; border: 2px solid #22c55e; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px;">
@@ -118,7 +123,7 @@ def send_otp_whatsapp(phone: str) -> str:
                     "parameters": [
                         {"type": "text", "text": "Ouvrier Smart Farm"},
                         {"type": "text", "text": otp},
-                        {"type": "text", "text": "Valid for 10 minutes"},
+                        {"type": "text", "text": f"Valid for {OTP_TTL_MINUTES} minutes"},
                     ],
                 }
             ],
@@ -134,6 +139,40 @@ def send_otp_whatsapp(phone: str) -> str:
     logger.info(f"OTP WhatsApp sent successfully to {phone}")
 
     return otp
+
+
+def send_whatsapp_text(phone: str, message: str) -> bool:
+    """Send a free-form WhatsApp text (Meta Cloud API). Best-effort: returns success.
+
+    Note: free-form text only delivers inside the 24h customer-service window
+    (i.e. after the recipient has messaged the business). Outside it, Meta
+    requires an approved template — see send_otp_whatsapp for the template form.
+    """
+    if not settings.WHATSAPP_TOKEN or not settings.WHATSAPP_PHONE_ID:
+        logger.warning("WhatsApp not configured — alert text not sent to %s", phone)
+        return False
+    api_version = getattr(settings, "WHATSAPP_API_VERSION", "v25.0")
+    url = f"https://graph.facebook.com/{api_version}/{settings.WHATSAPP_PHONE_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "text",
+        "text": {"body": message[:4096]},
+    }
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        if r.status_code not in (200, 201):
+            logger.error("WhatsApp text failed %s → %s: %s", phone, r.status_code, r.text)
+            return False
+        logger.info("WhatsApp alert sent to %s", phone)
+        return True
+    except Exception as exc:
+        logger.error("WhatsApp text error to %s: %s", phone, exc)
+        return False
 
 
 # ─────────────────────────────────────────────────────────────

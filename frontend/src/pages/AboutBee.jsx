@@ -895,6 +895,7 @@ export default function AboutBee() {
                   <DashboardTab
                     ruches={ruches} emplacements={emplacements} stats={stats}
                     productions={productions} visites={visites} stock={stock}
+                    farmId={farmId}
                     onAction={handleAction} onSync={refresh} isProcessing={syncing}
                   />
                 )}
