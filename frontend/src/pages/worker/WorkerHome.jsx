@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Download, Bell, Camera, CheckSquare, AlertTriangle, ChevronRight, Wifi, WifiOff, BookOpen } from 'lucide-react';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +8,7 @@ import api from '../../services/api';
 
 function WorkerHome() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { isOnline } = useNetworkSync();
   const navigate = useNavigate();
   const [installPrompt, setInstallPrompt] = useState(null);
@@ -15,7 +17,11 @@ function WorkerHome() {
   const [pendingTasks, setPendingTasks]   = useState(null);
   const now = new Date();
   const hour = now.getHours();
-  const greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const greeting = hour < 12
+    ? t('worker.home.greeting_morning')
+    : hour < 18
+      ? t('worker.home.greeting_afternoon')
+      : t('worker.home.greeting_evening');
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches) setIsInstalled(true);
@@ -69,16 +75,22 @@ function WorkerHome() {
     </button>
   );
 
+  const systemRows = [
+    { label: t('worker.home.network'),        value: isOnline  ? t('worker.home.online_badge')  : t('worker.home.offline_badge'), ok: isOnline },
+    { label: t('worker.home.pwa_mode'),       value: isInstalled ? t('worker.home.installed')    : t('worker.home.browser'),      ok: isInstalled },
+    { label: t('worker.home.notifications'),  value: pushStatus === 'granted' ? t('worker.home.enabled') : t('worker.home.disabled'), ok: pushStatus === 'granted' },
+  ];
+
   return (
     <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
 
       {/* ── Greeting banner ── */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '18px 18px 16px' }}>
         <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 3 }}>
-          {now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          {now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
         </div>
         <h1 style={{ color: '#0f172a', fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>
-          {greeting}, {user?.full_name?.split(' ')[0] || 'Ouvrier'} 👋
+          {greeting}, {user?.full_name?.split(' ')[0] || t('worker.home.worker_default')} 👋
         </h1>
         <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
           {user?.farm_id && (
@@ -87,7 +99,7 @@ function WorkerHome() {
               background: '#dcfce7', border: '1px solid #bbf7d0',
               borderRadius: 99, padding: '3px 10px', fontSize: 12, color: '#15803d', fontWeight: 600,
             }}>
-              🌾 Ferme #{user.farm_id}
+              🌾 {t('worker.home.farm_label')}{user.farm_id}
             </div>
           )}
           <div style={{
@@ -98,7 +110,7 @@ function WorkerHome() {
             color: isOnline ? '#15803d' : '#854d0e', fontWeight: 600,
           }}>
             {isOnline ? <Wifi size={10} /> : <WifiOff size={10} />}
-            {isOnline ? 'En ligne' : 'Hors-ligne'}
+            {isOnline ? t('worker.home.online') : t('worker.home.offline')}
           </div>
         </div>
       </div>
@@ -108,26 +120,28 @@ function WorkerHome() {
         {/* ── Quick actions ── */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            Actions rapides
+            {t('worker.home.quick_actions')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <QuickAction
               to="/worker/scan"
-              label="Scanner IA"
+              label={t('worker.home.scan_ai')}
               color="#16a34a"
               gradient="#16a34a, #15803d"
               icon={<Camera size={20} color="white" />}
             />
             <QuickAction
               to="/worker/tasks"
-              label={pendingTasks !== null ? `Tâches (${pendingTasks})` : 'Mes Tâches'}
+              label={pendingTasks !== null
+                ? t('worker.home.tasks_count', { count: pendingTasks })
+                : t('worker.home.tasks')}
               color="#2563eb"
               gradient="#2563eb, #1d4ed8"
               icon={<CheckSquare size={20} color="white" />}
             />
             <QuickAction
               to="/worker/report"
-              label="Signaler"
+              label={t('worker.home.report')}
               color="#d97706"
               gradient="#d97706, #b45309"
               icon={<AlertTriangle size={20} color="white" />}
@@ -150,7 +164,7 @@ function WorkerHome() {
                 <Bell size={20} color={pushStatus === 'granted' ? '#16a34a' : '#94a3b8'} />
               </div>
               <div style={{ color: pushStatus === 'granted' ? '#15803d' : '#64748b', fontWeight: 700, fontSize: 14 }}>
-                {pushStatus === 'granted' ? 'Alertes actives ✓' : 'Activer alertes'}
+                {pushStatus === 'granted' ? t('worker.home.alerts_active') : t('worker.home.enable_alerts')}
               </div>
             </button>
           </div>
@@ -159,7 +173,7 @@ function WorkerHome() {
         {/* ── Resources ── */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            Ressources
+            {t('worker.home.resources')}
           </div>
           <button
             onClick={() => navigate('/worker/instructions')}
@@ -176,8 +190,8 @@ function WorkerHome() {
               <BookOpen size={20} color="white" />
             </div>
             <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ color: 'white', fontWeight: 800, fontSize: 14 }}>Protocoles & Consignes</div>
-              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>Guides de travail · Alimentation · Santé · Urgences</div>
+              <div style={{ color: 'white', fontWeight: 800, fontSize: 14 }}>{t('worker.home.protocols_title')}</div>
+              <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 }}>{t('worker.home.protocols_sub')}</div>
             </div>
             <ChevronRight size={16} color="rgba(255,255,255,0.6)" />
           </button>
@@ -197,8 +211,8 @@ function WorkerHome() {
               <Download size={20} color="#16a34a" />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ color: '#15803d', fontWeight: 700, fontSize: 14, marginBottom: 2 }}>Installer l'app</div>
-              <div style={{ color: '#86efac', fontSize: 12 }}>Accès rapide · Fonctionne hors-ligne</div>
+              <div style={{ color: '#15803d', fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{t('worker.home.install_app')}</div>
+              <div style={{ color: '#86efac', fontSize: 12 }}>{t('worker.home.install_sub')}</div>
             </div>
             <button
               onClick={handleInstall}
@@ -208,7 +222,7 @@ function WorkerHome() {
                 color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0,
               }}
             >
-              Installer
+              {t('worker.home.install_btn')}
             </button>
           </div>
         )}
@@ -216,14 +230,10 @@ function WorkerHome() {
         {/* ── System status ── */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 16px' }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 12 }}>
-            Statut du système
+            {t('worker.home.system_status')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[
-              { label: 'Connexion réseau', value: isOnline ? 'EN LIGNE' : 'HORS-LIGNE', ok: isOnline },
-              { label: 'Mode PWA',         value: isInstalled ? 'Installée' : 'Navigateur',          ok: isInstalled },
-              { label: 'Notifications',    value: pushStatus === 'granted' ? 'Activées' : 'Désactivées', ok: pushStatus === 'granted' },
-            ].map(({ label, value, ok }) => (
+            {systemRows.map(({ label, value, ok }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#475569', fontSize: 13 }}>{label}</span>
                 <span style={{

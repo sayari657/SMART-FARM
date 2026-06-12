@@ -4,17 +4,18 @@ import {
   AlertTriangle, CheckCircle2, CloudLightning, Sun,
   Flame, ShieldAlert, TreePine, Bug, Info, Activity,
   Bell, ShieldCheck, Clock, Warehouse, PackageX, PackageCheck,
-  UserCheck, X, Send, Trash2,
+  UserCheck, X, Send, Trash2, CalendarDays, Sprout, SprayCan, Snowflake,
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import KPIBox from '../components/KPIBox';
-import { alertsAPI, farmsAPI, externalAPI, warehouseAPI, workerTasksAPI } from '../services/api';
+import { alertsAPI, externalAPI, warehouseAPI, workerTasksAPI, calendarAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 const SCAN_ALERT_KEY = 'farm_scan_alerts';
-const SCANNER_CRITICAL = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu', 'fumee', 'blight', 'rot', 'disease', '0', '1', '2', '3', '4']);
+const SCANNER_CRITICAL = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu', 'fumee', 'blight', 'rot', 'disease', '0', '1', '2', '3', '4',
+  'varroa_small_hive_beetles', 'few_varrao_hive_beetles', 'missing_queen', 'hive_being_robbed']);
 
 /* ── Design Tokens ──────────────────────────────────────────────────────── */
 const C = {
@@ -31,6 +32,10 @@ const TR = {
     fireTitle:        'Alerte Incendie / Fumée',
     fireSub:          'Détections critiques par Vision Artificielle',
     fireLive:         'Scanner Live',
+    phenoTitle:       'Calendrier Agricole Tunisien',
+    phenoSub:         'Actions du mois & traitements phytosanitaires — zone',
+    phenoManage:      'Voir le Calendrier',
+    phenoFrost:       'GEL',
     treeTitle:        'Pathologies Végétales Critiques',
     treeSub:          'Analyses agronomiques nécessitant une intervention',
     treeManage:       'Gérer Plantations',
@@ -74,6 +79,10 @@ const TR = {
     fireTitle:        'تنبيه حريق / دخان',
     fireSub:          'كشف آلي بالرؤية الاصطناعية',
     fireLive:         'فحص مباشر',
+    phenoTitle:       'الرزنامة الفلاحية التونسية',
+    phenoSub:         'أعمال الشهر والمعالجات النباتية — منطقة',
+    phenoManage:      'عرض الرزنامة',
+    phenoFrost:       'صقيع',
     treeTitle:        'أمراض نباتية خطيرة',
     treeSub:          'تحليلات زراعية تحتاج تدخل',
     treeManage:       'إدارة الأشجار',
@@ -122,6 +131,8 @@ export default function AlertsCenter() {
   const [emergencyData, setEmergencyData]      = useState(null);
   const [scannerAlerts, setScannerAlerts]      = useState([]);
   const [weatherRisks, setWeatherRisks]     = useState(null);
+  const [phenoAlerts, setPhenoAlerts]       = useState([]);
+  const [phenoZone, setPhenoZone]           = useState(null);
   const [loading, setLoading]               = useState(true);
   const [filter, setFilter]                 = useState('emergency');
   const [firstFarmId, setFirstFarmId]       = useState(null);
@@ -174,6 +185,13 @@ export default function AlertsCenter() {
         const stored = JSON.parse(localStorage.getItem(SCAN_ALERT_KEY) || '[]');
         setScannerAlerts(stored);
       } catch {}
+
+      // Calendrier agricole tunisien — alertes phénologiques (zone auto + gel météo)
+      try {
+        const phRes = await calendarAPI.alerts(farmId);
+        setPhenoAlerts(Array.isArray(phRes.data?.alerts) ? phRes.data.alerts : []);
+        setPhenoZone(phRes.data?.zone || null);
+      } catch { setPhenoAlerts([]); }
     } catch (err) {
       console.error(err);
     } finally {
@@ -490,6 +508,70 @@ export default function AlertsCenter() {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* Calendrier agricole tunisien — alertes phénologiques */}
+            {phenoAlerts.length > 0 && (
+              <section>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #16a34a22' }}>
+                      <CalendarDays color="#16a34a" size={22} />
+                    </div>
+                    <div>
+                      <h2 style={{ fontSize: 18, fontWeight: 900, color: C.textPri, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {L.phenoTitle}
+                        {phenoAlerts.some(a => a.severity === 'critical') && (
+                          <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 20, background: C.red, color: '#fff', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Snowflake size={11} /> {L.phenoFrost}
+                          </span>
+                        )}
+                      </h2>
+                      <p style={{ fontSize: 12, color: C.slate, margin: 0 }}>{L.phenoSub} {phenoZone || '—'}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => navigate('/trees')} className="btn btn-sm btn-secondary" style={{ fontSize: 11 }}>{L.phenoManage}</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%,300px),1fr))', gap: 12 }}>
+                  {phenoAlerts.map((a, i) => {
+                    const crit = a.severity === 'critical';
+                    return (
+                      <div key={i} style={{
+                        background: '#fff', borderRadius: 12, padding: 14,
+                        border: crit ? `2px solid ${C.red}` : `1px solid ${C.border}`,
+                        borderTop: crit ? `2px solid ${C.red}` : '3px solid #16a34a',
+                        display: 'flex', gap: 10, alignItems: 'flex-start',
+                        boxShadow: crit ? '0 6px 20px rgba(239,68,68,0.12)' : 'none',
+                      }}>
+                        {crit
+                          ? <Snowflake size={16} color={C.red} style={{ flexShrink: 0, marginTop: 2 }} />
+                          : <Sprout size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 700, color: crit ? C.red : C.textPri, lineHeight: 1.45 }}>{a.message}</div>
+                          {a.action_immediate && (
+                            <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>⚡ {a.action_immediate}</div>
+                          )}
+                          {(a.traitements || []).map((tr, j) => (
+                            <div key={j} style={{ fontSize: 10.5, color: '#d97706', marginTop: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <SprayCan size={11} /> {tr.traitement} → {tr.cible}
+                            </div>
+                          ))}
+                          {crit && (
+                            <div style={{ marginTop: 8 }}>
+                              {assignBtn({ id: `pheno-${i}`, item_name: a.culture, message: a.message, severity: 'critical' })}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{
+                          fontSize: 8.5, padding: '2px 9px', borderRadius: 99, flexShrink: 0, fontWeight: 800,
+                          textTransform: 'uppercase', letterSpacing: 0.5,
+                          background: crit ? C.red : '#dcfce7', color: crit ? '#fff' : '#16a34a',
+                        }}>{crit ? (rtl ? 'حرج' : 'Critique') : (a.stade || 'Info')}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             )}
 
             {/* Scanner AI Detections */}

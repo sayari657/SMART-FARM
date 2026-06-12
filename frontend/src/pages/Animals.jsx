@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Search, Plus, X, Activity, Users, AlertTriangle,
+  Plus, X, Activity, Users, AlertTriangle,
   ChevronRight, PawPrint, Tag,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import AnimalCard from '../components/AnimalCard';
 import ThreeSpeciesCard from '../components/ThreeSpeciesCard';
 import { animalsAPI, farmsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +13,6 @@ import { useAuth } from '../context/AuthContext';
 const SPECIES = ['all', 'bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'];
 const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
 const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
-const SPECIES_LABELS = { bee: 'Abeilles', cow: 'Bovins', poultry: 'Volailles', sheep: 'Ovins', goat: 'Caprins', rabbit: 'Lapins' };
 const SPECIES_ROUTES = {
   bee: '/aboutbee', cow: '/aboutcow', poultry: '/aboutpoultry',
   sheep: '/aboutsheep', goat: '/aboutgoat', rabbit: '/aboutrabbit',
@@ -22,28 +20,21 @@ const SPECIES_ROUTES = {
 
 export default function Animals() {
   const { t, i18n } = useTranslation();
-  // Auto-fill farm_id from the currently selected farm in context
   const { farmId, farms: authFarms } = useAuth();
   const [units, setUnits]         = useState([]);
   const [types, setTypes]         = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
-  const [speciesFilter, setSp]    = useState('all');
-  const [farmFilter, setFf]       = useState('');
   const [showForm, setShowForm]   = useState(false);
-  // farm_id defaults to the currently selected farm — not farm 1
   const [form, setForm]           = useState({ name: '', farm_id: farmId || '', type_id: '', identifier: '', tag_id: '', notes: '' });
   const [saving, setSaving]       = useState(false);
   const navigate = useNavigate();
 
-  // Keep form.farm_id in sync when the selected farm changes
   useEffect(() => {
     if (farmId) setForm(prev => ({ ...prev, farm_id: farmId }));
   }, [farmId]);
 
   const load = () => {
     setLoading(true);
-    // Load animals for the selected farm only (not all farms globally)
     const params = farmId ? { farm_id: farmId } : {};
     Promise.all([animalsAPI.list(params), animalsAPI.types()])
       .then(([u, tp]) => { setUnits(u.data); setTypes(tp.data); })
@@ -51,14 +42,7 @@ export default function Animals() {
   };
   useEffect(load, [farmId]);
 
-  const filtered = units.filter(u => {
-    const matchSearch  = (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.identifier || '').includes(search);
-    const matchSpecies = speciesFilter === 'all' || u.species === speciesFilter;
-    const matchFarm    = !farmFilter || String(u.farm_id) === farmFilter;
-    return matchSearch && matchSpecies && matchFarm;
-  });
-
-  const handleCreate = async (e) => {
+const handleCreate = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -76,35 +60,34 @@ export default function Animals() {
 
   const healthyCount  = units.filter(u => u.status === 'healthy').length;
   const criticalCount = units.filter(u => u.status === 'critical').length;
+  const isRtl = i18n.language === 'ar';
+
 
   return (
     <>
       <Navbar
         title={t('animals.title')}
         subtitle={`${units.length} ${t('animals.population')}`}
-        actions={
-          <button className="farms-hero-btn" onClick={() => setShowForm(v => !v)}>
-            <Plus size={14} /> {t('common.actions')}
-          </button>
-        }
       />
-      <div className="page-content" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
+      <div className="page-content" style={{ direction: isRtl ? 'rtl' : 'ltr' }}>
 
         {/* ── Hero ── */}
         <div className="anim-hero">
           <div className="anim-hero-left">
-            <div className="anim-hero-eyebrow"><PawPrint size={11} /> LIVESTOCK INTELLIGENCE · SUIVI DES ESPÈCES</div>
-            <h1 className="anim-hero-title">Gestion du Bétail</h1>
+            <div className="anim-hero-eyebrow">
+              <PawPrint size={11} /> {t('animals.hero_eyebrow')}
+            </div>
+            <h1 className="anim-hero-title">{t('animals.hero_title')}</h1>
             <p className="anim-hero-sub">
-              Monitoring temps réel · IA prédictive · {authFarms.length} ferme{authFarms.length !== 1 ? 's' : ''} connectée{authFarms.length !== 1 ? 's' : ''}
+              {t('animals.hero_sub')} · {authFarms.length} {t('animals.kpi_farms').toLowerCase()}
             </p>
           </div>
           <div className="anim-hero-kpis">
             {[
-              { val: units.length,       label: 'Total',     color: '#92400e', icon: Users },
-              { val: healthyCount,       label: 'Sains',     color: '#15803d', icon: Activity },
-              { val: criticalCount,      label: 'Critiques', color: '#dc2626', icon: AlertTriangle },
-              { val: authFarms.length,   label: 'Fermes',    color: '#1d4ed8', icon: ChevronRight },
+              { val: units.length,       label: t('animals.kpi_total'),    color: '#92400e', icon: Users },
+              { val: healthyCount,       label: t('animals.kpi_healthy'),  color: '#15803d', icon: Activity },
+              { val: criticalCount,      label: t('animals.kpi_critical'), color: '#dc2626', icon: AlertTriangle },
+              { val: authFarms.length,   label: t('animals.kpi_farms'),    color: '#1d4ed8', icon: ChevronRight },
             ].map(({ val, label, color, icon: Icon }) => (
               <div key={label} className="anim-kpi">
                 <Icon size={16} color={color} />
@@ -116,16 +99,16 @@ export default function Animals() {
         </div>
 
         {/* ── Species navigation grid ── */}
-        <div className="anim-section-label">ESPÈCES SURVEILLÉES — CLIQUER POUR ACCÉDER AU MODULE</div>
+        <div className="anim-section-label">{t('animals.section_label')}</div>
         <div className="summary-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {['bee', 'cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => (
+          {['cow', 'poultry', 'sheep', 'goat', 'rabbit'].map(sp => (
             <ThreeSpeciesCard
               key={sp}
               sp={sp}
               count={units.filter(u => u.species === sp).length}
               emoji={SPECIES_EMOJI[sp]}
               color={SPECIES_COLORS[sp]}
-              isActive={speciesFilter === sp}
+              isActive={false}
               onClick={() => navigate(SPECIES_ROUTES[sp])}
             />
           ))}
@@ -135,7 +118,7 @@ export default function Animals() {
         {showForm && (
           <div className="farms-form-panel">
             <div className="farms-form-header">
-              <div className="farms-form-title"><Plus size={16} /> Nouvel Animal</div>
+              <div className="farms-form-title"><Plus size={16} /> {t('animals.new_animal')}</div>
               <button className="farms-form-close" onClick={() => setShowForm(false)}><X size={16} /></button>
             </div>
             <form onSubmit={handleCreate} className="farms-form-body">
@@ -153,25 +136,25 @@ export default function Animals() {
               </div>
               <div className="farms-form-row">
                 <div className="farms-form-group">
-                  <label className="farms-form-label">Ferme *</label>
+                  <label className="farms-form-label">{t('animals.kpi_farms')} *</label>
                   {authFarms.length > 1 ? (
-                    // Multiple farms: let user choose, but default to selected farm
                     <select className="farms-form-input" value={form.farm_id}
                       onChange={e => setForm(p => ({ ...p, farm_id: e.target.value }))} required>
-                      <option value="">Choisir une ferme…</option>
+                      <option value="">{t('animals.choose_farm')}</option>
                       {authFarms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
                   ) : (
-                    // Single farm: locked display, no confusion about "farm 1"
                     <div className="farms-form-input" style={{
                       background: 'var(--color-surface-2)', color: 'var(--color-text-2)',
                       display: 'flex', alignItems: 'center', gap: 6, cursor: 'default',
                     }}>
                       <span style={{ fontSize: 14 }}>🏡</span>
                       <span style={{ fontWeight: 600 }}>
-                        {authFarms[0]?.name || `Ferme #${farmId}`}
+                        {authFarms[0]?.name || `Farm #${farmId}`}
                       </span>
-                      <span style={{ fontSize: 10, color: 'var(--color-primary)', marginLeft: 'auto' }}>Ferme active</span>
+                      <span style={{ fontSize: 10, color: 'var(--color-primary)', marginLeft: 'auto' }}>
+                        {t('animals.active_farm')}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -184,9 +167,10 @@ export default function Animals() {
                   </select>
                 </div>
               </div>
+
               {/* ── Ear Tags — visible only for cow, goat, sheep ── */}
               {['cow', 'goat', 'sheep'].includes(
-                types.find(t => String(t.id) === String(form.type_id))?.species
+                types.find(tp => String(tp.id) === String(form.type_id))?.species
               ) && (
                 <div style={{
                   background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
@@ -194,7 +178,6 @@ export default function Animals() {
                   borderRadius: 12,
                   padding: '14px 16px',
                 }}>
-                  {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                     <div style={{
                       background: '#fbbf24', borderRadius: 8,
@@ -203,15 +186,14 @@ export default function Animals() {
                       <Tag size={13} color="#78350f" />
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 800, color: '#92400e', letterSpacing: 1, textTransform: 'uppercase' }}>
-                      Étiquettes d'oreille
+                      {t('animals.ear_tags')}
                     </span>
                     <span style={{ marginLeft: 'auto', fontSize: 10, color: '#b45309', fontWeight: 600 }}>
-                      Identification officielle
+                      {t('animals.ear_official')}
                     </span>
                   </div>
 
                   <div className="farms-form-row" style={{ gap: 12 }}>
-                    {/* Left ear — internal tag */}
                     <div className="farms-form-group">
                       <label className="farms-form-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{
@@ -219,7 +201,7 @@ export default function Animals() {
                           borderRadius: 3, display: 'inline-flex', alignItems: 'center',
                           justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#78350f',
                         }}>G</span>
-                        Oreille Gauche (interne)
+                        {t('animals.ear_left')}
                       </label>
                       <input
                         className="farms-form-input"
@@ -229,8 +211,6 @@ export default function Animals() {
                         style={{ borderColor: '#fcd34d', background: '#fffef7' }}
                       />
                     </div>
-
-                    {/* Right ear — official tag */}
                     <div className="farms-form-group">
                       <label className="farms-form-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{
@@ -238,7 +218,7 @@ export default function Animals() {
                           borderRadius: 3, display: 'inline-flex', alignItems: 'center',
                           justifyContent: 'center', fontSize: 8, fontWeight: 900, color: '#78350f',
                         }}>D</span>
-                        Oreille Droite (officielle)
+                        {t('animals.ear_right')}
                       </label>
                       <input
                         className="farms-form-input"
@@ -251,7 +231,7 @@ export default function Animals() {
                   </div>
 
                   <p style={{ margin: '8px 0 0', fontSize: 10, color: '#b45309', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Tag size={9} /> Le numéro officiel est unique — format national tunisien ou européen.
+                    <Tag size={9} /> {t('animals.ear_note')}
                   </p>
                 </div>
               )}
@@ -269,55 +249,6 @@ export default function Animals() {
           </div>
         )}
 
-        {/* ── Toolbar ── */}
-        <div className="farms-toolbar">
-          <div className="farms-search-wrap">
-            <Search size={14} className="farms-search-icon" />
-            <input className="farms-search-input" placeholder="Rechercher un animal…"
-              value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button className="farms-search-clear" onClick={() => setSearch('')}><X size={12} /></button>}
-          </div>
-          {authFarms.length > 1 && (
-            <select className="anim-farm-select" value={farmFilter} onChange={e => setFf(e.target.value)}>
-              <option value="">Toutes mes fermes</option>
-              {authFarms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
-          )}
-          <div className="farms-filter-pills">
-            {SPECIES.map(sp => (
-              <button key={sp}
-                className={`farms-filter-pill ${speciesFilter === sp ? 'active' : ''}`}
-                onClick={() => setSp(sp)}
-                style={speciesFilter === sp && sp !== 'all' ? { background: SPECIES_COLORS[sp], borderColor: SPECIES_COLORS[sp] } : {}}>
-                {sp === 'all' ? 'Toutes' : `${SPECIES_EMOJI[sp]} ${SPECIES_LABELS[sp]}`}
-              </button>
-            ))}
-          </div>
-          <div className="farms-count">
-            <Activity size={13} />
-            {filtered.length} animal{filtered.length !== 1 ? 'x' : ''}
-            {speciesFilter !== 'all' && (
-              <button onClick={() => setSp('all')} className="anim-clear-filter">✕</button>
-            )}
-          </div>
-        </div>
-
-        {/* ── Grid ── */}
-        {loading && (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-            <div className="spinner" />
-          </div>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div className="al-empty">
-            <span style={{ fontSize: 48 }}>🐾</span>
-            <h3>Aucun animal trouvé</h3>
-            <p>Modifiez vos filtres ou ajoutez des animaux.</p>
-          </div>
-        )}
-        <div className="anim-grid">
-          {filtered.map(u => <AnimalCard key={u.id} unit={u} />)}
-        </div>
 
       </div>
     </>

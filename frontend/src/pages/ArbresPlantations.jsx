@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
+import CropCalendar from '../components/CropCalendar';
+import ModelClassesInfo from '../components/ModelClassesInfo';
+import PlantVillageScanner from '../components/PlantVillageScanner';
 import { agentAPI, cvAPI, diagnosticAPI } from '../services/api';
 import agLeavesImg    from '../assets/agronomie/leaves.jpg';
 import agLemonImg     from '../assets/agronomie/lemon.jpg';
@@ -77,6 +80,7 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
   const [busy,      setBusy]      = useState(false);
   const [err,       setErr]       = useState(null);
   const [palette,   setPalette]   = useState({});
+  const [classNames, setClassNames] = useState([]);
   const [scanned,   setScanned]   = useState(false);
   const [saved,     setSaved]     = useState(false);
   const imgRef    = useRef(null);
@@ -85,10 +89,12 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
   useEffect(() => {
     cvAPI.getModelMetadata(category)
       .then(res => {
+        const names = Object.values(res.data.names);
+        setClassNames(names);
         const clrs = ['#ef4444','#f97316','#16a34a','#a855f7','#8b5cf6','#eab308',
                       '#06b6d4','#84cc16','#ec4899','#3b82f6','#10b981','#ea580c'];
         const p = {};
-        Object.values(res.data.names).forEach((n, i) => {
+        names.forEach((n, i) => {
           p[n.toLowerCase().replace(/\s+/g,'_')] = clrs[i % clrs.length];
         });
         setPalette(p);
@@ -327,6 +333,9 @@ function ScannerPanel({ title, subtitle, category, accent, accentLt, icon: Icon,
           {Object.keys(palette).length>6&&<span style={{fontSize:8,color:T.textMut}}>+{Object.keys(palette).length-6}</span>}
         </div>
       )}
+
+      {/* ── ℹ️ Liste des classes du modèle (FR/EN/AR) — clic pour ouvrir/fermer ── */}
+      <ModelClassesInfo classes={classNames} accent={accent} palette={palette}/>
     </div>
   );
 }
@@ -550,10 +559,8 @@ export default function ArbresPlantations() {
     setSess(p=>({scans:p.scans+1,detections:p.detections+dets.length,diseases:p.diseases+dets.filter(d=>d.confidence>0.5).length,confSum:p.confSum+avgConf}));
 
     if(isAuto){
-      try {
-        await diagnosticAPI.save({category:cat,image_url:imgData,detections:{count:dets.length,types:counts},chat_log:[{type:'bot',text:`Auto: ${summary}.`,time:new Date().toLocaleTimeString()}]});
-        fetchHistory();
-      } catch(e){ throw e; }
+      await diagnosticAPI.save({category:cat,image_url:imgData,detections:{count:dets.length,types:counts},chat_log:[{type:'bot',text:`Auto: ${summary}.`,time:new Date().toLocaleTimeString()}]});
+      fetchHistory();
       return;
     }
 
@@ -704,6 +711,9 @@ export default function ArbresPlantations() {
             ))}
           </div>
 
+          {/* ── CALENDRIER AGRICOLE TUNISIEN ──────────────── */}
+          <CropCalendar />
+
           {/* ── AGRONOMIE (3 scanners) ────────────────────── */}
           <GroupSection
             title={t('trees.agronomy')}
@@ -761,6 +771,11 @@ export default function ArbresPlantations() {
                 onAnalyze={onAnalyze}/>,
             ]}
           />
+
+          {/* ── PLANTVILLAGE (classification 38 classes, top-1 99 %) ── */}
+          <div style={{marginBottom:40}}>
+            <PlantVillageScanner />
+          </div>
 
           {/* ── Detection Log ─────────────────────────────── */}
           <div style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:18,overflow:'hidden',marginBottom:28,boxShadow:T.shadowMd}}>

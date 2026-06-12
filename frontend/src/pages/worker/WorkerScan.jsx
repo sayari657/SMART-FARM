@@ -1,42 +1,43 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AIScanner from '../../components/AIScanner';
 import ExpertAssistant from '../../components/expert/ExpertAssistant';
 
-// All models available in the backend MODEL_REGISTRY (cv_routes.py)
-const GROUPS = [
-  {
-    label: 'Maladies Végétales',
-    emoji: '🌱',
-    items: [
-      { id: 'orange',  icon: '🍊', label: 'Maladies Oranger',     color: '#f97316' },
-      { id: 'lemon',   icon: '🍋', label: 'Maladies Citronnier',  color: '#eab308' },
-      { id: 'leaves',  icon: '🌿', label: 'Maladies des Feuilles',color: '#16a34a' },
-      { id: 'insects', icon: '🐛', label: 'Insectes & Ravageurs', color: '#ca8a04' },
-      { id: 'olive',   icon: '🫒', label: 'Maladies de l\'Olivier',color: '#65a30d' },
-    ],
-  },
-  {
-    label: 'Élevage & Apiculture',
-    emoji: '🐾',
-    items: [
-      { id: 'bee',      icon: '🐝', label: 'Hive Entrance',  color: '#f59e0b' },
-      { id: 'livestock',icon: '🐄', label: 'Bétail',         color: '#3b82f6' },
-      { id: 'sheep',    icon: '🐑', label: 'Mouton',         color: '#059669' },
-      { id: 'goat',     icon: '🐐', label: 'Chèvre',         color: '#dc2626' },
-    ],
-  },
-  {
-    label: 'Sécurité',
-    emoji: '🚨',
-    items: [
-      { id: 'fire', icon: '🔥', label: 'Détection Feu', color: '#ef4444' },
-    ],
-  },
-];
-
-const ALL_CATS = GROUPS.flatMap(g => g.items);
-
 export default function WorkerScan() {
+  const { t } = useTranslation();
+
+  const GROUPS = [
+    {
+      label: t('worker.scan.group_plant'),
+      emoji: '🌱',
+      items: [
+        { id: 'orange',  icon: '🍊', label: t('worker.scan.model.orange'),   color: '#f97316' },
+        { id: 'lemon',   icon: '🍋', label: t('worker.scan.model.lemon'),    color: '#eab308' },
+        { id: 'leaves',  icon: '🌿', label: t('worker.scan.model.leaves'),   color: '#16a34a' },
+        { id: 'insects', icon: '🐛', label: t('worker.scan.model.insects'),  color: '#ca8a04' },
+        { id: 'olive',   icon: '🫒', label: t('worker.scan.model.olive'),    color: '#65a30d' },
+      ],
+    },
+    {
+      label: t('worker.scan.group_livestock'),
+      emoji: '🐾',
+      items: [
+        { id: 'bee',      icon: '🐝', label: t('worker.scan.model.bee'),      color: '#f59e0b' },
+        { id: 'livestock',icon: '🐄', label: t('worker.scan.model.livestock'), color: '#3b82f6' },
+        { id: 'sheep',    icon: '🐑', label: t('worker.scan.model.sheep'),    color: '#059669' },
+        { id: 'goat',     icon: '🐐', label: t('worker.scan.model.goat'),     color: '#dc2626' },
+      ],
+    },
+    {
+      label: t('worker.scan.group_security'),
+      emoji: '🚨',
+      items: [
+        { id: 'fire', icon: '🔥', label: t('worker.scan.model.fire'), color: '#ef4444' },
+      ],
+    },
+  ];
+
+  const ALL_CATS = GROUPS.flatMap(g => g.items);
   const [activeId, setActiveId] = useState('orange');
   const cat = ALL_CATS.find(c => c.id === activeId) || ALL_CATS[0];
 
@@ -64,7 +65,7 @@ export default function WorkerScan() {
               {cat.label}
             </div>
             <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
-              Vision IA · Détection YOLO · {ALL_CATS.length} modèles disponibles
+              Vision IA · YOLO · {ALL_CATS.length} {t('worker.scan.models_available')}
             </div>
           </div>
         </div>
@@ -74,7 +75,6 @@ export default function WorkerScan() {
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', paddingBottom: 4 }}>
         {GROUPS.map(group => (
           <div key={group.label} style={{ padding: '10px 16px 6px' }}>
-            {/* Group label */}
             <div style={{
               fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
               letterSpacing: '.06em', color: '#94a3b8',
@@ -84,7 +84,6 @@ export default function WorkerScan() {
               {group.label}
             </div>
 
-            {/* Horizontal scroll row */}
             <div style={{
               display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
               scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
@@ -133,11 +132,11 @@ export default function WorkerScan() {
         }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
           <span style={{ fontSize: 12, fontWeight: 600, color: cat.color }}>{cat.label}</span>
-          <span style={{ fontSize: 11, color: '#94a3b8' }}>— Modèle actif</span>
+          <span style={{ fontSize: 11, color: '#94a3b8' }}>— {t('worker.scan.active_model')}</span>
         </div>
       </div>
 
-      {/* ── AIScanner (light theme — no dark overrides needed) ── */}
+      {/* ── AIScanner ── */}
       <div style={{ padding: '0 12px 12px' }}>
         <AIScanner
           key={activeId}
@@ -147,7 +146,6 @@ export default function WorkerScan() {
         />
       </div>
 
-      {/* Expert assistant FAB */}
       <ExpertAssistant species={activeId} color={cat.color} />
     </div>
   );

@@ -47,8 +47,8 @@ const LIVESTOCK = [
   {
     sp: 'Poultry', key: 'poultry', img: poultryImg, icon: poultryIconImg,
     color: '#0891b2', route: '/aboutpoultry',
-    desc: 'Contrôle environnement avicole · Suivi automatisé production œufs · Détection précoce pathologies YOLO v8.',
-    tags: ['Environnement', 'YOLO v8', 'Production'],
+    desc: 'Contrôle environnement avicole · Suivi automatisé production œufs · Détection précoce de pathologies avec YOLOv11.',
+    tags: ['Environnement', 'YOLOv11', 'Production'],
   },
   {
     sp: 'Rabbit', key: 'rabbit', img: rabbitImg, icon: rabbitIconImg,
@@ -64,21 +64,11 @@ const LIVESTOCK = [
   },
 ];
 
-const TECH_STACK = [
-  { label: 'FastAPI',     color: '#16a34a', bg: 'rgba(22,163,74,.12)' },
-  { label: 'React 18',    color: '#0ea5e9', bg: 'rgba(14,165,233,.12)' },
-  { label: 'PostgreSQL',  color: '#3b82f6', bg: 'rgba(59,130,246,.12)' },
-  { label: 'YOLO v8',     color: '#f59e0b', bg: 'rgba(245,158,11,.12)' },
-  { label: 'Three.js',    color: '#8b5cf6', bg: 'rgba(139,92,246,.12)' },
-  { label: 'MQTT/IoT',    color: '#06b6d4', bg: 'rgba(6,182,212,.12)'  },
-  { label: 'Open-Meteo',  color: '#10b981', bg: 'rgba(16,185,129,.12)' },
-  { label: 'Labess-7B',   color: '#f97316', bg: 'rgba(249,115,22,.12)' },
-];
 
 const PILLARS = [
-  { icon: Cpu,       title: 'IoT & Capteurs',       desc: 'Surveillance environnementale temps réel via protocoles MQTT basse latence et capteurs haute précision (température, humidité, pH, CO₂).', color: '#3b82f6', bg: '#eff6ff' },
-  { icon: Eye,       title: 'Vision par Ordinateur', desc: 'Détection YOLO v8 pour le suivi automatisé du bétail, diagnostics santé visuelle et sécurité périmétrique 24h/24.', color: '#10b981', bg: '#f0fdf4' },
-  { icon: BarChart3, title: 'Insights Prédictifs',   desc: 'Algorithmes ML et LLM Labess-7B qui prévoient les rendements, identifient les maladies et optimisent les ressources agricoles.', color: '#8b5cf6', bg: '#f5f3ff' },
+  { icon: Cpu,       title: 'IoT & Capteurs',       desc: 'Télémétrie environnementale envoyée par HTTP depuis les ESP32, puis diffusée en temps réel par WebSocket. Un broker MQTT est aussi provisionné pour les intégrations optionnelles.', color: '#3b82f6', bg: '#eff6ff' },
+  { icon: Eye,       title: 'Vision par Ordinateur', desc: 'Familles de modèles YOLOv11 spécialisées pour les animaux, les abeilles, les maladies foliaires, les insectes, le feu et la fumée.', color: '#10b981', bg: '#f0fdf4' },
+  { icon: BarChart3, title: 'Insights Prédictifs',   desc: 'Modèles ML, recherche RAG et génération hybride Groq/Ollama pour produire des prévisions et des recommandations agricoles contextualisées.', color: '#8b5cf6', bg: '#f5f3ff' },
 ];
 
 /* ─── Animal Card ──────────────────────────────────────────────────── */
@@ -223,37 +213,6 @@ const AboutProject = () => {
             pointerEvents: 'none',
           }} />
           <div className="ap-hero-bg" />
-          <div className="ap-hero-content" style={{ position: 'relative', zIndex: 3 }}>
-            <div className="ap-hero-eyebrow">
-              <span className="ap-hero-dot" />
-              SMART FARM AI — ENTERPRISE PLATFORM v3.0
-            </div>
-            <h1 className="ap-hero-title">{t('project.mission_title', 'Intelligence Agronomique Souveraine')}</h1>
-            <p className="ap-hero-desc">{t('project.mission_desc', 'Plateforme de supervision intelligente combinant IoT, computer vision et IA prédictive pour une agriculture de précision.')}</p>
-
-            <div className="ap-tech-chips">
-              {TECH_STACK.map(({ label, color, bg }) => (
-                <span key={label} className="ap-tech-chip" style={{ color, background: bg, border: `1px solid ${color}30` }}>
-                  {label}
-                </span>
-              ))}
-            </div>
-
-            <div className="ap-hero-stats">
-              {[
-                { val: '6',  label: 'Espèces', icon: '🐾' },
-                { val: '2',  label: 'Nœuds IoT', icon: '📡' },
-                { val: 'v8', label: 'YOLO',    icon: '🎯' },
-                { val: '7B', label: 'LLM',     icon: '🧠' },
-              ].map(({ val, label, icon }) => (
-                <div key={label} className="ap-stat">
-                  <span className="ap-stat-icon">{icon}</span>
-                  <span className="ap-stat-val">{val}</span>
-                  <span className="ap-stat-label">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* ═══════════ PILLARS ═══════════ */}
@@ -285,12 +244,12 @@ const AboutProject = () => {
           </div>
           <div className="ap-arch-grid">
             {[
-              { icon: Database,    label: 'Backend',   tech: 'FastAPI + PostgreSQL', color: '#16a34a', desc: 'API asynchrone optimisée pour le traitement haute fréquence des données de télémesure.' },
-              { icon: Globe,       label: 'Frontend',  tech: 'React 18 + Three.js',  color: '#0ea5e9', desc: 'Dashboard immersif avec jumeaux numériques 3D accélérés matériellement.' },
-              { icon: Wifi,        label: 'IoT Layer', tech: 'MQTT + Wokwi Sim',     color: '#8b5cf6', desc: 'Deux nœuds capteurs (sol/irrigation + ruche/météo) avec fallback simulé.' },
-              { icon: Eye,         label: 'CV Engine', tech: 'YOLO v8 + OpenCV',     color: '#f59e0b', desc: '5 catégories de détection : feuilles, citronnier, oranger, olivier, insectes.' },
-              { icon: Activity,    label: 'AI Engine', tech: 'Labess-7B + RAG',      color: '#dc2626', desc: 'LLM souverain Tunisien générant des analyses en Darija avec contexte UTAP.' },
-              { icon: ShieldCheck, label: 'Security',  tech: 'JWT + RBAC',           color: '#06b6d4', desc: "Authentification robuste avec contrôle d'accès basé sur les rôles (Admin/Ouvrier)." },
+              { icon: Database,    label: 'Backend',   tech: 'FastAPI + PostGIS',      color: '#16a34a', desc: 'API REST et WebSocket multitenant, services métier SQLAlchemy et requêtes géospatiales.' },
+              { icon: Globe,       label: 'Frontend',  tech: 'React 18 + Vite + PWA',  color: '#0ea5e9', desc: 'Interface responsive et multilingue avec Dexie, cartographie et fonctionnement hors ligne contrôlé.' },
+              { icon: Wifi,        label: 'IoT Layer', tech: 'HTTP + MQTT optionnel',  color: '#8b5cf6', desc: 'Les ESP32 publient activement par HTTP; Mosquitto prépare les extensions MQTT.' },
+              { icon: Eye,         label: 'CV Engine', tech: 'YOLOv11 + Ultralytics',  color: '#f59e0b', desc: 'Modèles spécialisés pour l’élevage, l’apiculture, les plantes, les insectes et la sécurité.' },
+              { icon: Activity,    label: 'AI Engine', tech: 'Groq + Ollama + RAG',    color: '#dc2626', desc: 'Contexte agricole RAG, génération Groq prioritaire, repli Ollama puis réponse statique contrôlée.' },
+              { icon: ShieldCheck, label: 'Security',  tech: 'JWT + RBAC + TOTP',      color: '#06b6d4', desc: "Authentification, rôles Owner/Worker/SuperAdmin et isolation stricte des données par ferme." },
             ].map(({ icon: Icon, label, tech, color, desc }) => (
               <div key={label} className="ap-arch-item">
                 <div className="ap-arch-item-icon" style={{ background: `${color}15`, color }}>

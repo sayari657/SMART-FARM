@@ -1,18 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Send, X, CheckCircle, WifiOff, ImageIcon } from 'lucide-react';
 import offlineDB from '../../db/offlineDB';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import api from '../../services/api';
 
-const INCIDENT_TYPES = [
-  { id: 'disease',   label: 'Maladie / Ravageur',   icon: '🐛', color: '#16a34a' },
-  { id: 'water',     label: 'Problème d\'eau',       icon: '💧', color: '#0284c7' },
-  { id: 'fence',     label: 'Clôture / Intrusion',   icon: '🚧', color: '#d97706' },
-  { id: 'equipment', label: 'Panne matériel',        icon: '⚙️', color: '#7c3aed' },
-  { id: 'other',     label: 'Autre',                 icon: '❓', color: '#64748b' },
-];
-
 function WorkerReport() {
+  const { t } = useTranslation();
   const { isOnline } = useNetworkSync();
   const [type, setType]               = useState('disease');
   const [note, setNote]               = useState('');
@@ -21,6 +15,14 @@ function WorkerReport() {
   const [submitting, setSubmitting]   = useState(false);
   const [success, setSuccess]         = useState(false);
   const fileInputRef = useRef(null);
+
+  const INCIDENT_TYPES = [
+    { id: 'disease',   label: t('worker.report.incident.disease'),   icon: '🐛', color: '#16a34a' },
+    { id: 'water',     label: t('worker.report.incident.water'),     icon: '💧', color: '#0284c7' },
+    { id: 'fence',     label: t('worker.report.incident.fence'),     icon: '🚧', color: '#d97706' },
+    { id: 'equipment', label: t('worker.report.incident.equipment'), icon: '⚙️', color: '#7c3aed' },
+    { id: 'other',     label: t('worker.report.incident.other'),     icon: '❓', color: '#64748b' },
+  ];
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -58,7 +60,6 @@ function WorkerReport() {
 
   const activeCat = INCIDENT_TYPES.find(t => t.id === type);
 
-  /* ── Success screen ── */
   if (success) {
     return (
       <div style={{
@@ -74,12 +75,10 @@ function WorkerReport() {
           <CheckCircle size={44} color="#16a34a" />
         </div>
         <h2 style={{ color: '#0f172a', fontSize: 22, fontWeight: 800, margin: '0 0 10px' }}>
-          {isOnline ? 'Rapport envoyé !' : 'Rapport enregistré !'}
+          {isOnline ? t('worker.report.sent_title') : t('worker.report.saved_title')}
         </h2>
         <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 28px', lineHeight: 1.6 }}>
-          {isOnline
-            ? 'Signalement transmis au propriétaire avec succès.'
-            : 'Stocké hors-ligne. Il sera envoyé automatiquement dès le retour du réseau.'}
+          {isOnline ? t('worker.report.sent_desc') : t('worker.report.saved_desc')}
         </p>
         {!isOnline && (
           <div style={{
@@ -88,7 +87,7 @@ function WorkerReport() {
             borderRadius: 99, padding: '6px 14px',
             color: '#854d0e', fontSize: 12, fontWeight: 600,
           }}>
-            <WifiOff size={13} color="#ca8a04" /> Mode hors-ligne actif
+            <WifiOff size={13} color="#ca8a04" /> {t('worker.report.offline_badge')}
           </div>
         )}
         <button
@@ -100,21 +99,19 @@ function WorkerReport() {
             boxShadow: '0 4px 16px rgba(22,163,74,.3)',
           }}
         >
-          Nouveau rapport
+          {t('worker.report.new_report')}
         </button>
       </div>
     );
   }
 
-  /* ── Form ── */
   return (
     <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
 
-      {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '14px 18px 12px' }}>
-        <h1 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: 0 }}>Signaler</h1>
+        <h1 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: 0 }}>{t('worker.report.title')}</h1>
         <p style={{ color: '#94a3b8', fontSize: 12, margin: '2px 0 0' }}>
-          Alertez le propriétaire d'une anomalie sur le terrain
+          {t('worker.report.subtitle')}
         </p>
       </div>
 
@@ -123,29 +120,29 @@ function WorkerReport() {
         {/* Type selector */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 14px 10px' }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            Type d'incident
+            {t('worker.report.incident_type')}
           </div>
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-            {INCIDENT_TYPES.map(t => {
-              const active = type === t.id;
+            {INCIDENT_TYPES.map(inc => {
+              const active = type === inc.id;
               return (
                 <button
-                  key={t.id}
+                  key={inc.id}
                   type="button"
-                  onClick={() => setType(t.id)}
+                  onClick={() => setType(inc.id)}
                   style={{
                     flexShrink: 0, padding: '8px 14px', borderRadius: 99,
-                    background: active ? `${t.color}15` : '#f8fafc',
-                    border: `1.5px solid ${active ? t.color : '#e2e8f0'}`,
-                    color: active ? t.color : '#64748b',
+                    background: active ? `${inc.color}15` : '#f8fafc',
+                    border: `1.5px solid ${active ? inc.color : '#e2e8f0'}`,
+                    color: active ? inc.color : '#64748b',
                     fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', gap: 6,
                     transition: 'all 0.18s',
-                    boxShadow: active ? `0 2px 8px ${t.color}20` : 'none',
+                    boxShadow: active ? `0 2px 8px ${inc.color}20` : 'none',
                   }}
                 >
-                  <span>{t.icon}</span>
-                  <span style={{ whiteSpace: 'nowrap' }}>{t.label}</span>
+                  <span>{inc.icon}</span>
+                  <span style={{ whiteSpace: 'nowrap' }}>{inc.label}</span>
                 </button>
               );
             })}
@@ -155,12 +152,12 @@ function WorkerReport() {
         {/* Note textarea */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px' }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            Notes et détails
+            {t('worker.report.notes_label')}
           </div>
           <textarea
             value={note}
             onChange={e => setNote(e.target.value)}
-            placeholder="Décrivez ce que vous observez sur le terrain..."
+            placeholder={t('worker.report.notes_ph')}
             required
             style={{
               width: '100%', height: 110, padding: '10px 12px', borderRadius: 10,
@@ -177,7 +174,7 @@ function WorkerReport() {
         {/* Photo upload */}
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px', overflow: 'hidden' }}>
           <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            Photo du terrain
+            {t('worker.report.photo_label')}
           </div>
           <input
             type="file" accept="image/*" capture="environment"
@@ -215,7 +212,7 @@ function WorkerReport() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#94a3b8'; }}
             >
               <Camera size={26} />
-              <span style={{ fontSize: 12, fontWeight: 600 }}>Prendre une photo</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{t('worker.report.take_photo')}</span>
             </button>
           )}
         </div>
@@ -234,7 +231,7 @@ function WorkerReport() {
             transition: 'all .2s',
           }}
         >
-          {submitting ? 'Envoi en cours…' : <><Send size={17} /> Envoyer le rapport</>}
+          {submitting ? t('worker.report.sending') : <><Send size={17} /> {t('worker.report.send_btn')}</>}
         </button>
 
       </form>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import AnimalCard from '../components/AnimalCard';
 import cowIconImg     from '../assets/cow/cow-icon.png';
 import sheepIconImg   from '../assets/sheep/sheep-icon.png';
 import goatIconImg    from '../assets/goat/goat-icon.png';
@@ -320,6 +321,7 @@ function TabBtn({ id, label, icon:Icon, active, onClick, color }) {
 
 // ─── AperçuTab ────────────────────────────────────────────────────────────────
 function AperçuTab({ cfg, animals, onGoToAnimaux }) {
+  const { t } = useTranslation();
   const C = cfg.color;
   const liveCount = animals.length;
 
@@ -376,9 +378,9 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
           {liveCount > 0 && (
             <div className="ap-f3" style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:28}}>
               {[
-                {v:liveCount.toLocaleString(), l:'animaux suivis'},
-                {v:'IA Active', l:'surveillance'},
-                {v:'Temps réel', l:'alertes'},
+                {v:liveCount.toLocaleString(), l:t('ap.followed','animaux suivis')},
+                {v:t('ap.ai_active','IA Active'), l:t('ap.ai_label','surveillance')},
+                {v:t('ap.realtime','Temps réel'), l:t('ap.realtime_label','alertes')},
               ].map(k => (
                 <div key={k.l} className="ap-pulse" style={{
                   background:'rgba(255,255,255,.15)', backdropFilter:'blur(6px)',
@@ -398,7 +400,7 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
             display:'inline-flex', alignItems:'center', gap:8,
             boxShadow:'0 4px 20px rgba(0,0,0,.15)',
           }}>
-            Gérer les {cfg.name} <ChevronRight size={16} />
+            {t('ap.manage_btn','Gérer les')} {cfg.name} <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -424,7 +426,7 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
 
       {/* Features */}
       <div className="ap-f3">
-        <SectionHeader title="Fonctionnalités du Module" accent={C} />
+        <SectionHeader title={t('ap.features_title','Fonctionnalités du Module')} accent={C} />
         <div className="ap-feat" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:32}}>
           {cfg.features.map(f => (
             <div key={f.title} className="card" style={{borderLeft:`3px solid ${f.color}`,padding:20}}>
@@ -444,21 +446,15 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
       {/* Animal list preview */}
       {liveCount > 0 && (
         <div>
-          <SectionHeader title={`Registre — ${cfg.name} (${liveCount})`} accent={C} />
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
+          <SectionHeader title={`${t('ap.registry','Registre')} — ${cfg.name} (${liveCount})`} accent={C} />
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:14}}>
             {animals.slice(0, 12).map(a => (
-              <div key={a.id} className="card" style={{padding:16,borderLeft:`3px solid ${C}`}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
-                  <span style={{fontWeight:700,fontSize:14}}>{a.name || `#${a.id}`}</span>
-                  {a.tag_id && <span style={{fontSize:11,color:'var(--color-text-3)',background:'var(--color-surface-2)',padding:'2px 8px',borderRadius:6}}>#{a.tag_id}</span>}
-                </div>
-                {a.status && <div style={{fontSize:11,fontWeight:700,color:C,background:`${C}12`,padding:'3px 9px',borderRadius:999,display:'inline-block'}}>{a.status}</div>}
-                {a.breed && <div style={{fontSize:11,color:'var(--color-text-3)',marginTop:5}}>{a.breed}</div>}
-              </div>
+              <AnimalCard key={a.id} unit={a} />
             ))}
             {liveCount > 12 && (
-              <div className="card" style={{padding:16,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--color-text-3)',fontSize:13,fontWeight:600}}>
-                +{liveCount - 12} autres
+              <div className="card" style={{padding:16,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--color-text-3)',fontSize:13,fontWeight:600,cursor:'pointer'}}
+                onClick={onGoToAnimaux}>
+                +{liveCount - 12} {t('ap.more_animals','autres')}
               </div>
             )}
           </div>
@@ -473,19 +469,18 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
           display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:24,
         }}>
           <div>
-            <div style={{fontSize:11,fontWeight:900,color:'#64748b',letterSpacing:2,marginBottom:10}}>VISION SMART FARM AI</div>
-            <h3 style={{fontSize:22,fontWeight:900,margin:'0 0 10px'}}>Élevage 4.0 — 100% Souverain</h3>
+            <div style={{fontSize:11,fontWeight:900,color:'#64748b',letterSpacing:2,marginBottom:10}}>{t('ap.vision_eyebrow','VISION SMART FARM AI')}</div>
+            <h3 style={{fontSize:22,fontWeight:900,margin:'0 0 10px'}}>{t('ap.vision_title','Élevage 4.0 — 100% Souverain')}</h3>
             <p style={{fontSize:13,color:'#94a3b8',lineHeight:1.75,margin:0,maxWidth:460}}>
-              Plateforme d'intelligence artificielle dédiée à l'élevage professionnel.
-              Données locales, alertes en temps réel, et recommandations IA sans dépendance cloud.
+              {t('ap.vision_desc','Plateforme d\'intelligence artificielle dédiée à l\'élevage professionnel.')}
             </p>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
             {[
-              {v:'100%',l:'Données Souveraines'},
-              {v:'IA',  l:'Surveillance Active'},
-              {v:'24/7',l:'Alertes Temps Réel'},
-              {v:'Multi',l:'Espèces Supportées'},
+              {v:'100%',l:t('ap.kpi_sovereign','Données Souveraines')},
+              {v:'IA',  l:t('ap.kpi_ai','Surveillance Active')},
+              {v:'24/7',l:t('ap.kpi_alerts','Alertes Temps Réel')},
+              {v:'Multi',l:t('ap.kpi_species','Espèces Supportées')},
             ].map(m => (
               <div key={m.l} style={{textAlign:'center'}}>
                 <div style={{fontSize:22,fontWeight:900,color:C}}>{m.v}</div>
@@ -501,6 +496,7 @@ function AperçuTab({ cfg, animals, onGoToAnimaux }) {
 
 // ─── Quick Entry Forms ────────────────────────────────────────────────────────
 function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
+  const { t } = useTranslation();
   const C = cfg.color;
   const entries = cfg.quickEntries;
   const [type, setType]     = useState(entries[0]);
@@ -511,8 +507,12 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const entryLabels = {
-    milk:'🥛 Traite', health:'🏥 Santé', feed:'🌾 Ration',
-    repro:'🐄 Repro', weight:'⚖️ Pesée', sale:'💰 Vente',
+    milk:   t('ap.entry.milk',   '🥛 Traite'),
+    health: t('ap.entry.health', '🏥 Santé'),
+    feed:   t('ap.entry.feed',   '🌾 Ration'),
+    repro:  t('ap.entry.repro',  '🐄 Repro'),
+    weight: t('ap.entry.weight', '⚖️ Pesée'),
+    sale:   t('ap.entry.sale',   '💰 Vente'),
   };
 
   const submit = async () => {
@@ -532,10 +532,10 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
         if (!aid) { toast.error('Sélectionnez un animal'); setSaving(false); return; }
         await animalsAPI.addLog(aid, { type, date: today, ...form });
       }
-      toast.success('Enregistré !');
+      toast.success(t('ap.save_btn','✓ Enregistré !').replace('✓ ',''));
       setForm({});
       onSaved?.();
-    } catch { toast.error('Erreur d\'enregistrement'); }
+    } catch { toast.error(t('common.error','Erreur')); }
     setSaving(false);
   };
 
@@ -550,7 +550,7 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
       <div style={{background:`linear-gradient(135deg, ${C}, ${cfg.dark})`,padding:'16px 20px',display:'flex',alignItems:'center',gap:12}}>
         <span style={{fontSize:20}}>⚡</span>
         <div>
-          <div style={{fontWeight:800,fontSize:14,color:'white'}}>Saisie rapide</div>
+          <div style={{fontWeight:800,fontSize:14,color:'white'}}>{t('ap.quick_entry','Saisie rapide')}</div>
           <div style={{fontSize:11,color:'rgba(255,255,255,.65)'}}>
             {new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'})}
           </div>
@@ -575,9 +575,9 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
         {/* Animal selector (not for sale) */}
         {type !== 'sale' && (
           <div style={{marginBottom:12}}>
-            <label style={lbl}>Animal</label>
+            <label style={lbl}>{t('ap.animal_label','Animal')}</label>
             <select value={animalId} onChange={e => setAnimalId(e.target.value)} style={inp}>
-              <option value="">— Choisir —</option>
+              <option value="">{t('ap.choose_animal','— Choisir —')}</option>
               {animals.map(a => <option key={a.id} value={a.id}>{a.name || `#${a.id}`}{a.tag_id ? ` · ${a.tag_id}` : ''}</option>)}
             </select>
           </div>
@@ -586,21 +586,21 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
         {/* MILK form */}
         {type === 'milk' && (
           <>
-            <div style={{marginBottom:10}}><label style={lbl}>Litres produits *</label><input type="number" min="0" step="0.1" style={inp} value={form.quantity_l||''} onChange={e=>set('quantity_l',e.target.value)} placeholder="Ex : 18.5" /></div>
-            <div style={{marginBottom:10}}><label style={lbl}>Qualité / Notes</label><input style={inp} value={form.notes||''} onChange={e=>set('notes',e.target.value)} placeholder="RAS / Colostrum" /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.milk.liters','Litres produits *')}</label><input type="number" min="0" step="0.1" style={inp} value={form.quantity_l||''} onChange={e=>set('quantity_l',e.target.value)} placeholder="Ex : 18.5" /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.milk.notes','Qualité / Notes')}</label><input style={inp} value={form.notes||''} onChange={e=>set('notes',e.target.value)} placeholder={t('ap.milk.notes_ph','RAS / Colostrum')} /></div>
           </>
         )}
 
         {/* HEALTH form */}
         {type === 'health' && (
           <>
-            <div style={{marginBottom:10}}><label style={lbl}>Morts (têtes)</label><input type="number" min="0" style={inp} value={form.deaths_today||''} onChange={e=>set('deaths_today',e.target.value)} placeholder="0" /></div>
-            <div style={{marginBottom:10}}><label style={lbl}>Symptômes observés</label><input style={inp} value={form.symptoms||''} onChange={e=>set('symptoms',e.target.value)} placeholder="Toux, diarrhée, abattement…" /></div>
-            <div style={{marginBottom:10}}><label style={lbl}>Traitement</label><input style={inp} value={form.treatment||''} onChange={e=>set('treatment',e.target.value)} placeholder="Antibiotique, vitamines…" /></div>
-            <div style={{marginBottom:12}}><label style={lbl}>Coût vétérinaire (TND)</label><input type="number" min="0" step="0.5" style={inp} value={form.cost||''} onChange={e=>set('cost',e.target.value)} placeholder="0.00" /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.health.deaths','Morts (têtes)')}</label><input type="number" min="0" style={inp} value={form.deaths_today||''} onChange={e=>set('deaths_today',e.target.value)} placeholder="0" /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.health.symptoms','Symptômes observés')}</label><input style={inp} value={form.symptoms||''} onChange={e=>set('symptoms',e.target.value)} placeholder={t('ap.health.symptoms_ph','Toux, diarrhée…')} /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.health.treatment','Traitement')}</label><input style={inp} value={form.treatment||''} onChange={e=>set('treatment',e.target.value)} placeholder={t('ap.health.treatment_ph','Antibiotique, vitamines…')} /></div>
+            <div style={{marginBottom:12}}><label style={lbl}>{t('ap.health.vet_cost','Coût vétérinaire (TND)')}</label><input type="number" min="0" step="0.5" style={inp} value={form.cost||''} onChange={e=>set('cost',e.target.value)} placeholder="0.00" /></div>
             {parseInt(form.deaths_today||0) > 0 && (
               <div style={{background:'#fff1f2',border:'1px solid #fca5a5',borderRadius:8,padding:'8px 12px',marginBottom:10,fontSize:12,color:'#b91c1c'}}>
-                ⚠️ {form.deaths_today} mort(s) enregistré(s) — vérifiez l'effectif.
+                ⚠️ {form.deaths_today} {t('ap.health.deaths_warning','mort(s) enregistré(s) — vérifiez l\'effectif.')}
               </div>
             )}
           </>
@@ -609,9 +609,9 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
         {/* FEED form */}
         {type === 'feed' && (
           <>
-            <div style={{marginBottom:10}}><label style={lbl}>Type d'aliment</label><input style={inp} value={form.feed_type||''} onChange={e=>set('feed_type',e.target.value)} placeholder="Foin, concentré, ensilage…" /></div>
-            <div style={{marginBottom:10}}><label style={lbl}>Quantité (kg) *</label><input type="number" min="0" step="0.5" style={inp} value={form.quantity_kg||''} onChange={e=>set('quantity_kg',e.target.value)} /></div>
-            <div style={{marginBottom:12}}><label style={lbl}>Coût / kg (TND)</label><input type="number" min="0" step="0.01" style={inp} value={form.cost_per_kg||''} onChange={e=>set('cost_per_kg',e.target.value)} /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.feed.type','Type d\'aliment')}</label><input style={inp} value={form.feed_type||''} onChange={e=>set('feed_type',e.target.value)} placeholder={t('ap.feed.type_ph','Foin, concentré…')} /></div>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.feed.qty','Quantité (kg) *')}</label><input type="number" min="0" step="0.5" style={inp} value={form.quantity_kg||''} onChange={e=>set('quantity_kg',e.target.value)} /></div>
+            <div style={{marginBottom:12}}><label style={lbl}>{t('ap.feed.cost_per_kg','Coût / kg (TND)')}</label><input type="number" min="0" step="0.01" style={inp} value={form.cost_per_kg||''} onChange={e=>set('cost_per_kg',e.target.value)} /></div>
           </>
         )}
 
@@ -651,27 +651,27 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
         {type === 'sale' && (
           <>
             <div style={{marginBottom:10}}>
-              <label style={lbl}>Produit</label>
+              <label style={lbl}>{t('ap.sale.product','Produit')}</label>
               <input style={inp} value={form.product_type||''} onChange={e=>set('product_type',e.target.value)}
                 placeholder={cfg.apiSpecies==='cow'?'Lait / Veau':cfg.apiSpecies==='rabbit'?'Lapins vifs':'Agneaux / Lait'} />
             </div>
-            <div style={{marginBottom:10}}><label style={lbl}>Quantité *</label>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.sale.qty','Quantité *')}</label>
               <input type="number" min="0" style={inp} value={form.quantity||''} onChange={e=>{
                 const q=parseFloat(e.target.value)||0; const p=parseFloat(form.unit_price)||0;
                 setForm(f=>({...f,quantity:e.target.value,total_amount:(q*p).toFixed(2)}));
               }} />
             </div>
-            <div style={{marginBottom:10}}><label style={lbl}>Prix unitaire (TND)</label>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.sale.unit_price','Prix unitaire (TND)')}</label>
               <input type="number" min="0" step="0.01" style={inp} value={form.unit_price||''} onChange={e=>{
                 const p=parseFloat(e.target.value)||0; const q=parseFloat(form.quantity)||0;
                 setForm(f=>({...f,unit_price:e.target.value,total_amount:(q*p).toFixed(2)}));
               }} />
             </div>
-            <div style={{marginBottom:10}}><label style={lbl}>Total (TND)</label>
+            <div style={{marginBottom:10}}><label style={lbl}>{t('ap.sale.total','Total (TND)')}</label>
               <input type="number" readOnly style={{...inp,background:'#f8fafc'}} value={form.total_amount||'0.00'} />
             </div>
-            <div style={{marginBottom:12}}><label style={lbl}>Client</label>
-              <input style={inp} value={form.customer_name||''} onChange={e=>set('customer_name',e.target.value)} placeholder="Nom du client" />
+            <div style={{marginBottom:12}}><label style={lbl}>{t('ap.sale.client','Client')}</label>
+              <input style={inp} value={form.customer_name||''} onChange={e=>set('customer_name',e.target.value)} placeholder={t('ap.sale.client_ph','Nom du client')} />
             </div>
           </>
         )}
@@ -683,7 +683,7 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
           cursor: saving ? 'not-allowed' : 'pointer',
           boxShadow:`0 3px 10px ${btnColor}33`, transition:'all .2s',
         }}>
-          {saving ? 'Enregistrement…' : '✓ Enregistrer'}
+          {saving ? t('ap.saving','Enregistrement…') : t('ap.save_btn','✓ Enregistrer')}
         </button>
       </div>
     </div>
@@ -692,6 +692,7 @@ function QuickEntryPanel({ cfg, animals, farmId, workers, onSaved }) {
 
 // ─── TodayWorkspace ───────────────────────────────────────────────────────────
 function TodayWorkspace({ cfg, animals, farmId, workers }) {
+  const { t } = useTranslation();
   const C = cfg.color;
   const [cycleStart, setCycleStart]   = useState(() => localStorage.getItem(`ap_cycle_${cfg.apiSpecies}`) || '');
   const [cycleInput, setCycleInput]   = useState(() => localStorage.getItem(`ap_cycle_${cfg.apiSpecies}`) || '');
@@ -738,16 +739,16 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
   // Build actions
   const actions = [];
   if (nextVaccine && age != null && nextVaccine.day - age <= 3) {
-    actions.push({ id:'vax', priority:'critical', icon:'💉', title:`Vaccin imminent — J${nextVaccine.day}`, desc:nextVaccine.vaccine, cta:'Planifier', onCta:() => pushVaccineTask(nextVaccine) });
+    actions.push({ id:'vax', priority:'critical', icon:'💉', title:`${t('ap.today.vax_imminent','Vaccin imminent')} — J${nextVaccine.day}`, desc:nextVaccine.vaccine, cta:t('ap.today.plan','Planifier'), onCta:() => pushVaccineTask(nextVaccine) });
   }
   if (pendingTasks.length > 0) {
-    actions.push({ id:'tasks', priority:'high', icon:'📋', title:`${pendingTasks.length} tâche(s) en attente`, desc:pendingTasks.map(tk=>tk.title).join(' · '), cta:'Voir', onCta:() => {} });
+    actions.push({ id:'tasks', priority:'high', icon:'📋', title:`${pendingTasks.length} ${t('ap.today.tasks_pending','tâche(s) en attente')}`, desc:pendingTasks.map(tk=>tk.title).join(' · '), cta:t('ap.today.view','Voir'), onCta:() => {} });
   }
   if (!cycleStart) {
-    actions.push({ id:'cycle', priority:'normal', icon:'📅', title:'Cycle non démarré', desc:'Définissez une date de début pour activer le suivi de phase.', cta:'Définir', onCta:() => {} });
+    actions.push({ id:'cycle', priority:'normal', icon:'📅', title:t('ap.today.cycle_not_started','Cycle non démarré'), desc:t('ap.today.cycle_not_started_desc','Définissez une date de début pour activer le suivi de phase.'), cta:t('ap.today.define','Définir'), onCta:() => {} });
   }
   if (animals.length === 0) {
-    actions.push({ id:'add', priority:'normal', icon:'➕', title:'Aucun animal enregistré', desc:`Ajoutez des ${cfg.name.toLowerCase()} dans l'onglet Animaux.`, cta:'Ajouter', onCta:() => {} });
+    actions.push({ id:'add', priority:'normal', icon:'➕', title:t('ap.today.no_animals','Aucun animal enregistré'), desc:`${t('ap.today.add_in_tab','Ajoutez des')} ${cfg.name.toLowerCase()} ${t('ap.today.in_tab','dans l\'onglet Animaux.')}`, cta:t('ap.today.add','Ajouter'), onCta:() => {} });
   }
 
   const priorityBg     = { critical:'#fef2f2', high:`${C}08`, normal:'var(--color-surface-2)' };
@@ -771,13 +772,13 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
       }}>
         <div>
           <div style={{fontSize:10,fontWeight:900,color:'#64748b',letterSpacing:2,marginBottom:10}}>
-            🔒 ESPACE OPÉRATIONNEL — {cfg.name.toUpperCase()}
+            🔒 {t('ap.today.op_space','ESPACE OPÉRATIONNEL')} — {cfg.name.toUpperCase()}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
             <select value={selectedAnimalId} onChange={e=>setSelId(e.target.value)}
               style={{background:'rgba(255,255,255,.08)',border:`1.5px solid ${C}55`,borderRadius:12,
                 padding:'9px 18px',fontSize:14,fontWeight:700,color:'white',cursor:'pointer',outline:'none'}}>
-              <option value="" style={{background:'#1e293b'}}>— Sélectionner un animal —</option>
+              <option value="" style={{background:'#1e293b'}}>{t('ap.today.select_animal','— Sélectionner un animal —')}</option>
               {animals.map(a => <option key={a.id} value={a.id} style={{background:'#1e293b'}}>{a.name||`#${a.id}`}{a.tag_id?` · ${a.tag_id}`:''}</option>)}
             </select>
             {selectedAnimalId && (() => {
@@ -837,11 +838,11 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
       <div style={{marginBottom:22,background:'var(--color-surface)',borderRadius:16,padding:'14px 20px',
         border:`1px solid ${C}22`,display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
         <Calendar size={17} color={C} />
-        <span style={{fontWeight:700,fontSize:13}}>Début de cycle :</span>
+        <span style={{fontWeight:700,fontSize:13}}>{t('ap.today.cycle_start','Début de cycle :')}</span>
         <input type="date" value={cycleInput} onChange={e=>setCycleInput(e.target.value)}
           style={{padding:'7px 12px',borderRadius:8,border:'1px solid var(--color-border-light)',fontSize:13,outline:'none',background:'var(--color-surface)',color:'var(--color-text-1)'}} />
         <button onClick={saveCycle} style={{padding:'7px 18px',borderRadius:9,border:'none',background:C,color:'white',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-          Enregistrer
+          {t('ap.today.save_cycle','Enregistrer')}
         </button>
         {curPhase && (
           <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8,background:`${curPhase.color}12`,border:`1px solid ${curPhase.color}30`,borderRadius:10,padding:'7px 14px'}}>
@@ -861,7 +862,7 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
           <div style={{background:'var(--color-surface)',borderRadius:18,border:'1px solid var(--color-border-light)',overflow:'hidden'}}>
             <div style={{padding:'14px 20px',borderBottom:'1px solid var(--color-border-light)',display:'flex',alignItems:'center',gap:10}}>
               <div style={{width:4,height:20,borderRadius:999,background:C}} />
-              <span style={{fontWeight:800,fontSize:14}}>Actions du jour</span>
+              <span style={{fontWeight:800,fontSize:14}}>{t('ap.today.actions_title','Actions du jour')}</span>
               {actions.length > 0 && (
                 <span style={{marginLeft:'auto',background:actions.some(a=>a.priority==='critical')?'#ef4444':C,color:'white',borderRadius:999,padding:'2px 10px',fontSize:11,fontWeight:800}}>
                   {actions.length}
@@ -873,8 +874,8 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
                 <div style={{background:'#dcfce7',border:'1px solid #bbf7d0',borderRadius:12,padding:'16px 20px',display:'flex',alignItems:'center',gap:12}}>
                   <span style={{fontSize:22}}>✅</span>
                   <div>
-                    <div style={{fontWeight:800,color:'#15803d',fontSize:14}}>Tout est à jour</div>
-                    <div style={{fontSize:12,color:'#166534'}}>Aucune action urgente détectée pour aujourd'hui.</div>
+                    <div style={{fontWeight:800,color:'#15803d',fontSize:14}}>{t('ap.today.all_good','Tout est à jour')}</div>
+                    <div style={{fontSize:12,color:'#166534'}}>{t('ap.today.all_good_desc','Aucune action urgente détectée pour aujourd\'hui.')}</div>
                   </div>
                 </div>
               ) : (
@@ -985,6 +986,7 @@ function TodayWorkspace({ cfg, animals, farmId, workers }) {
 
 // ─── AnimauxTab ───────────────────────────────────────────────────────────────
 function AnimauxTab({ cfg, animals, farmId, onRefresh }) {
+  const { t } = useTranslation();
   const C = cfg.color;
   const [showForm, setShowForm]       = useState(false);
   const [form, setForm]               = useState({ name:'',tag_id:'',status:'',breed:'',notes:'' });
@@ -1050,7 +1052,7 @@ function AnimauxTab({ cfg, animals, farmId, onRefresh }) {
 
       {/* Actions row */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18,flexWrap:'wrap',gap:10}}>
-        <SectionHeader title={`Registre — ${cfg.name} (${animals.length})`} accent={C} />
+        <SectionHeader title={`${t('animal.registry', 'Registre')} — ${cfg.name} (${animals.length})`} accent={C} />
         <div style={{display:'flex',gap:8}}>
           <button onClick={()=>setShowFin(v=>!v)}
             style={{padding:'8px 16px',borderRadius:10,border:`1px solid #059669`,background:showFin?'#059669':'transparent',color:showFin?'white':'#059669',fontWeight:700,fontSize:13,cursor:'pointer'}}>
@@ -1065,7 +1067,7 @@ function AnimauxTab({ cfg, animals, farmId, onRefresh }) {
 
       {showFin && (
         <div className="card" style={{marginBottom:20,padding:20,border:`1px solid #05986922`}}>
-          <div style={{fontWeight:800,fontSize:14,marginBottom:14}}>💰 Nouvelle Transaction</div>
+          <div style={{fontWeight:800,fontSize:14,marginBottom:14}}>💰 {t('animal.new_transaction', 'Nouvelle Transaction')}</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
             <div>
               <label style={{fontSize:11,fontWeight:700,color:'#64748b',marginBottom:4,display:'block'}}>Type</label>
@@ -1087,15 +1089,15 @@ function AnimauxTab({ cfg, animals, farmId, onRefresh }) {
           </div>
           <input value={finForm.notes} onChange={e=>setFinForm(f=>({...f,notes:e.target.value}))} style={inp} placeholder="Notes…" />
           <div style={{display:'flex',gap:8,marginTop:12}}>
-            <button onClick={saveFin} style={{padding:'8px 20px',borderRadius:9,border:'none',background:'#059669',color:'white',fontWeight:700,fontSize:13,cursor:'pointer'}}>Enregistrer</button>
-            <button onClick={()=>setShowFin(false)} style={{padding:'8px 16px',borderRadius:9,border:'1px solid var(--color-border-light)',background:'transparent',fontWeight:600,fontSize:13,cursor:'pointer'}}>Annuler</button>
+            <button onClick={saveFin} style={{padding:'8px 20px',borderRadius:9,border:'none',background:'#059669',color:'white',fontWeight:700,fontSize:13,cursor:'pointer'}}>{t('common.save', 'Enregistrer')}</button>
+            <button onClick={()=>setShowFin(false)} style={{padding:'8px 16px',borderRadius:9,border:'1px solid var(--color-border-light)',background:'transparent',fontWeight:600,fontSize:13,cursor:'pointer'}}>{t('common.cancel', 'Annuler')}</button>
           </div>
         </div>
       )}
 
       {showForm && (
         <div className="card" style={{marginBottom:20,padding:20,border:`1px solid ${C}22`}}>
-          <div style={{fontWeight:800,fontSize:14,marginBottom:14}}>{cfg.emoji} Nouvel Animal</div>
+          <div style={{fontWeight:800,fontSize:14,marginBottom:14}}>{cfg.emoji} {t('animal.new_animal', 'Nouvel Animal')}</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:12}}>
             {[['name','Nom / Identifiant'],['tag_id','Tag / N° Boucle'],['breed','Race'],['status','Statut']].map(([k,l])=>(
               <div key={k}>
@@ -1107,9 +1109,9 @@ function AnimauxTab({ cfg, animals, farmId, onRefresh }) {
           <input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} style={inp} placeholder="Notes…" />
           <div style={{display:'flex',gap:8,marginTop:12}}>
             <button onClick={saveAnimal} disabled={saving} style={{padding:'8px 20px',borderRadius:9,border:'none',background:saving?'#94a3b8':C,color:'white',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-              {saving?'Enregistrement…':'Ajouter'}
+              {saving?'Enregistrement…': t('common.add', 'Ajouter')}
             </button>
-            <button onClick={()=>setShowForm(false)} style={{padding:'8px 16px',borderRadius:9,border:'1px solid var(--color-border-light)',background:'transparent',fontWeight:600,fontSize:13,cursor:'pointer'}}>Annuler</button>
+            <button onClick={()=>setShowForm(false)} style={{padding:'8px 16px',borderRadius:9,border:'1px solid var(--color-border-light)',background:'transparent',fontWeight:600,fontSize:13,cursor:'pointer'}}>{t('common.cancel', 'Annuler')}</button>
           </div>
         </div>
       )}
@@ -1121,17 +1123,20 @@ function AnimauxTab({ cfg, animals, farmId, onRefresh }) {
           <div style={{fontSize:13,marginTop:6}}>Cliquez sur "Ajouter" pour commencer.</div>
         </div>
       ) : (
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:14}}>
           {animals.map(a=>(
-            <div key={a.id} className="card" style={{padding:18,borderLeft:`3px solid ${C}`,position:'relative'}}>
-              <button onClick={()=>deleteAnimal(a.id)}
-                style={{position:'absolute',top:10,right:10,background:'none',border:'none',cursor:'pointer',color:'#cbd5e1',fontSize:16,lineHeight:1}}>×</button>
-              <div style={{fontWeight:800,fontSize:15,marginBottom:5}}>{a.name||`Animal #${a.id}`}</div>
-              {a.tag_id && <div style={{fontSize:11,color:'var(--color-text-3)',marginBottom:6}}>Tag: {a.tag_id}</div>}
-              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                {a.status && <span style={{fontSize:11,fontWeight:700,color:C,background:`${C}12`,padding:'3px 9px',borderRadius:999}}>{a.status}</span>}
-                {a.breed && <span style={{fontSize:11,color:'var(--color-text-3)',background:'var(--color-surface-2)',padding:'3px 9px',borderRadius:999}}>{a.breed}</span>}
-              </div>
+            <div key={a.id} style={{position:'relative'}}>
+              <AnimalCard unit={a} />
+              <button
+                onClick={(e)=>{ e.stopPropagation(); deleteAnimal(a.id); }}
+                title="Supprimer"
+                style={{
+                  position:'absolute',top:10,right:10,zIndex:2,
+                  background:'rgba(239,68,68,0.12)',border:'1px solid rgba(239,68,68,0.25)',
+                  borderRadius:7,width:26,height:26,cursor:'pointer',
+                  color:'#ef4444',fontWeight:900,fontSize:14,
+                  display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,
+                }}>×</button>
             </div>
           ))}
         </div>
@@ -1508,9 +1513,9 @@ function ProtocolsTab({ cfg, farmId, workers }) {
 
 // ─── Main AnimalPage ──────────────────────────────────────────────────────────
 const TABS = [
+  {id:'animaux',      label:'ERP Système',    icon:Package  },
   {id:'apercu',       label:'Aperçu',         icon:Activity },
   {id:'today',        label:"Aujourd'hui",    icon:CheckCircle},
-  {id:'animaux',      label:'ERP Système',    icon:Package  },
   {id:'surveillance', label:'Surveillance IA',icon:Eye      },
   {id:'analytics',    label:'Analytics IA',   icon:BarChart2},
   {id:'protocols',    label:'Protocoles',     icon:Calendar },
@@ -1518,29 +1523,36 @@ const TABS = [
 
 export default function AnimalPage({ species }) {
   const cfg = SC[species];
-  if (!cfg) return <div style={{padding:40}}>Espèce inconnue: {species}</div>;
-
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { farmId } = useAuth();
-  const [activeTab, setActiveTab] = useState('apercu');
+  const [activeTab, setActiveTab] = useState('animaux');
   const [animals, setAnimals]     = useState([]);
   const [workers, setWorkers]     = useState([]);
   const [loading, setLoading]     = useState(true);
+  const apiSpecies = cfg?.apiSpecies;
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    if (!apiSpecies) {
+      setAnimals([]);
+      setWorkers([]);
+      setLoading(false);
+      return;
+    }
     try {
       const [animRes, wrkRes] = await Promise.all([
-        animalsAPI.list({ species:cfg.apiSpecies, farm_id:farmId||1 }),
+        animalsAPI.list({ species:apiSpecies, farm_id:farmId||1 }),
         farmWorkersAPI.list(farmId||1).catch(()=>({data:[]})),
       ]);
       setAnimals(Array.isArray(animRes.data) ? animRes.data : []);
       setWorkers(Array.isArray(wrkRes.data) ? wrkRes.data : []);
     } catch { setAnimals([]); }
     setLoading(false);
-  }, [farmId, cfg.apiSpecies]);
+  }, [farmId, apiSpecies]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  if (!cfg) return <div style={{padding:40}}>Espèce inconnue: {species}</div>;
 
   const isAr = i18n.language === 'ar';
 
@@ -1559,7 +1571,7 @@ export default function AnimalPage({ species }) {
           border:'1px solid var(--color-border-light)',
         }}>
           {TABS.map(tab => (
-            <TabBtn key={tab.id} {...tab} active={activeTab===tab.id} onClick={setActiveTab} color={cfg.color} />
+            <TabBtn key={tab.id} {...tab} label={t(`animal.tabs.${tab.id}`, tab.label)} active={activeTab===tab.id} onClick={setActiveTab} color={cfg.color} />
           ))}
         </div>
 

@@ -342,7 +342,7 @@ export default function SovereignAssistant() {
 
       <Navbar
         title={t('sidebar.assistant')}
-        subtitle="Interactive Agricultural Intelligence"
+        subtitle={t("assistant.subtitle", "Interactive Agricultural Intelligence")}
         actions={
           <button
             className="btn btn-secondary btn-sm sov-toggle-btn"

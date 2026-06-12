@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   Phone, ArrowRight, RotateCcw, Check, Shield,
   Leaf, ChevronLeft, MessageCircle, Loader2,
 } from 'lucide-react';
 
-/* ── Shared input style helper ── */
 const inputStyle = (focused) => ({
   width: '100%', padding: '13px 14px 13px 44px',
   background: '#fff',
@@ -18,9 +18,8 @@ const inputStyle = (focused) => ({
   transition: 'border-color .2s, box-shadow .2s',
 });
 
-/* ── Step progress indicator ── */
-function StepBar({ step }) {
-  const steps = ['Numéro', 'Code OTP'];
+function StepBar({ step, t }) {
+  const steps = [t('worker_login.step_phone'), t('worker_login.step_otp')];
   const current = step === 'phone' ? 0 : 1;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 28 }}>
@@ -56,6 +55,7 @@ function StepBar({ step }) {
 }
 
 export default function WorkerLogin() {
+  const { t } = useTranslation();
   const [step, setStep]       = useState('phone');
   const [phone, setPhone]     = useState('+216');
   const [otp, setOtp]         = useState(['', '', '', '', '', '']);
@@ -66,31 +66,29 @@ export default function WorkerLogin() {
   const { workerRequestOtp, workerVerifyOtp, loading } = useAuth();
   const navigate = useNavigate();
 
-  /* ── Send OTP ── */
   const handleSendOtp = async (e) => {
     e.preventDefault();
     setError('');
     const phoneClean = phone.trim().replace(/\s/g, '');
     if (!phoneClean.startsWith('+') || phoneClean.length < 10) {
-      setError('Format invalide. Utilisez le format international : +21655…');
+      setError(t('worker_login.invalid_format'));
       return;
     }
     const res = await workerRequestOtp(phoneClean);
     if (res.ok) {
       setDebugOtp(res.data?.debug_otp || null);
-      setInfo(`Code envoyé au ${phoneClean}`);
+      setInfo(`${t('login.sending').replace('...', '')} ${phoneClean}`);
       setStep('otp');
     } else {
       setError(res.error);
     }
   };
 
-  /* ── Verify OTP ── */
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
     const code = otp.join('');
-    if (code.length !== 6) { setError('Saisissez le code à 6 chiffres complet.'); return; }
+    if (code.length !== 6) { setError(t('worker_login.invalid_format')); return; }
     const res = await workerVerifyOtp(phone.trim().replace(/\s/g, ''), code);
     if (res.ok) {
       setStep('success');
@@ -100,7 +98,6 @@ export default function WorkerLogin() {
     }
   };
 
-  /* ── OTP input handlers ── */
   const handleOtpChange = (index, value) => {
     if (!/^[0-9]?$/.test(value)) return;
     const next = [...otp];
@@ -139,7 +136,6 @@ export default function WorkerLogin() {
         padding: '28px 24px 36px',
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* Subtle SVG grid */}
         <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: .06, pointerEvents: 'none' }}>
           <defs>
             <pattern id="wgrid" width="32" height="32" patternUnits="userSpaceOnUse">
@@ -148,10 +144,8 @@ export default function WorkerLogin() {
           </defs>
           <rect width="100%" height="100%" fill="url(#wgrid)" />
         </svg>
-        {/* Glow orb */}
         <div style={{ position: 'absolute', top: '-40%', right: '-10%', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(22,163,74,.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-        {/* Back button */}
         <Link to="/" style={{ textDecoration: 'none', display: 'inline-flex' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -164,11 +158,10 @@ export default function WorkerLogin() {
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,.14)'}
             onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,.08)'}
           >
-            <ChevronLeft size={14} /> Accueil
+            <ChevronLeft size={14} /> {t('worker_login.home')}
           </div>
         </Link>
 
-        {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 16, flexShrink: 0,
@@ -183,13 +176,13 @@ export default function WorkerLogin() {
               Smart Farm AI
             </div>
             <div style={{ color: 'rgba(255,255,255,.5)', fontSize: 12, marginTop: 2, fontWeight: 500 }}>
-              Espace Ouvrier · Accès sécurisé
+              {t('worker_login.subtitle')}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Form card (pulled up to overlap header) ── */}
+      {/* ── Form card ── */}
       <div style={{ flex: 1, padding: '0 16px 32px', marginTop: -16 }}>
         <div style={{
           background: '#fff',
@@ -203,14 +196,14 @@ export default function WorkerLogin() {
           {/* ── PHONE STEP ── */}
           {step === 'phone' && (
             <>
-              <StepBar step="phone" />
+              <StepBar step="phone" t={t} />
 
               <div style={{ marginBottom: 24 }}>
                 <h2 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: '0 0 6px', letterSpacing: '-.3px' }}>
-                  Connexion par WhatsApp
+                  {t('worker_login.whatsapp_login')}
                 </h2>
                 <p style={{ color: '#64748b', fontSize: 13, margin: 0, lineHeight: 1.6 }}>
-                  Entrez votre numéro pour recevoir un code de vérification à usage unique.
+                  {t('worker_login.enter_number')}
                 </p>
               </div>
 
@@ -226,7 +219,7 @@ export default function WorkerLogin() {
 
               <form onSubmit={handleSendOtp}>
                 <label style={{ display: 'block', color: '#475569', fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>
-                  Numéro WhatsApp
+                  {t('worker_login.whatsapp_number')}
                 </label>
                 <div style={{ position: 'relative', marginBottom: 20 }}>
                   <Phone size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#16a34a', pointerEvents: 'none' }} />
@@ -258,13 +251,12 @@ export default function WorkerLogin() {
                   }}
                 >
                   {loading
-                    ? <><Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> Envoi en cours…</>
-                    : <><MessageCircle size={16} /> Recevoir le code WhatsApp <ArrowRight size={15} /></>
+                    ? <><Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> {t('worker_login.sending')}</>
+                    : <><MessageCircle size={16} /> {t('worker_login.send_code')} <ArrowRight size={15} /></>
                   }
                 </button>
               </form>
 
-              {/* Trust badge */}
               <div style={{
                 marginTop: 20, padding: '10px 14px',
                 background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
@@ -272,7 +264,7 @@ export default function WorkerLogin() {
                 color: '#64748b', fontSize: 12,
               }}>
                 <Shield size={13} color="#16a34a" style={{ flexShrink: 0 }} />
-                <span>Code OTP à usage unique · Expire en <strong style={{ color: '#0f172a' }}>10 minutes</strong></span>
+                <span>{t('worker_login.otp_expires')} <strong style={{ color: '#0f172a' }}>{t('worker_login.otp_minutes')}</strong></span>
               </div>
             </>
           )}
@@ -280,20 +272,19 @@ export default function WorkerLogin() {
           {/* ── OTP STEP ── */}
           {step === 'otp' && (
             <>
-              <StepBar step="otp" />
+              <StepBar step="otp" t={t} />
 
               <div style={{ marginBottom: 22 }}>
                 <h2 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: '0 0 6px', letterSpacing: '-.3px' }}>
-                  Code de vérification
+                  {t('worker_login.verify_title')}
                 </h2>
                 <p style={{ color: '#64748b', fontSize: 13, margin: 0, lineHeight: 1.6 }}>
-                  Vérifiez WhatsApp sur{' '}
+                  {t('worker_login.verify_desc')}{' '}
                   <span style={{ color: '#16a34a', fontWeight: 700 }}>{phone}</span>
-                  {' '}et saisissez le code reçu.
+                  {' '}{t('worker_login.verify_desc2')}
                 </p>
               </div>
 
-              {/* Info banner */}
               {info && (
                 <div style={{
                   background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10,
@@ -306,7 +297,6 @@ export default function WorkerLogin() {
                 </div>
               )}
 
-              {/* Dev OTP debug box */}
               {debugOtp && (
                 <div style={{
                   background: '#fffbeb', border: '1.5px dashed #fcd34d', borderRadius: 10,
@@ -315,7 +305,7 @@ export default function WorkerLogin() {
                 }}>
                   <div>
                     <div style={{ color: '#92400e', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 3 }}>
-                      DEV · Code OTP
+                      {t('worker_login.dev_otp')}
                     </div>
                     <div style={{ color: '#b45309', fontSize: 24, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '8px' }}>
                       {debugOtp}
@@ -330,7 +320,7 @@ export default function WorkerLogin() {
                       color: '#92400e', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                     }}
                   >
-                    Remplir ↗
+                    {t('worker_login.fill_up')}
                   </button>
                 </div>
               )}
@@ -346,7 +336,6 @@ export default function WorkerLogin() {
               )}
 
               <form onSubmit={handleVerifyOtp}>
-                {/* OTP boxes */}
                 <div
                   style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24 }}
                   onPaste={handleOtpPaste}
@@ -394,8 +383,8 @@ export default function WorkerLogin() {
                   }}
                 >
                   {loading
-                    ? <><Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> Vérification…</>
-                    : <><Check size={16} /> Valider et accéder <ArrowRight size={15} /></>
+                    ? <><Loader2 size={16} style={{ animation: 'spin .8s linear infinite' }} /> {t('worker_login.verifying')}</>
+                    : <><Check size={16} /> {t('worker_login.verify_btn')} <ArrowRight size={15} /></>
                   }
                 </button>
               </form>
@@ -412,7 +401,7 @@ export default function WorkerLogin() {
                 onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#475569'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; }}
               >
-                <RotateCcw size={13} /> Changer de numéro
+                <RotateCcw size={13} /> {t('worker_login.change_number')}
               </button>
             </>
           )}
@@ -431,20 +420,19 @@ export default function WorkerLogin() {
                 <Check size={38} color="white" strokeWidth={2.5} />
               </div>
               <h2 style={{ color: '#0f172a', fontSize: 22, fontWeight: 800, margin: '0 0 8px' }}>
-                Bienvenue !
+                {t('worker_login.welcome')}
               </h2>
               <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 16px' }}>
-                Connexion réussie. Redirection vers l'espace ouvrier…
+                {t('worker_login.login_success')}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, color: '#94a3b8', fontSize: 12 }}>
                 <Loader2 size={13} style={{ animation: 'spin .8s linear infinite', color: '#16a34a' }} />
-                Chargement…
+                {t('worker_login.loading')}
               </div>
             </div>
           )}
         </div>
 
-        {/* ── Footer links ── */}
         <div style={{ textAlign: 'center', marginTop: 20, maxWidth: 420, margin: '20px auto 0' }}>
           <Link
             to="/login"
@@ -456,7 +444,7 @@ export default function WorkerLogin() {
               transition: 'all .15s',
             }}
           >
-            🔑 Accès Propriétaire (Email + Mot de passe)
+            🔑 {t('worker_login.owner_access')}
           </Link>
         </div>
       </div>

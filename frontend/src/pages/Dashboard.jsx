@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   CloudRain, Sun, Wind, Cloud, Building2, PawPrint, AlertTriangle, AlertOctagon,
   Heart, Eye, Cpu, Zap, Flame, ShieldAlert, ShieldCheck, X,
-  Activity, Droplets, Thermometer, ArrowRight,
+  Activity, Droplets, Thermometer, ArrowRight, Hexagon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
@@ -361,12 +361,12 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="kpi-grid" style={{ marginBottom: 24 }}>
-            <KPIBox icon={Building2}     value={stats?.total_farms}     label={t('dashboard.kpi.total_farms')}     colorClass="green" />
-            <KPIBox icon={PawPrint}      value={stats?.total_units}     label={t('dashboard.kpi.animal_units')}    colorClass="blue" />
-            <KPIBox icon={AlertTriangle} value={stats?.active_alerts}   label={t('dashboard.kpi.active_alerts')}   colorClass="yellow" />
-            <KPIBox icon={AlertOctagon}  value={stats?.critical_alerts} label={t('dashboard.kpi.critical_alerts')} colorClass="red" />
-            <KPIBox icon={Heart}         value={stats?.avg_health_score} label={t('dashboard.kpi.health_score')}   colorClass="green" unit="%" />
-            <KPIBox icon={Cpu}           value={stats?.recent_anomalies} label={t('dashboard.kpi.anomalies')}      colorClass="teal" />
+            <KPIBox icon={Building2}     value={stats?.total_farms}                    label={t('dashboard.kpi.total_farms')}     colorClass="green" />
+            <KPIBox icon={Hexagon}       value={stats?.units_by_species?.bee ?? 0}    label="Ruches"                             colorClass="yellow" />
+            <KPIBox icon={PawPrint}      value={stats?.total_units}                   label={t('dashboard.kpi.animal_units')}    colorClass="blue" />
+            <KPIBox icon={AlertTriangle} value={stats?.active_alerts}                 label={t('dashboard.kpi.active_alerts')}   colorClass="yellow" />
+            <KPIBox icon={Heart}         value={stats?.avg_health_score}              label={t('dashboard.kpi.health_score')}    colorClass="green" unit="%" />
+            <KPIBox icon={Cpu}           value={stats?.recent_anomalies}              label={t('dashboard.kpi.anomalies')}       colorClass="teal" />
           </div>
         )}
         <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
@@ -525,7 +525,9 @@ export default function Dashboard() {
                       textShadow: '0 2px 8px rgba(0,0,0,.4)',
                     }}>{count}</div>
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,.65)', fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: .8, marginTop: 1 }}>unités</div>
+                      textTransform: 'uppercase', letterSpacing: .8, marginTop: 1 }}>
+                      {sp === 'bee' ? 'ruches' : 'unités'}
+                    </div>
 
                     {/* Species name + color chip */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -871,7 +873,6 @@ export default function Dashboard() {
                 <div className="card-title">{t('dashboard.telemetry_trend', 'Telemetry Trend (Last 48h)')}</div>
                 <div className="card-subtitle">{t('dashboard.telemetry_subtitle', 'First monitored animal unit')}</div>
               </div>
-              <button className="btn btn-secondary btn-sm" onClick={() => navigate('/telemetry')}>{t('common.actions', 'Analysis')}</button>
             </div>
             <TelemetryChart records={recentTelemetry} height={220} />
           </div>

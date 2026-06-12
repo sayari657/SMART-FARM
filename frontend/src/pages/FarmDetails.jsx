@@ -8,6 +8,7 @@ import {
   Calendar, Info, Shield, Zap, Star, Crown, Lock,
   TrendingDown, BarChart2, Gauge,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import AnimalCard from '../components/AnimalCard';
 import AlertCard from '../components/AlertCard';
@@ -31,26 +32,28 @@ const STATUS_META = {
   maintenance: { label:'Maintenance', color:'#d97706', bg:'#fef3c7', dot:'#fbbf24' },
 };
 
-const PLAN_CONFIG = {
-  free: {
-    key: 'free', label: 'Initiation', color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1',
-    icon: Shield, gradient: 'linear-gradient(135deg,#475569,#64748b)',
-    limits: { max_animals: 50, max_workers: 1 },
-    features: ["Jusqu'à 50 animaux", '1 utilisateur', 'Tableaux de bord de base', 'Historique 14 jours', 'Support communauté'],
-  },
-  pro: {
-    key: 'pro', label: 'Professionnel', color: '#16a34a', bg: '#f0fdf4', border: '#86efac',
-    icon: Zap, gradient: 'linear-gradient(135deg,#15803d,#22c55e)',
-    limits: { max_animals: -1, max_workers: 5 },
-    features: ['Animaux illimités', "Jusqu'à 5 équipes", 'Analyse prédictive IA', 'Exports Excel/PDF', 'Support prioritaire', 'Accès MLflow models'],
-  },
-  enterprise: {
-    key: 'enterprise', label: 'Entreprise', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd',
-    icon: Crown, gradient: 'linear-gradient(135deg,#5b21b6,#7c3aed)',
-    limits: { max_animals: -1, max_workers: -1 },
-    features: ['Acteurs illimités', 'CV Models custom', 'Serveur souverain', 'API & Webhooks', 'Account Manager dédié', 'SLA garanti'],
-  },
-};
+function usePlanConfig(t) {
+  return {
+    free: {
+      key: 'free', label: t('billing.plan_free'), color: '#64748b', bg: '#f1f5f9', border: '#cbd5e1',
+      icon: Shield, gradient: 'linear-gradient(135deg,#475569,#64748b)',
+      limits: { max_animals: 50, max_workers: 1 },
+      features: [t('billing.free_f1'), t('billing.free_f2'), t('billing.free_f3'), t('billing.free_f4'), t('billing.free_f5')],
+    },
+    pro: {
+      key: 'pro', label: t('billing.plan_pro'), color: '#16a34a', bg: '#f0fdf4', border: '#86efac',
+      icon: Zap, gradient: 'linear-gradient(135deg,#15803d,#22c55e)',
+      limits: { max_animals: -1, max_workers: 5 },
+      features: [t('billing.pro_f1'), t('billing.pro_f2'), t('billing.pro_f3'), t('billing.pro_f4'), t('billing.pro_f5'), t('billing.pro_f6')],
+    },
+    enterprise: {
+      key: 'enterprise', label: t('billing.plan_enterprise'), color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd',
+      icon: Crown, gradient: 'linear-gradient(135deg,#5b21b6,#7c3aed)',
+      limits: { max_animals: -1, max_workers: -1 },
+      features: [t('billing.ent_f1'), t('billing.ent_f2'), t('billing.ent_f3'), t('billing.ent_f4'), t('billing.ent_f5'), t('billing.ent_f6')],
+    },
+  };
+}
 
 /* ── Helpers ────────────────────────────────────────────────────────────── */
 function initials(name) {
@@ -483,6 +486,8 @@ function EmptyState({ icon, title, sub, image, onAction, actionLabel }) {
    MAIN PAGE
 ══════════════════════════════════════════════════════════════════════════ */
 export default function FarmDetails() {
+  const { t }      = useTranslation();
+  const PLAN_CONFIG = usePlanConfig(t);
   const { id }     = useParams();
   const navigate   = useNavigate();
   const { user }   = useAuth();
@@ -490,16 +495,56 @@ export default function FarmDetails() {
   const [units, setUnits]     = useState([]);
   const [alerts, setAlerts]   = useState([]);
   const [loading, setLoading] = useState(true);
+  const [unitsLoading, setUnitsLoading]   = useState(true);
+  const [alertsLoading, setAlertsLoading] = useState(true);
   const [tab, setTab]         = useState('units');
 
   useEffect(() => {
-    Promise.all([farmsAPI.get(id), animalsAPI.list({ farm_id: id }), alertsAPI.list()])
-      .then(([fR, uR, aR]) => {
-        setFarm(fR.data);
-        setUnits(uR.data);
-        const ids = new Set(uR.data.map(u => u.id));
-        setAlerts(aR.data.filter(a => ids.has(a.unit_id)));
-      }).finally(() => setLoading(false));
+    let active = true;
+
+    setFarm(null);
+    setUnits([]);
+    setAlerts([]);
+    setLoading(true);
+    setUnitsLoading(true);
+    setAlertsLoading(true);
+
+    farmsAPI.get(id)
+      .then((response) => {
+        if (active) setFarm(response.data);
+      })
+      .catch(() => {
+        if (active) setFarm(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    animalsAPI.list({ farm_id: id })
+      .then((response) => {
+        if (active) setUnits(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch(() => {
+        if (active) setUnits([]);
+      })
+      .finally(() => {
+        if (active) setUnitsLoading(false);
+      });
+
+    alertsAPI.list(id)
+      .then((response) => {
+        if (active) setAlerts(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch(() => {
+        if (active) setAlerts([]);
+      })
+      .finally(() => {
+        if (active) setAlertsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) return <div className="page-content"><div className="spinner"/></div>;
@@ -508,12 +553,14 @@ export default function FarmDetails() {
   const statusMeta  = STATUS_META[farm.status] || STATUS_META.inactive;
   const healthColor = farm.avg_health_score != null ? scoreColor(farm.avg_health_score) : T.muted;
   const unresolvedAlerts = alerts.filter(a => !a.is_resolved);
+  const unitCount = unitsLoading ? (farm.unit_count ?? 0) : units.length;
+  const alertCount = alertsLoading ? (farm.active_alerts ?? 0) : unresolvedAlerts.length;
   const planKey  = (user?.plan || 'free');
   const planCfg  = PLAN_CONFIG[planKey] || PLAN_CONFIG.free;
 
   const TABS = [
-    { id:'units',   label:'Animaux',       count: units.length,           icon: PawPrint,    color: T.primary },
-    { id:'alerts',  label:'Alertes',       count: unresolvedAlerts.length, icon: AlertTriangle, color: unresolvedAlerts.length>0 ? T.red : T.green },
+    { id:'units',   label:'Animaux',       count: unitCount,  icon: PawPrint,       color: T.primary },
+    { id:'alerts',  label:'Alertes',       count: alertCount, icon: AlertTriangle, color: alertCount>0 ? T.red : T.green },
     { id:'owners',  label:'Propriétaires', count: null,                   icon: ShieldCheck, color: '#3b82f6' },
     { id:'workers', label:'Ouvriers',      count: null,                   icon: Users,       color: '#16a34a' },
     { id:'info',    label:'Informations',  count: null,                   icon: Info,        color: T.dim },
@@ -600,10 +647,10 @@ export default function FarmDetails() {
               {/* Quick pills */}
               <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                 {[
-                  { label:`${units.length} animaux`, icon:'🐾' },
+                  { label:`${unitCount} animaux`, icon:'🐾' },
                   farm.total_area_ha && { label:`${farm.total_area_ha} ha`, icon:'🌿' },
-                  { label: unresolvedAlerts.length > 0 ? `${unresolvedAlerts.length} alertes` : 'Aucune alerte',
-                    icon: unresolvedAlerts.length > 0 ? '⚠️' : '✅' },
+                  { label: alertCount > 0 ? `${alertCount} alertes` : 'Aucune alerte',
+                    icon: alertCount > 0 ? '⚠️' : '✅' },
                 ].filter(Boolean).map((p, i) => (
                   <div key={i} style={{ display:'flex', alignItems:'center', gap:5,
                     background:'rgba(255,255,255,.12)', border:'1px solid rgba(255,255,255,.2)',
@@ -617,8 +664,8 @@ export default function FarmDetails() {
             {/* Right: KPI snapshot */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, minWidth:200 }}>
               {[
-                { val: units.length, label:'Animaux', color:'#4ade80' },
-                { val: unresolvedAlerts.length, label:'Alertes', color: unresolvedAlerts.length>0 ? '#f87171' : '#4ade80' },
+                { val: unitCount, label:'Animaux', color:'#4ade80' },
+                { val: alertCount, label:'Alertes', color: alertCount>0 ? '#f87171' : '#4ade80' },
                 { val: farm.avg_health_score != null ? `${farm.avg_health_score}%` : '—', label:'Santé', color:'#60a5fa' },
                 { val: farm.total_area_ha ? `${farm.total_area_ha} ha` : '—', label:'Surface', color:'#fbbf24' },
               ].map(({ val, label, color }) => (
@@ -637,8 +684,8 @@ export default function FarmDetails() {
         <div style={{ padding:'20px 32px', borderBottom:`1px solid ${T.border}`, background:T.bg }}>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12 }}>
             {[
-              { label:'Unités animales',  value: units.length,           color:T.primary, icon:PawPrint,     sub:'Toutes espèces'      },
-              { label:'Alertes actives',  value: unresolvedAlerts.length, color: unresolvedAlerts.length>0?T.red:T.green, icon:AlertTriangle, sub: unresolvedAlerts.length>0?'Action requise':'Tout va bien' },
+              { label:'Unités animales',  value: unitCount,  color:T.primary, icon:PawPrint, sub:'Toutes espèces' },
+              { label:'Alertes actives',  value: alertCount, color:alertCount>0?T.red:T.green, icon:AlertTriangle, sub:alertCount>0?'Action requise':'Tout va bien' },
               { label:'Score santé',      value: farm.avg_health_score != null ? `${farm.avg_health_score}%` : '—', color:healthColor, icon:Heart, sub:'Moyenne cheptel' },
               { label:'Surface totale',   value: farm.total_area_ha ? `${farm.total_area_ha} ha` : '—', color:T.amber, icon:Layers, sub:'Hectares' },
               { label:'Statut',           value: statusMeta.label,        color:statusMeta.color, icon:Activity, sub:`Ferme ID #${id}` },
@@ -674,7 +721,9 @@ export default function FarmDetails() {
 
           {/* Tab: Animaux */}
           {tab === 'units' && (
-            units.length > 0
+            unitsLoading
+              ? <div style={{ textAlign:'center', padding:48 }}><div className="spinner"/></div>
+              : units.length > 0
               ? <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
                   {units.map(u => <AnimalCard key={u.id} unit={u}/>)}
                 </div>
@@ -683,7 +732,9 @@ export default function FarmDetails() {
 
           {/* Tab: Alertes */}
           {tab === 'alerts' && (
-            unresolvedAlerts.length > 0
+            alertsLoading
+              ? <div style={{ textAlign:'center', padding:48 }}><div className="spinner"/></div>
+              : unresolvedAlerts.length > 0
               ? <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                   {unresolvedAlerts.map(a => <AlertCard key={a.id} alert={a}/>)}
                 </div>
@@ -768,8 +819,8 @@ export default function FarmDetails() {
                     <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:'uppercase',
                       letterSpacing:.6, marginBottom:14 }}>Résumé Opérationnel</div>
                     {[
-                      { label:'Unités animales', value:units.length, color:T.primary },
-                      { label:'Alertes actives', value:unresolvedAlerts.length, color:unresolvedAlerts.length>0?T.red:T.green },
+                      { label:'Unités animales', value:unitCount, color:T.primary },
+                      { label:'Alertes actives', value:alertCount, color:alertCount>0?T.red:T.green },
                       { label:'Alertes totales', value:alerts.length, color:T.amber },
                     ].map(({ label, value, color }) => (
                       <div key={label} style={{ display:'flex', justifyContent:'space-between',
@@ -834,7 +885,7 @@ export default function FarmDetails() {
                       <div style={{ marginTop:16, padding:'10px 14px', borderRadius:10,
                         background:`${planCfg.color}08`, border:`1px solid ${planCfg.color}20`,
                         fontSize:11, color:planCfg.color, fontWeight:600 }}>
-                        Passez à {planCfg.key === 'free' ? 'Professionnel' : 'Entreprise'} pour débloquer plus de capacités
+                        {planCfg.key === 'free' ? t('billing.upgrade_to_pro') : t('billing.upgrade_to_enterprise')}
                       </div>
                     )}
                   </div>
@@ -860,7 +911,7 @@ export default function FarmDetails() {
                     {/* Animals gauge */}
                     {(() => {
                       const max = planCfg.limits.max_animals;
-                      const used = units.length;
+                      const used = unitCount;
                       const isUnlimited = max === -1;
                       const pct = isUnlimited ? 0 : Math.min((used / max) * 100, 100);
                       const barColor = pct >= 90 ? T.red : pct >= 70 ? T.amber : T.primary;
@@ -912,7 +963,6 @@ export default function FarmDetails() {
                     {(() => {
                       const max = planCfg.limits.max_workers;
                       const isUnlimited = max === -1;
-                      const pct = isUnlimited ? 0 : 0;
                       const barColor = T.sky;
                       return (
                         <div>

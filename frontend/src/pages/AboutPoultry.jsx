@@ -2436,8 +2436,8 @@ function TodayWorkspace() {
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--color-text-3)' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🐔</div>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{t('poultry.today.no_batch_title')}</div>
-          <div style={{ fontSize: 13 }}>{t('poultry.today.no_batch_desc')}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{t('poultry.today.no_batch_title', 'Aucun lot actif')}</div>
+          <div style={{ fontSize: 13 }}>{t('poultry.today.no_batch_desc', 'Démarrez un cycle pour voir l\'espace de travail.')}</div>
         </div>
       )}
     </div>

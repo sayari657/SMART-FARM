@@ -2,25 +2,17 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Leaf, Eye, EyeOff, Zap, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import ThreeBackground from '../components/ThreeBackground';
 import ThreeFarmBackground from '../components/ThreeFarmBackground';
 
-const ROLES = [
-  { value: 'owner',  label: 'Propriétaire de ferme' },
-  { value: 'worker', label: 'Ouvrier / Agent de terrain' },
-];
-
-const ROLE_DESC = {
-  owner: 'Gestion complète : fermes, animaux, IoT, rapports IA, équipes, analyses — accessible depuis tout appareil (web, mobile, tablette).',
-  worker: 'Opérations terrain : tâches assignées, signalements incidents, scan IA, rapports — optimisé mobile avec mode hors-ligne.',
-};
-
 const PLAN_META = {
-  pro:  { label: 'Professionnel · 29€/mois', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: Zap },
-  free: { label: 'Initiation · Gratuit',      color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', icon: CheckCircle },
+  pro:  { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: Zap },
+  free: { color: '#6366f1', bg: '#eef2ff', border: '#c7d2fe', icon: CheckCircle },
 };
 
 export default function Register() {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ username:'', email:'', phone_number:'+216', full_name:'', password:'', role:'owner' });
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState(false);
@@ -28,7 +20,30 @@ export default function Register() {
   const { register, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const plan = searchParams.get('plan'); // 'free' | 'pro' | null
+  const plan = searchParams.get('plan');
+
+  const ROLES = [
+    { value: 'owner',  label: t('register.role_owner') },
+    { value: 'worker', label: t('register.role_worker') },
+  ];
+
+  const ROLE_DESC = {
+    owner: t('register.role_owner_desc'),
+    worker: t('register.role_worker_desc'),
+  };
+
+  const PLAN_LABEL = {
+    pro:  `${t('landing.plan_pro_title')} · 29€/${t('landing.pay_monthly').replace('/', '')}`,
+    free: `${t('landing.plan_free_title')} · ${t('landing.plan_free_price')}`,
+  };
+
+  const HERO_FEATURES = [
+    t('register.hero_f1'),
+    t('register.hero_f2'),
+    t('register.hero_f3'),
+    t('register.hero_f4'),
+    t('register.hero_f5'),
+  ];
 
   const set = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
@@ -38,8 +53,6 @@ export default function Register() {
     const res = await register(form);
     if (res.ok) {
       setSuccess(true);
-      // Owners: go to farm creation after 1.5s instead of login
-      // Workers: go to login (they don't create farms themselves)
       const target = form.role === 'owner' ? '/login?first_farm=1' : '/login';
       setTimeout(() => navigate(target), 1500);
     } else {
@@ -66,19 +79,13 @@ export default function Register() {
             </div>
           </div>
 
-          <h2 style={{ color:'#fff' }}>Une plateforme,<br />tous vos appareils</h2>
+          <h2 style={{ color:'#fff' }}>{t('register.hero_title')}</h2>
           <p style={{ color:'#fff', opacity:.9, lineHeight:1.7 }}>
-            Architecture enterprise multi-canal — chaque utilisateur accède à la plateforme depuis le web, le mobile ou la tablette selon son contexte de travail.
+            {t('register.hero_desc')}
           </p>
 
           <div className="auth-features" style={{ marginTop:32 }}>
-            {[
-              'Accès web & mobile pour tous les rôles',
-              'Propriétaire — supervision globale, IA, analytics',
-              'Ouvrier — opérations terrain, PWA hors-ligne',
-              'Base de données unifiée — synchronisation temps réel',
-              'OTP WhatsApp — authentification sécurisée sans mot de passe',
-            ].map(item => (
+            {HERO_FEATURES.map(item => (
               <div className="auth-feature" key={item} style={{ color:'#fff' }}>
                 <div className="auth-feature-dot" />
                 {item}
@@ -91,8 +98,8 @@ export default function Register() {
       {/* ── Right panel ── */}
       <div className="auth-right">
         <div className="auth-card">
-          <h1>Créer un compte</h1>
-          <p>Renseignez vos informations pour rejoindre la plateforme</p>
+          <h1>{t('register.title')}</h1>
+          <p>{t('register.subtitle')}</p>
 
           {/* Plan badge */}
           {plan && PLAN_META[plan] && (() => {
@@ -106,17 +113,17 @@ export default function Register() {
               }}>
                 <Icon size={15} color={m.color} />
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: m.color, textTransform: 'uppercase', letterSpacing: .6 }}>Plan sélectionné</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{m.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: m.color, textTransform: 'uppercase', letterSpacing: .6 }}>{t('register.plan_selected')}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{PLAN_LABEL[plan]}</div>
                 </div>
-                <Link to="/#pricing" style={{ marginLeft: 'auto', fontSize: 11, color: m.color, textDecoration: 'underline', fontWeight: 600 }}>Changer</Link>
+                <Link to="/#pricing" style={{ marginLeft: 'auto', fontSize: 11, color: m.color, textDecoration: 'underline', fontWeight: 600 }}>{t('register.plan_change')}</Link>
               </div>
             );
           })()}
 
           {success && (
             <div className="alert-banner success" style={{ marginBottom:16 }}>
-              <div className="alert-banner-msg">✓ Compte créé avec succès ! Redirection vers la connexion...</div>
+              <div className="alert-banner-msg">✓ {t('register.success')}</div>
             </div>
           )}
           {error && (
@@ -129,38 +136,38 @@ export default function Register() {
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Nom d'utilisateur *</label>
-                <input className="form-input" id="reg-username" placeholder="ex: ahmed.farm" value={form.username} onChange={set('username')} required minLength={3} />
+                <label className="form-label">{t('register.username')} *</label>
+                <input className="form-input" id="reg-username" placeholder={t('register.username_placeholder')} value={form.username} onChange={set('username')} required minLength={3} />
               </div>
               <div className="form-group">
-                <label className="form-label">Nom complet</label>
-                <input className="form-input" id="reg-fullname" placeholder="Ahmed Ben Ali" value={form.full_name} onChange={set('full_name')} />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Numéro de téléphone *</label>
-                <input className="form-input" id="reg-phone" type="tel" placeholder="+216 55 123 456" value={form.phone_number} onChange={set('phone_number')} required />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Email</label>
-                <input className="form-input" id="reg-email" type="email" placeholder="vous@exemple.com" value={form.email} onChange={set('email')} />
+                <label className="form-label">{t('register.name')}</label>
+                <input className="form-input" id="reg-fullname" placeholder={t('register.fullname_placeholder')} value={form.full_name} onChange={set('full_name')} />
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Mot de passe *</label>
+                <label className="form-label">{t('register.phone')} *</label>
+                <input className="form-input" id="reg-phone" type="tel" placeholder={t('register.phone_placeholder')} value={form.phone_number} onChange={set('phone_number')} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t('register.email')}</label>
+                <input className="form-input" id="reg-email" type="email" placeholder={t('register.email_placeholder')} value={form.email} onChange={set('email')} />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">{t('register.password')} *</label>
                 <div style={{ position: 'relative' }}>
-                  <input className="form-input" id="reg-password" type={showPw ? 'text' : 'password'} placeholder="Min. 6 caractères" value={form.password} onChange={set('password')} required minLength={6} style={{ paddingRight: 40 }} />
+                  <input className="form-input" id="reg-password" type={showPw ? 'text' : 'password'} placeholder={t('register.password_placeholder')} value={form.password} onChange={set('password')} required minLength={6} style={{ paddingRight: 40 }} />
                   <button type="button" onClick={() => setShowPw(v => !v)} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', padding:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">Rôle</label>
+                <label className="form-label">{t('register.role')}</label>
                 <select className="form-select" id="reg-role" value={form.role} onChange={set('role')}>
                   {ROLES.map(r => (
                     <option key={r.value} value={r.value}>{r.label}</option>
@@ -175,7 +182,7 @@ export default function Register() {
               borderRadius:10, padding:'10px 14px', fontSize:13, color:'var(--color-text-2)', lineHeight:1.6
             }}>
               <strong style={{ color:'var(--color-text-1)' }}>
-                {form.role === 'owner' ? 'Propriétaire' : 'Ouvrier / Agent'}
+                {form.role === 'owner' ? t('register.role_owner_label') : t('register.role_worker_label')}
               </strong>
               {' — '}{ROLE_DESC[form.role]}
             </div>
@@ -187,12 +194,12 @@ export default function Register() {
               disabled={loading}
               style={{ width:'100%', justifyContent:'center', padding:'11px 0', fontSize:14, marginTop:4 }}
             >
-              {loading ? 'Création en cours...' : 'Créer mon compte'}
+              {loading ? t('register.creating') : t('register.create_btn')}
             </button>
           </form>
 
           <div className="auth-footer">
-            Déjà inscrit ? <Link to="/login">Se connecter</Link>
+            {t('register.already_have_account')} <Link to="/login">{t('register.login_link')}</Link>
           </div>
         </div>
       </div>

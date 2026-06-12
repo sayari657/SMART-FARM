@@ -314,7 +314,9 @@ function AlertRow({ alert, onResolve }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════ */
+import { useTranslation } from "react-i18next";
 export default function Recommendations() {
+  const { t } = useTranslation();
   const { farmId, farms: authFarms } = useAuth();
 
   const [tab, setTab]             = useState('ai');
@@ -443,8 +445,8 @@ export default function Recommendations() {
 
       {/* ── Navbar ── */}
       <Navbar
-        title="Intelligence Agronomique"
-        subtitle="Recommandations · Alertes · Anomalies"
+        title={t("recs.title", "Intelligence Agronomique")}
+        subtitle={t("recs.subtitle", "Recommandations · Alertes · Anomalies")}
         actions={
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             <LiveDot status={wsStatus} />

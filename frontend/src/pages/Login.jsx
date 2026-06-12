@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle,
   Shield, Cpu, Wifi, ServerOff, Leaf, Sparkles, Lock, User,
-  RefreshCw, ChevronRight,
+  RefreshCw, ChevronRight, Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
+import { redirectToCheckout } from '../services/billingApi';
 
 /* ── Design tokens ────────────────────────────────────────────────────── */
 const T = {
@@ -50,14 +51,15 @@ function Input({ icon: Icon, type = 'text', placeholder, value, onChange, requir
 }
 
 function ErrBanner({ msg, offline }) {
+  const { t } = useTranslation();
   if (!msg) return null;
   if (offline) return (
     <div style={{ display:'flex', alignItems:'flex-start', gap:10, background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:10, padding:'12px 14px', marginBottom:14 }}>
       <ServerOff size={16} style={{ color:T.red, flexShrink:0, marginTop:1 }}/>
       <div>
-        <p style={{ margin:0, fontWeight:700, color:T.red, fontSize:13 }}>Backend hors ligne</p>
+        <p style={{ margin:0, fontWeight:700, color:T.red, fontSize:13 }}>{t('login.backend_offline', 'Backend hors ligne')}</p>
         <p style={{ margin:'3px 0 0', color:'#7f1d1d', fontSize:11 }}>
-          Lancez&nbsp;: <code style={{ background:'#fee2e2', padding:'1px 5px', borderRadius:4 }}>cd backend &amp;&amp; uvicorn app.main:app --reload</code>
+          {t('login.run_command', 'Lancez :')} <code style={{ background:'#fee2e2', padding:'1px 5px', borderRadius:4 }}>cd backend &amp;&amp; uvicorn app.main:app --reload</code>
         </p>
       </div>
     </div>
@@ -98,6 +100,8 @@ export default function Login() {
   const { login, loading } = useAuth();
   const { t, i18n }        = useTranslation();
   const navigate           = useNavigate();
+  const [searchParams]     = useSearchParams();
+  const [planChoice, setPlanChoice] = useState(searchParams.get('plan') || 'free');
 
   const resetFlow = () => {
     setView('login'); setChannel(null); setIdentifier('');
@@ -110,6 +114,10 @@ export default function Login() {
     if (res.ok) {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
       if (u?.role === 'worker') { navigate('/worker'); return; }
+      if (planChoice === 'pro') {
+        await redirectToCheckout('pro');
+        return;
+      }
       const farms = JSON.parse(localStorage.getItem('user_farms') || '[]');
       navigate(farms.length === 0 ? '/farms' : '/dashboard');
     } else {
@@ -124,15 +132,15 @@ export default function Login() {
       let res;
       if (channel === 'email') {
         res = await authAPI.forgotByEmail({ email: identifier });
-        setMsg(`Code envoyé à ${identifier} — vérifiez votre boîte mail.`);
+        setMsg(t('login.code_sent_email', 'Code envoyé à {{email}} — vérifiez votre boîte mail.', { email: identifier }));
       } else {
         res = await authAPI.forgotByWhatsApp({ phone_number: identifier });
-        setMsg(`Code WhatsApp envoyé au ${identifier}.`);
+        setMsg(t('login.code_sent_whatsapp', 'Code WhatsApp envoyé au {{phone}}.', { phone: identifier }));
       }
       setDebugOtp(res.data?.debug_otp || null);
       setView('enter_otp');
     } catch (err) {
-      setError(err.response?.data?.detail || "Erreur lors de l'envoi du code.");
+      setError(err.response?.data?.detail || t('login.error_sending_code', "Erreur lors de l'envoi du code."));
     } finally { setLoading2(false); }
   };
 
@@ -143,7 +151,7 @@ export default function Login() {
       setMsg(res.data.message);
       setView('success');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Code OTP invalide ou expiré.');
+      setError(err.response?.data?.detail || t('login.invalid_otp', 'Code OTP invalide ou expiré.'));
     } finally { setLoading2(false); }
   };
 
@@ -173,7 +181,7 @@ export default function Login() {
             </div>
             <div>
               <div style={{ fontWeight:800, fontSize:17, color:'#fff', lineHeight:1.2 }}>Smart Farm AI</div>
-              <div style={{ fontSize:11, color:'rgba(255,255,255,.55)' }}>Enterprise Platform v3.0</div>
+              <div style={{ fontSize:11, color:'rgba(255,255,255,.55)' }}>{t('login.enterprise_platform', 'Enterprise Platform v3.0')}</div>
             </div>
           </div>
 
@@ -181,7 +189,7 @@ export default function Login() {
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
             <div style={{ background:'rgba(255,255,255,.12)', borderRadius:99, padding:'4px 12px', display:'flex', alignItems:'center', gap:6, border:'1px solid rgba(255,255,255,.18)' }}>
               <Sparkles size={10} color="#a5b4fc"/>
-              <span style={{ fontSize:10, color:'#a5b4fc', fontWeight:700, letterSpacing:.7, textTransform:'uppercase' }}>IA Souveraine</span>
+              <span style={{ fontSize:10, color:'#a5b4fc', fontWeight:700, letterSpacing:.7, textTransform:'uppercase' }}>{t('login.sovereign_ai', 'IA Souveraine')}</span>
             </div>
           </div>
 
@@ -207,7 +215,7 @@ export default function Login() {
           {/* Bottom badge */}
           <div style={{ marginTop:40, display:'inline-flex', alignItems:'center', gap:8, background:'rgba(255,255,255,.08)', border:'1px solid rgba(255,255,255,.12)', borderRadius:99, padding:'7px 14px' }}>
             <span style={{ width:6, height:6, borderRadius:'50%', background:'#4ade80', animation:'livePulse 2s infinite', display:'inline-block' }}/>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,.65)', fontWeight:600 }}>Système opérationnel · Sécurisé HMAC</span>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,.65)', fontWeight:600 }}>{t('login.system_operational', 'Système opérationnel · Sécurisé HMAC')}</span>
           </div>
         </div>
       </div>
@@ -219,13 +227,80 @@ export default function Login() {
           {/* ── LOGIN ───────────────────────────────────────────────── */}
           {view === 'login' && (
             <div style={{ animation:'fadeSlide .3s ease forwards' }}>
-              <div style={{ marginBottom:28 }}>
-                <h1 style={{ fontSize:24, fontWeight:900, color:T.text, margin:'0 0 6px' }}>
-                  {t('login.welcome_back', 'Bon retour 👋')}
+
+              <div style={{ marginBottom:22 }}>
+                <h1 style={{ fontSize:22, fontWeight:900, color:T.text, margin:'0 0 4px' }}>
+                  Connexion
                 </h1>
                 <p style={{ fontSize:13, color:T.dim, margin:0 }}>
-                  {t('login.sign_in_to', 'Connectez-vous à votre plateforme agricole')}
+                  Choisissez votre plan puis connectez-vous
                 </p>
+              </div>
+
+              {/* ── Plan selector ── */}
+              <div style={{ marginBottom:20 }}>
+                <div style={{ fontSize:11, fontWeight:800, color:T.dim, textTransform:'uppercase', letterSpacing:.6, marginBottom:10 }}>
+                  Choisir un plan
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+
+                  {/* Free */}
+                  <button type="button" onClick={() => setPlanChoice('free')} style={{
+                    padding:'14px 12px', borderRadius:12, cursor:'pointer', textAlign:'left', transition:'all .18s',
+                    border: planChoice==='free' ? `2px solid ${T.primary}` : `2px solid ${T.border}`,
+                    background: planChoice==='free' ? '#eff6ff' : T.white,
+                    boxShadow: planChoice==='free' ? `0 0 0 3px ${T.primary}18` : 'none',
+                  }}>
+                    <div style={{ fontSize:13, fontWeight:800, color: planChoice==='free' ? T.primary : T.text, marginBottom:4 }}>
+                      Initiation
+                    </div>
+                    <div style={{ fontSize:20, fontWeight:900, color: planChoice==='free' ? T.primary : T.text, lineHeight:1, marginBottom:6 }}>
+                      Gratuit
+                    </div>
+                    <div style={{ fontSize:11, color:T.dim, lineHeight:1.5 }}>50 animaux · 1 utilisateur</div>
+                    {planChoice==='free' && (
+                      <div style={{ marginTop:6, fontSize:10, fontWeight:700, color:T.primary, display:'flex', alignItems:'center', gap:4 }}>
+                        <CheckCircle size={11}/> Sélectionné
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Pro */}
+                  <button type="button" onClick={() => setPlanChoice('pro')} style={{
+                    padding:'14px 12px', borderRadius:12, cursor:'pointer', textAlign:'left', transition:'all .18s',
+                    border: planChoice==='pro' ? '2px solid #16a34a' : `2px solid ${T.border}`,
+                    background: planChoice==='pro' ? '#f0fdf4' : T.white,
+                    boxShadow: planChoice==='pro' ? '0 0 0 3px rgba(22,163,74,.15)' : 'none',
+                    position:'relative',
+                  }}>
+                    <div style={{ position:'absolute', top:-1, right:-1, background:'#16a34a', color:'#fff', fontSize:9, fontWeight:900, padding:'3px 8px', borderRadius:'0 10px 0 8px', letterSpacing:.5 }}>
+                      POPULAIRE
+                    </div>
+                    <div style={{ fontSize:13, fontWeight:800, color: planChoice==='pro' ? '#15803d' : T.text, marginBottom:4 }}>
+                      Professionnel
+                    </div>
+                    <div style={{ display:'flex', alignItems:'baseline', gap:3, marginBottom:6 }}>
+                      <span style={{ fontSize:20, fontWeight:900, color: planChoice==='pro' ? '#15803d' : T.text, lineHeight:1 }}>29€</span>
+                      <span style={{ fontSize:11, color:T.dim }}>/mois</span>
+                    </div>
+                    <div style={{ fontSize:11, color:T.dim, lineHeight:1.5 }}>Illimité · IA · PDF</div>
+                    {planChoice==='pro' && (
+                      <div style={{ marginTop:6, fontSize:10, fontWeight:700, color:'#16a34a', display:'flex', alignItems:'center', gap:4 }}>
+                        <CheckCircle size={11}/> Sélectionné
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                {/* Stripe notice — only shown when Pro selected */}
+                {planChoice==='pro' && (
+                  <div style={{ marginTop:10, display:'flex', alignItems:'flex-start', gap:8, background:'#fefce8', border:'1px solid #fde047', borderRadius:10, padding:'10px 13px' }}>
+                    <span style={{ fontSize:16, flexShrink:0 }}>💳</span>
+                    <div style={{ fontSize:12, color:'#713f12', lineHeight:1.5 }}>
+                      <strong>Paiement Stripe requis.</strong> Après connexion, vous serez redirigé vers la page de paiement sécurisée Stripe pour activer votre plan Professionnel.
+                    </div>
+                  </div>
+                )}
               </div>
 
               <OkBanner msg={msg}/>
@@ -236,7 +311,7 @@ export default function Login() {
                   <label style={{ fontSize:11, fontWeight:700, color:T.dim, display:'block', marginBottom:6, textTransform:'uppercase', letterSpacing:.5 }}>
                     {t('login.username', 'Identifiant')}
                   </label>
-                  <Input icon={User} placeholder={t('login.enter_username', 'Nom d\'utilisateur ou email')} value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} required/>
+                  <Input icon={User} placeholder={t('login.enter_username', "Nom d'utilisateur ou email")} value={form.username} onChange={e => setForm(p => ({ ...p, username: e.target.value }))} required/>
                 </div>
 
                 <div>
@@ -249,7 +324,7 @@ export default function Login() {
                       {t('login.forgot_password', 'Mot de passe oublié ?')}
                     </button>
                   </div>
-                  <Input icon={Lock} type={showPw ? 'text' : 'password'} placeholder={t('login.enter_password', '••••••••')} value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required
+                  <Input icon={Lock} type={showPw ? 'text' : 'password'} placeholder="••••••••" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required
                     right={
                       <button type="button" onClick={() => setShowPw(v => !v)}
                         style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:T.muted, cursor:'pointer', padding:6, display:'flex', alignItems:'center' }}>
@@ -258,27 +333,41 @@ export default function Login() {
                     }/>
                 </div>
 
-                <button type="submit" disabled={loading}
-                  style={{ marginTop:4, width:'100%', padding:'12px', borderRadius:10, border:'none', background:`linear-gradient(135deg, ${T.primary}, #6d28d9)`, color:'#fff', fontSize:14, fontWeight:700, cursor:loading?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8, boxShadow:`0 4px 14px ${T.primary}35`, opacity:loading?.7:1, transition:'all .2s' }}
+                <button type="submit" disabled={loading} style={{
+                  marginTop:4, width:'100%', padding:'13px', borderRadius:11, border:'none',
+                  background: loading ? '#94a3b8' : planChoice==='pro'
+                    ? 'linear-gradient(135deg,#16a34a,#15803d)'
+                    : `linear-gradient(135deg,${T.primary},#6d28d9)`,
+                  color:'#fff', fontSize:14, fontWeight:800,
+                  cursor:loading?'not-allowed':'pointer',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  boxShadow: loading ? 'none' : planChoice==='pro' ? '0 4px 14px rgba(22,163,74,.35)' : `0 4px 14px ${T.primary}35`,
+                  opacity:loading ? .7 : 1, transition:'all .2s',
+                }}
                   onMouseEnter={e => !loading && (e.currentTarget.style.transform='translateY(-1px)')}
                   onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
-                  {loading ? <><RefreshCw size={14} style={{animation:'spin .8s linear infinite'}}/> Connexion…</> : <>{t('login.sign_in', 'Se connecter')} <ChevronRight size={14}/></>}
+                  {loading ? (
+                    <><RefreshCw size={14} style={{animation:'spin .8s linear infinite'}}/> {planChoice==='pro' ? 'Connexion → Stripe…' : 'Connexion…'}</>
+                  ) : planChoice==='pro' ? (
+                    <><Zap size={15}/> Se connecter → Payer 29€/mois</>
+                  ) : (
+                    <><ChevronRight size={15}/> Se connecter gratuitement</>
+                  )}
                 </button>
               </form>
 
-              <div style={{ marginTop:20, textAlign:'center', fontSize:13, color:T.muted }}>
-                {t('login.dont_have_account', "Pas de compte ?")}
-                {' '}
-                <Link to="/register" style={{ color:T.primary, fontWeight:700, textDecoration:'none' }}>
-                  {t('login.create_one', 'Créer un compte')}
+              <div style={{ marginTop:18, textAlign:'center', fontSize:13, color:T.muted }}>
+                Pas de compte ?{' '}
+                <Link to={`/register?plan=${planChoice}`} style={{ color:T.primary, fontWeight:700, textDecoration:'none' }}>
+                  Créer un compte
                 </Link>
               </div>
 
-              <div style={{ marginTop:14, paddingTop:14, borderTop:`1px solid ${T.border}`, textAlign:'center' }}>
-                <Link to="/worker-login" style={{ fontSize:13, color:T.dim, fontWeight:600, display:'inline-flex', alignItems:'center', gap:6, textDecoration:'none' }}
+              <div style={{ marginTop:12, paddingTop:12, borderTop:`1px solid ${T.border}`, textAlign:'center' }}>
+                <Link to="/worker-login" style={{ fontSize:12, color:T.dim, fontWeight:600, display:'inline-flex', alignItems:'center', gap:6, textDecoration:'none' }}
                   onMouseEnter={e => e.currentTarget.style.color=T.primary}
                   onMouseLeave={e => e.currentTarget.style.color=T.dim}>
-                  👷 {t('login.worker_access', 'Accès ouvriers →')}
+                  👷 Accès ouvriers →
                 </Link>
               </div>
             </div>
@@ -288,7 +377,7 @@ export default function Login() {
           {view === 'choose_channel' && (
             <div style={{ animation:'fadeSlide .3s ease forwards' }}>
               <button onClick={resetFlow} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:T.dim, cursor:'pointer', fontSize:13, marginBottom:24, padding:0 }}>
-                <ArrowLeft size={14}/> Retour
+                <ArrowLeft size={14}/> {t('login.back', 'Retour')}
               </button>
               <h1 style={{ fontSize:22, fontWeight:900, color:T.text, margin:'0 0 6px' }}>
                 {t('login.recover_access', 'Récupérer l\'accès')}
@@ -326,7 +415,7 @@ export default function Login() {
           {view === 'enter_id' && (
             <div style={{ animation:'fadeSlide .3s ease forwards' }}>
               <button onClick={() => setView('choose_channel')} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:T.dim, cursor:'pointer', fontSize:13, marginBottom:24, padding:0 }}>
-                <ArrowLeft size={14}/> Retour
+                <ArrowLeft size={14}/> {t('login.back', 'Retour')}
               </button>
 
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24 }}>
@@ -334,7 +423,7 @@ export default function Login() {
                   {channel==='email' ? <Mail size={20} color="#3b82f6"/> : <MessageCircle size={20} color="#25D366"/>}
                 </div>
                 <div>
-                  <div style={{ fontWeight:800, fontSize:15, color:T.text }}>{channel==='email'?'Vérification par E-mail':'Vérification WhatsApp'}</div>
+                  <div style={{ fontWeight:800, fontSize:15, color:T.text }}>{channel==='email'? t('login.email_verification', 'Vérification par E-mail') : t('login.whatsapp_verification', 'Vérification WhatsApp')}</div>
                   <div style={{ fontSize:12, color:T.dim }}>{t('login.enter_registered','Saisissez votre identifiant enregistré').replace('{channel}', channel==='email'?'e-mail':'WhatsApp')}</div>
                 </div>
               </div>
@@ -364,7 +453,7 @@ export default function Login() {
           {view === 'enter_otp' && (
             <div style={{ animation:'fadeSlide .3s ease forwards' }}>
               <button onClick={() => setView('enter_id')} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', color:T.dim, cursor:'pointer', fontSize:13, marginBottom:24, padding:0 }}>
-                <ArrowLeft size={14}/> Retour
+                <ArrowLeft size={14}/> {t('login.back', 'Retour')}
               </button>
               <h1 style={{ fontSize:22, fontWeight:900, color:T.text, margin:'0 0 20px' }}>
                 {t('login.enter_code','Entrez le code reçu')}
@@ -377,12 +466,12 @@ export default function Login() {
               {import.meta.env.DEV && debugOtp && (
                 <div style={{ background:'rgba(234,179,8,.1)', border:'1.5px dashed rgba(234,179,8,.4)', borderRadius:10, padding:'10px 16px', marginBottom:14, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
                   <div>
-                    <div style={{ color:'#fbbf24', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:.5, marginBottom:3 }}>DEV — Code OTP</div>
+                    <div style={{ color:'#fbbf24', fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:.5, marginBottom:3 }}>{t('login.dev_otp', 'DEV — Code OTP')}</div>
                     <div style={{ color:'#fef08a', fontSize:24, fontWeight:800, fontFamily:'monospace', letterSpacing:5 }}>{debugOtp}</div>
                   </div>
                   <button type="button" onClick={() => setOtpCode(debugOtp)}
                     style={{ padding:'6px 12px', background:'rgba(234,179,8,.15)', border:'1px solid rgba(234,179,8,.3)', borderRadius:8, color:'#fbbf24', fontSize:12, fontWeight:600, cursor:'pointer' }}>
-                    Remplir
+                    {t('login.fill', 'Remplir')}
                   </button>
                 </div>
               )}

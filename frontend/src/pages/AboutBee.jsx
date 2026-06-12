@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useToast }   from '../hooks/useToast';
 import { useBeeNav }  from '../hooks/useBeeNav';
 import { useBeeData } from '../hooks/useBeeData';
-import beeIconImg  from '../assets/bee/bee-icon.png';
 import beeSketchImg from '../assets/bee/bee-sketch.png';
 import {
   LayoutDashboard, MapPin, Hexagon, Bell, RefreshCw,
@@ -23,6 +22,8 @@ import VisitesTab        from '../components/bee/VisitesTab';
 import GlobalFinanceTab  from '../components/bee/GlobalFinanceTab';
 import HiveMetricCard    from '../components/bee/HiveMetricCard';
 import BeeMLDashboard  from '../components/bee/BeeMLDashboard';
+import SwarmRiskCard   from '../components/bee/SwarmRiskCard';
+import BeeHealthScanner from '../components/bee/BeeHealthScanner';
 import { beeApi }      from '../services/beeApi';
 import api             from '../services/api';
 import { useAuth }     from '../context/AuthContext';
@@ -256,7 +257,7 @@ export default function AboutBee() {
   const [modalActive,  setModalActive] = useState(null);
   const [filterApiary, setFilterApiary] = useState('');
   const [prodForm,     setProdForm]    = useState({ production_date:'', apiary_id:'', honey_kg:'', pollen_kg:'' });
-  const [stock,        setStock]       = useState(() => {
+  const [stock]                        = useState(() => {
     try { return JSON.parse(localStorage.getItem('bee_stock') || '{}'); } catch { return {}; }
   });
   const [previsions, setPrevisions] = useState(() => {
@@ -306,13 +307,6 @@ export default function AboutBee() {
   const handleAddProd = async () => {
     const ok = await addProduction(prodForm);
     if (ok) { setProdForm({ production_date:'', apiary_id:'', honey_kg:'', pollen_kg:'' }); setModalActive(null); }
-  };
-  const handleStockUpdate = (id, delta) => {
-    setStock(prev => {
-      const u = { ...prev, [id]: Math.max(0, (prev[id]||0) + delta) };
-      localStorage.setItem('bee_stock', JSON.stringify(u));
-      return u;
-    });
   };
   const handleAddPrevision = p => {
     const next = [...previsions, {
@@ -843,6 +837,13 @@ export default function AboutBee() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* ── IA prédictive : essaimage (balance IoT) + diagnostic santé (vision) ── */}
+                  <div style={{ marginTop:16, display:'grid',
+                    gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,340px),1fr))', gap:16 }}>
+                    <SwarmRiskCard />
+                    <BeeHealthScanner />
                   </div>
                 </div>
               )}
