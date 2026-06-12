@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   CalendarDays, Sprout, SprayCan, ChevronLeft, ChevronRight,
   Bell, BellRing, Loader2, MapPin, Snowflake, AlertTriangle,
-  CheckCircle2, X, Wheat, Thermometer, Microscope, TrendingUp,
+  CheckCircle2, X, Wheat, Thermometer, Microscope, TrendingUp, Droplets,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { calendarAPI, alertsAPI } from '../services/api';
@@ -67,6 +67,7 @@ export default function CropCalendar() {
   const [gdd,        setGdd]        = useState(null);    // phénologie degrés-jours
   const [gddLoading, setGddLoading] = useState(false);
   const [risks,      setRisks]      = useState([]);      // indices risque maladie
+  const [water,      setWater]      = useState(null);    // bilan hydrique parcelle
 
   const isOwner = user?.role === 'owner' || user?.role === 'superadmin';
 
@@ -104,6 +105,9 @@ export default function CropCalendar() {
       .then((r) => { if (alive) setGdd(r.data?.error ? null : r.data); })
       .catch(() => { if (alive) setGdd(null); })
       .finally(() => { if (alive) setGddLoading(false); });
+    calendarAPI.waterBalance(farmId, gddCrop)
+      .then((r) => { if (alive) setWater(r.data?.error ? null : r.data); })
+      .catch(() => { if (alive) setWater(null); });
     return () => { alive = false; };
   }, [farmId, gddCrop]);
 
@@ -297,6 +301,39 @@ export default function CropCalendar() {
               </div>
             )}
           </div>
+
+          {/* Bilan hydrique parcelle */}
+          {water && (
+            <div style={{ background: T.surface, border: `1.5px solid ${T.border}`, borderTop: `3px solid ${water.status === 'stress' ? T.red : water.status === 'warning' ? T.amber : '#0ea5e9'}`, borderRadius: 14, padding: '14px 16px', boxShadow: T.shadow }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 9, background: '#e0f2fe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Droplets size={15} color="#0ea5e9" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: T.textPri }}>{t('crop_calendar.wb_title')}</div>
+                  <div style={{ fontSize: 8.5, color: T.textMut }}>{t('crop_calendar.wb_sub')} · {water.soil?.source === 'soilgrids' ? 'ISRIC' : 'sol type'}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 26, fontWeight: 900, color: '#0ea5e9', letterSpacing: -1 }}>{Math.round((water.stock_mm / water.taw_mm) * 100)}%</span>
+                <span style={{ fontSize: 10, color: T.textMut, fontWeight: 700 }}>{t('crop_calendar.wb_stock')} ({water.stock_mm}/{water.taw_mm} mm)</span>
+              </div>
+              <div style={{ height: 6, background: '#e0f2fe', borderRadius: 99, overflow: 'hidden', marginBottom: 7 }}>
+                <div style={{ width: `${Math.min(100, (water.stock_mm / water.taw_mm) * 100)}%`, height: '100%', background: water.status === 'stress' ? T.red : water.status === 'warning' ? T.amber : 'linear-gradient(90deg,#7dd3fc,#0ea5e9)', borderRadius: 99 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 7 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, background: '#f0f9ff', color: '#0369a1', padding: '2px 10px', borderRadius: 99 }}>
+                  {t('crop_calendar.wb_autonomy')} : {water.days_until_stress} {t('crop_calendar.wb_days')}
+                </span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: T.textMut, padding: '2px 4px' }}>
+                  ETc {water.series?.[water.series.length - 1]?.etc} mm/j
+                </span>
+              </div>
+              <div style={{ fontSize: 10.5, color: water.status === 'stress' ? T.red : T.textSec, fontWeight: water.status === 'stress' ? 700 : 400, lineHeight: 1.5 }}>
+                💧 {water.recommendation}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

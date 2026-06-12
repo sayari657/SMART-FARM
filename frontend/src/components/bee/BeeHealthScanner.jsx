@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Microscope, Upload, Loader2, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { cvAPI } from '../../services/api';
 import ModelClassesInfo from '../ModelClassesInfo';
 
@@ -46,6 +47,7 @@ const compressImage = (dataUrl, maxWidth = 420, quality = 0.7) =>
  * manquante, pillage) sont poussés vers le Moniteur Souverain (/alerts).
  */
 export default function BeeHealthScanner() {
+  const { t } = useTranslation();
   const [img, setImg]         = useState(null);
   const [result, setResult]   = useState(null);
   const [busy, setBusy]       = useState(false);
@@ -84,8 +86,8 @@ export default function BeeHealthScanner() {
       }
     } catch (err) {
       setError(err?.response?.status === 503
-        ? 'Modèle indisponible (mode cloud) — réessayez sur le serveur local.'
-        : 'Erreur d\'analyse. Réessayez.');
+        ? t('ai_cards.model_unavailable')
+        : t('ai_cards.analyze_error'));
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -108,7 +110,7 @@ export default function BeeHealthScanner() {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#2c1a0e' }}>
-            Diagnostic Santé Colonie — Photo
+            {t('ai_cards.bh_title')}
           </div>
           <div style={{ fontSize: 9, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: 0.6 }}>
             YOLOv8-cls · BeeImage · top-1 97,9 % · varroa / reine / pillage
@@ -128,8 +130,8 @@ export default function BeeHealthScanner() {
           cursor: 'pointer', background: '#fffbeb44',
         }}>
           <Upload size={20} color="#d97706" style={{ opacity: 0.7 }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#78716c' }}>Photo d'abeille (cadre / planche d'envol)</span>
-          <span style={{ fontSize: 9, color: '#a8a29e' }}>PNG · JPG — analyse instantanée</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#78716c' }}>{t('ai_cards.bh_upload')}</span>
+          <span style={{ fontSize: 9, color: '#a8a29e' }}>{t('ai_cards.upload_hint')}</span>
           <input ref={inputRef} type="file" hidden accept="image/*" onChange={handleFile} />
         </label>
       ) : (

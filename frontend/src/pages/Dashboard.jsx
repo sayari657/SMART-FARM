@@ -14,6 +14,7 @@ import api, { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, external
 import { useAuth } from '../context/AuthContext';
 
 const AIScanner       = lazy(() => import('../components/AIScanner'));
+import PriceForecastCard from '../components/PriceForecastCard';
 const ExpertAssistant = lazy(() => import('../components/expert/ExpertAssistant'));
 import beeIconImg     from '../assets/bee/bee-icon.png';
 import cowIconImg     from '../assets/cow/cow-icon.png';
@@ -725,6 +726,13 @@ export default function Dashboard() {
             </div>
           </div>
           ) : null}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════
+            PRIX MARCHÉ + PRÉVISION (historique réel, job quotidien)
+        ═══════════════════════════════════════════════════════════ */}
+        <div style={{ marginBottom: 28 }}>
+          <PriceForecastCard />
         </div>
 
         {/* ═══════════════════════════════════════════════════════════

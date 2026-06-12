@@ -37,8 +37,18 @@ LaTeX : tableaux dans `tests/rag_eval/results/rag_eval_20260611_*.md`.
 - Par classe : ant_problems 100 %, healthy 100 %, missing_queen 100 %,
   hive_being_robbed 96 %, varroa 89–94 % (confusion uniquement entre les
   2 étiquettes varroa quasi-synonymes du dataset)
-- ⚠️ Limite à signaler : frames issues de rafales vidéo → un split aléatoire
-  peut surestimer l'accuracy (recommandation : group split par ruche/date)
+- **Comparaison des protocoles de validation** (résultat méthodologique clé) :
+
+| Protocole de split | Top-1 | Commentaire |
+|---|---|---|
+| Aléatoire par image | 97,9 % | Surestimé : frames d'une même rafale vidéo en train ET val |
+| **Group-split par session vidéo** (date+location, 4 groupes / 1 393 images) | **85,4 %** | Performance honnête en généralisation vers de nouvelles ruches |
+
+  → Écart de 12,5 points = fuite d'information du split naïf, quantifiée
+  expérimentalement (`mlops/train_varroa.py --group-split`,
+  run `mlruns_yolo/bee_health_cls_group/`). Le modèle déployé reste celui
+  du split aléatoire (démo), la valeur group-split est celle à citer comme
+  performance attendue en conditions réelles.
 - Figures : `mlruns_yolo/bee_health_cls/confusion_matrix_normalized.png`, `results.png`
 - Déployé : `POST /cv/classify?category=bee_health` + scanner UI + alertes
 

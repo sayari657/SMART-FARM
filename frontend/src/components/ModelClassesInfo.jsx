@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getLabelEntry } from '../utils/labelTranslations';
 
 /**
@@ -11,6 +12,7 @@ import { getLabelEntry } from '../utils/labelTranslations';
  * @param {Object}   palette  - optionnel : {label_lowercase: couleur} pour les puces
  */
 export default function ModelClassesInfo({ classes = [], accent = '#16a34a', palette = {} }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   if (!classes.length) return null;
 
@@ -40,7 +42,7 @@ export default function ModelClassesInfo({ classes = [], accent = '#16a34a', pal
           <Info size={11} color={accent} />
         </span>
         <span style={{ fontSize: 10, fontWeight: 800, color: accent, letterSpacing: 0.3 }}>
-          {classes.length} classes détectables · فئات قابلة للكشف
+          {classes.length} {t('ai_cards.classes_btn')}
         </span>
         <span style={{ marginLeft: 'auto', color: accent, lineHeight: 0 }}>
           {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}

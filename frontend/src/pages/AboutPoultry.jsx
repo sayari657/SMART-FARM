@@ -14,6 +14,7 @@ import {
 import Navbar from '../components/Navbar';
 import AnimalERP from '../components/AnimalERP';
 import AIScanner from '../components/AIScanner';
+import PoultrySurvivalCard from '../components/PoultrySurvivalCard';
 import ExpertAssistant from '../components/expert/ExpertAssistant';
 import LivestockAICharts from '../components/LivestockAICharts';
 import { farmsAPI, workerTasksAPI, farmWorkersAPI, poultryAPI, settingsAPI } from '../services/api';
@@ -165,7 +166,7 @@ function FeatureCard({ icon: Icon, title, desc, color }) {
 
 function AperçuTab({ onGoToERP }) {
   const { farmId } = useAuth();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [liveStats, setLiveStats] = useState(null);
   const [batches,   setBatches]   = useState([]);
 
@@ -681,6 +682,9 @@ function SurveillanceTab() {
 
       {/* ── AIScanner (image upload) ── */}
       <AIScanner category="chicken" title={t('poultry.surveillance.scanner_title')} color={C} />
+
+      {/* ── Analyse de survie Kaplan-Meier des lots ── */}
+      <PoultrySurvivalCard farmId={fid} color={C} />
     </div>
   );
 }
@@ -734,7 +738,7 @@ function ProtocolsTab() {
   const [editingFcr, setEditingFcr] = useState(false);
   const [fcrDraft,   setFcrDraft]   = useState([]);
   const [realLogs,   setRealLogs]   = useState([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [, setLoadingLogs] = useState(false);
 
   useEffect(() => {
     if (!selectedBatchId) return;
@@ -850,7 +854,7 @@ function ProtocolsTab() {
 
   // ── Phase tracker helpers ─────────────────────────────────────────────────
   const parseDayRange = (str) => {
-    const m = String(str).match(/J?(\d+)\s*[–\-]\s*J?(\d+)/);
+    const m = String(str).match(/J?(\d+)\s*[–-]\s*J?(\d+)/);
     return m ? { start: parseInt(m[1]), end: parseInt(m[2]) } : null;
   };
   const getBatchAge = (batch) => {
@@ -1609,7 +1613,7 @@ function ProtocolsTab() {
                         const isToday = date.toDateString() === today.toDateString();
                         const hasVax  = vaxList.length > 0;
                         const allDone = hasVax && vaxList.every(v => pushed.has(`${batchType}-${v.day}`));
-                        const anyToday = hasVax && vaxList.some(v => {
+                        const anyToday = hasVax && vaxList.some(() => {
                           const cd = new Date(date); cd.setHours(12,0,0,0);
                           const diff = Math.round((cd - startD) / 86400000) + 1;
                           return batchDayAge === diff;
@@ -2449,7 +2453,6 @@ function TodayWorkspace() {
 export default function AboutPoultry() {
   const { i18n, t } = useTranslation();
   const { farmId: poultryFarmId } = useAuth();
-  const isAr = i18n.language === 'ar';
   const [activeTab, setActiveTab]     = useState('apercu');
   const [farmLoading, setFarmLoading] = useState(true);
 

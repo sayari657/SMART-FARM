@@ -7,7 +7,9 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 
-const VAPID_PUBLIC_KEY = 'BMIhtRO-3hwA1lq1ldCBniDypQzPbbv97OG32P82dbMxVWpqiemRlU5-GZ5x8yGdvXHPBhBywh8wqaw0RWbUJXc';
+// Clé régénérée le 2026-06-12 (rotation après fuite de l'ancienne clé privée
+// dans l'historique git). Les abonnements push existants se ré-abonneront.
+const VAPID_PUBLIC_KEY = 'BL8D_5v7d_GmIvbSQkRjRXgwdmZq1u_vSfKsOjcGv-uwyeoN2T0-ODqSXZN5J1VF6bcoHVLlHNa91HsUZQjO1fI';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);

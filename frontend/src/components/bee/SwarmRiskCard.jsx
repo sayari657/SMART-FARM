@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Scale, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { beeApi } from '../../services/beeApi';
 
 const LEVELS = {
-  critical: { color: '#dc2626', bg: '#fef2f2', label: 'CRITIQUE',  emoji: '🚨' },
-  high:     { color: '#ea580c', bg: '#fff7ed', label: 'ÉLEVÉ',     emoji: '⚠️' },
-  moderate: { color: '#d97706', bg: '#fffbeb', label: 'MODÉRÉ',    emoji: '👀' },
-  low:      { color: '#16a34a', bg: '#f0fdf4', label: 'FAIBLE',    emoji: '✅' },
+  critical: { color: '#dc2626', bg: '#fef2f2', key: 'level_critical', emoji: '🚨' },
+  high:     { color: '#ea580c', bg: '#fff7ed', key: 'level_high',     emoji: '⚠️' },
+  moderate: { color: '#d97706', bg: '#fffbeb', key: 'level_moderate', emoji: '👀' },
+  low:      { color: '#16a34a', bg: '#f0fdf4', key: 'level_low',      emoji: '✅' },
 };
 
 /**
@@ -14,6 +15,7 @@ const LEVELS = {
  * et la température du couvain. Source : /bee/analytics/swarm-risk.
  */
 export default function SwarmRiskCard() {
+  const { t } = useTranslation();
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,10 +42,10 @@ export default function SwarmRiskCard() {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: '#2c1a0e' }}>
-            Risque d'Essaimage — Balance Connectée
+            {t('ai_cards.swarm_title')}
           </div>
           <div style={{ fontSize: 9, color: '#a8a29e', textTransform: 'uppercase', letterSpacing: 0.6 }}>
-            Poids ruche · T° couvain · Modèle expert {data?.signals?.some(s => s.includes('ML')) ? '+ ML' : ''} · {data?.source === 'iot_csv' ? 'IoT NODE_B' : 'Télémétrie'}
+            {t('ai_cards.swarm_sub')} · {data?.source === 'iot_csv' ? 'IoT NODE_B' : 'DB'}
           </div>
         </div>
         <button onClick={load} disabled={loading} style={{
@@ -61,7 +63,7 @@ export default function SwarmRiskCard() {
         </div>
       ) : !data?.available ? (
         <div style={{ fontSize: 11, color: '#a8a29e', display: 'flex', alignItems: 'center', gap: 7 }}>
-          <AlertTriangle size={13} /> {data?.reason || 'Télémétrie ruche indisponible'}
+          <AlertTriangle size={13} /> {data?.reason || t('ai_cards.swarm_unavailable')}
         </div>
       ) : (
         <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -75,7 +77,7 @@ export default function SwarmRiskCard() {
               background: lv.bg, color: lv.color, borderRadius: 99, padding: '3px 12px',
               border: `1px solid ${lv.color}33`, display: 'inline-block',
             }}>
-              {lv.emoji} {lv.label}
+              {lv.emoji} {t(`ai_cards.${lv.key}`)}
             </div>
           </div>
 

@@ -21,7 +21,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 # ── VAPID / Web Push ───────────────────────────────────────────────────────
-VAPID_PUBLIC_KEY  = "BMIhtRO-3hwA1lq1ldCBniDypQzPbbv97OG32P82dbMxVWpqiemRlU5-GZ5x8yGdvXHPBhBywh8wqaw0RWbUJXc"
+VAPID_PUBLIC_KEY  = "BL8D_5v7d_GmIvbSQkRjRXgwdmZq1u_vSfKsOjcGv-uwyeoN2T0-ODqSXZN5J1VF6bcoHVLlHNa91HsUZQjO1fI"
 VAPID_PRIVATE_KEY = getattr(settings, "VAPID_PRIVATE_KEY", "")
 VAPID_EMAIL       = getattr(settings, "VAPID_EMAIL", "")
 

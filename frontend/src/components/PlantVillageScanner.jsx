@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Leaf, Upload, Loader2, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { cvAPI } from '../services/api';
 import ModelClassesInfo from './ModelClassesInfo';
 import { translateLabel } from '../utils/labelTranslations';
@@ -41,6 +42,7 @@ const T = {
  * (YOLOv8-cls, top-1 = 99 %). Diagnostic non-sain → Moniteur Souverain.
  */
 export default function PlantVillageScanner() {
+  const { t } = useTranslation();
   const [img, setImg]       = useState(null);
   const [result, setResult] = useState(null);
   const [busy, setBusy]     = useState(false);
@@ -83,8 +85,8 @@ export default function PlantVillageScanner() {
       }
     } catch (err) {
       setError(err?.response?.status === 503
-        ? 'Modèle indisponible — vérifiez le serveur local.'
-        : "Erreur d'analyse. Réessayez.");
+        ? t('ai_cards.model_unavailable')
+        : t('ai_cards.analyze_error'));
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = '';
@@ -105,7 +107,7 @@ export default function PlantVillageScanner() {
           <Leaf size={19} color="#fff" />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: T.textPri }}>PlantVillage — Diagnostic 38 Maladies</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: T.textPri }}>{t('ai_cards.pv_title')}</div>
           <div style={{ fontSize: 9, color: T.textMut, textTransform: 'uppercase', letterSpacing: 1 }}>
             YOLOv8-cls · top-1 99 % · 14 espèces · entraîné sur 54 305 images
           </div>
@@ -125,8 +127,8 @@ export default function PlantVillageScanner() {
             cursor: 'pointer', background: `${T.greenLt}44`,
           }}>
             <Upload size={20} color={T.green} style={{ opacity: 0.7 }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: T.textSec }}>Photo de feuille (pommier, vigne, tomate, maïs…)</span>
-            <span style={{ fontSize: 9, color: T.textMut }}>PNG · JPG — classification instantanée</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: T.textSec }}>{t('ai_cards.pv_upload')}</span>
+            <span style={{ fontSize: 9, color: T.textMut }}>{t('ai_cards.upload_hint')}</span>
             <input ref={inputRef} type="file" hidden accept="image/*" onChange={handleFile} />
           </label>
         ) : (

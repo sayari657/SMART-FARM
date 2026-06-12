@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Eye, Search, X, Camera, LayoutGrid, List,
   AlertOctagon, AlertTriangle, Info, Activity,
@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
-import { cvAPI, anomalyAPI } from '../services/api';
+import VideoCountCard from '../components/VideoCountCard';
+import { cvAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import CVModelsDashboard from '../components/CVModelsDashboard';
 
@@ -148,20 +149,6 @@ export default function CVMonitoring() {
     setDeleting(false);
   };
 
-  const purgeNoPreview = async () => {
-    setDeleting(true);
-    const noPreview = events.filter(e =>
-      !e.thumbnail_url && !e.frame_metadata?.thumbnail_b64
-    );
-    const dbIds = noPreview.map(e => e.id).filter(id => !String(id).startsWith('ls_'));
-    const lsIds = noPreview.map(e => e.id).filter(id => String(id).startsWith('ls_'));
-
-    setEvents(prev => prev.filter(e => e.thumbnail_url || e.frame_metadata?.thumbnail_b64));
-    removeLocal(lsIds);
-    if (dbIds.length) await cvAPI.purgeEvents(dbIds).catch(() => {});
-    setDeleting(false);
-  };
-
   const toggleSelect = (id) => {
     setSelected(prev => {
       const s = new Set(prev);
@@ -281,6 +268,11 @@ export default function CVMonitoring() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ── Comptage vidéo ByteTrack ── */}
+        <div style={{ marginBottom: 20 }}>
+          <VideoCountCard />
         </div>
 
         {/* ── Toolbar ── */}

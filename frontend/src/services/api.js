@@ -215,6 +215,14 @@ export const cvAPI = {
       timeout: 60000,
     });
   },
+  /** Comptage vidéo par tracking ByteTrack (identités uniques). */
+  trackCount: (file, category = 'chicken_detect') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/cv/track-count?category=${category}`, formData, {
+      timeout: 300000,   // tracking CPU d'un clip ≈ 1-2 min
+    });
+  },
 };
 
 // ---- Anomalies
@@ -249,6 +257,16 @@ export const calendarAPI = {
   gdd:       (farmId, crop = 'olivier') => api.get(`/calendar/gdd/${farmId}`, { params: { crop } }),
   /** Indices de risque maladie météo-pilotés (0-100). */
   diseaseRisk: (farmId)             => api.get(`/calendar/disease-risk/${farmId}`),
+  /** Bilan hydrique parcelle (SoilGrids + ERA5 + FAO-56). */
+  waterBalance: (farmId, crop = 'olivier') => api.get(`/irrigation/water-balance/${farmId}`, { params: { crop } }),
+};
+
+// ---- Market (prix agricoles + prévision sur historique réel)
+export const marketAPI = {
+  prices:   (products)            => api.get('/market/prices', { params: { products } }),
+  history:  (product)             => api.get(`/market/history/${product}`),
+  forecast: (product, horizon=14) => api.get(`/market/forecast/${product}`, { params: { horizon } }),
+  snapshot: ()                    => api.post('/market/snapshot'),
 };
 
 // ---- Recommendations
