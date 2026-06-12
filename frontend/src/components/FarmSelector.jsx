@@ -15,7 +15,9 @@ import { useAuth } from '../context/AuthContext';
  * ce qui re-déclenche tous les useEffect([farmId]) dans les pages.
  */
 export default function FarmSelector() {
-  const { farms, farmId, switchFarm, refreshFarms } = useAuth();
+  const auth = useAuth() || {};
+  const farms = Array.isArray(auth.farms) ? auth.farms : [];
+  const { farmId, switchFarm, refreshFarms } = auth;
   const [open, setOpen]         = useState(false);
   const [refreshing, setRefresh] = useState(false);
   const ref                     = useRef(null);
@@ -33,12 +35,15 @@ export default function FarmSelector() {
   const handleRefresh = async (e) => {
     e.stopPropagation();
     setRefresh(true);
-    await refreshFarms(farmId);
-    setRefresh(false);
+    try {
+      await refreshFarms?.(farmId);
+    } finally {
+      setRefresh(false);
+    }
   };
 
   const handleSwitch = (id) => {
-    switchFarm(id);
+    switchFarm?.(id);
     setOpen(false);
   };
 

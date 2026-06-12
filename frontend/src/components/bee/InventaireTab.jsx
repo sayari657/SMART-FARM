@@ -75,6 +75,16 @@ export default function InventaireTab({
     identifier: '', apiary_id: filterApiary || '', hive_type: 'Langstroth',
     queen_year: new Date().getFullYear(), health_score: 10, honey_level: 5,
     force_level: 5, has_queen: true, queen_count: 0,
+    /* inspection columns */
+    date: new Date().toISOString().slice(0, 10),
+    has_eggs:  false,
+    has_brood: false,
+    pente_ok:  true,
+    population: 'Moyen',
+    honey_str:  'Moyen',
+    pollen:     'Moyen',
+    nb_cadres:  10,
+    action_observation: '',
   };
   const [form, setForm] = useState(BLANK_FORM);
 
@@ -102,18 +112,17 @@ export default function InventaireTab({
 
   const handleSubmit = async (overrideForm) => {
     const base = overrideForm || form;
-    if (!base.apiary_id) { toast('Site requis.', 'warning'); return; }
+    if (!base.apiary_id) { toast('Site requis.', 'warning'); return null; }
     const payload = { ...base, apiary_id: Number(base.apiary_id) };
     const res = await beeApi.createHive(payload);
     if (!res.ok) {
       toast((await beeApi.json(res)).detail || 'Erreur création ruche', 'error');
-      return;
+      return null;
     }
     const newHive = await res.json();
-    toast('Ruche créée');
-    setForm(BLANK_FORM);
-    setShowForm(false);
+    toast('Ruche créée ✓');
     onAddRuche();
+    /* Queen bank (non-blocking — don't close wizard here, it handles its own close) */
     if (!payload.has_queen && payload.hive_type !== 'queen_bank') {
       const qbRes = await beeApi.getQueenBank();
       if (qbRes.ok) {
@@ -125,6 +134,14 @@ export default function InventaireTab({
         }
       }
     }
+    return newHive; /* wizard uses this to show QR step */
+  };
+
+  /* Called by wizard "Fermer" in success step */
+  const handleWizardClose = () => {
+    setForm(BLANK_FORM);
+    setShowForm(false);
+    setWizardStep(1);
   };
 
   const handleDispatch = async () => {
@@ -245,11 +262,10 @@ export default function InventaireTab({
           emplacements={emplacements}
           form={form}
           setForm={setForm}
-          BLANK_FORM={BLANK_FORM}
           wizardStep={wizardStep}
           setWizardStep={setWizardStep}
           onSubmit={handleSubmit}
-          onClose={() => setShowForm(false)}
+          onClose={handleWizardClose}
           toast={toast}
         />
       )}

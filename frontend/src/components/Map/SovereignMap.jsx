@@ -3,6 +3,21 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './SovereignMap.css'; // We will create this file
 
+// NDVI VIIRS NOAA-20 8 jours — NASA GIBS (WMTS public, sans clé API).
+// Les composites démarrent le 1er janvier puis tous les 8 jours ; on prend
+// la dernière période complète (marge de 12 j pour la latence de traitement).
+function latestNdviDate() {
+    const now = Date.now() - 12 * 86400 * 1000;
+    const year = new Date(now).getUTCFullYear();
+    const jan1 = Date.UTC(year, 0, 1);
+    const period = Math.floor((now - jan1) / (8 * 86400 * 1000));
+    const d = new Date(jan1 + period * 8 * 86400 * 1000);
+    return d.toISOString().slice(0, 10);
+}
+
+const NDVI_TILES = (date) =>
+    `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_NOAA20_NDVI_8Day/default/${date}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`;
+
 const SovereignMap = ({
     farms = [],
     vets = [],
@@ -20,6 +35,8 @@ const SovereignMap = ({
     const map = useRef(null);
     const markersRef = useRef([]);
     const [isStyleLoaded, setIsStyleLoaded] = React.useState(false);
+    const [showNdvi, setShowNdvi] = React.useState(false);
+    const ndviDate = latestNdviDate();
 
     // Default Style (Carto Voyager) - Better compatibility with ngrok/HTTPS
     const DEFAULT_MAP_STYLE = {
@@ -47,7 +64,7 @@ const SovereignMap = ({
             zoom: zoom,
             antialias: true,
             failIfMajorPerformanceCaveat: false,
-            transformRequest: (url, resourceType) => {
+            transformRequest: (url) => {
                 // Silencing the Auth Popup: Never send credentials for local map tiles
                 if (url.includes('/map-tiles')) {
                     return {
@@ -93,6 +110,40 @@ const SovereignMap = ({
             }
         };
     }, []);
+
+    // NDVI satellite overlay (NASA GIBS) — toggled by the user
+    useEffect(() => {
+        if (!map.current) return;
+        const apply = () => {
+            const m = map.current;
+            if (!m) return;
+            try {
+                if (showNdvi) {
+                    if (!m.getSource('ndvi')) {
+                        m.addSource('ndvi', {
+                            type: 'raster',
+                            tiles: [NDVI_TILES(ndviDate)],
+                            tileSize: 256,
+                            maxzoom: 8,
+                            attribution: 'NDVI © NASA GIBS / VIIRS NOAA-20',
+                        });
+                    }
+                    if (!m.getLayer('ndvi-layer')) {
+                        m.addLayer({
+                            id: 'ndvi-layer',
+                            type: 'raster',
+                            source: 'ndvi',
+                            paint: { 'raster-opacity': 0.62 },
+                        });
+                    }
+                } else if (m.getLayer('ndvi-layer')) {
+                    m.removeLayer('ndvi-layer');
+                }
+            } catch (e) { console.warn('NDVI layer:', e); }
+        };
+        if (map.current.isStyleLoaded()) apply();
+        else map.current.once('styledata', apply);
+    }, [showNdvi, ndviDate]);
 
     // Camera Sync Logic: Fly-to when center/zoom props change
     useEffect(() => {
@@ -388,6 +439,46 @@ const SovereignMap = ({
     return (
         <div style={{ position: 'relative', width: '100%', height: height }}>
             <div ref={mapContainer} style={{ width: '100%', height: '100%', borderRadius: '24px' }} />
+
+            {/* ── Bascule NDVI satellite (NASA GIBS · MODIS Terra 16j) ── */}
+            <button
+                onClick={() => setShowNdvi(v => !v)}
+                title={`NDVI VIIRS NOAA-20 — composite 8 jours du ${ndviDate}`}
+                style={{
+                    position: 'absolute', top: 14, left: 14, zIndex: 5,
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    background: showNdvi ? 'linear-gradient(135deg,#16a34a,#15803d)' : 'rgba(255,255,255,0.95)',
+                    color: showNdvi ? '#fff' : '#475569',
+                    border: showNdvi ? 'none' : '1.5px solid #e2e8f0',
+                    borderRadius: 10, padding: '8px 14px', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 800, boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                }}>
+                🛰️ NDVI {showNdvi ? 'ON' : 'OFF'}
+            </button>
+
+            {/* Légende NDVI */}
+            {showNdvi && (
+                <div style={{
+                    position: 'absolute', top: 56, left: 14, zIndex: 5,
+                    background: 'rgba(255,255,255,0.95)', borderRadius: 10,
+                    border: '1.5px solid #e2e8f0', padding: '8px 12px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: 168,
+                }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: '#0f172a', marginBottom: 5 }}>
+                        Santé végétale (NDVI)
+                    </div>
+                    <div style={{
+                        height: 8, borderRadius: 4,
+                        background: 'linear-gradient(90deg,#a16207 0%,#eab308 30%,#84cc16 60%,#15803d 100%)',
+                    }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: '#94a3b8', marginTop: 3 }}>
+                        <span>Sol nu</span><span>Végétation dense</span>
+                    </div>
+                    <div style={{ fontSize: 8, color: '#94a3b8', marginTop: 4 }}>
+                        VIIRS NOAA-20 · {ndviDate} · NASA GIBS
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

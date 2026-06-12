@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   ArrowLeft, Hexagon, MapPin, ClipboardCheck, Boxes,
-  CalendarClock, Droplets, Wallet, Package, Zap, ScanEye
+  CalendarClock, Droplets, Package, Zap, ScanEye
 } from 'lucide-react';
 import { COLORS, gradeColor } from './BeeConstants';
 import { useHiveRefresh } from './useHiveRefresh';
@@ -12,7 +12,6 @@ import InspectionTab     from './HiveInspectionTab';
 import LogistiqueTab     from './HiveLogistiqueTab';
 import PlanningTab       from './HivePlanningTab';
 import RecolteTab        from './HiveRecolteTab';
-import FinanceTab        from './HiveFinanceTab';
 import QueenBankTab      from './HiveQueenBankTab';
 
 const HIVE_TABS = [
@@ -22,7 +21,6 @@ const HIVE_TABS = [
   { id: 'logistique', label: 'Logistique',  icon: Boxes },
   { id: 'planning',   label: 'Planning',    icon: CalendarClock },
   { id: 'recolte',    label: 'Récolte',     icon: Droplets },
-  { id: 'finance',    label: 'Finance',     icon: Wallet },
 ];
 
 export default function HiveDetailView({ hive, emplacements = [], onBack, toast }) {
@@ -35,7 +33,7 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
   const isQBBank = currentHive.hive_type === 'queen_bank';
 
   const tabs = isQBBank
-    ? [{ id: 'banque', label: '👑 Banque', icon: Package }, ...HIVE_TABS.filter(t => t.id === 'monitor' || t.id === 'finance')]
+    ? [{ id: 'banque', label: '👑 Banque', icon: Package }, ...HIVE_TABS.filter(t => t.id === 'monitor')]
     : HIVE_TABS;
 
   return (
@@ -154,7 +152,6 @@ export default function HiveDetailView({ hive, emplacements = [], onBack, toast 
         {activeTab === 'logistique' && <LogistiqueTab      hive={currentHive} toast={toast} />}
         {activeTab === 'planning'   && <PlanningTab        hive={currentHive} toast={toast} />}
         {activeTab === 'recolte'    && <RecolteTab         hive={currentHive} toast={toast} />}
-        {activeTab === 'finance'    && <FinanceTab         hive={currentHive} toast={toast} />}
       </div>
     </div>
   );

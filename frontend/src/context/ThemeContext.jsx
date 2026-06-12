@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
-const ThemeContext = createContext(null);
+const defaultTheme = {
+  dark: false,
+  toggleTheme: () => {},
+};
+
+const ThemeContext = createContext(defaultTheme);
 
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
@@ -20,5 +25,5 @@ export function ThemeProvider({ children }) {
 }
 
 export function useTheme() {
-  return useContext(ThemeContext);
+  return useContext(ThemeContext) || defaultTheme;
 }

@@ -146,6 +146,15 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const refreshProfile = useCallback(async () => {
+    try {
+      const profile = await authAPI.profile();
+      localStorage.setItem('user', JSON.stringify(profile.data));
+      setUser(profile.data);
+      return profile.data;
+    } catch { return null; }
+  }, []);
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -175,6 +184,7 @@ export function AuthProvider({ children }) {
       setFarmId: _persistFarmId,
       switchFarm,
       refreshFarms,
+      refreshProfile,
       onFarmCreated,
       loading,
       login,

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import PWAInstallPrompt from './components/PWAInstallPrompt';
 import OfflineBanner from './components/OfflineBanner';
 import PushNotificationSetup from './components/PushNotificationSetup';
 import { usePinLock, PinLockScreen } from './components/PinLock';
@@ -12,6 +11,7 @@ import MainLayout from './layouts/MainLayout';
 import WorkerLayout from './layouts/WorkerLayout';
 import SuperAdminLayout from './layouts/SuperAdminLayout';
 import NoFarmGuard from './components/NoFarmGuard';
+import ProGate from './components/ProGate';
 
 // Pages — lazy-loaded for code splitting
 const Landing             = lazy(() => import('./pages/Landing'));
@@ -22,10 +22,8 @@ const Farms               = lazy(() => import('./pages/Farms'));
 const FarmDetails         = lazy(() => import('./pages/FarmDetails'));
 const Animals             = lazy(() => import('./pages/Animals'));
 const AnimalDetails       = lazy(() => import('./pages/AnimalDetails'));
-const TelemetryAnalysis   = lazy(() => import('./pages/TelemetryAnalysis'));
 const CVMonitoring        = lazy(() => import('./pages/CVMonitoring'));
 const AlertsCenter        = lazy(() => import('./pages/AlertsCenter'));
-const Recommendations     = lazy(() => import('./pages/Recommendations'));
 const Reports             = lazy(() => import('./pages/Reports'));
 const Settings            = lazy(() => import('./pages/Settings'));
 const AboutBee            = lazy(() => import('./pages/AboutBee'));
@@ -40,6 +38,7 @@ const ArbresPlantations   = lazy(() => import('./pages/ArbresPlantations'));
 const MapCenter           = lazy(() => import('./pages/MapCenter'));
 const Entrepot            = lazy(() => import('./pages/Entrepot'));
 const NotFound            = lazy(() => import('./pages/NotFound'));
+const HiveInspectPage     = lazy(() => import('./pages/HiveInspectPage'));
 const WorkerLogin         = lazy(() => import('./pages/WorkerLogin'));
 const WorkerHome          = lazy(() => import('./pages/worker/WorkerHome'));
 const WorkerTasks         = lazy(() => import('./pages/worker/WorkerTasks'));
@@ -99,6 +98,9 @@ function AppRoutes() {
       <Route path="/worker-login" element={<WorkerLogin />} />
       <Route path="/register" element={<Register />} />
 
+      {/* QR Code landing — accessible to owners AND workers (no layout wrapper) */}
+      <Route path="/hive/:id" element={<Suspense fallback={<PageLoader />}><HiveInspectPage /></Suspense>} />
+
       {/* Protected layout — owner only */}
       <Route element={
         <OwnerRoute>
@@ -111,11 +113,10 @@ function AppRoutes() {
         <Route path="farms/:id"     element={<NoFarmGuard><FarmDetails /></NoFarmGuard>} />
         <Route path="animals"       element={<NoFarmGuard><Animals /></NoFarmGuard>} />
         <Route path="animals/:id"   element={<NoFarmGuard><AnimalDetails /></NoFarmGuard>} />
-        <Route path="telemetry"     element={<NoFarmGuard><TelemetryAnalysis /></NoFarmGuard>} />
         <Route path="cv"            element={<NoFarmGuard><CVMonitoring /></NoFarmGuard>} />
         <Route path="alerts"        element={<NoFarmGuard><AlertsCenter /></NoFarmGuard>} />
-        <Route path="recommendations" element={<NoFarmGuard><Recommendations /></NoFarmGuard>} />
-        <Route path="reports"       element={<NoFarmGuard><Reports /></NoFarmGuard>} />
+        <Route path="recommendations" element={<Navigate to="/reports" replace />} />
+        <Route path="reports"       element={<NoFarmGuard><ProGate><Reports /></ProGate></NoFarmGuard>} />
         <Route path="settings"      element={<Settings />} />
         <Route path="aboutbee" element={<AboutBee />} />
         <Route path="aboutcow" element={<AboutCows />} />
@@ -124,7 +125,7 @@ function AppRoutes() {
         <Route path="aboutsheep" element={<AboutSheep />} />
         <Route path="aboutgoat" element={<AboutGoats />} />
         <Route path="aboutrabbit" element={<AboutRabbit />} />
-        <Route path="assistant" element={<SovereignAssistant />} />
+        <Route path="assistant" element={<ProGate><SovereignAssistant /></ProGate>} />
         <Route path="about-project" element={<AboutProject />} />
         <Route path="trees" element={<ArbresPlantations />} />
         <Route path="map" element={<MapCenter />} />
@@ -187,7 +188,6 @@ function AppWithPin() {
         position="top-right"
         toastOptions={{ duration: 4000, style: { fontSize: 13, fontWeight: 700, maxWidth: 'min(420px, calc(100vw - 32px))' } }}
       />
-      <PWAInstallPrompt />
       <PushNotificationSetup />
     </>
   );

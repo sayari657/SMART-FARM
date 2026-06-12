@@ -58,7 +58,7 @@ describe('Recommendations page', () => {
 
   it('shows navbar with correct title', () => {
     render(<MemoryRouter><Recommendations /></MemoryRouter>);
-    expect(screen.getByTestId('navbar')).toHaveTextContent(/Recommandations/i);
+    expect(screen.getByTestId('navbar')).toHaveTextContent(/Intelligence Agronomique/i);
   });
 
   it('shows tab navigation or main content', () => {

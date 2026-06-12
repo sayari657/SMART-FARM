@@ -127,6 +127,7 @@ export default function InspectionTab({ hive, onVisitCreated, toast }) {
 
   const [form, setForm] = useState({
     visit_date: new Date().toISOString().split('T')[0],
+    visit_name: '',
     health_state: 'health', temperature: '', honey_level: 'Moyen',
     needs_sirop: 0, needs_pate: 0, needs_traitement: 0,
     harvest_kg: 0, pollen_kg: 0, notes: '', photo_url: '', gps_coords: '',
@@ -159,7 +160,8 @@ export default function InspectionTab({ hive, onVisitCreated, toast }) {
     setSubmitting(true);
     const payload = {
       hive_id: hive.id, apiary_id: hive.apiary_id,
-      visit_date: form.visit_date, health_state: form.health_state,
+      visit_date: form.visit_date, visit_name: form.visit_name || null,
+      health_state: form.health_state,
       temperature: form.temperature ? parseFloat(form.temperature) : null,
       honey_level: form.honey_level,
       needs_sirop: Number(form.needs_sirop) || 0,
@@ -178,7 +180,8 @@ export default function InspectionTab({ hive, onVisitCreated, toast }) {
     const saved = await res.json();
     setSubmitting(false);
     setShowForm(false);
-    setForm({ visit_date: new Date().toISOString().split('T')[0], health_state: 'health', temperature: '',
+    setForm({ visit_date: new Date().toISOString().split('T')[0], visit_name: '',
+      health_state: 'health', temperature: '',
       honey_level: 'Moyen', needs_sirop: 0, needs_pate: 0, needs_traitement: 0,
       harvest_kg: 0, pollen_kg: 0, notes: '', photo_url: '', gps_coords: '' });
     load();
@@ -226,6 +229,9 @@ export default function InspectionTab({ hive, onVisitCreated, toast }) {
           <div style={{ display: 'flex', gap: 10 }}>
             <input type="date" value={form.visit_date} onChange={e => setForm(f => ({ ...f, visit_date: e.target.value }))}
               style={{ ...inputSt, width: 160 }} />
+            <input type="text" value={form.visit_name} onChange={e => setForm(f => ({ ...f, visit_name: e.target.value }))}
+              placeholder="Nom de la visite (optionnel)"
+              style={{ ...inputSt, flex: 1 }} />
             <button onClick={captureGPS}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: form.gps_coords ? COLORS.success + '18' : COLORS.surface,
                 border: `1px solid ${form.gps_coords ? COLORS.success + '40' : COLORS.border}`,
@@ -371,6 +377,7 @@ export default function InspectionTab({ hive, onVisitCreated, toast }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ color: COLORS.text, fontWeight: 800 }}>{v.visit_date}</span>
+                    {v.visit_name && <span style={{ color: COLORS.text, fontWeight: 700, fontSize: 13 }}>{v.visit_name}</span>}
                     {healthBadge(v.health_state)}
                     {v.honey_level && <span style={{ color: COLORS.textMuted, fontSize: 11 }}>Miel: {v.honey_level}</span>}
                     {v.temperature && <span style={{ color: COLORS.honey, fontSize: 11 }}>🌡 {v.temperature}°C</span>}

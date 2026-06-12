@@ -1,114 +1,356 @@
-﻿import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import jsQR from 'jsqr';
 import {
-  ArrowLeft, QrCode, Calendar, Navigation,
-  ThumbsUp, AlertTriangle, AlertCircle, Droplets, Camera,
-  Plus, Package, X, Upload, ShieldPlus, Trash2, MapPin,
-  Heart, Search, Thermometer, CheckCircle, Grid3X3
+  QrCode, Calendar, Plus, X, Trash2, MapPin,
+  Search, CheckCircle, Hash, ArrowLeft, ChevronDown
 } from 'lucide-react';
 import { COLORS } from './BeeConstants';
+import { cacheVisit } from '../../services/offlineVisitCache';
+import FullscreenVisitForm from './FullscreenVisitForm';
+import HiveHistoryPanel from './HiveHistoryPanel';
+import { beeApi } from '../../services/beeApi';
 
-const DRAFT_KEY = 'bee_visit_draft';
+/* ══════════════════════════════════════════
+   QR Scanner modal
+══════════════════════════════════════════ */
+function QRScannerModal({ ruches, onFound, onClose }) {
+  const videoRef  = useRef(null);
+  const canvasRef = useRef(null);
+  const rafRef    = useRef(null);
+  const [error, setError] = useState('');
+  const [hint,  setHint]  = useState('');
 
-const HEALTH_OPTIONS = [
-  { id: 'health',    label: 'En bonne santé',   icon: ThumbsUp,     color: COLORS.success },
-  { id: 'warning',   label: 'À surveiller',      icon: AlertTriangle, color: COLORS.honey },
-  { id: 'urgent',    label: 'Urgent',             icon: AlertCircle,   color: COLORS.error },
-  { id: 'treatment', label: 'Traitement requis',  icon: ShieldPlus,    color: COLORS.info }
-];
+  useEffect(() => {
+    let stream;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(s => {
+        stream = s;
+        if (videoRef.current) videoRef.current.srcObject = s;
+        scan();
+      })
+      .catch(() => setError("Impossible d'accéder à la caméra."));
 
-const healthBadge = (state) => {
-  const opt = HEALTH_OPTIONS.find(h => h.id === state) || HEALTH_OPTIONS[0];
+    function scan() {
+      rafRef.current = requestAnimationFrame(() => {
+        const v = videoRef.current, c = canvasRef.current;
+        if (!v || !c || v.readyState < 2) { scan(); return; }
+        c.width = v.videoWidth; c.height = v.videoHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(v, 0, 0);
+        const img  = ctx.getImageData(0, 0, c.width, c.height);
+        const code = jsQR(img.data, img.width, img.height);
+        if (code) {
+          const text = code.data.trim();
+          setHint(text);
+          stream?.getTracks().forEach(t => t.stop());
+          cancelAnimationFrame(rafRef.current);
+          const hive = ruches.find(r => r.identifier === text) ||
+                       ruches.find(r => String(r.id) === text);
+          onFound(hive || null, text);
+        } else { scan(); }
+      });
+    }
+    return () => { cancelAnimationFrame(rafRef.current); stream?.getTracks().forEach(t => t.stop()); };
+  }, []); // eslint-disable-line
+
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      background: opt.color + '18', color: opt.color,
-      padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 800, textTransform: 'uppercase'
-    }}>
-      <opt.icon size={12} /> {opt.label}
-    </span>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.88)',
+      backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ background: COLORS.surface, borderRadius: 28, padding: 24, maxWidth: 400, width: '100%',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.7)', border: `1px solid ${COLORS.borderHigh}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 11, background: COLORS.accent + '20',
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <QrCode size={18} color={COLORS.accent} />
+            </div>
+            <div>
+              <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 15 }}>Scanner QR</div>
+              <div style={{ color: COLORS.textMuted, fontSize: 11 }}>Pointez vers l'étiquette</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: COLORS.textMuted, cursor: 'pointer' }}>
+            <X size={20} />
+          </button>
+        </div>
+        {error ? (
+          <div style={{ color: COLORS.error, textAlign: 'center', padding: 28, fontSize: 13 }}>{error}</div>
+        ) : (
+          <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', background: '#000', aspectRatio: '1' }}>
+            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+              <div style={{ width: 160, height: 160, border: `3px solid ${COLORS.accent}`,
+                borderRadius: 18, boxShadow: `0 0 0 9999px rgba(0,0,0,0.45)` }} />
+            </div>
+          </div>
+        )}
+        {hint && (
+          <div style={{ marginTop: 12, padding: '8px 14px', borderRadius: 10, textAlign: 'center',
+            background: COLORS.success + '12', color: COLORS.success, fontSize: 12, fontWeight: 700 }}>
+            ✓ Détecté : {hint}
+          </div>
+        )}
+        <button onClick={onClose} style={{ width: '100%', marginTop: 14, height: 42, borderRadius: 12,
+          background: 'rgba(0,0,0,0.06)', border: `1px solid ${COLORS.border}`,
+          color: COLORS.textMuted, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+          Annuler
+        </button>
+      </div>
+    </div>
   );
-};
+}
 
+/* ══════════════════════════════════════════
+   Hive Picker modal  (QR  ou  Numéro)
+══════════════════════════════════════════ */
+function HivePickerModal({ ruches, emplacements, onSelect, onClose }) {
+  const [mode,       setMode]   = useState(null);   // 'qr' | 'manual'
+  const [manualVal,  setManual] = useState('');
+  const [matchErr,   setMatchErr] = useState('');
+
+  const confirmManual = () => {
+    const v = manualVal.trim();
+    if (!v) return;
+    const hive = ruches.find(r => r.identifier?.toLowerCase() === v.toLowerCase()) ||
+                 ruches.find(r => String(r.id) === v);
+    if (!hive) { setMatchErr(`Aucune ruche trouvée pour "${v}"`); return; }
+    onSelect(hive);
+  };
+
+  const handleQR = (hive, raw) => {
+    if (!hive) { setMode('manual'); setManual(raw); setMatchErr(`Aucune ruche "${raw}"`); }
+    else        { onSelect(hive); }
+  };
+
+  return (
+    <>
+      {mode === 'qr' && <QRScannerModal ruches={ruches} onFound={handleQR} onClose={() => setMode(null)} />}
+
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ background: COLORS.surface, borderRadius: 28, padding: 32, maxWidth: 440, width: '100%',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.6)', border: `1px solid ${COLORS.borderHigh}` }}>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+            <div>
+              <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 18 }}>Identifier la ruche</div>
+              <div style={{ color: COLORS.textMuted, fontSize: 12, marginTop: 3 }}>
+                Scannez le QR ou saisissez le numéro
+              </div>
+            </div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: COLORS.textMuted, cursor: 'pointer' }}>
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Two big option buttons */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
+            <button onClick={() => setMode('qr')}
+              style={{ padding: '22px 12px', borderRadius: 18, cursor: 'pointer',
+                border: `2px solid ${COLORS.accent}40`,
+                background: `linear-gradient(135deg,${COLORS.accent}12,${COLORS.accent}05)`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.border = `2px solid ${COLORS.accent}`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.border = `2px solid ${COLORS.accent}40`; e.currentTarget.style.transform = 'none'; }}>
+              <div style={{ width: 52, height: 52, borderRadius: 16, background: COLORS.accent + '20',
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <QrCode size={26} color={COLORS.accent} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 13 }}>Scanner QR Code</div>
+                <div style={{ color: COLORS.textMuted, fontSize: 10, marginTop: 3, lineHeight: 1.4 }}>
+                  Caméra sur l'étiquette
+                </div>
+              </div>
+            </button>
+
+            <button onClick={() => { setMode('manual'); setMatchErr(''); }}
+              style={{ padding: '22px 12px', borderRadius: 18, cursor: 'pointer',
+                border: `2px solid ${COLORS.info}40`,
+                background: `linear-gradient(135deg,${COLORS.info}12,${COLORS.info}05)`,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+                transition: 'all .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.border = `2px solid ${COLORS.info}`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.border = `2px solid ${COLORS.info}40`; e.currentTarget.style.transform = 'none'; }}>
+              <div style={{ width: 52, height: 52, borderRadius: 16, background: COLORS.info + '20',
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Hash size={26} color={COLORS.info} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ color: COLORS.text, fontWeight: 900, fontSize: 13 }}>Numéro de ruche</div>
+                <div style={{ color: COLORS.textMuted, fontSize: 10, marginTop: 3, lineHeight: 1.4 }}>
+                  Saisie manuelle
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Manual input */}
+          {mode === 'manual' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input autoFocus value={manualVal}
+                  onChange={e => { setManual(e.target.value); setMatchErr(''); }}
+                  onKeyDown={e => e.key === 'Enter' && confirmManual()}
+                  placeholder="ex: HIVE-0001"
+                  style={{ flex: 1, height: 44, background: COLORS.bg2,
+                    border: `1.5px solid ${matchErr ? COLORS.error : COLORS.border}`,
+                    borderRadius: 12, padding: '0 14px', color: COLORS.text,
+                    outline: 'none', fontSize: 14, fontWeight: 700 }} />
+                <button onClick={confirmManual}
+                  style={{ height: 44, padding: '0 18px', borderRadius: 12, cursor: 'pointer',
+                    background: `linear-gradient(135deg,${COLORS.accent},${COLORS.accentDark})`,
+                    border: 'none', color: 'white', fontWeight: 800, fontSize: 13 }}>
+                  OK
+                </button>
+              </div>
+              {matchErr && <div style={{ color: COLORS.error, fontSize: 11, fontWeight: 600 }}>{matchErr}</div>}
+
+              {/* Suggestions */}
+              {manualVal.length >= 1 && !matchErr && (
+                <div style={{ background: COLORS.bg2, borderRadius: 12, border: `1px solid ${COLORS.border}`,
+                  maxHeight: 200, overflowY: 'auto' }}>
+                  {ruches
+                    .filter(r => r.identifier?.toLowerCase().includes(manualVal.toLowerCase()))
+                    .slice(0, 10)
+                    .map(r => {
+                      const site = emplacements.find(e => e.id === r.apiary_id);
+                      return (
+                        <button key={r.id} onClick={() => onSelect(r)}
+                          style={{ width: '100%', padding: '9px 14px', background: 'none',
+                            border: 'none', borderBottom: `1px solid ${COLORS.border}`,
+                            cursor: 'pointer', display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: COLORS.text, fontWeight: 800, fontSize: 13 }}>{r.identifier}</span>
+                          <span style={{ color: COLORS.textMuted, fontSize: 11 }}>{site?.name || ''}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════
+   Hive View  =  full-page form  +  history below
+══════════════════════════════════════════ */
+function HiveView({ hive, emplacements, onBack, onChangeHive }) {
+  const [tick,       setTick]      = useState(0);
+  const [showPicker, setShowPicker] = useState(false);
+  const [allHives,   setAllHives]  = useState([]);
+  const apiary = emplacements.find(e => e.id === hive.apiary_id);
+
+  useEffect(() => {
+    beeApi.getHives().then(r => r.ok && r.json().then(setAllHives));
+  }, []);
+
+  const handleSubmit = async (payload) => {
+    const res = await beeApi.createVisit(payload);
+    if (!res.ok) {
+      console.error('createVisit failed:', res.status, await res.text().catch(() => ''));
+      return false;
+    }
+    setTick(t => t + 1);
+    const saved = await res.json().catch(() => null);
+    if (saved?.id) {
+      cacheVisit(payload.hive_id, saved);
+      const prev = await beeApi.previewVisit(payload)
+        .then(r => r.ok ? r.json() : null).catch(() => null);
+      if (prev && Object.keys(prev?.hive_updates || {}).length > 0)
+        await beeApi.applyVisit(saved.id).catch(() => {});
+    }
+    return true;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {showPicker && (
+        <HivePickerModal
+          ruches={allHives} emplacements={emplacements}
+          onSelect={h => { setShowPicker(false); onChangeHive(h); }}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
+
+      {/* ── Nav bar ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <button onClick={onBack}
+          style={{ background: 'none', border: 'none', color: COLORS.textMuted,
+            display: 'flex', alignItems: 'center', gap: 8,
+            cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+          <ArrowLeft size={16} /> Toutes les visites
+        </button>
+        <button onClick={() => setShowPicker(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6,
+            background: COLORS.bg2, border: `1px solid ${COLORS.border}`,
+            borderRadius: 10, padding: '7px 14px', cursor: 'pointer',
+            color: COLORS.textMuted, fontSize: 12, fontWeight: 700 }}>
+          <Hash size={13} /> Changer de ruche <ChevronDown size={12} />
+        </button>
+      </div>
+
+      {/* ── Fullscreen stepper form ── */}
+      <FullscreenVisitForm hive={hive} apiary={apiary} onSubmit={handleSubmit} />
+
+      {/* ── History below ── */}
+      <div style={{
+        background: COLORS.surface,
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 24, padding: '28px 32px',
+        minHeight: 300,
+      }}>
+        <HiveHistoryPanel hive={hive} refreshTick={tick} />
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   Health badge (table list)
+══════════════════════════════════════════ */
+const HEALTH_COLORS = {
+  health: COLORS.success, warning: COLORS.honey,
+  urgent: COLORS.error,   treatment: COLORS.info,
+};
+const HEALTH_LABELS = {
+  health: '💚 Bonne', warning: '🟡 Surveiller',
+  urgent: '🔴 Urgent', treatment: '💊 Traitement',
+};
+function HealthBadge({ state }) {
+  const c   = HEALTH_COLORS[state] || COLORS.textMuted;
+  const lbl = HEALTH_LABELS[state] || state;
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: c + '18', color: c, padding: '4px 10px',
+      borderRadius: 7, fontSize: 11, fontWeight: 800 }}>{lbl}</span>
+  );
+}
+
+/* ══════════════════════════════════════════
+   Main VisitesTab
+══════════════════════════════════════════ */
 export default function VisitesTab({
   visites = [], ruches = [], emplacements = [],
+  /* legacy props kept for compatibility */
   isAddingVisit, setIsAddingVisit,
   visiteForm = {}, setVisiteForm,
   handleAddVisite, onDelete
 }) {
-  const photoInputRef    = useRef(null);
-  const nativePhotoRef   = useRef(null);
-  const videoRef         = useRef(null);
-  const [showCamera,     setShowCamera]     = useState(false);
-  const [photoMenuOpen,  setPhotoMenuOpen]  = useState(false);
-  const [showHiveGrid,   setShowHiveGrid]   = useState(false);
-  const [searchTerm,     setSearchTerm]     = useState('');
-  const [filterHealth,   setFilterHealth]   = useState('');
-  const [draftSaved,     setDraftSaved]     = useState(false);
+  const [selectedHive, setSelectedHive] = useState(null);
+  const [showPicker,   setShowPicker]   = useState(false);
+  const [searchTerm,   setSearchTerm]   = useState('');
+  const [filterHealth, setFilterHealth] = useState('');
 
-  /* ── Draft auto-save (localStorage) ── */
-  useEffect(() => {
-    if (!isAddingVisit) return;
-    const t = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(visiteForm));
-      setDraftSaved(true);
-      setTimeout(() => setDraftSaved(false), 1500);
-    }, 800);
-    return () => clearTimeout(t);
-  }, [visiteForm, isAddingVisit]);
+  const openHive = (hive) => { setSelectedHive(hive); setShowPicker(false); };
 
-  /* Load draft on open */
-  useEffect(() => {
-    if (isAddingVisit && !visiteForm.hive_id) {
-      try {
-        const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
-        if (draft.hive_id) setVisiteForm(prev => ({ ...prev, ...draft }));
-      } catch {}
-    }
-  }, [isAddingVisit]); // eslint-disable-line
-
-  /* ── Photo helpers ── */
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => { setVisiteForm(f => ({ ...f, photo_url: reader.result })); setPhotoMenuOpen(false); };
-    reader.readAsDataURL(file);
-  };
-
-  const startCamera = async () => {
-    try {
-      setShowCamera(true); setPhotoMenuOpen(false);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch {
-      alert("Impossible d'accéder à la caméra. Vérifiez les permissions.");
-      setShowCamera(false);
-    }
-  };
-
-  const takePhoto = () => {
-    if (!videoRef.current) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    setVisiteForm({ ...visiteForm, photo_url: canvas.toDataURL('image/jpeg') });
-    stopCamera();
-  };
-
-  const stopCamera = () => {
-    videoRef.current?.srcObject?.getTracks().forEach(t => t.stop());
-    setShowCamera(false);
-  };
-
-  const captureGPS = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setVisiteForm({ ...visiteForm, gps_coords: `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}` });
-    });
-  };
-
-  /* ── Filtered visits ── */
   const filteredVisites = visites.filter(v => {
     const ruche = ruches.find(r => r.id === (v.hive_id || v.rucheId));
     const matchSearch = !searchTerm || (ruche?.identifier || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -116,445 +358,142 @@ export default function VisitesTab({
     return matchSearch && matchHealth;
   });
 
-  const inputStyle = {
-    width: '100%', height: 48, background: '#F8F5F0',
-    border: `1px solid ${COLORS.border}`, borderRadius: 12,
-    padding: '0 16px', color: COLORS.text, outline: 'none', fontSize: 14
-  };
+  /* ── Hive View ── */
+  if (selectedHive) {
+    return (
+      <HiveView
+        hive={selectedHive}
+        emplacements={emplacements}
+        onBack={() => setSelectedHive(null)}
+        onChangeHive={openHive}
+      />
+    );
+  }
 
-  /* ═══════════════════ ADD VISIT FORM ═══════════════════ */
-  if (isAddingVisit) return (
-    <div style={{ background: COLORS.surface, borderRadius: 32, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
-
-      {/* Header */}
-      <div style={{ padding: '28px 40px', borderBottom: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <button onClick={() => { setIsAddingVisit(false); setShowHiveGrid(false); }}
-            style={{ background: 'none', border: 'none', color: COLORS.textMuted,
-              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-            <ArrowLeft size={18}/> Retour à l'historique
-          </button>
-          {draftSaved && (
-            <span style={{ fontSize: 11, color: COLORS.success, fontWeight: 800,
-              background: COLORS.success + '15', padding: '4px 12px', borderRadius: 8 }}>
-              ✓ Brouillon sauvegardé
-            </span>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: COLORS.accent + '20',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <QrCode size={28} color={COLORS.accent}/>
-          </div>
-          <div style={{ flex: 1 }}>
-            <h2 style={{ color: COLORS.text, fontSize: 22, fontWeight: 900, margin: '0 0 14px' }}>Nouvelle Inspection</h2>
-
-            {/* ── Ruche selection ── */}
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 800, letterSpacing: 1, marginBottom: 8 }}>SÉLECTIONNER UNE RUCHE</div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                {/* Dropdown fallback */}
-                <select
-                  value={visiteForm.hive_id || ''}
-                  onChange={e => {
-                    const ruche = ruches.find(r => r.id === Number(e.target.value));
-                    setVisiteForm(f => ({ ...f, hive_id: e.target.value, apiary_id: ruche?.apiary_id || '' }));
-                    setShowHiveGrid(false);
-                  }}
-                  style={{ height: 42, padding: '0 14px', background: COLORS.bg2,
-                    border: `1px solid ${visiteForm.hive_id ? COLORS.accent : COLORS.border}`,
-                    borderRadius: 12, color: COLORS.text, outline: 'none', fontSize: 13, fontWeight: 700,
-                    maxWidth: 260 }}>
-                  <option value="">Choisir dans la liste…</option>
-                  {ruches.map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.identifier} ({emplacements.find(e => e.id === r.apiary_id)?.name || '?'})
-                    </option>
-                  ))}
-                </select>
-                {/* Visual grid toggle */}
-                <button onClick={() => setShowHiveGrid(v => !v)}
-                  style={{ height: 42, padding: '0 14px', borderRadius: 12, cursor: 'pointer',
-                    background: showHiveGrid ? COLORS.accent + '20' : COLORS.bg2,
-                    border: `1px solid ${showHiveGrid ? COLORS.accent : COLORS.border}`,
-                    color: showHiveGrid ? COLORS.accent : COLORS.textMuted,
-                    fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <Grid3X3 size={14}/> Grille visuelle
-                </button>
-                {visiteForm.hive_id && (
-                  <span style={{ padding: '4px 12px', borderRadius: 99, background: COLORS.accent + '18',
-                    color: COLORS.accent, fontWeight: 800, fontSize: 12,
-                    border: `1px solid ${COLORS.accent}30` }}>
-                    🔶 {ruches.find(r => String(r.id) === String(visiteForm.hive_id))?.identifier || 'Ruche sélectionnée'}
-                  </span>
-                )}
-              </div>
-
-              {/* ── Visual hive grid ── */}
-              {showHiveGrid && (
-                <div style={{ marginTop: 12, padding: 16, background: COLORS.bg2,
-                  borderRadius: 16, border: `1px solid ${COLORS.border}`,
-                  maxHeight: 220, overflowY: 'auto' }}>
-                  <div style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 700, marginBottom: 10 }}>
-                    {ruches.length} ruches — cliquez pour sélectionner
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {ruches.map(r => {
-                      const sel = String(visiteForm.hive_id) === String(r.id);
-                      const site = emplacements.find(e => e.id === r.apiary_id);
-                      const sc = r.health_score ?? 7;
-                      const hc = sc >= 8 ? COLORS.gradeA : sc >= 6 ? COLORS.gradeB : sc >= 4 ? COLORS.gradeC : COLORS.gradeD;
-                      return (
-                        <button key={r.id}
-                          onClick={() => { setVisiteForm(f => ({ ...f, hive_id: String(r.id), apiary_id: r.apiary_id || '' })); setShowHiveGrid(false); }}
-                          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                            padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
-                            background: sel ? hc + '25' : COLORS.surface,
-                            border: `2px solid ${sel ? hc : COLORS.border}`,
-                            minWidth: 80, touchAction: 'manipulation',
-                            boxShadow: sel ? `0 0 12px ${hc}30` : 'none', transition: 'all .15s' }}>
-                          <div style={{ width: 20, height: 20, borderRadius: 6, background: hc + '30',
-                            border: `1.5px solid ${hc}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: hc }}/>
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.text }}>{r.identifier}</span>
-                          <span style={{ fontSize: 9, color: COLORS.textMuted }}>{site?.name || '?'}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* ── Date + GPS (optional) ── */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: COLORS.accentLight, fontWeight: 700 }}>
-                <Calendar size={16}/>
-                <input type="date"
-                  value={visiteForm.visit_date || new Date().toISOString().split('T')[0]}
-                  onChange={e => setVisiteForm(f => ({ ...f, visit_date: e.target.value }))}
-                  style={{ background: 'transparent', border: 'none', color: COLORS.accentLight,
-                    fontWeight: 700, cursor: 'pointer', outline: 'none' }}/>
-              </div>
-              <button onClick={captureGPS}
-                style={{ display: 'flex', alignItems: 'center', gap: 6,
-                  color: visiteForm.gps_coords ? COLORS.success : COLORS.textMuted,
-                  background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
-                <Navigation size={14} color={visiteForm.gps_coords ? COLORS.success : COLORS.textMuted}/>
-                {visiteForm.gps_coords ? '✓ GPS capturé' : 'GPS (optionnel)'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: 40 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 32 }}>
-          {/* Left column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-
-            {/* Bilan santé */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Heart size={18} color={COLORS.textMuted} />
-                <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>BILAN DE SANTÉ</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-                {HEALTH_OPTIONS.map(st => {
-                  const emoji = st.id === 'health' ? '💚' : st.id === 'warning' ? '🟡' : st.id === 'urgent' ? '🔴' : '💊';
-                  const sel = visiteForm.health_state === st.id;
-                  return (
-                    <button key={st.id} onClick={() => setVisiteForm({ ...visiteForm, health_state: st.id })}
-                      style={{
-                        padding: '18px 12px', borderRadius: 18, cursor: 'pointer', minHeight: 80,
-                        border: sel ? `3px solid ${st.color}` : `1px solid ${COLORS.border}`,
-                        background: sel ? `${st.color}22` : 'rgba(0,0,0,0.02)',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                        transition: 'all 0.2s', boxShadow: sel ? `0 0 18px ${st.color}30` : 'none',
-                      }}>
-                      <span style={{ fontSize: 28, lineHeight: 1 }}>{emoji}</span>
-                      <span style={{ fontWeight: 800, fontSize: 12, color: sel ? st.color : '#94a3b8', textAlign: 'center', lineHeight: 1.3 }}>{st.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Fournitures */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Package size={18} color={COLORS.textMuted} />
-                <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>FOURNITURES UTILISÉES</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-                {[
-                  { key: 'needs_sirop',      label: 'Sirop (L)',   color: COLORS.info },
-                  { key: 'needs_pate',       label: 'Pâte (kg)',   color: COLORS.success },
-                  { key: 'needs_traitement', label: 'Traitement',  color: COLORS.error }
-                ].map(item => (
-                  <div key={item.key} style={{ padding: '16px', borderRadius: 16, border: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: item.color, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{item.label}</span>
-                    <input
-                      type="number" min="0"
-                      value={visiteForm[item.key] || 0}
-                      onChange={(e) => setVisiteForm({ ...visiteForm, [item.key]: parseInt(e.target.value) || 0 })}
-                      style={{ background: 'none', border: 'none', color: COLORS.text, fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Récolte */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Droplets size={18} color={COLORS.accent} />
-                <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>RÉCOLTE (KG)</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
-                {[
-                  { key: 'harvest_kg', label: 'Miel', color: COLORS.accent },
-                  { key: 'pollen_kg',  label: 'Pollen', color: '#10b981' }
-                ].map(f => (
-                  <div key={f.key} style={{ padding: 16, borderRadius: 16, border: `1px solid ${COLORS.border}`, background: 'rgba(0,0,0,0.02)' }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: f.color, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>{f.label}</span>
-                    <input
-                      type="number" min="0" step="0.1"
-                      placeholder="0.0"
-                      value={visiteForm[f.key] || ''}
-                      onChange={(e) => setVisiteForm({ ...visiteForm, [f.key]: parseFloat(e.target.value) || 0 })}
-                      style={{ background: 'none', border: 'none', color: COLORS.text, fontSize: 22, fontWeight: 900, outline: 'none', width: '100%' }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Température */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Thermometer size={18} color={COLORS.honey} />
-                <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>TEMPÉRATURE AMBIANTE (°C)</span>
-              </div>
-              <input
-                type="number" step="0.1"
-                placeholder="ex: 23.5"
-                value={visiteForm.temperature || ''}
-                onChange={(e) => setVisiteForm({ ...visiteForm, temperature: e.target.value })}
-                style={{ ...inputStyle, fontSize: 20, fontWeight: 800, height: 56 }}
-              />
-            </div>
-          </div>
-
-          {/* Right column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-
-            {/* Photo */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Camera size={18} color={COLORS.textMuted} />
-                <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>CONSTAT VISUEL</span>
-              </div>
-              {/* Hidden inputs */}
-              <input type="file" ref={photoInputRef} onChange={handlePhotoUpload} accept="image/*" style={{ display: 'none' }}/>
-              {/* Native capture — opens camera directly on mobile */}
-              <input type="file" ref={nativePhotoRef} onChange={handlePhotoUpload} accept="image/*" capture="environment" style={{ display: 'none' }}/>
-
-              {showCamera ? (
-                <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', height: 260, background: 'black' }}>
-                  <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', bottom: 16, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 12 }}>
-                    <button onClick={takePhoto} style={{ width: 56, height: 56, borderRadius: '50%', background: 'white', border: '4px solid rgba(255,255,255,0.3)', cursor: 'pointer' }} />
-                    <button onClick={stopCamera} style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-              ) : visiteForm.photo_url ? (
-                <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', height: 220, border: `1px solid ${COLORS.border}` }}>
-                  <img src={visiteForm.photo_url} alt="Inspection" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button onClick={() => setVisiteForm({ ...visiteForm, photo_url: '' })} style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: COLORS.error, color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div style={{ position: 'relative' }}>
-                  <button onClick={() => setPhotoMenuOpen(!photoMenuOpen)} style={{ width: '100%', height: 130, border: `2px dashed ${COLORS.border}`, borderRadius: 20, background: 'rgba(0,0,0,0.02)', color: COLORS.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'border-color 0.2s' }}>
-                    <Camera size={28} />
-                    <span style={{ fontWeight: 700, fontSize: 13 }}>Ajouter une photo</span>
-                  </button>
-                  {photoMenuOpen && (
-                    <div style={{ position: 'absolute', top: '110%', left: 0, right: 0, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 8, zIndex: 10, boxShadow: '0 20px 40px rgba(0,0,0,0.6)' }}>
-                      <button onClick={() => { nativePhotoRef.current?.click(); setPhotoMenuOpen(false); }}
-                        style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
-                        <Camera size={16} color={COLORS.accent}/> 📸 Prendre une photo (caméra native)
-                      </button>
-                      <button onClick={startCamera} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
-                        <Camera size={16} color={COLORS.accent}/> Caméra in-app (webcam)
-                      </button>
-                      <button onClick={() => photoInputRef.current?.click()} style={{ width: '100%', padding: '12px 16px', textAlign: 'left', background: 'none', border: 'none', color: COLORS.text, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderRadius: 10 }}>
-                        <Upload size={16} color={COLORS.accent}/> Galerie / Fichier
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Honey level selector */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                <Droplets size={18} color={COLORS.accent} />
-                <span style={{ fontSize: 11, fontWeight: 900, color: COLORS.textMuted, letterSpacing: '1.5px' }}>NIVEAU DE MIEL</span>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {[
-                  { val: 'Faible',    emoji: '🏺', label: 'FAIBLE' },
-                  { val: 'Moyen',     emoji: '🍯', label: 'MOYEN' },
-                  { val: 'Bon',       emoji: '🍯', label: 'BON' },
-                  { val: 'Excellent', emoji: '🍯🍯', label: 'ABONDANT' },
-                ].map(lvl => {
-                  const sel = visiteForm.honey_level === lvl.val;
-                  return (
-                    <button key={lvl.val} onClick={() => setVisiteForm({ ...visiteForm, honey_level: lvl.val })}
-                      style={{
-                        flex: 1, padding: '14px 6px', borderRadius: 16, cursor: 'pointer', minHeight: 70,
-                        border: sel ? `3px solid ${COLORS.accent}` : `1px solid ${COLORS.border}`,
-                        background: sel ? COLORS.accent + '20' : 'rgba(0,0,0,0.02)',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        transition: 'all 0.2s', boxShadow: sel ? `0 0 14px ${COLORS.accent}30` : 'none',
-                      }}>
-                      <span style={{ fontSize: 22, lineHeight: 1 }}>{lvl.emoji}</span>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: sel ? COLORS.accent : COLORS.textMuted, letterSpacing: '0.5px' }}>{lvl.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div style={{ background: COLORS.bg, borderRadius: 24, padding: 28, border: `1px solid ${COLORS.border}`, flex: 1 }}>
-              <label style={{ color: COLORS.textMuted, fontSize: 11, fontWeight: 900, letterSpacing: '1.5px', display: 'block', marginBottom: 16 }}>OBSERVATIONS & NOTES</label>
-              <textarea
-                value={visiteForm.notes || ''}
-                onChange={(e) => setVisiteForm({ ...visiteForm, notes: e.target.value })}
-                placeholder="Décrivez vos observations : comportement des abeilles, état du couvain, présence de maladies..."
-                style={{ width: '100%', minHeight: 140, background: 'rgba(0,0,0,0.02)', border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 16, color: COLORS.text, resize: 'vertical', lineHeight: 1.6, outline: 'none', fontSize: 13 }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Submit */}
-        <button
-          onClick={() => { localStorage.removeItem(DRAFT_KEY); handleAddVisite(visiteForm); }}
-          style={{ width: '100%', height: 68, borderRadius: 20, background: `linear-gradient(135deg, ${COLORS.accent} 0%, ${COLORS.accentDark} 100%)`, border: 'none', color: 'white', fontSize: 17, fontWeight: 900, marginTop: 32, cursor: 'pointer', letterSpacing: '0.5px', boxShadow: `0 12px 30px -8px ${COLORS.accent}60`, transition: 'transform 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-        >
-          ✓ Valider l'Inspection & Mettre à jour l'Écosystème
-        </button>
-      </div>
-    </div>
-  );
-
-  /* ═══════════════════ VISITS LIST ═══════════════════ */
+  /* ── List View ── */
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {showPicker && (
+        <HivePickerModal
+          ruches={ruches}
+          emplacements={emplacements}
+          onSelect={openHive}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
+
       {/* Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 30, fontWeight: 900, color: COLORS.text, margin: 0 }}>Inspections</h1>
-          <p style={{ color: COLORS.textMuted, marginTop: 4, fontSize: 13 }}>{filteredVisites.length} inspection(s) enregistrée(s)</p>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: COLORS.text, margin: 0 }}>Visites</h1>
+          <p style={{ color: COLORS.textMuted, marginTop: 3, fontSize: 13 }}>
+            {filteredVisites.length} visite{filteredVisites.length !== 1 ? 's' : ''} enregistrée{filteredVisites.length !== 1 ? 's' : ''}
+          </p>
         </div>
-        <button
-          onClick={() => setIsAddingVisit(true)}
-          style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentDark})`, color: 'white', border: 'none', padding: '13px 28px', borderRadius: 16, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: `0 4px 20px ${COLORS.accent}40` }}
-        >
-          <Plus size={20} /> Nouvelle Inspection
+        <button onClick={() => setShowPicker(true)}
+          style={{ background: `linear-gradient(135deg,${COLORS.accent},${COLORS.accentDark})`,
+            color: 'white', border: 'none', padding: '12px 24px', borderRadius: 14,
+            fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center',
+            gap: 8, boxShadow: `0 4px 20px ${COLORS.accent}40`, fontSize: 14 }}>
+          <Plus size={18} /> Nouvelle Visite
         </button>
       </div>
 
-      {/* Search & Filter */}
-      <div style={{ display: 'flex', gap: 12 }}>
+      {/* Search + filter */}
+      <div style={{ display: 'flex', gap: 10 }}>
         <div style={{ flex: 1, position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: COLORS.textMuted }} />
-          <input
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Rechercher par ruche..."
-            style={{ width: '100%', height: 44, paddingLeft: 44, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, color: COLORS.text, outline: 'none', fontSize: 13 }}
-          />
+          <Search size={15} style={{ position: 'absolute', left: 14, top: '50%',
+            transform: 'translateY(-50%)', color: COLORS.textMuted }} />
+          <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Rechercher par ruche…"
+            style={{ width: '100%', height: 42, paddingLeft: 40, background: COLORS.surface,
+              border: `1px solid ${COLORS.border}`, borderRadius: 11,
+              color: COLORS.text, outline: 'none', fontSize: 13 }} />
         </div>
-        <select
-          value={filterHealth} onChange={e => setFilterHealth(e.target.value)}
-          style={{ height: 44, paddingLeft: 16, paddingRight: 16, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, color: COLORS.text, outline: 'none', fontSize: 13 }}
-        >
+        <select value={filterHealth} onChange={e => setFilterHealth(e.target.value)}
+          style={{ height: 42, padding: '0 14px', background: COLORS.surface,
+            border: `1px solid ${COLORS.border}`, borderRadius: 11,
+            color: COLORS.text, outline: 'none', fontSize: 13 }}>
           <option value="">Tous les états</option>
-          {HEALTH_OPTIONS.map(h => <option key={h.id} value={h.id}>{h.label}</option>)}
+          <option value="health">💚 Bonne santé</option>
+          <option value="warning">🟡 Surveiller</option>
+          <option value="urgent">🔴 Urgent</option>
+          <option value="treatment">💊 Traitement</option>
         </select>
       </div>
 
       {/* Table */}
-      <div style={{ background: COLORS.surface, borderRadius: 28, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
+      <div style={{ background: COLORS.surface, borderRadius: 24, border: `1px solid ${COLORS.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'rgba(0,0,0,0.03)' }}>
-              {['DATE', 'RUCHE', 'SITE', 'ÉTAT', 'RÉCOLTE', 'ACTIONS'].map(h => (
-                <th key={h} style={{ padding: '16px 24px', textAlign: 'left', color: COLORS.textMuted, fontSize: 11, fontWeight: 800, letterSpacing: '1px' }}>{h}</th>
+              {['DATE', 'RUCHE', 'SITE', 'REINE', 'POP', 'MIEL', 'CADRES', 'ÉTAT', 'ACTIONS'].map(h => (
+                <th key={h} style={{ padding: '14px 16px', textAlign: 'left',
+                  color: COLORS.textMuted, fontSize: 10, fontWeight: 800, letterSpacing: '1px' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredVisites.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ padding: '60px 0', textAlign: 'center', color: COLORS.textMuted }}>
-                  <CheckCircle size={40} style={{ margin: '0 auto 16px', display: 'block', opacity: 0.3 }} />
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>Aucune inspection enregistrée</div>
-                  <div style={{ fontSize: 12, marginTop: 6 }}>Cliquez sur "Nouvelle Inspection" pour commencer</div>
+                <td colSpan="9" style={{ padding: '48px 0', textAlign: 'center', color: COLORS.textMuted }}>
+                  <CheckCircle size={36} style={{ margin: '0 auto 14px', display: 'block', opacity: 0.25 }} />
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>Aucune visite enregistrée</div>
+                  <div style={{ fontSize: 12, marginTop: 5 }}>Cliquez sur "Nouvelle Visite" pour commencer</div>
                 </td>
               </tr>
-            ) : filteredVisites.map((v) => {
+            ) : filteredVisites.map(v => {
               const ruche = ruches.find(r => r.id === (v.hive_id || v.rucheId));
-              const site = emplacements.find(e => e.id === (v.apiary_id || ruche?.apiary_id));
+              const site  = emplacements.find(e => e.id === (v.apiary_id || ruche?.apiary_id));
+              const LDOT  = { FAIBLE: '🔴', MOYEN: '🟡', FORT: '🟢' };
               return (
-                <tr key={v.id} style={{ borderTop: `1px solid ${COLORS.border}`, transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.02)'}
+                <tr key={v.id}
+                  onClick={() => ruche && openHive(ruche)}
+                  style={{ borderTop: `1px solid ${COLORS.border}`, transition: 'background .12s',
+                    cursor: ruche ? 'pointer' : 'default' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.025)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '18px 24px', color: COLORS.text, fontWeight: 600, fontSize: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Calendar size={14} color={COLORS.textMuted} />
-                      {v.visit_date || v.date || '—'}
+                  <td style={{ padding: '14px 16px', fontSize: 13, fontWeight: 600, color: COLORS.text }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Calendar size={12} color={COLORS.textMuted} />
+                      {v.visit_date || '—'}
                     </div>
                   </td>
-                  <td style={{ padding: '18px 24px' }}>
-                    <span style={{ color: COLORS.text, fontWeight: 800 }}>{ruche?.identifier || v.hive_id || '—'}</span>
+                  <td style={{ padding: '14px 16px' }}>
+                    <span style={{ color: COLORS.accent, fontWeight: 900, fontSize: 13 }}>
+                      {ruche?.identifier || v.hive_id || '—'}
+                    </span>
                   </td>
-                  <td style={{ padding: '18px 24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: COLORS.textMuted, fontSize: 13 }}>
-                      <MapPin size={12} /> {site?.name || '—'}
+                  <td style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: COLORS.textMuted, fontSize: 12 }}>
+                      <MapPin size={11} /> {site?.name || '—'}
                     </div>
                   </td>
-                  <td style={{ padding: '18px 24px' }}>
-                    {healthBadge(v.health_state || v.etat || 'health')}
+                  <td style={{ padding: '14px 16px', fontSize: 13 }}>
+                    {v.reine === true  ? <span style={{ color: COLORS.success, fontWeight: 700 }}>✓ OUI</span>
+                    : v.reine === false ? <span style={{ color: COLORS.error,   fontWeight: 700 }}>✗ NON</span>
+                    : <span style={{ color: COLORS.textMuted }}>—</span>}
                   </td>
-                  <td style={{ padding: '18px 24px' }}>
-                    {(v.harvest_kg > 0 || v.pollen_kg > 0) ? (
-                      <div style={{ fontSize: 13 }}>
-                        {v.harvest_kg > 0 && <span style={{ color: COLORS.accent, fontWeight: 700 }}>{v.harvest_kg}kg miel</span>}
-                        {v.harvest_kg > 0 && v.pollen_kg > 0 && <span style={{ color: COLORS.border }}> · </span>}
-                        {v.pollen_kg > 0 && <span style={{ color: COLORS.success, fontWeight: 700 }}>{v.pollen_kg}kg pollen</span>}
-                      </div>
-                    ) : <span style={{ color: COLORS.textMuted, fontSize: 12 }}>—</span>}
+                  <td style={{ padding: '14px 16px', fontSize: 12 }}>
+                    {v.population ? `${LDOT[v.population] || ''} ${v.population}` : '—'}
                   </td>
-                  <td style={{ padding: '18px 24px' }}>
+                  <td style={{ padding: '14px 16px', fontSize: 12 }}>
+                    {v.honey_level ? `${LDOT[v.honey_level] || ''} ${v.honey_level}` : '—'}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontSize: 12, color: COLORS.info, fontWeight: 700 }}>
+                    {v.nb_cadres || '—'}
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <HealthBadge state={v.health_state || 'health'} />
+                  </td>
+                  <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
                     {onDelete && (
-                      <button
-                        onClick={() => onDelete(v.id)}
-                        style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: 'none', color: COLORS.error, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        <Trash2 size={15} />
+                      <button onClick={() => onDelete(v.id)}
+                        style={{ width: 30, height: 30, borderRadius: 8,
+                          background: 'rgba(239,68,68,0.08)', border: 'none',
+                          color: COLORS.error, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Trash2 size={13} />
                       </button>
                     )}
                   </td>

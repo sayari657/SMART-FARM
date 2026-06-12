@@ -122,6 +122,8 @@ export const beeApi = {
   /* ── Dépenses ── */
   getExpensesByHive:  (hiveId) => safeFetch(`${EXPENSES}?hive_id=${hiveId}`),
   getExpensesSummary: (hiveId) => safeFetch(`${EXPENSES}/summary?hive_id=${hiveId}`),
+  getExpensesAll:        ()     => safeFetch(`${EXPENSES}?limit=500`),
+  getExpensesSummaryAll: ()     => safeFetch(`${EXPENSES}/summary`),
   createExpense: (data) => safeFetch(EXPENSES, {
     method: 'POST', body: JSON.stringify(data),
   }),
@@ -147,6 +149,8 @@ export const beeApi = {
 
   /* ── Analytics ── */
   getPrediction: (hiveId) => safeFetch(`${PREDICT}/${hiveId}`),
+  /* Risque d'essaimage — balance ruche IoT + T° couvain (expert + ML) */
+  getSwarmRisk: () => safeFetch(`${ROOT}/bee/analytics/swarm-risk`),
 
   /* ── Catalogue Haddad ── */
   searchCatalog: (q) => safeFetch(`${SEARCH}?q=${encodeURIComponent(q)}`),

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AnimalCard from './AnimalCard';
 import {
   TrendingUp, Wallet, Package, Users,
   RefreshCw, AlertTriangle, CheckCircle, Bell,
@@ -229,38 +230,6 @@ export default function LivestockERP({ species = 'cow', color, farmId: propFarmI
         </div>
       )}
 
-      {/* ── Animal tab bar ── */}
-      {!loading && animals.length > 0 && (
-        <div style={{ display:'flex', gap:8, overflowX:'auto', scrollbarWidth:'none', marginBottom:0 }}>
-          {animals.map(a => {
-            const isActive = a.id === selectedId;
-            const stClr = { active:'#10b981', healthy:'#10b981', sold:'#f59e0b', dead:'#94a3b8', sick:'#ef4444' }[a.status] ?? '#94a3b8';
-            return (
-              <button key={a.id} onClick={() => setSelectedId(a.id)} style={{
-                display:'flex', alignItems:'center', gap:8, whiteSpace:'nowrap',
-                padding:'10px 18px',
-                background: isActive ? C.surface : C.bg,
-                border: `1px solid ${isActive ? erpColor : C.border}`,
-                borderBottom: isActive ? `1px solid ${C.surface}` : `1px solid ${C.border}`,
-                borderRadius: isActive ? '12px 12px 0 0' : 10,
-                cursor:'pointer', fontWeight: isActive ? 800 : 600,
-                fontSize:12, color: isActive ? erpColor : C.muted,
-                marginBottom: isActive ? -1 : 0,
-                zIndex: isActive ? 2 : 1, position:'relative', transition:'all .15s',
-              }}>
-                <span style={{ width:7, height:7, borderRadius:'50%', flexShrink:0, background:stClr }} />
-                {a.name || a.identifier || `#${a.id}`}
-                {a.identifier && a.name && (
-                  <span style={{ fontSize:10, background: isActive ? erpColor+'18' : C.border, color: isActive ? erpColor : C.muted, borderRadius:999, padding:'1px 7px', fontWeight:800 }}>
-                    #{a.identifier}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* ── Workspace panel ── */}
       {loading ? (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:80, flexDirection:'column', gap:14 }}>
@@ -277,11 +246,34 @@ export default function LivestockERP({ species = 'cow', color, farmId: propFarmI
         const sel = animals.find(a => a.id === selectedId);
         if (!sel) return null;
         return (
-          <div key={sel.id} style={{ background:C.surface, borderRadius:16, border:`1px solid ${erpColor}`, padding:'28px 28px', position:'relative', zIndex:1 }}>
+          <div key={sel.id} style={{ background:C.surface, borderRadius:16, border:`1px solid ${erpColor}`, padding:'28px 28px', marginTop:4 }}>
             <AnimalWorkspace animal={sel} farmId={farmId} color={erpColor} species={species} onRefresh={loadData} />
           </div>
         );
       })()}
+
+      {/* ── Animal cards grid ── */}
+      {!loading && animals.length > 0 && (
+        <div style={{ marginTop:28 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--color-text-3)', textTransform:'uppercase', letterSpacing:1.5, marginBottom:14 }}>
+            {sm.emoji} {sm.title} — {animals.length} animal{animals.length > 1 ? 'aux' : ''}
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:14 }}>
+            {animals.map(a => (
+              <div key={a.id}
+                onClick={() => { setSelectedId(a.id === selectedId ? null : a.id); window.scrollTo({ top:0, behavior:'smooth' }); }}
+                style={{
+                  cursor:'pointer',
+                  outline: a.id === selectedId ? `2px solid ${erpColor}` : '2px solid transparent',
+                  borderRadius:14, transition:'outline .15s',
+                }}
+              >
+                <AnimalCard unit={a} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

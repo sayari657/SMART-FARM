@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, ChevronRight, Activity } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import beeIconImg     from '../assets/bee/bee-icon.png';
 import cowIconImg     from '../assets/cow/cow-icon.png';
 import sheepIconImg   from '../assets/sheep/sheep-icon.png';
@@ -15,19 +16,23 @@ const SPECIES_IMG = {
 
 const SPECIES_EMOJI  = { bee: '🐝', cow: '🐄', poultry: '🐔', sheep: '🐑', goat: '🐐', rabbit: '🐰' };
 const SPECIES_COLORS = { bee: '#d97706', cow: '#7c3aed', poultry: '#0891b2', sheep: '#059669', goat: '#dc2626', rabbit: '#16a34a' };
-const STATUS_CFG = {
-  healthy:  { color: '#15803d', bg: '#f0fdf4', label: 'Sain' },
-  warning:  { color: '#d97706', bg: '#fffbeb', label: 'Attention' },
-  critical: { color: '#dc2626', bg: '#fef2f2', label: 'Critique' },
-  offline:  { color: '#94a3b8', bg: '#f8fafc', label: 'Hors ligne' },
-};
 
 export default function AnimalCard({ unit }) {
+  const { t } = useTranslation();
   const navigate   = useNavigate();
   const health     = unit.health_score ?? 0;
   const sp         = unit.species || 'bee';
   const spColor    = SPECIES_COLORS[sp] || '#16a34a';
-  const statusCfg  = STATUS_CFG[unit.status] || STATUS_CFG.offline;
+
+  // Status config pulled from i18n
+  const statusColors = {
+    healthy:  { color: '#15803d', bg: '#f0fdf4' },
+    warning:  { color: '#d97706', bg: '#fffbeb' },
+    critical: { color: '#dc2626', bg: '#fef2f2' },
+    offline:  { color: '#94a3b8', bg: '#f8fafc' },
+  };
+  const statusStyle = statusColors[unit.status] || statusColors.offline;
+  const statusLabel = t(`animal_card.status.${unit.status || 'offline'}`, unit.status || '—');
   const barColor   = health >= 80 ? '#15803d' : health >= 60 ? '#d97706' : '#dc2626';
 
   return (
@@ -38,7 +43,6 @@ export default function AnimalCard({ unit }) {
         <div className="anim-card-accent" style={{ background: spColor }} />
 
         {SPECIES_IMG[sp] ? (
-          /* Watercolor image for all known species */
           <div style={{
             width: 44, height: 44, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
             border: `2px solid ${spColor}50`,
@@ -62,26 +66,26 @@ export default function AnimalCard({ unit }) {
             <MapPin size={10} /> {unit.farm_name || '—'}
           </div>
         </div>
-        <div className="anim-card-status" style={{ background: statusCfg.bg, color: statusCfg.color }}>
-          <span className="anim-card-status-dot" style={{ background: statusCfg.color }} />
-          {statusCfg.label}
+        <div className="anim-card-status" style={{ background: statusStyle.bg, color: statusStyle.color }}>
+          <span className="anim-card-status-dot" style={{ background: statusStyle.color }} />
+          {statusLabel}
         </div>
       </div>
 
       {/* Body */}
       <div className="anim-card-body">
         <div className="anim-card-id">
-          ID: <span>{unit.identifier || '—'}</span> · {unit.species_display || sp}
+          ID: <span>{unit.identifier || '—'}</span> · {unit.species_display || t(`animals.species_labels.${sp}`, sp)}
         </div>
         <div className="anim-card-health-row">
-          <span className="anim-card-health-label"><Activity size={11} /> Santé</span>
+          <span className="anim-card-health-label"><Activity size={11} /> {t('animal_card.health', 'Santé')}</span>
           <span className="anim-card-health-val" style={{ color: barColor }}>{health.toFixed(0)}%</span>
         </div>
         <div className="anim-card-bar-bg">
           <div className="anim-card-bar-fill" style={{ width: `${health}%`, background: barColor }} />
         </div>
         <div className="anim-card-footer" style={{ color: spColor }}>
-          Voir le dossier <ChevronRight size={12} />
+          {t('animal_card.view_file', 'Voir le dossier')} <ChevronRight size={12} />
         </div>
       </div>
     </div>

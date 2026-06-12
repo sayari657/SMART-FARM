@@ -7,11 +7,10 @@ import { useTheme } from '../context/ThemeContext';
 import FarmSelector from './FarmSelector';
 import NotificationBell from './NotificationBell';
 
-/* ── Role badge config ───────────────────────────────────── */
 const ROLE_CFG = {
-  owner:      { label: 'Propriétaire', color: '#d97706', bg: 'rgba(217,119,6,.12)'  },
-  worker:     { label: 'Employé',      color: '#059669', bg: 'rgba(5,150,105,.12)'  },
-  superadmin: { label: 'Super Admin',  color: '#7c3aed', bg: 'rgba(124,58,237,.12)' },
+  owner:      { labelKey: 'navbar.owner', color: '#d97706', bg: 'rgba(217,119,6,.12)'  },
+  worker:     { labelKey: 'navbar.worker',      color: '#059669', bg: 'rgba(5,150,105,.12)'  },
+  superadmin: { labelKey: 'navbar.superadmin',  color: '#7c3aed', bg: 'rgba(124,58,237,.12)' },
 };
 
 /* ── Live clock ─────────────────────────────────────────── */
@@ -33,6 +32,7 @@ function LiveClock() {
 
 /* ── Online status dot ──────────────────────────────────── */
 function OnlineDot() {
+  const { t } = useTranslation();
   const [online, setOnline] = useState(navigator.onLine);
   useEffect(() => {
     const on  = () => setOnline(true);
@@ -43,7 +43,7 @@ function OnlineDot() {
   }, []);
 
   return (
-    <div title={online ? 'Connecté' : 'Hors-ligne'}
+    <div title={online ? t('navbar.online') : t('navbar.offline')}
       style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px',
         borderRadius: 99, background: online ? 'rgba(5,150,105,.10)' : 'rgba(239,68,68,.10)',
         border: `1px solid ${online ? 'rgba(5,150,105,.25)' : 'rgba(239,68,68,.25)'}` }}>
@@ -52,7 +52,7 @@ function OnlineDot() {
         : <WifiOff size={11} color="#ef4444"/>}
       <span style={{ fontSize: 10, fontWeight: 800,
         color: online ? '#059669' : '#ef4444' }}>
-        {online ? 'En ligne' : 'Hors-ligne'}
+        {online ? t('navbar.online') : t('navbar.offline')}
       </span>
     </div>
   );
@@ -200,7 +200,7 @@ export default function Navbar({ title, subtitle, actions }) {
         <button
           className="btn btn-secondary btn-sm navbar-hide-mobile"
           onClick={toggleTheme}
-          title={dark ? 'Mode clair' : 'Mode sombre'}
+          title={dark ? t('navbar.light_mode') : t('navbar.dark_mode')}
           style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
           {dark ? <Sun size={14}/> : <Moon size={14}/>}
@@ -256,7 +256,7 @@ export default function Navbar({ title, subtitle, actions }) {
                   textTransform: 'uppercase', color: roleCfg.color, lineHeight: 1,
                   marginTop: 2,
                 }}>
-                  {roleCfg.label}
+                  {t(roleCfg.labelKey)}
                 </div>
               )}
             </div>

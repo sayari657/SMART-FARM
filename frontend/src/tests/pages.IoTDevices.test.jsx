@@ -26,7 +26,7 @@ describe('IoTDevices page', () => {
 
   it('shows Capteurs IoT title', () => {
     render(<MemoryRouter><IoTDevices /></MemoryRouter>);
-    expect(screen.getByText('Capteurs IoT')).toBeInTheDocument();
+    expect(screen.getAllByText('Capteurs IoT').length).toBeGreaterThan(0);
   });
 
   it('shows add device button', () => {
@@ -42,13 +42,13 @@ describe('IoTDevices page', () => {
   it('opens modal when add button clicked', () => {
     render(<MemoryRouter><IoTDevices /></MemoryRouter>);
     fireEvent.click(screen.getByText(/Ajouter capteur/i));
-    expect(screen.getByText(/Ajouter capteur IoT/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ajouter un capteur IoT/i)).toBeInTheDocument();
   });
 
-  it('modal has sensor type selector', () => {
+  it('modal has sensor type choices', () => {
     render(<MemoryRouter><IoTDevices /></MemoryRouter>);
     fireEvent.click(screen.getByText(/Ajouter capteur/i));
-    const select = document.querySelector('select');
-    expect(select).toBeTruthy();
+    expect(screen.getByText('Type de capteur')).toBeInTheDocument();
+    expect(screen.getByText('temperature')).toBeInTheDocument();
   });
 });

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  LayoutDashboard, Building2, PawPrint, Activity, Eye,
-  AlertTriangle, Lightbulb, FileText, Settings, LogOut, Leaf,
+  LayoutDashboard, Building2, PawPrint, Eye,
+  AlertTriangle, FileText, Settings, LogOut, Leaf,
   Layers, Bot, TreePine, Map, X, ChevronLeft, ChevronRight,
-  ChevronDown, Warehouse, Cpu, Sun, Moon, Languages,
+  Warehouse, Cpu, Sun, Moon, Languages,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -18,6 +18,7 @@ const NAV = [
       { to: '/dashboard',    icon: LayoutDashboard,  labelKey: 'sidebar.dashboard' },
       { to: '/farms',        icon: Building2,        labelKey: 'sidebar.farms' },
       { to: '/animals',      icon: PawPrint,         labelKey: 'sidebar.animals' },
+      { to: '/aboutbee',     emoji: '🐝',            labelKey: 'sidebar.bee',    color: '#d97706' },
       { to: '/trees',        icon: TreePine,         labelKey: 'sidebar.trees' },
       { to: '/map',          icon: Map,              labelKey: 'sidebar.map_center' },
       { to: '/entrepot',    icon: Warehouse,        labelKey: 'sidebar.entrepot' },
@@ -26,16 +27,14 @@ const NAV = [
   },
   {
     section: 'Monitoring', items: [
-      { to: '/telemetry', icon: Activity,       labelKey: 'sidebar.telemetry' },
       { to: '/cv',        icon: Eye,            labelKey: 'sidebar.cv_monitoring' },
       { to: '/alerts',    icon: AlertTriangle,  labelKey: 'sidebar.alerts' },
     ]
   },
   {
     section: 'Intelligence', items: [
-      { to: '/assistant',       icon: Bot,       labelKey: 'sidebar.assistant' },
-      { to: '/recommendations', icon: Lightbulb, labelKey: 'sidebar.recommendations' },
-      { to: '/reports',         icon: FileText,  labelKey: 'sidebar.reports' },
+      { to: '/assistant', icon: Bot,      labelKey: 'sidebar.assistant' },
+      { to: '/reports',   icon: FileText, labelKey: 'sidebar.reports'   },
     ]
   },
   {
@@ -45,13 +44,6 @@ const NAV = [
   },
 ];
 
-const SPECIES_NAV = [
-  { to: '/aboutpoultry', emoji: '🐔', label: 'Volailles',    color: '#0891b2' },
-  { to: '/aboutcow',     emoji: '🐄', label: 'Bovins',       color: '#1d4ed8' },
-  { to: '/aboutsheep',   emoji: '🐑', label: 'Ovins',        color: '#7c3aed' },
-  { to: '/aboutgoat',    emoji: '🐐', label: 'Caprins',      color: '#dc2626' },
-  { to: '/aboutrabbit',  emoji: '🐰', label: 'Cuniculture',  color: '#0d9488' },
-];
 
 export default function Sidebar() {
   const { user, logout } = useAuth() || {};
@@ -69,10 +61,6 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar-collapsed') === 'true'
   );
-  const [speciesOpen, setSpeciesOpen] = useState(
-    () => localStorage.getItem('sidebar-species-open') !== 'false'
-  );
-
   useEffect(() => {
     document.documentElement.style.setProperty(
       '--sidebar-width', collapsed ? '68px' : '240px'
@@ -106,7 +94,7 @@ export default function Sidebar() {
         {!collapsed && (
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div className="sidebar-logo-text">Smart Farm AI</div>
-            <div className="sidebar-logo-sub">Enterprise Platform</div>
+            <div className="sidebar-logo-sub">{t('sidebar.enterprise_platform')}</div>
           </div>
         )}
         {/* Mobile close button */}
@@ -129,55 +117,33 @@ export default function Sidebar() {
                 {t(`sidebar.${section.toLowerCase()}`, section)}
               </div>
             )}
-            {items.map(({ to, icon: Icon, labelKey }) => (
+            {items.map(({ to, icon: Icon, emoji, labelKey, color }) => (
               <NavLink
                 key={to}
                 to={to}
                 onClick={handleNavClick}
                 className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
                 title={collapsed ? t(labelKey) : undefined}
+                style={({ isActive }) => color && isActive ? { borderInlineStart: `3px solid ${color}`, paddingInlineStart: collapsed ? undefined : 13 } : {}}
               >
-                <Icon size={16} style={{ flexShrink: 0 }} />
+                {emoji
+                  ? <span style={{ fontSize: collapsed ? 18 : 15, flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
+                  : <Icon size={16} style={{ flexShrink: 0 }} />
+                }
                 {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(labelKey)}</span>}
               </NavLink>
             ))}
           </div>
         ))}
 
-        {/* Élevage — species quick links */}
-        <div className="sidebar-section">
-          {!collapsed ? (
-            <button
-              onClick={() => { const next = !speciesOpen; setSpeciesOpen(next); localStorage.setItem('sidebar-species-open', String(next)); }}
-              style={{ display:'flex', alignItems:'center', width:'100%', background:'none', border:'none', cursor:'pointer',
-                padding:'0 12px 6px', gap:6, color:'var(--color-text-3)', fontSize:10, fontWeight:800, letterSpacing:1, textTransform:'uppercase' }}
-            >
-              <span style={{ flex:1 }}>Élevage</span>
-              <ChevronDown size={11} style={{ transform: speciesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition:'transform .2s' }} />
-            </button>
-          ) : null}
-          {(speciesOpen || collapsed) && SPECIES_NAV.map(sp => (
-            <NavLink
-              key={sp.to}
-              to={sp.to}
-              onClick={handleNavClick}
-              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-              title={collapsed ? sp.label : undefined}
-              style={({ isActive }) => isActive ? { borderInlineStart: `3px solid ${sp.color}`, paddingInlineStart: collapsed ? undefined : 13 } : {}}
-            >
-              <span style={{ fontSize: collapsed ? 18 : 15, flexShrink:0, lineHeight:1 }}>{sp.emoji}</span>
-              {!collapsed && <span style={{ overflow:'hidden', textOverflow:'ellipsis', fontSize:13 }}>{sp.label}</span>}
-            </NavLink>
-          ))}
-        </div>
       </div>
 
       {/* Collapse toggle — desktop only */}
-      <button className="sidebar-collapse-btn menu-toggle-desktop" onClick={toggleCollapse} title={collapsed ? 'Expand' : 'Collapse'}>
+      <button className="sidebar-collapse-btn menu-toggle-desktop" onClick={toggleCollapse} title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}>
         {collapsed ? <ChevronRight size={16} /> : (
           <>
             <ChevronLeft size={16} />
-            <span style={{ fontSize: 11 }}>Réduire</span>
+            <span style={{ fontSize: 11 }}>{t('sidebar.collapse')}</span>
           </>
         )}
       </button>
@@ -200,7 +166,7 @@ export default function Sidebar() {
           </select>
           <button
             onClick={toggleTheme}
-            title={dark ? 'Mode clair' : 'Mode sombre'}
+            title={dark ? t('navbar.light_mode') : t('navbar.dark_mode')}
             style={{
               background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
               borderRadius: 8, padding: '6px 10px', cursor: 'pointer',

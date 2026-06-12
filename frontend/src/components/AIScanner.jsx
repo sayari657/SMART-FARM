@@ -4,6 +4,7 @@ import { cvAPI, agentAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { translateLabel } from '../utils/labelTranslations';
+import ModelClassesInfo from './ModelClassesInfo';
 
 const CRITICAL_LABELS = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu', 'fumee', 'blight', 'rot', 'disease']);
 const SCAN_ALERT_KEY = 'farm_scan_alerts';
@@ -36,7 +37,7 @@ const pushScanAlert = (card) => {
 /**
  * BboxMiniCard: renders image with bbox overlay for history cards.
  */
-const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
+const BboxMiniCard = ({ imageUrl, detections, color, palette, labelFormatter }) => {
   const imgRef    = useRef(null);
   const canvasRef = useRef(null);
 
@@ -80,7 +81,7 @@ const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
       ctx.strokeRect(x1, y1, w, h);
 
       ctx.shadowBlur = 0;
-      const label = `${tLabel(det.label)} ${Math.round(det.confidence * 100)}%`;
+      const label = `${labelFormatter(det.label)} ${Math.round(det.confidence * 100)}%`;
       ctx.font = 'bold 8px sans-serif';
       const tw = ctx.measureText(label).width;
       ctx.fillStyle = boxColor;
@@ -88,7 +89,7 @@ const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
       ctx.fillStyle = '#fff';
       ctx.fillText(label, x1 + 3, Math.max(11, y1 - 2));
     });
-  }, [detections, palette, color]);
+  }, [detections, palette, color, labelFormatter]);
 
   useEffect(() => {
     const t = setTimeout(draw, 60);
@@ -110,7 +111,7 @@ const BboxMiniCard = ({ imageUrl, detections, color, palette }) => {
 };
 
 // ── BboxZoomCard: full-res image + bbox overlay for the zoom modal ────────────
-const BboxZoomCard = ({ imageUrl, detections, color, palette }) => {
+const BboxZoomCard = ({ imageUrl, detections, color, palette, labelFormatter }) => {
   const imgRef    = useRef(null);
   const canvasRef = useRef(null);
 
@@ -135,7 +136,7 @@ const BboxZoomCard = ({ imageUrl, detections, color, palette }) => {
       ctx.shadowBlur = 10; ctx.shadowColor = boxColor;
       ctx.strokeRect(x1, y1, w, h);
       ctx.shadowBlur = 0;
-      const lbl = `${tLabel(det.label).toUpperCase()} ${Math.round(det.confidence * 100)}%`;
+      const lbl = `${labelFormatter(det.label).toUpperCase()} ${Math.round(det.confidence * 100)}%`;
       ctx.font = 'bold 13px Inter, sans-serif';
       const tw = ctx.measureText(lbl).width;
       ctx.fillStyle = boxColor;
@@ -143,7 +144,7 @@ const BboxZoomCard = ({ imageUrl, detections, color, palette }) => {
       ctx.fillStyle = '#fff';
       ctx.fillText(lbl, x1 + 5, Math.max(16, y1 - 5));
     });
-  }, [detections, palette, color]);
+  }, [detections, palette, color, labelFormatter]);
 
   useEffect(() => { const t = setTimeout(draw, 80); return () => clearTimeout(t); }, [draw]);
 
@@ -157,7 +158,7 @@ const BboxZoomCard = ({ imageUrl, detections, color, palette }) => {
 };
 
 // ── ZoomModal: lightbox with full image, bbox, detection chips, CRUD ──────────
-const ZoomModal = ({ card, total, index, color, palette, onClose, onDelete, onPrev, onNext }) => {
+const ZoomModal = ({ card, total, index, color, palette, labelFormatter, onClose, onDelete, onPrev, onNext }) => {
   // Close on Escape, navigate with arrow keys
   useEffect(() => {
     const onKey = (e) => {
@@ -222,7 +223,7 @@ const ZoomModal = ({ card, total, index, color, palette, onClose, onDelete, onPr
 
         {/* ── Image + bbox ── */}
         <div style={{ overflow: 'auto', flex: 1 }}>
-          <BboxZoomCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
+          <BboxZoomCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} labelFormatter={labelFormatter} />
         </div>
 
         {/* ── Detections chips ── */}
@@ -236,7 +237,7 @@ const ZoomModal = ({ card, total, index, color, palette, onClose, onDelete, onPr
               const bc = palette?.[det.label?.toLowerCase()] || color;
               return (
                 <span key={i} style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: isCrit ? '#fef2f2' : `${bc}18`, color: isCrit ? '#ef4444' : bc, border: `1px solid ${isCrit ? '#ef444440' : `${bc}40`}` }}>
-                  {tLabel(det.label).toUpperCase()} — {Math.round(det.confidence * 100)}%
+                  {labelFormatter(det.label).toUpperCase()} — {Math.round(det.confidence * 100)}%
                 </span>
               );
             })}
@@ -302,14 +303,14 @@ const buildReportPrompt = (category, summary, avgConf, count, periodLabel) => {
 
 const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color = '#7c3aed', onAnalysisComplete }) => {
   const { i18n } = useTranslation();
-  const tLabel = (label) => translateLabel(label, i18n.language);
+  const tLabel = useCallback((label) => translateLabel(label, i18n.language), [i18n.language]);
 
   const [mode, setMode]             = useState('upload');
   const [isProcessing, setIsProcessing] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const [detections, setDetections] = useState([]);
   const [error, setError]           = useState(null);
-  const [, setMetadata]             = useState(null);
+  const [metadata, setMetadata]     = useState(null);
   const [palette, setPalette]       = useState({});
   const [detectionHistory, setDetectionHistory] = useState(() => loadHistory(category));
   const [aiReports, setAiReports]   = useState(() => loadReports(category));
@@ -509,7 +510,10 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
     return () => clearInterval(autoScanIntervalRef.current);
   }, [autoScan, mode, capturedImage, isProcessing, takePhoto]);
 
-  const getDetColor = (label) => palette[label?.toLowerCase()] || color;
+  const getDetColor = useCallback(
+    (label) => palette[label?.toLowerCase()] || color,
+    [palette, color],
+  );
 
   const drawBoxes = useCallback(() => {
     const canvas   = canvasRef.current;
@@ -552,7 +556,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
       ctx.fillStyle = '#fff'; ctx.fillText(labelTxt, x1 + 5, y1 - 6);
       ctx.restore();
     });
-  }, [detections, palette, mode, color, capturedImage]);
+  }, [detections, mode, capturedImage, getDetColor, tLabel]);
 
   useEffect(() => {
     const t = setTimeout(drawBoxes, 100);
@@ -642,6 +646,11 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         {!capturedImage && mode === 'upload' && <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}><Upload size={40} /><button className="btn btn-sm" onClick={() => fileInputRef.current.click()} style={{ marginTop: 12, background: 'white', color: '#000' }}>Parcourir</button></div>}
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }} />
         {isProcessing && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}><Loader2 className="animate-spin" color={color} size={40} /></div>}
+        {error && (
+          <div style={{ position: 'absolute', left: 12, right: 12, bottom: 12, zIndex: 110, padding: '9px 12px', borderRadius: 8, background: 'rgba(127,29,29,0.92)', color: '#fff', fontSize: 11, textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
         
         {/* Camera Selector Overlay */}
         {mode === 'camera' && !capturedImage && devices.length > 1 && (
@@ -681,6 +690,13 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         <button className="btn btn-sm" style={{ width: 40, height: 40, borderRadius: '50%', background: color, color: 'white' }}><Sparkles size={18} /></button>
       </div>
 
+      {/* ── ℹ️ Liste des classes du modèle (FR/EN/AR) — clic pour ouvrir/fermer ── */}
+      <ModelClassesInfo
+        classes={metadata?.names ? Object.values(metadata.names) : []}
+        accent={color}
+        palette={palette}
+      />
+
       <div style={{ borderTop: `1px solid ${color}22` }}>
         <div style={{ display: 'flex', borderBottom: `1px solid ${color}22` }}>
           <button onClick={() => setActiveTab('cards')} style={{ flex: 1, padding: '10px', border: 'none', background: activeTab === 'cards' ? `${color}15` : 'transparent', color: activeTab === 'cards' ? color : '#666', fontSize: 12, fontWeight: 600 }}>Images ({detectionHistory.length})</button>
@@ -698,7 +714,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
                   >
                     {/* Thumbnail */}
                     <div onClick={() => setZoomedIdx(idx)} style={{ position: 'relative' }}>
-                      <BboxMiniCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} />
+                      <BboxMiniCard imageUrl={card.imageUrl} detections={card.detections} color={color} palette={palette} labelFormatter={tLabel} />
                       {/* Zoom overlay on hover */}
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.32)'}
@@ -773,6 +789,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
           total={detectionHistory.length}
           color={color}
           palette={palette}
+          labelFormatter={tLabel}
           onClose={() => setZoomedIdx(null)}
           onDelete={(id) => { deleteCard(id); setZoomedIdx(null); }}
           onPrev={zoomedIdx > 0 ? () => setZoomedIdx(i => i - 1) : null}

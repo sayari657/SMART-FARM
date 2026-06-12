@@ -207,6 +207,14 @@ export const cvAPI = {
       timeout: 60000,
     });
   },
+  /** Classification d'image (YOLOv8-cls) — ex. bee_health : santé colonie. */
+  classify: (file, category = 'bee_health', topK = 3) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/cv/classify?category=${category}&top_k=${topK}`, formData, {
+      timeout: 60000,
+    });
+  },
 };
 
 // ---- Anomalies
@@ -225,6 +233,22 @@ export const alertsAPI = {
   /** Dispatch an alert to the farm owner + assigned workers (WhatsApp + push). */
   notify:    (farmId, title, message, target = 'all') =>
     api.post('/alerts/notify', { farm_id: farmId, title, message, target }),
+};
+
+// ---- Crop Calendar (calendrier agricole tunisien)
+export const calendarAPI = {
+  /** Cultures et actions du mois pour une zone agroclimatique (nord/centre/sud/cotier). */
+  crops:     (zone = 'nord', month) => api.get('/calendar/crops', { params: { zone, ...(month ? { month } : {}) } }),
+  /** Calendrier 12 mois d'une culture (stades + traitements préventifs). */
+  timeline:  (crop, zone = 'nord')  => api.get(`/calendar/crops/${crop}/timeline`, { params: { zone } }),
+  /** Alertes phénologiques de la ferme (zone auto + météo gel). */
+  alerts:    (farmId)               => api.get(`/calendar/alerts/${farmId}`),
+  /** Liste des cultures disponibles par zone. */
+  available: (zone)                 => api.get('/calendar/available', { params: zone ? { zone } : {} }),
+  /** Phénologie par degrés-jours (GDD) — modèle météo ERA5. */
+  gdd:       (farmId, crop = 'olivier') => api.get(`/calendar/gdd/${farmId}`, { params: { crop } }),
+  /** Indices de risque maladie météo-pilotés (0-100). */
+  diseaseRisk: (farmId)             => api.get(`/calendar/disease-risk/${farmId}`),
 };
 
 // ---- Recommendations

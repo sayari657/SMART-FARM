@@ -27,44 +27,29 @@ const ICON_IMG = {
 };
 
 const SPECIES_META = {
-  bee: {
-    color: '#d97706',
-    label: 'Bee',
-    description: 'Surveillance acoustique des ruches · Diagnostics santé IA · Prévision automatique de récolte du miel.',
-  },
-  cow: {
-    color: '#7c3aed',
-    label: 'Cow',
-    description: 'Analyse de rumination · Prévision production laitière · Monitoring biométrique bovin complet.',
-  },
-  goat: {
-    color: '#dc2626',
-    label: 'Goat',
-    description: 'Gestion de troupeau caprin · Indexation activité par agilité · Suivi production laitière.',
-  },
-  poultry: {
-    color: '#0891b2',
-    label: 'Poultry',
-    description: 'Contrôle environnement avicole · Suivi automatisé production œufs · Détection précoce de pathologies.',
-  },
-  rabbit: {
-    color: '#db2777',
-    label: 'Rabbit',
-    description: 'Monitoring reproduction lagomorphe optimisé · Indice prolificité · Gestion IA des clapiers.',
-  },
-  sheep: {
-    color: '#059669',
-    label: 'Sheep',
-    description: 'Analyse comportement de pâturage · Suivi poids et croissance · Prévision qualité laine.',
-  },
+  bee:     { color: '#d97706' },
+  cow:     { color: '#7c3aed' },
+  goat:    { color: '#dc2626' },
+  poultry: { color: '#0891b2' },
+  rabbit:  { color: '#db2777' },
+  sheep:   { color: '#059669' },
 };
 
 const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
   const { t } = useTranslation();
   const [hov, setHov] = useState(false);
 
-  const meta = SPECIES_META[sp] || { color: '#6b7280', label: sp, description: '' };
+  const meta = SPECIES_META[sp] || { color: '#6b7280' };
   const c = meta.color;
+
+  // All text from i18n
+  const label       = t(`animals.species_labels.${sp}`, sp);
+  const description = t(`species_card.desc.${sp}`, '');
+  const learnMore   = t('species_card.learn_more', 'En savoir plus');
+  const liveLabel   = t('species_card.live', 'LIVE');
+  const animalWord  = count === 1
+    ? t('species_card.animal_singular', 'animal')
+    : t('species_card.animal_plural', 'animaux');
 
   return (
     <div
@@ -90,7 +75,7 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
         transform: hov && !isActive ? 'translateY(-4px)' : 'none',
       }}
     >
-      {/* Image area — frontal, contain for full body view */}
+      {/* Image area */}
       <div style={{
         width: '100%',
         height: 200,
@@ -103,7 +88,7 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
       }}>
         <img
           src={HERO_IMG[sp]}
-          alt={meta.label}
+          alt={label}
           style={{
             width: '100%',
             height: '100%',
@@ -127,7 +112,7 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
       {/* Info area */}
       <div style={{ padding: '14px 16px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
 
-        {/* Species name + LIVE badge */}
+        {/* Species name row + LIVE badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <span style={{
@@ -140,10 +125,11 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
               style={{ width: 22, height: 22, objectFit: 'contain' }}
             />
             <span style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
-              {meta.label}
+              {label}
             </span>
           </div>
 
+          {/* LIVE badge */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 4,
             padding: '3px 10px', borderRadius: 99,
@@ -156,12 +142,12 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
               animation: 'livePulse 2s ease-in-out infinite',
             }} />
             <span style={{ fontSize: 10, fontWeight: 700, color: c, letterSpacing: 0.5 }}>
-              LIVE
+              {liveLabel}
             </span>
           </div>
         </div>
 
-        {/* Description */}
+        {/* Description — fully translated */}
         <p style={{
           fontSize: 12,
           color: '#64748b',
@@ -169,7 +155,7 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
           margin: '0 0 14px',
           flex: 1,
         }}>
-          {meta.description}
+          {description}
         </p>
 
         {/* Footer: animal count + button */}
@@ -179,7 +165,7 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
             background: `${c}12`, border: `1px solid ${c}25`,
             padding: '3px 10px', borderRadius: 99, whiteSpace: 'nowrap',
           }}>
-            {count} {count === 1 ? 'animal' : 'animaux'}
+            {count} {animalWord}
           </span>
 
           <button
@@ -203,7 +189,7 @@ const ThreeSpeciesCard = ({ sp, count, color, isActive, onClick }) => {
               e.currentTarget.style.transform = 'translateX(0)';
             }}
           >
-            En savoir plus <ArrowRight size={11} />
+            {learnMore} <ArrowRight size={11} />
           </button>
         </div>
       </div>
