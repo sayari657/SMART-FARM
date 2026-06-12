@@ -1,0 +1,64 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "actorBkg": "#ecfdf5",
+    "actorBorder": "#059669",
+    "actorTextColor": "#0f172a",
+    "signalColor": "#334155",
+    "signalTextColor": "#0f172a",
+    "noteBkgColor": "#fff7ed",
+    "noteBorderColor": "#ea580c"
+  },
+  "sequence": {
+    "diagramMarginX": 35,
+    "diagramMarginY": 25,
+    "actorMargin": 55,
+    "messageMargin": 28
+  }
+}}%%
+sequenceDiagram
+  autonumber
+  title Exemple fonctionnel - De la télémétrie à la recommandation
+
+  participant Sensor as Capteur IoT
+  participant MQTT as Broker MQTT
+  participant Ingest as Worker d'ingestion
+  participant API as API FastAPI
+  participant DB as Base de données
+  participant Engine as Moteur anomalies
+  participant Reco as Moteur recommandations
+  participant Push as Notifications
+  actor Admin as Admin propriétaire
+
+  Sensor->>MQTT: Publier température, humidité, poids
+  MQTT->>Ingest: Message de télémétrie
+  Ingest->>Ingest: Valider et normaliser les mesures
+  Ingest->>API: POST /telemetry
+  API->>DB: Créer TelemetryRecord
+  API->>Engine: Analyser la nouvelle mesure
+
+  alt Mesures normales
+    Engine-->>API: Aucun incident
+    API-->>Ingest: Télémétrie enregistrée
+  else Seuil dépassé ou dérive détectée
+    Engine->>DB: Créer Anomaly
+    Engine->>DB: Créer Alert
+    Engine->>Reco: Demander une action corrective
+    Reco->>DB: Créer Recommendation
+    Reco->>Push: Envoyer une alerte prioritaire
+    Push-->>Admin: Alerte et recommandation
+  end
+
+  Admin->>API: GET /dashboard et /alerts
+  API->>DB: Charger mesures, alertes et recommandations
+  DB-->>API: État consolidé de la ferme
+  API-->>Admin: Tableau de bord mis à jour
+
+  opt Traitement de l'incident
+    Admin->>API: Acquitter ou résoudre l'alerte
+    API->>DB: Mettre is_resolved = true
+    API-->>Admin: Incident clôturé
+  end

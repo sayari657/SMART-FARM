@@ -1,0 +1,100 @@
+
+% ============================================================
+%  INTRODUCTION GÉNÉRALE
+% (pagenumbering/setcounter are in main.tex)
+% ============================================================
+\cleardoublepage
+
+\chapter*{Introduction Générale}
+\addcontentsline{toc}{chapter}{Introduction Générale}
+\markboth{Introduction Générale}{Introduction Générale}
+
+L'agriculture mondiale connaît aujourd'hui une transformation profonde sous
+l'impulsion de la \textit{quatrième révolution industrielle}. La convergence de
+l'Internet des Objets (IoT), de l'intelligence artificielle (IA), des systèmes
+d'information géographique (SIG) et des architectures logicielles distribuées a
+favorisé l'émergence de l'\textbf{agriculture intelligente}, définie comme une agriculture de
+précision, connectée et pilotée par la donnée. Cette évolution répond à des
+enjeux majeurs de productivité, de durabilité et de résilience. Selon la
+FAO~\cite{fao2023}, la population mondiale devrait atteindre 9,7 milliards
+d'individus en 2050, ce qui impose une augmentation significative de la
+production alimentaire mondiale. Dans ce contexte, l'intégration de l'IA dans
+les systèmes agricoles apparaît comme un levier stratégique pour améliorer la
+prise de décision, optimiser l'utilisation des ressources et renforcer la
+capacité d'adaptation des exploitations face aux contraintes climatiques,
+économiques et sanitaires.
+
+Ces enjeux prennent une importance particulière dans le contexte tunisien. En
+effet, le secteur agricole représente environ 10\% du PIB national et emploie
+près de 16\% de la population active (UTAP~\cite{utap2023}). Malgré son rôle
+économique et social essentiel, ce secteur demeure confronté à plusieurs défis
+structurels, notamment le morcellement foncier, le vieillissement de la
+population agricole, l'accès limité aux technologies numériques et la dépendance
+vis-à-vis de solutions étrangères souvent coûteuses ou insuffisamment adaptées
+aux réalités locales. À ces contraintes s'ajoute l'absence d'outils numériques
+conçus en langue locale, en particulier en Darija tunisienne, ce qui limite
+l'adoption technologique par les agriculteurs et les éleveurs. La conception de
+solutions souveraines, accessibles, contextualisées et capables de fonctionner
+dans des environnements à connectivité limitée constitue ainsi un enjeu central
+pour la modernisation du secteur agricole tunisien.
+
+C'est dans cette perspective que s'inscrit le projet \textbf{Smart Farm AI
+Enterprise}. Il s'agit d'une plateforme d'agriculture intelligente conçue pour
+répondre aux besoins opérationnels des exploitations agricoles et d'élevage. La
+solution couvre la gestion multi-espèces, incluant les bovins, ovins, caprins,
+volailles et abeilles, tout en intégrant des modules d'analyse d'image par
+vision par ordinateur, un assistant IA conversationnel en Darija tunisienne, une
+surveillance IoT en temps réel et un ERP avicole complet. L'ensemble repose sur
+une architecture multilocataire sécurisée et sur une application mobile de type
+PWA conçue selon une approche \textit{hors connexion d'abord}, afin de garantir l'accessibilité du système même
+dans les zones rurales où la connexion Internet demeure instable.
+
+Le présent mémoire a pour objectif de documenter la démarche de conception,
+d'implémentation et de validation de cette plateforme. Il vise, d'une part, à
+présenter l'architecture logicielle adoptée pour intégrer de manière cohérente
+les composantes IA, IoT et web, et, d'autre part, à évaluer les performances des
+modèles déployés à l'aide de méthodes statistiques rigoureuses, telles que les
+intervalles de confiance et la validation croisée. Il s'attache également à
+analyser la validité interne et externe des résultats obtenus, tout en proposant
+une contribution à l'état de l'art sur les systèmes combinant RAG et LLM dans
+une langue dialectale non standard, en l'occurrence la Darija tunisienne
+appliquée au domaine de l'élevage.
+
+La démarche de recherche repose sur trois hypothèses principales, vérifiées
+expérimentalement dans les chapitres suivants. La première hypothèse concerne
+l'efficacité d'une chaîne de traitement RAG+LLM locale, fondée sur Labess-7B, pour traiter des
+requêtes agricoles formulées en Darija tunisienne ; les résultats obtenus
+montrent un accord inter-annotateurs de $\kappa = 0.76$, supérieur au seuil de
+$\kappa = 0.60$ généralement associé à un accord substantiel selon Landis et
+Koch~\cite{landis1977}. La deuxième hypothèse porte sur la stabilité des modèles
+YOLOv11 entraînés avec différentes graines aléatoires ; l'écart-type mesuré du
+mAP@50 global est de $\sigma = 0.45\%$, confirmant une variabilité inférieure à
+$\pm 1\%$. Enfin, la troisième hypothèse évalue l'adoption d'une application
+mobile conçue selon une approche \textit{hors connexion d'abord} par les travailleurs agricoles formés ; le taux
+d'adoption atteint 91\% après une semaine d'usage sur les sept fermes pilotes,
+dépassant ainsi le seuil initialement fixé à 80\%.
+
+Au-delà de son apport applicatif, ce travail présente plusieurs contributions
+originales. Il propose d'abord, à la connaissance de l'auteur, l'une des premières
+évaluations quantitatives d'un système RAG+LLM en Darija agricole, combinant des
+mesures telles que BLEU, ROUGE et le coefficient Kappa. Il met ensuite en place
+un protocole de validation statistique rarement appliqué à un ERP agricole
+opérationnel, notamment à travers l'utilisation d'une validation croisée à cinq plis
+avec \textit{TimeSeriesSplit}, d'intervalles de confiance à 95\% et d'une analyse
+des menaces à la validité. Enfin, il propose une architecture agrotechnologique
+à code source ouvert et souveraine, intégrant 11 catégories YOLO, 5 modèles ML avicoles,
+RAG ChromaDB et un LLM local dans un déploiement Docker reproductible, adapté
+aux pays émergents et aux environnements à connectivité limitée.
+
+Le mémoire est structuré en quatre chapitres complémentaires. Le
+\textbf{Chapitre~1} présente l'organisme d'accueil, le contexte général du projet
+et la méthodologie de gestion hybride CRISP-DM/Scrum. Le \textbf{Chapitre~2}
+détaille l'analyse des besoins ainsi que l'architecture globale du système. Le
+\textbf{Chapitre~3} expose la modélisation des composants d'intelligence
+artificielle et l'évaluation quantitative de leurs performances. Enfin, le
+\textbf{Chapitre~4} décrit la réalisation technique de la plateforme et sa
+validation industrielle sur le terrain.
+
+% ============================================================
+%  CHAPITRE 1 : CONTEXTE GÉNÉRAL ET CADRE MÉTHODOLOGIQUE
+% ============================================================

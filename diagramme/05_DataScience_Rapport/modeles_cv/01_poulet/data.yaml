@@ -1,0 +1,17 @@
+names:
+- Chicken Favus
+- Fowl Pox
+- coryza
+- crd
+- normal
+- weak_leg
+nc: 6
+roboflow:
+  license: CC BY 4.0
+  project: chicken-yiokh
+  url: https://universe.roboflow.com/pfe-z5iqn/chicken-yiokh/dataset/1
+  version: 1
+  workspace: pfe-z5iqn
+test: /kaggle/input/datasets/mohamedsayari77/chicken-problem-00/test/images
+train: /kaggle/input/datasets/mohamedsayari77/chicken-problem-00/train/images
+val: /kaggle/input/datasets/mohamedsayari77/chicken-problem-00/valid/images

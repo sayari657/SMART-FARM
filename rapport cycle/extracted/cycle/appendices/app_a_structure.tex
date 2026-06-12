@@ -1,0 +1,30 @@
+\chapter{Structure des fichiers du projet}
+\label{ann:structure}
+
+\begin{lstlisting}[language=bash, caption={Arborescence principale Smart Farm AI}]
+smart-farm-ai/
++-- backend/
+|   +-- app/
+|   |   +-- api/v1/endpoints/   # 151+ endpoints REST (21 modules)
+|   |   +-- core/               # config.py, security.py, database.py
+|   |   +-- models/domain.py    # 45+ modeles SQLAlchemy
+|   |   +-- schemas/            # Pydantic schemas
+|   |   `-- services/           # agent_service, poultry_ml_service, ...
+|   +-- Dockerfile
+|   `-- requirements.txt
++-- frontend/
+|   +-- src/
+|   |   +-- pages/              # 35+ pages React
+|   |   +-- components/         # 50+ composants
+|   |   +-- hooks/              # useNetworkSync, useIoT, ...
+|   |   `-- services/api.js     # 21 modules d'acces API REST
+|   +-- package.json
+|   `-- vite.config.js
++-- iot/
+|   +-- node_a_irrigation/      # ESP32 code (PlatformIO)
+|   `-- node_b_beehive/         # ESP32 code (PlatformIO)
++-- ml_models/                  # Artefacts YOLO (.pt), MLflow runs
++-- docker-compose.yml
+`-- Caddyfile
+\end{lstlisting}
+

@@ -1,0 +1,23 @@
+query,species,expected_document,rank,top1_document,top3_documents
+mammite vache lait pis chaud,cow,bovin-mammite,1,bovin-mammite,bovin-mammite | bovin-alimentation | bovin-stress-thermique
+stress chaleur bovin humidite production lait,cow,bovin-stress-thermique,1,bovin-stress-thermique,bovin-stress-thermique | bovin-alimentation | bovin-mammite
+ration engraissement mouton avant aid,sheep,ovin-engraissement,1,ovin-engraissement,ovin-engraissement | ovin-piétin
+boiterie foot rot mouton,sheep,ovin-piétin,1,ovin-piétin,ovin-piétin | ovin-engraissement
+parasites chevreau lait caprin,goat,caprin-elevage,1,caprin-elevage,caprin-elevage | irrigation-et0-fao56 | irrigation-salinite
+temperature nid lapereaux ventilation,rabbit,lapin-chaleur-nid,1,lapin-chaleur-nid,lapin-chaleur-nid | bovin-stress-thermique | irrigation-et0-fao56
+mortalite soudaine poulet biosecurite,poultry,volaille-broiler-biosecurite,1,volaille-broiler-biosecurite,volaille-broiler-biosecurite | volaille-pondeuse
+calcium lumiere baisse ponte,poultry,volaille-pondeuse,1,volaille-pondeuse,volaille-pondeuse | volaille-broiler-biosecurite
+chaleur couvain eau ombre ruche,bee,abeille-stress-thermique,1,abeille-stress-thermique,abeille-stress-thermique | bovin-stress-thermique | abeille-varroa
+seuil infestation varroa traitement,bee,abeille-varroa,1,abeille-varroa,abeille-varroa | abeille-stress-thermique | abeille-essaimage
+perte poids ruche essaimage,bee,abeille-essaimage,1,abeille-essaimage,abeille-essaimage | abeille-stress-thermique | abeille-varroa
+sirop candi nourrissement hiver,bee,abeille-nourrissement,1,abeille-nourrissement,abeille-nourrissement | abeille-stress-thermique | abeille-varroa
+taille recolte huile olive,olive,olivier-recolte-taille,1,olivier-recolte-taille,olivier-recolte-taille | olivier-mouche
+Bactrocera piege pheromone olivier,olive,olivier-mouche,2,olivier-recolte-taille,olivier-recolte-taille | olivier-mouche
+feuilles agrumes jaunes fer sol calcaire,citrus,agrumes-chlorose-fer,1,agrumes-chlorose-fer,agrumes-chlorose-fer | agrumes-cochenille | irrigation-salinite
+cochenille fumagine huile blanche,citrus,agrumes-cochenille,1,agrumes-cochenille,agrumes-cochenille | agrumes-chlorose-fer | olivier-recolte-taille
+pollinisation deglet nour ensachage,datte,palmier-pollinisation,1,palmier-pollinisation,palmier-pollinisation
+semis ble orge novembre azote,cereal,cereales-conduite,1,cereales-conduite,cereales-conduite
+mildiou tomate irrigation Kc,tomate,maraichage-tomate,1,maraichage-tomate,maraichage-tomate | irrigation-et0-fao56
+batata potasse tubercule fevrier,pomme_de_terre,maraichage-pomme-terre,1,maraichage-pomme-terre,maraichage-pomme-terre
+ET0 Penman Monteith besoin eau,general,irrigation-et0-fao56,1,irrigation-et0-fao56,irrigation-et0-fao56 | irrigation-salinite
+eau saumatre lessivage drainage,general,irrigation-salinite,1,irrigation-salinite,irrigation-salinite | irrigation-et0-fao56

@@ -1,0 +1,209 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#eff6ff",
+    "primaryBorderColor": "#2563eb",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "secondaryColor": "#ecfdf5",
+    "tertiaryColor": "#fff7ed"
+  },
+  "class": {
+    "hideEmptyMembersBox": true
+  }
+}}%%
+classDiagram
+direction LR
+
+namespace IdentiteEtEquipe {
+  class User {
+    +int id
+    +string email
+    +UserRole role
+    +SubscriptionPlan plan
+    +bool is_active
+  }
+
+  class WorkerAssignment {
+    +int worker_id
+    +int farm_id
+    +string pin_code
+    +bool is_active
+  }
+
+  class WorkerTask {
+    +int farm_id
+    +int worker_id
+    +string title
+    +string status
+    +datetime due_date
+  }
+}
+
+namespace Exploitation {
+  class Farm {
+    +int id
+    +int owner_id
+    +string name
+    +string status
+    +float latitude
+    +float longitude
+  }
+
+  class AnimalType {
+    +int id
+    +string species
+    +string display_name
+  }
+
+  class AnimalUnit {
+    +int id
+    +int farm_id
+    +int type_id
+    +string name
+    +string status
+  }
+
+  class Report {
+    +int id
+    +int farm_id
+    +string report_type
+    +datetime created_at
+  }
+}
+
+namespace IoTEtIA {
+  class Sensor {
+    +int id
+    +int unit_id
+    +string sensor_type
+    +string sensor_id
+  }
+
+  class TelemetryRecord {
+    +int id
+    +int unit_id
+    +json metrics
+    +string source
+    +datetime timestamp
+  }
+
+  class CVEvent {
+    +int id
+    +int unit_id
+    +string object_class
+    +float confidence
+    +datetime timestamp
+  }
+
+  class Anomaly {
+    +int id
+    +int unit_id
+    +string anomaly_type
+    +float isolation_score
+  }
+
+  class Alert {
+    +int id
+    +int unit_id
+    +string severity
+    +bool is_resolved
+  }
+
+  class Recommendation {
+    +int id
+    +int unit_id
+    +int alert_id
+    +string urgency_level
+  }
+}
+
+namespace Apiculture {
+  class BeeApiary {
+    +int id
+    +int farm_id
+    +string name
+  }
+
+  class BeeHive {
+    +int id
+    +int apiary_id
+    +string identifier
+    +bool is_active
+  }
+
+  class BeeVisit {
+    +int id
+    +int hive_id
+    +string visit_date
+    +string health_state
+  }
+}
+
+namespace Aviculture {
+  class PoultryBatch {
+    +int id
+    +int farm_id
+    +string batch_type
+    +int initial_quantity
+  }
+
+  class PoultryFeedLog {
+    +int id
+    +int batch_id
+    +float quantity_kg
+    +datetime date
+  }
+
+  class PoultryHealthLog {
+    +int id
+    +int batch_id
+    +int deaths_today
+    +string description
+  }
+}
+
+namespace Entrepot {
+  class WarehouseCategory {
+    +int id
+    +int farm_id
+    +string name_fr
+  }
+
+  class WarehouseItem {
+    +int id
+    +int category_id
+    +string name_fr
+    +float quantity
+    +float min_quantity
+  }
+}
+
+User "1" --> "0..*" Farm : possède
+User "1" --> "0..*" WorkerAssignment : reçoit
+Farm "1" --> "0..*" WorkerAssignment : affecte
+Farm "1" --> "0..*" WorkerTask : planifie
+
+Farm "1" *-- "0..*" AnimalUnit : contient
+AnimalType "1" --> "0..*" AnimalUnit : type
+Farm "1" *-- "0..*" Report : produit
+
+AnimalUnit "1" *-- "0..*" Sensor : équipe
+AnimalUnit "1" *-- "0..*" TelemetryRecord : mesure
+AnimalUnit "1" *-- "0..*" CVEvent : observe
+AnimalUnit "1" *-- "0..*" Anomaly : détecte
+AnimalUnit "1" *-- "0..*" Alert : signale
+AnimalUnit "1" *-- "0..*" Recommendation : conseille
+Alert "1" *-- "0..*" Recommendation : déclenche
+
+Farm "1" *-- "0..*" BeeApiary : exploite
+BeeApiary "1" *-- "0..*" BeeHive : regroupe
+BeeHive "1" *-- "0..*" BeeVisit : historique
+
+Farm "1" *-- "0..*" PoultryBatch : élève
+PoultryBatch "1" *-- "0..*" PoultryFeedLog : alimentation
+PoultryBatch "1" *-- "0..*" PoultryHealthLog : santé
+
+Farm "1" *-- "0..*" WarehouseCategory : organise
+WarehouseCategory "1" *-- "0..*" WarehouseItem : contient

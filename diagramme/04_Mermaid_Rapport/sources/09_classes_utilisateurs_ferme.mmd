@@ -1,0 +1,89 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#eff6ff",
+    "primaryBorderColor": "#2563eb",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569"
+  },
+  "class": {
+    "hideEmptyMembersBox": true
+  }
+}}%%
+classDiagram
+direction LR
+
+class User {
+  +int id
+  +string username
+  +string email
+  +string phone_number
+  +string role
+  +string plan
+  +bool is_active
+}
+
+class Farm {
+  +int id
+  +int owner_id
+  +string name
+  +string location
+  +string status
+  +float total_area_ha
+}
+
+class FarmOwner {
+  +int id
+  +int farm_id
+  +int owner_id
+  +datetime added_at
+}
+
+class WorkerAssignment {
+  +int id
+  +int worker_id
+  +int farm_id
+  +string pin_code
+  +bool is_active
+}
+
+class WorkerTask {
+  +int id
+  +int farm_id
+  +int worker_id
+  +int animal_id
+  +string title
+  +string priority
+  +string status
+  +datetime due_date
+}
+
+class WorkerReport {
+  +int id
+  +int worker_id
+  +int farm_id
+  +string type
+  +text notes
+  +datetime created_at
+}
+
+class AnimalUnit {
+  +int id
+  +int farm_id
+  +string name
+  +string identifier
+  +string status
+}
+
+User "1" --> "0..*" Farm : propriétaire principal
+User "1" --> "0..*" FarmOwner : copropriétaire
+Farm "1" --> "0..*" FarmOwner : partage l'accès
+User "1" --> "0..*" WorkerAssignment : est affecté
+Farm "1" --> "0..*" WorkerAssignment : emploie
+Farm "1" --> "0..*" WorkerTask : planifie
+User "0..1" --> "0..*" WorkerTask : réalise
+AnimalUnit "0..1" --> "0..*" WorkerTask : concerne
+User "0..1" --> "0..*" WorkerReport : soumet
+Farm "1" --> "0..*" WorkerReport : reçoit
+Farm "1" *-- "0..*" AnimalUnit : contient

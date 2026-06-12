@@ -1,0 +1,107 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#fff7ed",
+    "primaryBorderColor": "#ea580c",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569"
+  },
+  "class": {
+    "hideEmptyMembersBox": true
+  }
+}}%%
+classDiagram
+direction LR
+
+class AnimalUnit {
+  +int id
+  +int farm_id
+  +int type_id
+  +string name
+  +string status
+  +float health_score
+}
+
+class Sensor {
+  +int id
+  +int unit_id
+  +string sensor_type
+  +string sensor_id
+  +bool is_active
+  +datetime last_seen
+}
+
+class TelemetryRecord {
+  +int id
+  +int unit_id
+  +json metrics
+  +string source
+  +datetime timestamp
+}
+
+class CVEvent {
+  +int id
+  +int unit_id
+  +string object_class
+  +float confidence
+  +string severity
+  +datetime timestamp
+}
+
+class Anomaly {
+  +int id
+  +int unit_id
+  +string anomaly_type
+  +string severity
+  +float isolation_score
+  +bool is_acknowledged
+}
+
+class Alert {
+  +int id
+  +int unit_id
+  +string alert_type
+  +string severity
+  +bool is_resolved
+  +datetime resolved_at
+}
+
+class Recommendation {
+  +int id
+  +int unit_id
+  +int alert_id
+  +text recommendation_text
+  +string urgency_level
+  +float confidence_score
+}
+
+class MLFeedback {
+  +int id
+  +int cv_event_id
+  +int user_id
+  +string original_label
+  +string corrected_label
+  +bool used_for_training
+}
+
+class ModelEvaluation {
+  +int id
+  +string model_name
+  +json class_metrics
+  +float map50
+  +float map50_95
+}
+
+AnimalUnit "1" *-- "0..*" Sensor : possède
+AnimalUnit "1" *-- "0..*" TelemetryRecord : reçoit
+AnimalUnit "1" *-- "0..*" CVEvent : observe
+AnimalUnit "1" *-- "0..*" Anomaly : détecte
+AnimalUnit "1" *-- "0..*" Alert : signale
+AnimalUnit "0..1" --> "0..*" Recommendation : conseille
+TelemetryRecord ..> Anomaly : analysée par
+CVEvent ..> Anomaly : peut produire
+Anomaly ..> Alert : déclenche
+Alert "0..1" *-- "0..*" Recommendation : propose
+CVEvent "0..1" --> "0..*" MLFeedback : est corrigé par
+MLFeedback ..> ModelEvaluation : améliore le modèle

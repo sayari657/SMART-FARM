@@ -1,0 +1,6 @@
+Modele,Architecture,Classes,Epoques,Image,Batch,Optimiseur,Precision,Rappel,mAP50,mAP50-95
+Poulet,yolo11n.pt,6,120,768,8,AdamW,0.55359,0.53609,0.51302,0.23988
+Chevre,yolo11n.pt,5,120,768,8,AdamW,0.63989,0.61277,0.59524,0.26110
+Citronnier,yolo11n.pt,9,120,768,8,AdamW,0.95897,0.91998,0.94602,0.80078
+Oranger,yolo11n.pt,3,120,768,8,AdamW,0.60925,0.51006,0.57208,0.42278
+Insectes,yolo11n.pt,10,100,640,8,AdamW,0.92192,0.79983,0.90618,0.59310

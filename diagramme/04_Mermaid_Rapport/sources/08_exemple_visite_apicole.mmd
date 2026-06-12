@@ -1,0 +1,65 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "actorBkg": "#fefce8",
+    "actorBorder": "#ca8a04",
+    "actorTextColor": "#0f172a",
+    "signalColor": "#334155",
+    "signalTextColor": "#0f172a",
+    "noteBkgColor": "#ecfdf5",
+    "noteBorderColor": "#059669"
+  },
+  "sequence": {
+    "diagramMarginX": 35,
+    "diagramMarginY": 25,
+    "actorMargin": 60,
+    "messageMargin": 28
+  }
+}}%%
+sequenceDiagram
+  autonumber
+  title Exemple fonctionnel - Inspection et suivi d'une ruche
+
+  actor Worker as Ouvrier / Apiculteur
+  participant Mobile as Application mobile
+  participant Cache as Cache hors ligne
+  participant API as API Apiculture
+  participant DB as Base de données
+  participant Stock as Gestion des stocks
+  participant Analytics as Analyses apicoles
+  actor Admin as Admin propriétaire
+
+  Worker->>Mobile: Scanner le QR de la ruche
+  Mobile->>API: GET /bee/history/hives/{id}
+  API->>DB: Charger BeeHive et dernières visites
+  DB-->>API: Historique de la ruche
+  API-->>Mobile: Fiche et état actuel
+
+  Worker->>Mobile: Saisir population, reine, couvain et besoins
+  Mobile->>API: POST /bee/history/visits/preview
+  API-->>Mobile: Résumé des actions proposées
+  Worker->>Mobile: Confirmer la visite
+
+  alt Connexion disponible
+    Mobile->>API: POST /bee/history/visits
+    API->>DB: Créer BeeVisit
+  else Mode hors ligne
+    Mobile->>Cache: Conserver la visite localement
+    Note over Mobile,Cache: La visite sera synchronisée<br/>au retour du réseau.
+    Cache->>API: POST /bee/history/sync
+    API->>DB: Créer BeeVisit
+  end
+
+  API->>Stock: Appliquer sirop, pâte et traitement utilisés
+  Stock->>DB: Mettre à jour BeeHiveStock et BeeGlobalStock
+  API->>Analytics: Recalculer santé et prévisions
+  Analytics->>DB: Mettre à jour les indicateurs
+  API-->>Mobile: Visite enregistrée
+
+  Admin->>API: GET /bee/analytics/dashboard
+  API->>DB: Agréger visites, stocks et productions
+  DB-->>API: Indicateurs du rucher
+  API-->>Admin: Tableau de bord apicole actualisé

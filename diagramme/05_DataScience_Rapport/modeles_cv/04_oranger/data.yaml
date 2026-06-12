@@ -1,0 +1,14 @@
+names:
+- Orange_Huanglongbing
+- Orange_canker
+- Orange_healthy
+nc: 3
+roboflow:
+  license: CC BY 4.0
+  project: orange-disease-2twml
+  url: https://universe.roboflow.com/leaf-diseases-detection/orange-disease-2twml/dataset/1
+  version: 1
+  workspace: leaf-diseases-detection
+test: /kaggle/input/datasets/mohamedsayari77/orange-leaf/test/images
+train: /kaggle/input/datasets/mohamedsayari77/orange-leaf/train/images
+val: /kaggle/input/datasets/mohamedsayari77/orange-leaf/valid/images

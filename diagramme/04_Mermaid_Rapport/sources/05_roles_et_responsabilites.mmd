@@ -1,0 +1,78 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569"
+  },
+  "flowchart": {
+    "htmlLabels": true,
+    "curve": "basis",
+    "nodeSpacing": 35,
+    "rankSpacing": 45
+  }
+}}%%
+flowchart LR
+  subgraph ROLES["Smart Farm AI - Les trois acteurs et leurs responsabilités"]
+    direction LR
+
+    subgraph SA["Super-administrateur de la plateforme"]
+      direction TB
+      SUPER["ACTEUR 1X"]
+      S1(["Gérer les comptes et les plans"])
+      S2(["Superviser les modèles IA"])
+      S3(["Consulter l'audit et la santé système"])
+      S4(["Publier des annonces"])
+      S5(["Configurer la double authentification"])
+      SUPER --> S1
+      SUPER --> S2
+      SUPER --> S3
+      SUPER --> S4
+      SUPER --> S5
+    end
+
+    subgraph OW["Administrateur propriétaire de ferme"]
+      direction TB
+      OWNER["ACTEUR 2X"]
+      O1(["Créer et configurer ses fermes"])
+      O2(["Gérer animaux, ouvriers et tâches"])
+      O3(["Suivre télémétrie, alertes et IA"])
+      O4(["Piloter apiculture et aviculture"])
+      O5(["Gérer stock, finances et rapports"])
+      OWNER --> O1
+      OWNER --> O2
+      OWNER --> O3
+      OWNER --> O4
+      OWNER --> O5
+    end
+
+    subgraph WK["Ouvrier agricole affecté à une ferme"]
+      direction TB
+      WORKER["ACTEUR 3X"]
+      W1(["Se connecter par OTP"])
+      W2(["Consulter ses tâches"])
+      W3(["Saisir observations et production"])
+      W4(["Scanner une ruche ou un animal"])
+      W5(["Envoyer un rapport terrain"])
+      WORKER --> W1
+      WORKER --> W2
+      WORKER --> W3
+      WORKER --> W4
+      WORKER --> W5
+    end
+  end
+
+  classDef super fill:#6b21a8,color:#ffffff,stroke:#581c87,stroke-width:2px;
+  classDef owner fill:#1d4ed8,color:#ffffff,stroke:#1e3a8a,stroke-width:2px;
+  classDef worker fill:#047857,color:#ffffff,stroke:#064e3b,stroke-width:2px;
+  classDef usecase fill:#ffffff,color:#0f172a,stroke:#64748b,stroke-width:1.5px;
+
+  class SUPER super;
+  class OWNER owner;
+  class WORKER worker;
+  class S1,S2,S3,S4,S5,O1,O2,O3,O4,O5,W1,W2,W3,W4,W5 usecase;
+
+  style ROLES fill:#ffffff,stroke:#0f766e,stroke-width:2px
+  style SA fill:#faf5ff,stroke:#9333ea,stroke-width:1.5px
+  style OW fill:#eff6ff,stroke:#2563eb,stroke-width:1.5px
+  style WK fill:#ecfdf5,stroke:#059669,stroke-width:1.5px

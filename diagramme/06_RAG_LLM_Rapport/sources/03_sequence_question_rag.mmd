@@ -1,0 +1,35 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial","primaryTextColor":"#0f172a","lineColor":"#475569"},"sequence":{"actorMargin":45,"messageMargin":30}}}%%
+sequenceDiagram
+  autonumber
+  actor U as Utilisateur
+  participant API as FastAPI Agent
+  participant CV as YOLO / VLM / OCR
+  participant SQL as Base metier SQL
+  participant RAG as RAGService
+  participant VDB as ChromaDB / JSON
+  participant LLM as Groq / Ollama
+  participant HIST as Historique
+
+  U->>API: Question + espece + image optionnelle
+  alt Image presente
+    API->>CV: Analyse visuelle et OCR
+    CV-->>API: Objets, symptomes, texte et confiance
+  end
+  API->>SQL: Charger contexte ferme et historique
+  SQL-->>API: Donnees autorisees par farm_id
+  API->>RAG: query_wisdom(question, espece, top_k)
+  alt ChromaDB disponible
+    RAG->>VDB: Recherche vectorielle + filtre espece
+  else Mode Lite
+    RAG->>VDB: Recherche lexicale dans agri_knowledge.json
+  end
+  VDB-->>RAG: Passages et sources
+  RAG-->>API: Contexte agronomique
+  API->>LLM: Prompt specialise + contexte + question
+  alt Groq disponible
+    LLM-->>API: Reponse generee en derja
+  else Mode souverain local
+    LLM-->>API: Reponse Ollama
+  end
+  API->>HIST: Enregistrer contexte, sources et feedback
+  API-->>U: Diagnostic, recommandation, urgence et sources

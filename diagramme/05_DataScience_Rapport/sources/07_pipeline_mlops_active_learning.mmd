@@ -1,0 +1,81 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569"
+  },
+  "flowchart": {
+    "htmlLabels": true,
+    "curve": "basis",
+    "nodeSpacing": 40,
+    "rankSpacing": 55
+  }
+}}%%
+flowchart TB
+  subgraph DATA["1. Acquisition des donnees"]
+    direction LR
+    IOT["Capteurs IoT<br/>temperature, humidite,<br/>poids, son"]
+    IMG["Images terrain<br/>abeilles, animaux,<br/>plantes"]
+  end
+
+  subgraph VERSION["2. Preparation et versionnement"]
+    direction LR
+    BUILD["Construction du dataset<br/>dataset_builder.py"]
+    QUALITY["Controle qualite<br/>nettoyage et validation"]
+    DVC["DVC<br/>donnees, parametres,<br/>artefacts"]
+  end
+
+  subgraph TRAIN["3. Entrainement et evaluation"]
+    direction LR
+    IF["Detection d'anomalies<br/>Isolation Forest, LOF,<br/>One-Class SVM"]
+    YOLO["Vision par ordinateur<br/>YOLO OBB / YOLO11"]
+    EVAL["Evaluation<br/>mAP, precision, rappel,<br/>silhouette"]
+  end
+
+  subgraph TRACK["4. Suivi experimental"]
+    direction LR
+    MLFLOW["MLflow<br/>runs, parametres,<br/>metriques, modeles"]
+    REGISTRY["Registre des modeles<br/>best.pt / .pkl"]
+  end
+
+  subgraph DEPLOY["5. Deploiement et surveillance"]
+    direction LR
+    API["API FastAPI<br/>inference temps reel"]
+    DRIFT["Detection de derive<br/>PSI, confiance,<br/>distribution des labels"]
+    ALERT["Alertes et<br/>recommandations"]
+  end
+
+  subgraph ACTIVE["6. Active learning et amelioration continue"]
+    direction LR
+    FEEDBACK["Corrections utilisateur<br/>MLFeedback"]
+    REBUILD["Nouvelle version du dataset<br/>retour vers l'etape 2"]
+  end
+
+  IOT --> BUILD
+  IMG --> BUILD
+  BUILD --> QUALITY --> DVC
+  DVC --> IF
+  DVC --> YOLO
+  IF --> EVAL
+  YOLO --> EVAL
+  EVAL --> MLFLOW --> REGISTRY
+  REGISTRY --> API
+  API --> DRIFT
+  API --> ALERT
+  DRIFT -. active learning .-> FEEDBACK
+  ALERT -. validation humaine .-> FEEDBACK
+  FEEDBACK --> REBUILD
+
+  classDef data fill:#EFF6FF,stroke:#2563EB,stroke-width:1.5px;
+  classDef process fill:#ECFDF5,stroke:#059669,stroke-width:1.5px;
+  classDef model fill:#FFF7ED,stroke:#EA580C,stroke-width:1.5px;
+  classDef track fill:#FAF5FF,stroke:#9333EA,stroke-width:1.5px;
+  classDef deploy fill:#F8FAFC,stroke:#475569,stroke-width:1.5px;
+
+  class IOT,IMG data;
+  class BUILD,QUALITY,DVC process;
+  class IF,YOLO,EVAL model;
+  class MLFLOW,REGISTRY track;
+  class API,DRIFT,ALERT deploy;
+  class FEEDBACK,REBUILD data;

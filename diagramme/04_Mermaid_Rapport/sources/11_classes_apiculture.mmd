@@ -1,0 +1,111 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#fefce8",
+    "primaryBorderColor": "#ca8a04",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569"
+  },
+  "class": {
+    "hideEmptyMembersBox": true
+  }
+}}%%
+classDiagram
+direction LR
+
+class Farm {
+  +int id
+  +string name
+}
+
+class BeeApiary {
+  +int id
+  +int farm_id
+  +string name
+  +string flower_type
+  +string region
+}
+
+class BeeHive {
+  +int id
+  +int apiary_id
+  +string identifier
+  +bool is_active
+  +float health_score
+  +bool has_queen
+}
+
+class BeeVisit {
+  +int id
+  +int hive_id
+  +int apiary_id
+  +string visit_date
+  +string health_state
+  +float needs_sirop
+  +float harvest_kg
+}
+
+class BeeProduction {
+  +int id
+  +int hive_id
+  +int apiary_id
+  +float honey_kg
+  +float pollen_kg
+  +string production_date
+}
+
+class BeeGlobalStock {
+  +int id
+  +int farm_id
+  +float sirop
+  +float pate
+  +int traitement
+  +int cadres
+}
+
+class BeeHiveStock {
+  +int id
+  +int hive_id
+  +float sirop
+  +float pate
+  +int traitement
+  +int cadres
+}
+
+class BeeExpense {
+  +int id
+  +int hive_id
+  +int visit_id
+  +string category
+  +float amount
+  +string expense_date
+}
+
+class BeePlanning {
+  +int id
+  +int hive_id
+  +string scheduled_date
+  +string action_type
+  +string status
+}
+
+class BeePlanningTask {
+  +int id
+  +int planning_id
+  +string text
+  +string status
+}
+
+Farm "1" *-- "0..*" BeeApiary : exploite
+BeeApiary "1" *-- "0..*" BeeHive : regroupe
+BeeHive "0..1" *-- "0..*" BeeVisit : historique
+BeeApiary "0..1" --> "0..*" BeeVisit : tournée
+BeeHive "0..1" --> "0..*" BeeProduction : produit
+BeeApiary "0..1" *-- "0..*" BeeProduction : agrège
+Farm "0..1" *-- "0..1" BeeGlobalStock : stock central
+BeeHive "1" *-- "0..1" BeeHiveStock : stock local
+BeeHive "0..1" --> "0..*" BeeExpense : génère
+BeeVisit "0..1" --> "0..*" BeeExpense : justifie
+BeeHive "1" *-- "0..*" BeePlanning : programme
+BeePlanning "1" *-- "0..*" BeePlanningTask : décompose

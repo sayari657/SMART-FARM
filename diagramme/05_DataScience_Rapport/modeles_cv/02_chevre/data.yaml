@@ -1,0 +1,16 @@
+names:
+- Cheesy gland
+- Contagious ecthyma
+- Lice infestation
+- Mange
+- Ringworm
+nc: 5
+roboflow:
+  license: CC BY 4.0
+  project: goat-skin-disease
+  url: https://universe.roboflow.com/kesters-workspace/goat-skin-disease/dataset/13
+  version: 13
+  workspace: kesters-workspace
+test: /kaggle/input/datasets/mohamedsayari77/goat-disease/Nouveau dossier/test/images
+train: /kaggle/input/datasets/mohamedsayari77/goat-disease/Nouveau dossier/train/images
+val: /kaggle/input/datasets/mohamedsayari77/goat-disease/Nouveau dossier/valid/images

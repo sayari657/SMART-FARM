@@ -1,0 +1,95 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#ecfdf5",
+    "primaryBorderColor": "#059669",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569"
+  },
+  "class": {
+    "hideEmptyMembersBox": true
+  }
+}}%%
+classDiagram
+direction LR
+
+class Farm {
+  +int id
+  +string name
+}
+
+class PoultryBatch {
+  +int id
+  +int farm_id
+  +string name
+  +string batch_type
+  +string breed
+  +int initial_quantity
+  +int current_quantity
+  +string status
+}
+
+class PoultryFeedLog {
+  +int id
+  +int batch_id
+  +string feed_type
+  +float quantity_kg
+  +float average_weight_g
+  +float fcr_calculated
+  +string status
+  +int created_by_id
+  +int validated_by_id
+}
+
+class PoultryEggLog {
+  +int id
+  +int batch_id
+  +int total_eggs
+  +int broken_eggs
+  +float production_rate
+  +string status
+  +int created_by_id
+  +int validated_by_id
+}
+
+class PoultryHealthLog {
+  +int id
+  +int batch_id
+  +string event_type
+  +string description
+  +int deaths_today
+  +string medicine_used
+  +string status
+  +int created_by_id
+  +int validated_by_id
+}
+
+class PoultrySale {
+  +int id
+  +int batch_id
+  +string product_type
+  +int quantity
+  +float unit_price
+  +float total_amount
+  +string status
+  +int created_by_id
+  +int validated_by_id
+}
+
+class PoultryInventory {
+  +int id
+  +int farm_id
+  +string item_name
+  +string category
+  +float quantity
+  +string unit
+  +float min_threshold
+}
+
+Farm "1" *-- "0..*" PoultryBatch : possède
+PoultryBatch "1" *-- "0..*" PoultryFeedLog : alimentation
+PoultryBatch "1" *-- "0..*" PoultryEggLog : ponte
+PoultryBatch "1" *-- "0..*" PoultryHealthLog : santé
+PoultryBatch "1" *-- "0..*" PoultrySale : ventes
+Farm "1" *-- "0..*" PoultryInventory : inventaire

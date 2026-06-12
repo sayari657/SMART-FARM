@@ -1,0 +1,13 @@
+table,rows
+farms,10
+animal_units,10
+animal_logs,13
+bee_visits,4
+bee_planning,7
+poultry_feed_logs,36
+poultry_health_logs,36
+poultry_egg_logs,16
+cv_events,151
+alerts,154
+diagnostic_history,4
+reports,14

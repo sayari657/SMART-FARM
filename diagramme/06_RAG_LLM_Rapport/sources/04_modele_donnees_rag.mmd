@@ -1,0 +1,91 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial","primaryTextColor":"#0f172a","lineColor":"#475569"}}}%%
+classDiagram
+  direction LR
+
+  class Farm {
+    +int id
+    +string name
+    +float latitude
+    +float longitude
+  }
+  class AnimalType {
+    +int id
+    +string species
+    +json telemetry_schema
+    +json cv_classes
+  }
+  class AnimalUnit {
+    +int id
+    +int farm_id
+    +int type_id
+    +string status
+    +float health_score
+  }
+  class TelemetryRecord {
+    +int id
+    +datetime timestamp
+    +json metrics
+    +string source
+  }
+  class CVEvent {
+    +string object_class
+    +float confidence
+    +json frame_metadata
+  }
+  class BeeApiary {
+    +string region
+    +string flower_type
+    +string season
+  }
+  class BeeHive {
+    +string identifier
+    +float health_score
+    +float honey_level
+    +float force_level
+  }
+  class BeeVisit {
+    +string health_state
+    +float temperature
+    +string population
+    +float harvest_kg
+  }
+  class DiagnosticHistory {
+    +string category
+    +json detections
+    +json chat_log
+  }
+  class KnowledgeDocument {
+    +string document_id
+    +int farm_id
+    +string source_type
+    +string checksum
+    +string status
+    +datetime version
+  }
+  class KnowledgeChunk {
+    +string chunk_id
+    +string species
+    +string topic
+    +string source
+    +string text
+    +vector embedding
+  }
+  class RAGEvaluation {
+    +string dataset_version
+    +float recall_at_3
+    +float mrr
+    +float faithfulness
+    +float citation_accuracy
+  }
+
+  Farm "1" --> "*" AnimalUnit
+  AnimalType "1" --> "*" AnimalUnit
+  AnimalUnit "1" --> "*" TelemetryRecord
+  AnimalUnit "1" --> "*" CVEvent
+  Farm "1" --> "*" BeeApiary
+  BeeApiary "1" --> "*" BeeHive
+  BeeHive "1" --> "*" BeeVisit
+  Farm "1" --> "*" KnowledgeDocument
+  KnowledgeDocument "1" --> "*" KnowledgeChunk
+  KnowledgeChunk "*" --> "*" DiagnosticHistory : fournit contexte
+  RAGEvaluation "*" --> "1" KnowledgeDocument : valide version

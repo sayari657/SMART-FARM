@@ -1,0 +1,71 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial","primaryTextColor":"#0f172a","lineColor":"#475569"},"flowchart":{"curve":"basis","nodeSpacing":35,"rankSpacing":50}}}%%
+flowchart TB
+  subgraph INPUT["1. Sources de contexte"]
+    direction LR
+    USER["Question utilisateur<br/>francais, arabe ou derja"]
+    IMAGE["Image terrain<br/>animal, ruche, plante, arbre"]
+    DB["Base metier SQL<br/>fermes, animaux, visites,<br/>production, alertes"]
+    DOC["Base documentaire<br/>JSON et guides PDF"]
+  end
+
+  subgraph UNDERSTAND["2. Comprendre la demande"]
+    direction LR
+    ROUTER["Routeur de domaine<br/>animal, bee, plant, tree"]
+    VLM["Vision Language Model<br/>Groq Vision / LLaVA"]
+    OCR["OCR<br/>Tesseract / VLM"]
+    CONTEXT["Contexte structure<br/>detections YOLO + donnees SQL"]
+  end
+
+  subgraph RETRIEVE["3. Retrieval hybride"]
+    direction LR
+    FILTER["Filtres metadonnees<br/>espece, ferme, sujet, source"]
+    VECTOR["ChromaDB<br/>similarite cosinus"]
+    LEXICAL["Fallback lexical JSON<br/>keywords + boost espece"]
+    RERANK["Fusion et reranking<br/>Top-k passages"]
+  end
+
+  subgraph GENERATE["4. Generation controlee"]
+    direction LR
+    PROMPT["Prompt specialise<br/>par espece et domaine"]
+    LLM["Groq Llama 3.3<br/>ou Ollama local"]
+    GUARD["Regles de securite<br/>citations, incertitude,<br/>orientation expert"]
+  end
+
+  subgraph OUTPUT["5. Sorties Smart Farm AI"]
+    direction LR
+    ANSWER["Reponse en derja<br/>avec sources"]
+    RECO["Recommandation<br/>et niveau d'urgence"]
+    HISTORY["Historique diagnostic<br/>et feedback utilisateur"]
+  end
+
+  USER --> ROUTER
+  IMAGE --> VLM
+  IMAGE --> OCR
+  DB --> CONTEXT
+  DOC --> FILTER
+  ROUTER --> FILTER
+  VLM --> CONTEXT
+  OCR --> CONTEXT
+  CONTEXT --> FILTER
+  FILTER --> VECTOR
+  FILTER --> LEXICAL
+  VECTOR --> RERANK
+  LEXICAL --> RERANK
+  RERANK --> PROMPT
+  CONTEXT --> PROMPT
+  PROMPT --> LLM --> GUARD
+  GUARD --> ANSWER
+  GUARD --> RECO
+  ANSWER --> HISTORY
+  RECO --> HISTORY
+
+  classDef input fill:#EFF6FF,stroke:#2563EB,stroke-width:1.5px;
+  classDef understand fill:#ECFDF5,stroke:#059669,stroke-width:1.5px;
+  classDef retrieve fill:#FFF7ED,stroke:#EA580C,stroke-width:1.5px;
+  classDef generate fill:#FAF5FF,stroke:#9333EA,stroke-width:1.5px;
+  classDef output fill:#F8FAFC,stroke:#475569,stroke-width:1.5px;
+  class USER,IMAGE,DB,DOC input;
+  class ROUTER,VLM,OCR,CONTEXT understand;
+  class FILTER,VECTOR,LEXICAL,RERANK retrieve;
+  class PROMPT,LLM,GUARD generate;
+  class ANSWER,RECO,HISTORY output;

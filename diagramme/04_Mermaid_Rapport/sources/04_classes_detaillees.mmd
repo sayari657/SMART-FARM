@@ -1,0 +1,470 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryColor": "#eff6ff",
+    "primaryBorderColor": "#2563eb",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "secondaryColor": "#ecfdf5",
+    "tertiaryColor": "#fff7ed"
+  },
+  "class": {
+    "hideEmptyMembersBox": true
+  }
+}}%%
+classDiagram
+direction TB
+
+namespace IdentiteEtTravail {
+  class User {
+    +int id
+    +string email
+    +string phone_number
+    +string role
+    +string plan
+    +bool is_active
+    +datetime created_at
+  }
+
+  class FarmOwner {
+    +int farm_id
+    +int owner_id
+    +datetime added_at
+  }
+
+  class WorkerAssignment {
+    +int worker_id
+    +int farm_id
+    +string pin_code
+    +bool is_active
+    +datetime assigned_at
+  }
+
+  class WorkerTask {
+    +int id
+    +int farm_id
+    +int worker_id
+    +int animal_id
+    +string title
+    +string priority
+    +string status
+    +datetime due_date
+  }
+
+  class WorkerReport {
+    +int id
+    +int worker_id
+    +int farm_id
+    +string type
+    +text notes
+    +datetime created_at
+  }
+}
+
+namespace CoeurExploitation {
+  class Farm {
+    +int id
+    +int owner_id
+    +string name
+    +string status
+    +string location
+    +float latitude
+    +float longitude
+    +datetime created_at
+  }
+
+  class AnimalType {
+    +int id
+    +string species
+    +string display_name
+    +json telemetry_schema
+    +json cv_classes
+  }
+
+  class AnimalUnit {
+    +int id
+    +int farm_id
+    +int type_id
+    +string name
+    +string identifier
+    +string status
+    +string lifecycle_status
+    +float health_score
+    +text notes
+  }
+
+  class AnimalLog {
+    +int id
+    +int animal_id
+    +int recorded_by
+    +string type
+    +float value
+    +string unit
+    +datetime timestamp
+  }
+
+  class FarmFinance {
+    +int id
+    +int farm_id
+    +string type
+    +float amount
+    +string category
+    +datetime timestamp
+  }
+
+  class Report {
+    +int id
+    +int farm_id
+    +string report_type
+    +datetime period_start
+    +datetime period_end
+    +json summary
+    +datetime created_at
+  }
+
+  class Settings {
+    +int id
+    +int farm_id
+    +int animal_type_id
+    +string key
+    +json value
+    +datetime updated_at
+  }
+}
+
+namespace PipelineIoTEtIA {
+  class Sensor {
+    +int id
+    +int unit_id
+    +string sensor_type
+    +string sensor_id
+    +bool is_active
+    +datetime last_seen
+    +json metadata_
+  }
+
+  class TelemetryRecord {
+    +int id
+    +int unit_id
+    +json metrics
+    +string source
+    +datetime timestamp
+  }
+
+  class CVEvent {
+    +int id
+    +int unit_id
+    +string object_class
+    +float confidence
+    +string severity
+    +string thumbnail_url
+    +json frame_metadata
+    +datetime timestamp
+  }
+
+  class Anomaly {
+    +int id
+    +int unit_id
+    +string anomaly_type
+    +string severity
+    +float isolation_score
+    +json rules_triggered
+    +json feature_contributions
+    +datetime timestamp
+  }
+
+  class Alert {
+    +int id
+    +int unit_id
+    +string alert_type
+    +text message
+    +string severity
+    +bool is_resolved
+    +datetime timestamp
+    +datetime resolved_at
+  }
+
+  class Recommendation {
+    +int id
+    +int unit_id
+    +int alert_id
+    +text probable_cause
+    +text recommendation_text
+    +string urgency_level
+    +float confidence_score
+    +bool is_actioned
+    +datetime timestamp
+  }
+
+  class DiagnosticHistory {
+    +int id
+    +int user_id
+    +string category
+    +text image_url
+    +json detections
+    +json chat_log
+    +datetime timestamp
+  }
+
+  class MLFeedback {
+    +int id
+    +int cv_event_id
+    +int user_id
+    +string original_label
+    +string corrected_label
+    +float confidence_original
+    +bool used_for_training
+    +datetime timestamp
+  }
+
+  class ModelEvaluation {
+    +int id
+    +string model_name
+    +json class_metrics
+    +float map50
+    +float map50_95
+    +datetime eval_date
+  }
+}
+
+namespace GestionApicole {
+  class BeeApiary {
+    +int id
+    +int farm_id
+    +string name
+    +float latitude
+    +float longitude
+    +string flower_type
+    +string region
+  }
+
+  class BeeHive {
+    +int id
+    +int apiary_id
+    +string identifier
+    +bool is_active
+    +float health_score
+    +string hive_type
+    +bool has_queen
+  }
+
+  class BeeVisit {
+    +int id
+    +int hive_id
+    +int apiary_id
+    +string visit_date
+    +string health_state
+    +float temperature
+    +float needs_sirop
+    +float harvest_kg
+  }
+
+  class BeeProduction {
+    +int id
+    +int hive_id
+    +int apiary_id
+    +string flower_type
+    +float honey_kg
+    +float pollen_kg
+    +string production_date
+  }
+
+  class BeeGlobalStock {
+    +int id
+    +int farm_id
+    +float sirop
+    +float pate
+    +int traitement
+    +int cadres
+    +datetime updated_at
+  }
+
+  class BeeHiveStock {
+    +int id
+    +int hive_id
+    +float sirop
+    +float pate
+    +int traitement
+    +int cadres
+    +datetime updated_at
+  }
+
+  class BeeExpense {
+    +int id
+    +int hive_id
+    +int apiary_id
+    +int visit_id
+    +string category
+    +float amount
+    +float amount_planned
+    +string expense_date
+  }
+
+  class BeePlanning {
+    +int id
+    +int hive_id
+    +int apiary_id
+    +string scheduled_date
+    +string action_type
+    +string status
+  }
+
+  class BeePlanningTask {
+    +int id
+    +int planning_id
+    +string text
+    +string status
+  }
+}
+
+namespace ERPAvicole {
+  class PoultryBatch {
+    +int id
+    +int farm_id
+    +string batch_type
+    +string breed
+    +int initial_quantity
+    +datetime arrival_date
+    +string status
+  }
+
+  class PoultryFeedLog {
+    +int id
+    +int batch_id
+    +float quantity_kg
+    +float average_weight_g
+    +float cost_per_kg
+    +datetime date
+    +string status
+  }
+
+  class PoultryEggLog {
+    +int id
+    +int batch_id
+    +int total_eggs
+    +int broken_eggs
+    +float production_rate
+    +datetime date
+    +string status
+  }
+
+  class PoultryHealthLog {
+    +int id
+    +int batch_id
+    +string event_type
+    +string description
+    +int deaths_today
+    +string medicine_used
+    +datetime date
+  }
+
+  class PoultrySale {
+    +int id
+    +int batch_id
+    +string product_type
+    +int quantity
+    +float unit_price
+    +float total_amount
+    +datetime date
+  }
+
+  class PoultryInventory {
+    +int id
+    +int farm_id
+    +string item_name
+    +float quantity
+    +string unit
+    +float min_threshold
+  }
+}
+
+namespace Entrepot {
+  class WarehouseCategory {
+    +int id
+    +int farm_id
+    +string name_ar
+    +string name_fr
+    +string icon
+    +string color
+  }
+
+  class WarehouseItem {
+    +int id
+    +int category_id
+    +string name_ar
+    +string name_fr
+    +float quantity
+    +string unit
+    +float min_quantity
+    +datetime expiry_date
+  }
+
+  class WarehouseAlert {
+    +int id
+    +int item_id
+    +string alert_type
+    +string severity
+    +bool is_resolved
+    +datetime created_at
+  }
+}
+
+User "1" --> "0..*" Farm : propriétaire principal
+User "1" --> "0..*" FarmOwner : copropriétaire
+Farm "1" --> "0..*" FarmOwner : accès partagé
+User "1" --> "0..*" WorkerAssignment : ouvrier
+Farm "1" --> "0..*" WorkerAssignment : affectation
+Farm "1" --> "0..*" WorkerTask : tâches
+User "0..1" --> "0..*" WorkerTask : exécute
+AnimalUnit "0..1" --> "0..*" WorkerTask : cible
+User "0..1" --> "0..*" WorkerReport : soumet
+Farm "1" --> "0..*" WorkerReport : reçoit
+
+Farm "1" *-- "0..*" AnimalUnit : unités
+AnimalType "1" --> "0..*" AnimalUnit : classifie
+AnimalUnit "1" *-- "0..*" AnimalLog : journal
+User "0..1" --> "0..*" AnimalLog : saisit
+Farm "1" *-- "0..*" FarmFinance : finances
+Farm "1" *-- "0..*" Report : rapports
+Farm "0..1" *-- "0..*" Settings : seuils
+AnimalType "0..1" --> "0..*" Settings : spécialise
+
+AnimalUnit "1" *-- "0..*" Sensor : capteurs
+AnimalUnit "1" *-- "0..*" TelemetryRecord : télémétrie
+AnimalUnit "1" *-- "0..*" CVEvent : événements visuels
+AnimalUnit "1" *-- "0..*" Anomaly : anomalies
+AnimalUnit "1" *-- "0..*" Alert : alertes
+AnimalUnit "0..1" --> "0..*" Recommendation : recommandations
+Alert "0..1" *-- "0..*" Recommendation : actions
+User "0..1" --> "0..*" DiagnosticHistory : diagnostics
+CVEvent "0..1" --> "0..*" MLFeedback : corrections
+User "0..1" --> "0..*" MLFeedback : valide
+MLFeedback ..> ModelEvaluation : améliore
+TelemetryRecord ..> Anomaly : analysée par
+CVEvent ..> Anomaly : peut produire
+Anomaly ..> Alert : déclenche
+
+Farm "0..1" *-- "0..*" BeeApiary : ruchers
+BeeApiary "1" *-- "0..*" BeeHive : ruches
+BeeHive "0..1" *-- "0..*" BeeVisit : visites
+BeeApiary "0..1" --> "0..*" BeeVisit : tournée
+BeeHive "0..1" --> "0..*" BeeProduction : production
+BeeApiary "0..1" *-- "0..*" BeeProduction : agrège
+Farm "0..1" *-- "0..1" BeeGlobalStock : stock global
+BeeHive "1" *-- "0..1" BeeHiveStock : stock local
+BeeHive "0..1" --> "0..*" BeeExpense : coûts
+BeeVisit "0..1" --> "0..*" BeeExpense : dépenses
+BeeHive "1" *-- "0..*" BeePlanning : planning
+BeePlanning "1" *-- "0..*" BeePlanningTask : étapes
+
+Farm "1" *-- "0..*" PoultryBatch : lots
+PoultryBatch "1" *-- "0..*" PoultryFeedLog : alimentation
+PoultryBatch "1" *-- "0..*" PoultryEggLog : ponte
+PoultryBatch "1" *-- "0..*" PoultryHealthLog : santé
+PoultryBatch "1" *-- "0..*" PoultrySale : ventes
+Farm "1" *-- "0..*" PoultryInventory : inventaire
+
+Farm "0..1" *-- "0..*" WarehouseCategory : catégories
+WarehouseCategory "1" *-- "0..*" WarehouseItem : articles
+WarehouseItem "0..1" *-- "0..*" WarehouseAlert : seuils

@@ -1,0 +1,201 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{csquotes}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black]{hyperref}
+
+\geometry{margin=2.4cm}
+\setlist[itemize]{leftmargin=1.2em,itemsep=0.2em,topsep=0.2em}
+\setlist[enumerate]{leftmargin=1.4em,itemsep=0.45em,topsep=0.3em}
+\newcommand{\loc}[1]{\textbf{Localisation :} #1\par}
+\newcommand{\prob}[1]{\textbf{Problème :} #1\par}
+\newcommand{\impact}[1]{\textbf{Pourquoi c'est important :} #1\par}
+\newcommand{\fix}[1]{\textbf{Correction suggérée :} #1\par}
+\newcommand{\classif}[1]{\textbf{Type :} #1\par}
+
+\title{Revue technique du manuscrit\\\large Smart Farm AI Enterprise}
+\author{}
+\date{7 juin 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Appréciation générale}
+
+Le manuscrit est ambitieux et couvre une plateforme complète mêlant vision par ordinateur, RAG/LLM, IoT, PWA hors ligne, ERP avicole et validation terrain. La structure est globalement exploitable et le document compile, mais la solidité scientifique est affaiblie par des incohérences quantitatives répétées, des revendications de validation terrain insuffisamment étayées et plusieurs formules ou extraits d'implémentation qui ne sont pas encore assez précis pour être reproductibles.
+
+J'ai explicitement vérifié les équations et expressions suivantes : IoU, précision/rappel/F1, AP/mAP, perte YOLO, CIoU, régression FCR/MCO, score de mortalité, score-Z, BLEU/ROUGE, kappa de Cohen, similarité cosinus, Haversine, placement circulaire des ruches, ainsi que les extraits d'implémentation FCR, MQTT et synchronisation PWA. Je n'ai pas trouvé d'expression du type \texttt{arctan(x/y)} ni de cas manifeste nécessitant \texttt{atan2}; le risque principal de convention porte plutôt sur les unités d'angle, les seuils statistiques et les métriques déclarées comme écart-type ou intervalle de confiance.
+
+\section*{Constats techniques prioritaires}
+
+\begin{enumerate}
+  \item \classif{Erreur certaine --- incohérence interne des résultats YOLO.}
+  \loc{Résumé, introduction, chapitre~2, chapitre~3, conclusion générale et annexe~H.}
+  \prob{Le mAP@50 YOLO change selon les sections : le résumé annonce \(84.7\% \pm 1.8\%\), l'introduction annonce \(\sigma=0.45\%\), le chapitre~2 parle de \(84.7\%\pm0.45\%\) et de \enquote{5-fold CV}, le chapitre~3 donne \(85.3\%\pm0.42\%\) sur trois seeds \(\{42,137,255\}\), puis l'annexe~H attend \(84.7\%\pm0.45\%\).}
+  \impact{Le résultat principal de détection n'est pas traçable : on ne sait pas si la valeur finale provient d'un grid search, d'un test set, d'un ensemble de validation ou de trois runs indépendants. Cela fragilise le résumé, les contributions et la comparaison avec l'état de l'art.}
+  \fix{Choisir une seule valeur maîtresse et la propager partout. Si le tableau du chapitre~3 est la source finale, écrire partout \(\mathrm{mAP@50}=85.3\%\pm0.42\%\) pour trois runs indépendants, et réserver \(84.7\%\) au grid search si cette valeur correspond uniquement à la configuration C3. Remplacer aussi la mention \enquote{5-fold CV} pour YOLO par \enquote{3 runs indépendants}, sauf si une vraie validation croisée image-level est documentée.}
+
+  \item \classif{Erreur certaine --- les colonnes \enquote{Moy. \(\pm\) Std} ne correspondent pas aux folds affichés.}
+  \loc{Chapitre~3, tableau de validation FCR et tableau du classifieur de mortalité.}
+  \prob{Pour le FCR, les folds \(R^2=(0.897,0.882,0.903,0.878,0.896)\) donnent une moyenne \(0.891\) mais un écart-type échantillonnal d'environ \(0.011\), pas \(0.024\). Pour la mortalité, les valeurs affichées donnent environ \(s=0.013\) pour la précision, \(s=0.009\) pour le rappel, \(s=0.011\) pour le F1 et \(s=0.011\) pour l'AUC, alors que le tableau annonce \(\pm0.021\), \(\pm0.021\), \(\pm0.022\) et \(\pm0.026\).}
+  \impact{La notation \(\pm\) est utilisée comme si elle représentait un écart-type, mais les valeurs ressemblent parfois à des demi-largeurs d'IC ou à des chiffres non recalculés. Les intervalles de confiance et la robustesse statistique deviennent donc ambigus.}
+  \fix{Recalculer chaque moyenne et chaque écart-type à partir des folds, puis distinguer explicitement \(\bar{x}\pm s\), erreur standard, IC bootstrap et demi-largeur d'IC. Par exemple, si \(0.024\) est la demi-largeur de l'IC \([0.867,0.915]\), le libellé doit être \enquote{moyenne, IC 95\%} et non \enquote{Moy. \(\pm\) Std}.}
+
+  \item \classif{Erreur certaine --- modèle FCR univarié incompatible avec l'analyse d'importance.}
+  \loc{Chapitre~3, section FCR; annexe~C, fonction \texttt{predict\_fcr}.}
+  \prob{La formulation mathématique définit un modèle univarié
+  \[
+    \hat{y}_\text{FCR}(t)=\beta_0+\beta_1t+\beta_2t^2,
+  \]
+  avec \(\mathbf{X}=[\mathbf{1},\mathbf{t},\mathbf{t}^2]\). Pourtant la figure d'importance par permutation inclut \enquote{Consomm. alim.}, \enquote{Temp. amb.} et \enquote{Humidité rel.}, qui ne sont pas dans \(\mathbf{X}\). L'annexe~C confirme une implémentation uniquement basée sur \texttt{batch\_age}.}
+  \impact{Soit le modèle réel est multivarié et la formule est incomplète, soit la figure d'importance est incorrecte. Dans les deux cas, l'interprétation agronomique du prédicteur dominant est non reproductible.}
+  \fix{Choisir l'une des deux versions. Si le modèle est multivarié, écrire par exemple
+  \[
+    \hat{y}_\text{FCR}=\beta_0+\beta_1t+\beta_2t^2+\beta_3\,\text{feed}+\beta_4T+\beta_5H
+  \]
+  et documenter les unités/normalisations. Si le modèle est vraiment univarié, supprimer les variables externes de l'importance par permutation. Corriger aussi l'annexe~C : la tendance d'un polynôme de degré~2 ne doit pas être décidée seulement par le signe de \(\beta_1\) en \(t=0\), mais par \(\beta_1+2\beta_2t\) au jour courant ou par la comparaison \(\hat{y}(t_\mathrm{final})-\hat{y}(t_\mathrm{courant})\).}
+
+  \item \classif{Erreur certaine --- histogramme FCR incompatible avec \(n=847\).}
+  \loc{Chapitre~3, figure de distribution FCR.}
+  \prob{Les barres affichées dans le code TikZ valent \(18+42+87+165+145+98+62+28+12=657\), alors que le texte, le titre et la légende annoncent \(n=847\).}
+  \impact{La figure donne une impression quantitative fausse et affaiblit les tests de normalité rapportés juste après.}
+  \fix{Recréer l'histogramme depuis les 847 lignes réelles ou corriger le \(n\) si la figure ne représente qu'un sous-ensemble. Ajouter le nombre de bins et la règle de binning utilisée.}
+
+  \item \classif{Erreur certaine --- dérive des effectifs et du périmètre des modèles.}
+  \loc{Résumé, introduction, chapitre~2, chapitre~3.}
+  \prob{Le mémoire annonce \enquote{5 modèles ML avicoles} et le chapitre~2 liste FCR, mortalité, ponte, anomalies et standards race; le chapitre~3 ne documente que quatre modèles : FCR, mortalité, score-Z et IsolationForest. De même, le corpus RAG est décrit comme \enquote{47 documents PDF, 312 chunks} ou \enquote{312 chunks AVFA} au chapitre~2, puis comme \enquote{500 documents} et \(2\,847\) chunks au chapitre~3. Les logs avicoles passent aussi de \enquote{500+ lots} à \(847\) enregistrements de \(12\) lots.}
+  \impact{Ces divergences rendent impossible de savoir quelles données ont réellement servi aux résultats et quelles fonctionnalités ont été évaluées.}
+  \fix{Créer un tableau de traçabilité des jeux de données et modèles : source, période, nombre de documents/lots/enregistrements/chunks, split, modèle associé, métriques produites. Harmoniser ensuite le résumé, le chapitre~2, le chapitre~3 et les annexes.}
+
+  \item \classif{Revendication non étayée --- validation terrain et adoption.}
+  \loc{Résumé, introduction, chapitre~4, conclusion générale.}
+  \prob{Le résumé et la conclusion annoncent une \enquote{réduction perçue de 23\% des pertes animales}; l'introduction annonce un taux d'adoption de \(91\%\) après une semaine. Or la section de validation terrain ne fournit qu'un tableau de satisfaction \(4.2/5\) et les caractéristiques des sept fermes pilotes; elle ne montre ni baseline de pertes animales, ni protocole d'enquête, ni calcul du \(23\%\), ni données d'usage justifiant \(91\%\).}
+  \impact{Ces chiffres sont des résultats d'impact forts. Sans méthode, effectifs, questionnaire, période de comparaison et incertitude, ils doivent être présentés comme retours qualitatifs ou retirés des contributions principales.}
+  \fix{Ajouter un protocole de validation terrain : indicateurs avant/après, nombre de répondants, définition d'\enquote{adoption}, calcul du \(23\%\), IC ou au moins dispersion, et limites de causalité. À défaut, reformuler : \enquote{les fermes pilotes déclarent une perception d'amélioration, à confirmer par un suivi longitudinal contrôlé}.}
+
+  \item \classif{Erreur certaine --- incohérence des résultats de tests automatisés.}
+  \loc{Chapitre~4 et conclusion générale.}
+  \prob{La section de tests affiche \(98\) tests réussis sur \(98\), soit \(100\%\). La conclusion générale annonce \(251\) tests automatisés et \(98.8\%\) de réussite.}
+  \impact{Le lecteur ne peut pas savoir quel résultat de validation logicielle est final. La robustesse de la plateforme est une contribution centrale; elle doit être auditée avec des chiffres uniques.}
+  \fix{Si \(251\) tests est le résultat final, remplacer la sortie terminale, le tableau par module et la figure. Si \(98\) tests est le résultat réel documenté, corriger la conclusion et éviter \enquote{batterie exhaustive}.}
+
+  \item \classif{Erreur certaine ou à vérifier fortement --- revue de littérature YOLO.}
+  \loc{Chapitre~2, article~3 et tableau comparatif; chapitre~3, comparaison avec \texttt{chen2023yolo\_livestock}.}
+  \prob{Le texte dit que Chen \textit{et al.} comparent \enquote{v5s, v7, v8n, v8s, v8m}, puis affirme immédiatement que \enquote{YOLOv11n offre le meilleur compromis}. Le manuscrit date par ailleurs YOLO11 d'octobre~2024, ce qui rend l'attribution d'un résultat YOLOv11 à un article de 2023 chronologiquement suspecte.}
+  \impact{La justification bibliographique du choix YOLOv11 est fragilisée et peut être factuellement fausse.}
+  \fix{Relire l'article cité et corriger la phrase : soit Chen \textit{et al.} ne couvre que YOLOv5/v7/v8, soit il faut citer une source réellement consacrée à YOLO11/Ultralytics. Ne pas attribuer à un article de 2023 une architecture ou des résultats apparus seulement après sa publication.}
+
+  \item \classif{Erreur d'implémentation --- parsing MQTT et correspondance des topics.}
+  \loc{Annexe~F, service MQTT IoT.}
+  \prob{Les topics abonnés sont \texttt{smartfarm/node\_a/\#} et \texttt{smartfarm/node\_b/\#}, mais le code extrait \texttt{farm\_id = int(parts[1])}; pour un topic réel, \texttt{parts[1]} vaut \texttt{node\_a} ou \texttt{node\_b}, ce qui déclenche \texttt{ValueError}. De plus, \texttt{MQTT\_TOPICS.get(topic\_str, "unknown")} ne peut pas matcher une clé wildcard comme \texttt{smartfarm/node\_a/\#}.}
+  \impact{Tel qu'écrit, l'extrait peut rejeter tous les messages MQTT ou classer les capteurs en \texttt{unknown}, ce qui contredit les claims de télémétrie et d'alertes temps réel.}
+  \fix{Définir un format de topic contenant vraiment la ferme, par exemple \texttt{smartfarm/farm/\{farm\_id\}/node\_a/\{sensor\}}, puis parser \texttt{parts[2]}. Utiliser une fonction de matching MQTT ou dériver \texttt{sensor\_type} depuis \texttt{parts} plutôt qu'un \texttt{dict.get} exact sur un wildcard.}
+
+  \item \classif{Ambiguïté d'implémentation --- coordonnées géographiques et unités.}
+  \loc{Chapitre~3, formules Haversine et placement circulaire des ruches.}
+  \prob{La formule Haversine n'indique pas que \(\varphi\), \(\lambda\), \(\Delta\varphi\) et \(\Delta\lambda\) doivent être en radians. Le placement circulaire utilise \(0.0003\) degré pour latitude et longitude et le décrit comme un cercle de \(\approx 33\) m; or un degré de longitude vaut \(111\,\mathrm{km}\cos\varphi\), donc le rayon est anisotrope et dépend de la latitude.}
+  \impact{Une implémentation directe avec des degrés navigateur peut produire des distances fausses; le cercle des ruches devient une ellipse en mètres, surtout hors équateur.}
+  \fix{Spécifier la conversion degrés\(\to\)radians et le clamp numérique de l'argument de \(\arcsin\). Pour le placement, utiliser un rayon métrique \(r\) :
+  \[
+    \varphi_i=\varphi_f+\frac{r}{R}\frac{180}{\pi}\sin\frac{2\pi i}{N},\quad
+    \lambda_i=\lambda_f+\frac{r}{R\cos\varphi_f}\frac{180}{\pi}\cos\frac{2\pi i}{N},\quad N>0.
+  \]
+  Préciser que \(\varphi_f\) dans le cosinus est en radians, ou utiliser une projection locale.}
+
+  \item \classif{Incohérence entre exigences et benchmarks.}
+  \loc{Chapitre~2, besoins non fonctionnels; chapitre~4, benchmarks.}
+  \prob{Le besoin annonce une latence API p50 \(<100\) ms et une inférence YOLOv11 ne dépassant pas \(200\) ms. Les benchmarks montrent \texttt{GET /farms} p50 \(=87\) ms, \texttt{GET /animals} p50 \(=112\) ms, \texttt{POST /agent/analyze-image} p50 \(=1847\) ms, \texttt{POST /agent/chat} p50 \(=2103\) ms, et YOLO CPU p99 \(=287\) ms.}
+  \impact{L'affirmation selon laquelle les performances valident l'architecture doit être qualifiée : certains endpoints satisfont le p50, mais pas tous; YOLO respecte p50/p90 mais pas le \enquote{ne doit pas dépasser} strict.}
+  \fix{Reformuler les SLO par endpoint et percentile : par exemple \(p50<100\) ms pour CRUD, \(p90<200\) ms pour inférence YOLO, \(p95<3\) s pour LLM. Déclarer explicitement les SLO non atteints et les plans de mitigation.}
+
+  \item \classif{Ambiguïté méthodologique --- AP/mAP, BLEU/ROUGE et kappa.}
+  \loc{Chapitre~3, métriques de détection et d'évaluation Darija.}
+  \prob{AP est présenté comme une intégrale continue, mais l'implémentation YOLO utilise typiquement une approximation discrète/interpolée de la courbe précision-rappel et des seuils IoU précis. Pour l'agent Darija, le texte ne précise pas le nombre de références, la tokenisation/translittération, le lissage BLEU, ni si \(\kappa\) est pondéré ou nominal pour une grille à quatre niveaux.}
+  \impact{Ces détails peuvent changer substantiellement les scores BLEU/ROUGE/kappa et la comparabilité des métriques YOLO.}
+  \fix{Ajouter une sous-section \enquote{Protocole de calcul des métriques} : version Ultralytics, split évalué, seuils IoU, interpolation AP, micro/macro-moyenne, tokenisation Darija, références par question, kappa pondéré ou non pondéré et matrice d'accord.}
+\end{enumerate}
+
+\section*{Vérification de dérive de notation et de terminologie}
+
+\begin{center}
+\small
+\begin{tabular}{p{0.18\linewidth}p{0.34\linewidth}p{0.38\linewidth}}
+\toprule
+\textbf{Symbole / terme} & \textbf{Premier descripteur observé} & \textbf{Dérive ou conflit à corriger} \\
+\midrule
+\(\mathrm{mAP@50}\) & Résultat global YOLO sur 11 catégories & Devient successivement grid search, validation, test, trois seeds et \enquote{5-fold CV}. Fixer split, protocole et valeur finale. \\
+\(R^2=0.891\pm0.024\) & Moyenne \(\pm\) Std du modèle FCR & Les folds donnent plutôt \(s\approx0.011\); \(0.024\) correspond à la demi-largeur de l'IC affiché. Renommer ou recalculer. \\
+FCR / ICF & Indice de consommation, aliment ingéré / gain de poids & La formule principale est univariée en âge, mais l'analyse parle de variables d'environnement et de consommation. Harmoniser modèle et vocabulaire. \\
+Corpus RAG & 47 documents / 312 chunks AVFA & Devient 500 documents / \(2\,847\) chunks. Ajouter une version unique et datée du corpus. \\
+\(\kappa\) & Accord inter-annotateurs Darija & Valeur stable \(0.76\), mais protocole incomplet : pondération, matrice d'accord et grille doivent être définis. \\
+\(\varphi,\lambda,N\) & Coordonnées GPS et nombre de ruches & Unités d'angle et cas \(N=0\) non spécifiés; longitude traitée comme latitude dans le placement circulaire. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section*{Constats éditoriaux significatifs}
+
+\begin{enumerate}
+  \item \loc{Page de titre.}
+  \prob{Les noms d'encadrants restent sous forme de placeholders : \enquote{M. XXXXXXX} et \enquote{M. YYYYYY}. La spécialité \enquote{Data science et AI} mélange anglais et français.}
+  \impact{Cela donne une impression de brouillon non finalisé sur la première page.}
+  \fix{Remplacer par les noms réels et harmoniser : \enquote{Science des données et IA} ou \enquote{Data Science et IA}.}
+
+  \item \loc{Chapitre~2 et annexes.}
+  \prob{Le chapitre~2 indique que les hyperparamètres sont documentés en \enquote{annexe~D}, alors que le fichier source place les hyperparamètres en annexe~E; en outre, toutes les annexes sont commentées dans \texttt{cycle/main.tex}.}
+  \impact{Le lecteur du PDF ne voit pas les annexes annoncées, et la numérotation citée est trompeuse.}
+  \fix{Inclure les annexes réellement nécessaires ou retirer les renvois. Si les annexes restent hors PDF, ne pas utiliser leurs résultats comme preuves dans le corps du mémoire.}
+
+  \item \loc{Chapitre~4, conclusion et résumé.}
+  \prob{Le style alterne entre \enquote{Cohen's Kappa}, \enquote{Cohen's \(\kappa\)} et des formulations anglaises dans le texte français.}
+  \impact{La terminologie paraît moins professionnelle et peut gêner l'alignement avec les métriques statistiques.}
+  \fix{Utiliser \enquote{kappa de Cohen (\(\kappa\))} dans les sections françaises et réserver \enquote{Cohen's kappa} à l'abstract anglais.}
+
+  \item \loc{Bibliographie et citations.}
+  \prob{Aucune citation utilisée n'est manquante, mais plusieurs entrées sont inutilisées et certaines références de contexte sont trop génériques : \texttt{fao2023} pointe vers une page générale de publications, et \texttt{utap2023} n'a ni URL, ni éditeur précis, ni page.}
+  \impact{Les chiffres de contexte national et international sont difficiles à vérifier.}
+  \fix{Remplacer les références génériques par des rapports précis avec titre complet, organisme, année, URL/DOI si disponible et page du chiffre cité. Supprimer ou utiliser les entrées bibliographiques non citées.}
+\end{enumerate}
+
+\section*{Balayage de preuve et défauts locaux vérifiés}
+
+Le scan mécanique imposé a surtout remonté des faux positifs liés aux points de suite de la table des matières, aux ellipses dans les exemples Darija et à la sortie \texttt{pytest}. Après vérification, les défauts locaux suivants sont les plus sûrs à corriger :
+
+\begin{itemize}
+  \item \textbf{Annexe~F, listing React :} \texttt{language=Java} est utilisé pour un hook React/JavaScript. Remplacer par \texttt{language=JavaScript} si le langage est défini, ou par un style neutre \texttt{language=\{\}}.
+  \item \textbf{Annexe~F et annexe~H, chaînes/commentaires français :} \enquote{Echec}, \enquote{reessai}, \enquote{Verifier}, \enquote{donnees}, \enquote{modeles} apparaissent sans accents. Corriger en \enquote{Échec}, \enquote{réessai}, \enquote{Vérifier}, \enquote{données}, \enquote{modèles}, sauf si une contrainte ASCII est explicitement voulue dans le code.
+  \item \textbf{Annexe~G, terminologie :} \enquote{Un index \(>0.85\)} devrait être \enquote{un indice \(>0.85\)} en français technique.
+  \item \textbf{Chapitre~3, exemples Darija :} les ellipses \texttt{...} sont intentionnelles mais mélangées avec la ponctuation française \enquote{\ldots\,}. Utiliser une convention unique pour les citations tronquées.
+\end{itemize}
+
+\section*{Points nécessitant une vérification externe}
+
+\begin{itemize}
+  \item Les informations institutionnelles sur InTech Solutions (adresse, effectif, partenaires, nombre de projets) doivent être vérifiées auprès d'une source d'entreprise ou d'un document interne autorisé.
+  \item Les chiffres FAO/UTAP sur la population mondiale, le PIB agricole tunisien et l'emploi agricole doivent être reliés à des rapports précis et à des pages vérifiables.
+  \item Les performances attribuées aux travaux de Sharma \textit{et al.}, Chen \textit{et al.}, Zhang \textit{et al.} et Zheng \textit{et al.} doivent être revues dans les articles originaux; le cas Chen/YOLOv11 est prioritaire à cause de la contradiction chronologique et du conflit v5/v7/v8 versus YOLOv11.
+  \item Les modèles nommés \enquote{Labess-7B} et \enquote{Groq Llama-3.3-70B} doivent être identifiés avec version, date, licence et paramètres exacts si leurs résultats sont utilisés comme contribution scientifique.
+\end{itemize}
+
+\section*{Corrections prioritaires avant soutenance ou soumission}
+
+\begin{enumerate}
+  \item Consolider tous les chiffres maîtres dans un tableau unique : YOLO, FCR, mortalité, RAG/Darija, tests logiciels, validation terrain.
+  \item Recalculer les \(\pm\), écarts-types, erreurs standards et IC; ne pas mélanger \enquote{Std}, IC bootstrap et variabilité inter-seeds.
+  \item Corriger les incohérences de périmètre : 4 ou 5 modèles avicoles, 312 ou \(2\,847\) chunks, 12 lots ou 500+ lots, 98 ou 251 tests.
+  \item Réparer les éléments implémentation-facing : FCR multivarié/univarié, tendance quadratique, MQTT topic parsing, unités GPS et formule de placement des ruches.
+  \item Ajouter la méthode de validation terrain ou réduire fortement les claims \(23\%\) et \(91\%\).
+  \item Vérifier la bibliographie YOLO et les références de contexte; corriger les citations qui attribuent des résultats non présents dans les sources.
+  \item Finaliser les éléments éditoriaux visibles : noms d'encadrants, spécialité, annexes incluses ou renvois retirés, langue des listings et terminologie française.
+\end{enumerate}
+
+\end{document}

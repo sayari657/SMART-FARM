@@ -1,0 +1,13 @@
+controle,nombre,type
+Logs avicoles en attente de validation,88,quality_issue
+Poids moyen manquant dans feed logs,35,quality_issue
+Taux de ponte superieur a 100 %,1,quality_issue
+FCR superieur a 3,5,quality_issue
+Temperature manquante des visites ruches,4,quality_issue
+Score sante ruche manquant,4,quality_issue
+Telemetrie,0,table_availability
+Anomalies,0,table_availability
+Recommandations,0,table_availability
+Productions apicoles,0,table_availability
+Feedback ML,0,table_availability
+Evaluation modeles,0,table_availability

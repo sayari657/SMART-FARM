@@ -1,0 +1,20 @@
+names:
+- anthracnose
+- bacterial_blight
+- citrus_canker
+- curl_virus
+- deficiency_leaf
+- dry_leaf
+- healthy_leaf
+- sooty_mould
+- spider_mites
+nc: 9
+roboflow:
+  license: MIT
+  project: lemon-leaf-diseases
+  url: https://universe.roboflow.com/object-detection-eh4ut/lemon-leaf-diseases/dataset/1
+  version: 1
+  workspace: object-detection-eh4ut
+test: /kaggle/input/datasets/mohamedsayari77/lemon-leaf/Lemon Leaf Diseases.v1i.yolov11/test/images
+train: /kaggle/input/datasets/mohamedsayari77/lemon-leaf/Lemon Leaf Diseases.v1i.yolov11/train/images
+val: /kaggle/input/datasets/mohamedsayari77/lemon-leaf/Lemon Leaf Diseases.v1i.yolov11/valid/images

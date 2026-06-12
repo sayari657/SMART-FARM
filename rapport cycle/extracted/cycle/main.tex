@@ -1,0 +1,285 @@
+% ============================================================
+%  Smart Farm AI Enterprise — Mémoire PFE
+%  Auteur : Mohamed Sayari | Intech Solutions | 2024-2025
+%  Structure multi-fichiers — fichier maître
+% ============================================================
+\documentclass[12pt,a4paper,twoside]{report}
+
+% ── Encodage et langue ──────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
+\usepackage{silence}
+\WarningFilter{latex}{Overfull}\WarningFilter{latex}{Underfull}
+\usepackage[french]{babel}
+\AtBeginDocument{\shorthandoff{!}}
+\usepackage{lmodern}
+
+% ── Mise en page ────────────────────────────────────────────
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{emptypage}
+\usepackage{ifthen}
+\usepackage{afterpage}
+\usepackage{setspace}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\setlength{\headheight}{16pt}
+\setstretch{1.18}
+\setlength{\parindent}{1.2em}
+\setlength{\parskip}{0pt plus 1pt}
+\raggedbottom
+\hbadness=10000
+\vbadness=10000
+\hfuzz=10000pt
+\vfuzz=10000pt
+\overfullrule=0pt
+\AtBeginDocument{\hbadness=10000\vbadness=10000\hfuzz=10000pt\vfuzz=10000pt\overfullrule=0pt}
+
+% ── Espacements globaux compacts et homogènes ───────────────
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\raggedright}
+  {\Large\chaptername~\thechapter}
+  {0.35em}
+  {\LARGE}
+\titleformat{\section}
+  {\normalfont\Large\bfseries}
+  {\thesection}
+  {0.7em}
+  {}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}
+  {\thesubsection}
+  {0.65em}
+  {}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries}
+  {\thesubsubsection}
+  {0.6em}
+  {}
+\titlespacing*{\chapter}{0pt}{-30pt}{0.9em}
+\titlespacing*{\section}{0pt}{0.75em plus 0.1em minus 0.05em}{0.3em}
+\titlespacing*{\subsection}{0pt}{0.55em plus 0.1em minus 0.05em}{0.25em}
+\titlespacing*{\subsubsection}{0pt}{0.45em plus 0.1em minus 0.05em}{0.2em}
+\setlist{topsep=3pt plus 1pt minus 1pt,itemsep=1pt,parsep=0pt,partopsep=0pt}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{5pt}
+\setlength{\belowcaptionskip}{3pt}
+\setlength{\cftbeforechapskip}{0.35em}
+\setlength{\cftbeforesecskip}{0.12em}
+\setlength{\cftbeforefigskip}{0.12em}
+\setlength{\cftbeforetabskip}{0.12em}
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.75}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+
+% ── Mathématiques ───────────────────────────────────────────
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{siunitx}
+
+% ── Tableaux ────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\renewcommand{\tabularxcolumn}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+
+
+% ── Chemin racine compatible compilation ────────────────────
+\makeatletter
+\IfFileExists{front/titlepage.tex}{\def\projectdir{}\def\buildfromroot{0}}{\def\projectdir{cycle/}\def\buildfromroot{1}}
+\def\input@path{{\projectdir}}
+\makeatother
+% ── Figures ─────────────────────────────────────────────────
+\usepackage{graphicx}
+\graphicspath{{\projectdir figures/}{\projectdir}}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+% ── Code source ─────────────────────────────────────────────
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{green!60!black},
+  stringstyle=\color{orange},
+  backgroundcolor=\color{gray!5},
+  captionpos=b,
+  extendedchars=true,
+  literate=
+    {é}{{\'{e}}}1 {è}{{\`{e}}}1 {ê}{{\^{e}}}1 {ë}{{\"e}}1
+    {à}{{\`{a}}}1 {â}{{\^{a}}}1 {ä}{{\"a}}1
+    {î}{{\^{i}}}1 {ï}{{\"i}}1
+    {ô}{{\^{o}}}1 {ö}{{\"o}}1
+    {ù}{{\`{u}}}1 {û}{{\^{u}}}1 {ü}{{\"u}}1
+    {ç}{{\c{c}}}1
+    {É}{{\'E}}1 {È}{{\`E}}1 {Ê}{{\^E}}1
+    {À}{{\`A}}1 {Â}{{\^A}}1
+    {Î}{{\^I}}1
+    {Ô}{{\^O}}1
+    {Ù}{{\`U}}1 {Û}{{\^U}}1
+    {Ç}{{\c{C}}}1
+    {²}{{\textsuperscript{2}}}1
+    {°}{{\textdegree}}1
+    {×}{{\texttimes}}1
+    {—}{{---}}1 {→}{{$\to$}}1 {↑}{{$\uparrow$}}1
+}
+
+% ── Boîtes colorées ─────────────────────────────────────────
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% ── Algorithmes ─────────────────────────────────────────────
+\usepackage[ruled,vlined]{algorithm2e}
+
+% ── Références et liens ─────────────────────────────────────
+\usepackage[
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue,
+  pdftitle={Smart Farm AI --- Mémoire PFE},
+  pdfauthor={Mohamed Sayari}
+]{hyperref}
+\usepackage{cleveref}
+
+% ── Typographie fine ────────────────────────────────────────
+\usepackage{microtype}
+\usepackage{csquotes}
+
+% ── Bibliographie ───────────────────────────────────────────
+\usepackage[
+  backend=biber,
+  style=ieee,
+  sorting=none,
+  maxbibnames=6
+]{biblatex}
+\ifnum\buildfromroot=1
+  \addbibresource{cycle/references.bib}
+\else
+  \addbibresource{references.bib}
+\fi
+
+% ── Définitions théorèmes ───────────────────────────────────
+\newtheorem{definition}{Définition}[chapter]
+\newtheorem{propriete}{Propriété}[chapter]
+
+% ── En-têtes / pieds de page ────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\thepage}
+\fancyhead[RE]{\small\nouppercase{\leftmark}}
+\fancyhead[LO]{\small\nouppercase{\rightmark}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ── Gantt ────────────────────────────────────────────────────
+\usepackage{pgfgantt}
+
+
+% ── Helpers page de garde TEK-UP ────────────────────────────
+\fancypagestyle{cover}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0pt}}
+\newenvironment{changemargin}[2]{\begin{list}{}{\setlength{\leftmargin}{#1}\setlength{\rightmargin}{#2}}\item[]}{\end{list}}
+\newcommand{\blankpage}{\null\thispagestyle{empty}\newpage}
+
+% ── Commandes personnalisées ────────────────────────────────
+\newcommand{\ic}[2]{$#1 \pm #2$}
+\newcommand{\pval}[1]{$p < #1$}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pathcell}[1]{\raggedright\ttfamily\footnotesize\detokenize{#1}\arraybackslash}
+
+% Compteur pour la grille apiculture (figure ch4)
+\newcounter{hi}
+
+% Boîte placeholder pour images à insérer ultérieurement
+\newcommand{\placeholder}[2][0.9]{%
+  \begin{tcolorbox}[colback=orange!6,colframe=orange!55,
+    width=#1\linewidth,center,
+    title={\small\color{red!70!black}\bfseries \faCamera\ IMAGE À INSÉRER}]
+  \centering\ttfamily\small #2\\[0.15cm]
+  {\footnotesize\itshape Remplacer par votre capture / fichier image}
+  \end{tcolorbox}%
+}
+% Version sans l'icône caméra si fontawesome non disponible
+\providecommand{\faCamera}{[img]}
+
+% ============================================================
+% Tolérances typographiques pour éviter les faux positifs Overfull sur tableaux larges
+\hfuzz=130pt
+\vfuzz=20pt
+\hbadness=10000
+\vbadness=10000
+
+\begin{document}
+\hbadness=10000\vbadness=10000\hfuzz=10000pt\vfuzz=10000pt\overfullrule=0pt
+\hypersetup{pageanchor=false}
+\pagenumbering{gobble}
+
+% Front matter
+\include{\projectdir front/titlepage}
+\include{\projectdir front/dedicace}
+\include{\projectdir front/remerciements}
+
+% Lists
+\clearpage
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\setcounter{page}{1}
+\tableofcontents
+\listoffigures
+\listoftables
+
+\include{\projectdir front/acronymes}
+\include{\projectdir front/glossaire}
+
+% Main chapters
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\include{\projectdir chapters/introduction}
+\include{\projectdir chapters/ch1_contexte}
+\include{\projectdir chapters/ch2_besoins}
+\include{\projectdir chapters/ch3_modelisation}
+\include{\projectdir chapters/ch4_realisation}
+\include{\projectdir chapters/conclusion}
+
+% Appendices
+\appendix
+%\include{\projectdir appendices/app_a_structure}
+%\include{\projectdir appendices/app_b_env}
+%\include{\projectdir appendices/app_c_fcr}
+%\include{\projectdir appendices/app_d_bd}
+%\include{\projectdir appendices/app_e_hyperparams}
+%\include{\projectdir appendices/app_f_code}
+%\include{\projectdir appendices/app_g_data}
+%\include{\projectdir appendices/app_h_guide}
+
+% Bibliography
+\printbibliography[heading=bibintoc, title={Références Bibliographiques}]
+
+% Last page
+\include{\projectdir front/resume}
+
+\end{document}

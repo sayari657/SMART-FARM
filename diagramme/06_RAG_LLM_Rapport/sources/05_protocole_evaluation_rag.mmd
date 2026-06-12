@@ -1,0 +1,72 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial","primaryTextColor":"#0f172a","lineColor":"#475569"},"flowchart":{"curve":"basis","nodeSpacing":35,"rankSpacing":50}}}%%
+flowchart TB
+  subgraph DATASET["1. Jeu d'evaluation"]
+    direction LR
+    Q["Questions reelles<br/>FR, AR, derja"]
+    GOLD["Document pertinent<br/>et reponse de reference"]
+    SPLIT["Stratification<br/>espece, sujet, difficulte"]
+  end
+
+  subgraph RETRIEVAL["2. Evaluation du retrieval"]
+    direction LR
+    R1["Recall@1 / Recall@3"]
+    MRR["MRR"]
+    NDCG["nDCG@k"]
+    FILTER["Exactitude des filtres<br/>espece et farm_id"]
+  end
+
+  subgraph GENERATION["3. Evaluation de la generation"]
+    direction LR
+    FAITH["Faithfulness<br/>support par les sources"]
+    ANSWER["Pertinence de reponse"]
+    CITE["Exactitude des citations"]
+    SAFE["Securite et calibration<br/>refus, incertitude"]
+  end
+
+  subgraph HUMAN["4. Evaluation humaine"]
+    direction LR
+    EXPERT["Agronome / veterinaire"]
+    FARMER["Proprietaire / ouvrier"]
+    SCORE["Utilite, clarte,<br/>actionnabilite"]
+  end
+
+  subgraph OPS["5. Evaluation en production"]
+    direction LR
+    LAT["Latence p50 / p95"]
+    COST["Cout par requete"]
+    DRIFT["Derive des questions<br/>et taux no-hit"]
+    FEEDBACK["Feedback et corrections"]
+  end
+
+  Q --> SPLIT
+  GOLD --> SPLIT
+  SPLIT --> R1
+  SPLIT --> MRR
+  SPLIT --> NDCG
+  SPLIT --> FILTER
+  R1 --> FAITH
+  MRR --> ANSWER
+  NDCG --> CITE
+  FILTER --> SAFE
+  FAITH --> EXPERT
+  ANSWER --> EXPERT
+  CITE --> FARMER
+  SAFE --> FARMER
+  EXPERT --> SCORE
+  FARMER --> SCORE
+  SCORE --> LAT
+  SCORE --> COST
+  SCORE --> DRIFT
+  DRIFT --> FEEDBACK
+  FEEDBACK -. enrichissement .-> Q
+
+  classDef data fill:#EFF6FF,stroke:#2563EB,stroke-width:1.5px;
+  classDef retrieval fill:#ECFDF5,stroke:#059669,stroke-width:1.5px;
+  classDef generation fill:#FFF7ED,stroke:#EA580C,stroke-width:1.5px;
+  classDef human fill:#FAF5FF,stroke:#9333EA,stroke-width:1.5px;
+  classDef ops fill:#F8FAFC,stroke:#475569,stroke-width:1.5px;
+  class Q,GOLD,SPLIT data;
+  class R1,MRR,NDCG,FILTER retrieval;
+  class FAITH,ANSWER,CITE,SAFE generation;
+  class EXPERT,FARMER,SCORE human;
+  class LAT,COST,DRIFT,FEEDBACK ops;

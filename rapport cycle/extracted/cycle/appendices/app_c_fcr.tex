@@ -1,0 +1,40 @@
+\chapter{Extraits de code — Modèle FCR}
+\label{ann:fcr_code}
+
+\begin{lstlisting}[language=python, caption={Implémentation de la régression polynomiale FCR}]
+def predict_fcr(feed_logs: List[PoultryFeedLog]) -> dict:
+    days = np.array([log.batch_age for log in feed_logs])
+    fcrs = np.array([log.fcr_calculated for log in feed_logs])
+
+    if len(days) < 2:
+        return _interpolate_from_standard(days[0] if days else 7)
+
+    # Construction matrice de Vandermonde degré 2
+    X_poly = np.column_stack([np.ones(len(days)), days, days**2])
+    beta, _, _, _ = np.linalg.lstsq(X_poly, fcrs, rcond=None)
+
+    day_final = 42  # Age standard abattage poulet chair
+    X_pred = np.array([1, day_final, day_final**2])
+    fcr_predicted = float(X_pred @ beta)
+
+    # Coefficient de détermination R²
+    fcr_mean = np.mean(fcrs)
+    ss_tot = np.sum((fcrs - fcr_mean)**2)
+    ss_res = np.sum((fcrs - (X_poly @ beta))**2)
+    r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0.0
+
+    # Tendance : signe de beta_1 (dérivée première en t=0)
+    trend = ("improving" if beta[1] < -0.01
+             else "degrading" if beta[1] > 0.01
+             else "stable")
+
+    return {
+        "current_fcr": float(fcrs[-1]),
+        "predicted_fcr_final": round(fcr_predicted, 3),
+        "confidence": round(max(0.55, min(0.97, r_squared)), 2),
+        "trend": trend,
+        "model": "polynomial_regression_degree_2",
+        "coefficients": beta.tolist()
+    }
+\end{lstlisting}
+

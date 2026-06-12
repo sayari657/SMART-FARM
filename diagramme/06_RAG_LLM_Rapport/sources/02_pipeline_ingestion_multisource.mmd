@@ -1,0 +1,66 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial","primaryTextColor":"#0f172a","lineColor":"#475569"},"flowchart":{"curve":"basis","nodeSpacing":35,"rankSpacing":50}}}%%
+flowchart TB
+  subgraph SOURCES["1. Import des connaissances"]
+    direction LR
+    PDF["PDF / DOCX / TXT"]
+    TAB["CSV / Excel / JSON"]
+    SQL["SQLite / PostgreSQL<br/>export controle"]
+    API["API externes<br/>agronomie et meteo"]
+  end
+
+  subgraph SECURITY["2. Securite et gouvernance"]
+    direction LR
+    AUTH["Autorisation<br/>superadmin / proprietaire"]
+    SCAN["Validation format<br/>taille, MIME, antivirus"]
+    PII["Detection PII<br/>anonymisation"]
+    TENANT["Isolation tenant<br/>farm_id obligatoire"]
+  end
+
+  subgraph PREP["3. Preparation Data Science"]
+    direction LR
+    PARSE["Parsing structure"]
+    CLEAN["Nettoyage<br/>doublons, encodage"]
+    QUALITY["Score qualite<br/>completude, validite"]
+    CHUNK["Chunking semantique<br/>400-800 tokens"]
+    META["Metadonnees<br/>espece, sujet, date,<br/>source, version"]
+  end
+
+  subgraph INDEX["4. Indexation"]
+    direction LR
+    EMB["Embeddings multilingues"]
+    CHROMA["ChromaDB<br/>collection par tenant"]
+    CATALOG["Catalogue SQL<br/>documents et versions"]
+    AUDIT["Journal d'audit<br/>hash et provenance"]
+  end
+
+  subgraph VALIDATE["5. Validation avant publication"]
+    direction LR
+    TEST["Jeu de questions expert"]
+    RET["Recall@k, MRR,<br/>nDCG"]
+    GEN["Faithfulness,<br/>citation, pertinence"]
+    REVIEW["Validation humaine<br/>agronome / veterinaire"]
+    PUBLISH["Publication"]
+  end
+
+  PDF --> AUTH
+  TAB --> AUTH
+  SQL --> AUTH
+  API --> AUTH
+  AUTH --> SCAN --> PII --> TENANT
+  TENANT --> PARSE --> CLEAN --> QUALITY --> CHUNK --> META
+  META --> EMB --> CHROMA
+  META --> CATALOG
+  META --> AUDIT
+  CHROMA --> TEST --> RET --> GEN --> REVIEW --> PUBLISH
+  REVIEW -. corrections .-> CLEAN
+
+  classDef source fill:#EFF6FF,stroke:#2563EB,stroke-width:1.5px;
+  classDef security fill:#FEF2F2,stroke:#DC2626,stroke-width:1.5px;
+  classDef prep fill:#ECFDF5,stroke:#059669,stroke-width:1.5px;
+  classDef index fill:#FFF7ED,stroke:#EA580C,stroke-width:1.5px;
+  classDef validate fill:#FAF5FF,stroke:#9333EA,stroke-width:1.5px;
+  class PDF,TAB,SQL,API source;
+  class AUTH,SCAN,PII,TENANT security;
+  class PARSE,CLEAN,QUALITY,CHUNK,META prep;
+  class EMB,CHROMA,CATALOG,AUDIT index;
+  class TEST,RET,GEN,REVIEW,PUBLISH validate;

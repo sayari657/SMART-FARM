@@ -1,5 +1,5 @@
 # FARM AI — Production Docker Compose
-# Runs the full stack: PostgreSQL + FastAPI backend + nginx/React frontend.
+# Runs the full stack: PostgreSQL/PostGIS + FastAPI backend + nginx/React frontend.
 #
 # QUICK START
 #   1. cp .env.production.example .env.production   (fill in secrets)
@@ -46,9 +46,9 @@ services:
       timeout: 5s
       retries: 3
 
-  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  # ── PostgreSQL + PostGIS ───────────────────────────────────────────────────
   db:
-    image: postgres:16-alpine
+    image: postgis/postgis:16-3.5-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER:     ${DB_USER:-admin}

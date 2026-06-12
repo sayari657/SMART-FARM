@@ -1,0 +1,157 @@
+%== It's advised to not modify the content of this file ===%
+% To set your information, update the values below.        %
+%==========================================================%
+
+\makeatletter
+\def\@diplomaName{Diplôme National d'Ingénieur en Informatique}
+\def\@speciality{Data science et AI}
+\def\@title{Smart Farm AI Enterprise : Plateforme d'Intelligence Artificielle Souveraine pour l'Agriculture Connectée Tunisienne}
+\def\@author{Mohamed Sayari}
+\def\@secondAuthor{}
+\def\@proFramerName{M jihen hasnaoui}
+\def\@academicFramerName{Mr Nadjib Bendaoud}
+\def\@proFramerSpeciality{Intech Solutions}
+\def\@academicFramerSpeciality{TEK-UP}
+\def\@proSignSentence{Nous attestons que ce travail a été réalisé dans le cadre du projet de fin d'études de l'étudiant Mohamed Sayari.}
+\def\@academicSignSentence{Nous attestons que ce rapport est conforme aux exigences académiques du projet de fin d'études.}
+\newboolean{isBinomal}
+\setboolean{isBinomal}{false}
+
+\thispagestyle{cover}%
+\newgeometry{bottom=25mm,left=20mm,top=15mm,right=20mm}
+\hspace{-47pt}
+\begin{minipage}[l]{0.2\columnwidth}
+\vspace{6mm}
+\includegraphics[width=1.1\columnwidth]{img/tekup.png}\\
+\end{minipage}
+\hfill
+\begin{minipage}[l]{0.6\columnwidth}
+\centering
+\footnotesize
+\textbf{{République Tunisienne}}\\
+\vspace{1.5mm}
+\textbf{{Ministère de l'Enseignement Supérieur\\
+et de la Recherche Scientifique}}\\
+\vspace{1.5mm}
+\vspace{1.5mm}
+\textbf{{École Supérieure Privée d'Ingénierie et de Technologie}}\\
+\vspace{1.5mm}
+\textbf{{TEK-UP}}\\
+\vspace{1.5mm}
+\end{minipage}
+\hfill
+\begin{minipage}[l]{0.02\columnwidth}
+\end{minipage}
+\hfill
+\begin{minipage}[l]{0.2\columnwidth}
+\vspace{6mm}
+\includegraphics[width=1.3\columnwidth]{img/logoSociete.png}\\
+\end{minipage}
+\vskip1.5cm
+
+\begin{center}
+{\LARGE{\textbf{\textsc{Rapport de Projet de Fin d'Études}}}}\\
+\vskip0.5cm
+\large
+
+{\textbf{Présenté en vue de l'obtention du}}\\
+\vskip2mm
+{\textbf{\@diplomaName}}\\
+{\textbf{Spécialité : \@speciality}}\\
+{}
+\end{center}
+
+\begin{center}
+\textrm{Réalisé par}\\
+\vskip0.3cm
+{\ifthenelse{\boolean{isBinomal}}
+    {% IF TRUE
+        \begin{center}
+            \large\textbf{\@author}~~~~~ et ~~~~~
+            \large\textbf{\@secondAuthor}
+        \end{center}
+    }
+    {\Large\textbf{\@author}}% FALSE
+}
+\vskip12mm
+
+\definecolor{isiBlue}{RGB}{31, 78, 121}
+
+\begin{changemargin}{-9mm}{0cm}
+\begin{minipage}[l]{1.1\columnwidth}
+\begin{tcolorbox}[colframe=isiBlue,colback=white,boxrule=0pt,toprule=3pt,bottomrule=3pt,arc=0pt,top=0mm,right=0mm,left=0mm,bottom=0mm,boxsep=0.5mm]
+    \begin{tcolorbox}[colframe=isiBlue,colback=white,boxrule=0pt,toprule=1pt,bottomrule=1pt,arc=0pt,enlarge bottom by=-0.9mm,auto outer arc]
+        \centering
+        {\huge\textbf{\@title}}
+    \end{tcolorbox}
+\end{tcolorbox}
+\end{minipage}
+\end{changemargin}
+
+\end{center}
+\vskip8mm%
+
+\vspace{1.2cm}
+\begin{minipage}[t]{0.46\textwidth}
+\raggedright
+\textbf{Réalisé par :}\\
+Mohamed Sayari
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.46\textwidth}
+\raggedleft
+\textbf{Encadrement professionnel :}\\
+\@proFramerName\\[0.35cm]
+\textbf{Encadrement académique :}\\
+\textit{\@academicFramerName}
+\end{minipage}
+\vskip12mm
+
+\begin{center}
+\textbf{Année universitaire 2025--2026}
+\end{center}
+\restoregeometry
+
+\newpage
+\thispagestyle{empty}
+\null
+
+\newpage
+\thispagestyle{empty}
+
+\begin{center}
+    \begin{minipage}[l]{1\columnwidth}
+        \begin{tcolorbox}[colback=white,boxrule=5pt,arc=10pt,height=105mm]
+            \vspace{2cm}
+            \large Nous attestons que ce travail a été réalisé dans le cadre du projet de fin d'études de l'étudiant Mohamed Sayari.
+            \vspace{1mm}
+            \begin{center}
+                \Large
+                Encadrant professionnel, \textbf{\@proFramerName}
+            \end{center}
+            \vspace{5mm}
+            \begin{flushright}
+                \textbf{\large Signature et cachet}
+            \end{flushright}
+        \end{tcolorbox}
+    \end{minipage}
+    
+    \vspace{2cm}
+    
+    \begin{minipage}[l]{1\columnwidth}
+        \begin{tcolorbox}[colback=white,boxrule=5pt,arc=10pt,height=105mm]
+            \vspace{2cm}
+            \large Nous attestons que ce rapport est conforme aux exigences académiques du projet de fin d'études.
+            \vspace{1mm}
+            \begin{center}
+                \Large
+                Encadrant académique, \textbf{\@academicFramerName}
+            \end{center}
+            \vspace{5mm}
+            \begin{flushright}
+                \textbf{\large Signature}
+            \end{flushright}
+        \end{tcolorbox}
+    \end{minipage}
+\end{center}
+

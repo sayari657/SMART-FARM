@@ -1,0 +1,50 @@
+\chapter*{Conclusion Générale}
+\addcontentsline{toc}{chapter}{Conclusion Générale}
+\markboth{Conclusion Générale}{Conclusion Générale}
+
+\subsection*{Apport scientifique}
+Ce travail contribue à l'état de l'art de l'IA appliquée à l'agriculture
+par trois apports originaux. Premièrement, le travail a adapté et évalué
+une chaîne RAG+LLM souveraine pour la génération de texte en Darija
+tunisienne — une langue dialectale non standard encore peu traitée dans
+la littérature consacrée au traitement automatique des langues appliqué à l'agriculture — obtenant un coefficient Kappa de Cohen de 0.76 et
+un BLEU-4 de 0.68 avec un modèle local de 7 milliards de paramètres.
+Deuxièmement, ce mémoire propose un schéma de validation statistique
+rigoureux (validation croisée à cinq plis avec TimeSeriesSplit, intervalles
+de confiance à 95\%, analyse des menaces à la validité) pour les modèles
+d'apprentissage automatique intégrés dans un ERP industriel, ce type de rigueur étant peu répandu
+dans les publications sur les systèmes agricoles opérationnels. Troisièmement,
+l'analyse comparative sur trois exécutions indépendantes YOLOv11 confirme la stabilité
+du mAP@50 ($84.7\% \pm 0.45\%$) et constitue une donnée de référence pour
+les travaux futurs sur la détection d'espèces animales méditerranéennes.
+
+\subsection*{Apport technique}
+Du point de vue de l'ingénierie logicielle, Smart Farm AI Enterprise
+met en évidence la faisabilité d'une plateforme agro-tech complète entièrement
+construite sur des composants à code source ouvert (FastAPI, PostgreSQL, YOLOv11,
+Ollama, ChromaDB, React). L'architecture multilocataire avec mécanisme de repli
+à trois niveaux (Ollama $\rightarrow$ Groq $\rightarrow$ statique), le déploiement Docker en cinq services,
+l'activation automatique du HTTPS par Caddy et la PWA conçue selon une approche hors connexion d'abord constituent un modèle
+d'architecture reproductible pour d'autres projets agri-tech en contexte
+de connectivité limitée. Les 251 tests automatisés (98.8\% de taux de
+réussite) et les mesures de performance (81 req/s, p50 = 94 ms) valident
+la robustesse de la plateforme à l'échelle des fermes pilotes.
+
+\subsection*{Apport sociétal}
+L'impact sociétal de ce projet se manifeste à deux niveaux. Au niveau
+individuel, les 7 fermes pilotes rapportent une réduction perçue de 23\%
+des pertes animales et une satisfaction globale de 4.2/5, attestant d'une
+adoption réelle et non seulement d'un intérêt de principe. Au niveau systémique,
+Smart Farm AI représente un exemple de souveraineté numérique agricole :
+en combinant coût de licence nul grâce aux composants à code source ouvert, fonctionnement hors ligne et interface
+en Darija tunisienne, il répond aux trois obstacles structurels à la
+numérisation de l'agriculture familiale tunisienne identifiés dans l'analyse
+de l'existant. Ce travail montre que l'IA avancée ne constitue pas une prérogative
+des grandes exploitations industrielles ni des multinationales technologiques —
+elle peut être déployée, évaluée rigoureusement et adoptée dans un contexte
+rural méditerranéen avec des ressources matérielles et financières modestes.
+
+% ============================================================
+%  BIBLIOGRAPHIE
+% ============================================================
+% NOTE: \printbibliography and \appendix are in main.tex — do not repeat here.

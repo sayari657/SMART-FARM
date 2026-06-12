@@ -1,0 +1,214 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#64748b",
+    "clusterBkg": "#ffffff",
+    "clusterBorder": "#0f766e"
+  },
+  "flowchart": {
+    "htmlLabels": true,
+    "curve": "basis",
+    "nodeSpacing": 24,
+    "rankSpacing": 44
+  }
+}}%%
+flowchart LR
+  subgraph HUMANS[" "]
+    direction TB
+    OWNER["Propriétaire / Admin"]
+    WORKER["Ouvrier agricole"]
+    SUPER["Super-administrateur"]
+  end
+
+  subgraph SYSTEM["SMART FARM AI - Cas d'utilisation détaillés"]
+    direction TB
+
+    subgraph ROW1[" "]
+      direction LR
+      subgraph IDENTITY["1. Identité, accès et sécurité"]
+        direction TB
+        A0["Point d'accès<br/>identité"]
+        A1(["Créer un compte propriétaire"])
+        A2(["Connexion JWT"])
+        A3(["Rafraîchir ou révoquer une session"])
+        A4(["Réinitialiser le mot de passe"])
+        A5(["Demander et vérifier un OTP ouvrier"])
+        A6(["Enregistrer les notifications push"])
+        A7(["Configurer et valider le TOTP 2FA"])
+      end
+
+      subgraph FARM["2. Exploitation, équipe et ressources"]
+        direction TB
+        F0["Point d'accès<br/>exploitation"]
+        F1(["Créer et configurer une ferme"])
+        F2(["Ajouter des copropriétaires"])
+        F3(["Affecter des ouvriers"])
+        F4(["Créer des tâches terrain"])
+        F5(["Consulter et clôturer une tâche"])
+        F6(["Gérer les unités animales"])
+        F7(["Saisir le journal d'un animal"])
+        F8(["Suivre les finances de la ferme"])
+        F9(["Gérer catégories, articles et alertes de stock"])
+      end
+    end
+
+    subgraph ROW2[" "]
+      direction LR
+      subgraph DATA["3. Acquisition, surveillance et IA"]
+        direction TB
+        D0["Point d'accès<br/>surveillance IA"]
+        D1(["Enregistrer une mesure de télémétrie"])
+        D2(["Contrôler qualité et dérive des données"])
+        D3(["Détecter maladie, comportement ou boiterie"])
+        D4(["Segmenter une image"])
+        D5(["Créer un événement CV"])
+        D6(["Détecter une anomalie"])
+        D7(["Créer et acquitter une alerte"])
+        D8(["Produire une recommandation"])
+        D9(["Soumettre une correction au modèle"])
+        D10(["Évaluer ou relancer un modèle"])
+      end
+
+      subgraph BEE["4. Gestion apicole"]
+        direction TB
+        B0["Point d'accès<br/>apiculture"]
+        B1(["Gérer ruchers et ruches"])
+        B2(["Identifier une ruche par QR"])
+        B3(["Préparer et enregistrer une visite"])
+        B4(["Appliquer les actions d'une visite"])
+        B5(["Gérer production et dépenses"])
+        B6(["Gérer stock global et stock par ruche"])
+        B7(["Planifier interventions et logistique"])
+        B8(["Consulter analyses et prédictions"])
+        B9(["Synchroniser les visites hors ligne"])
+      end
+    end
+
+    subgraph ROW3[" "]
+      direction LR
+      subgraph POULTRY["5. ERP avicole"]
+        direction TB
+        P0["Point d'accès<br/>aviculture"]
+        P1(["Gérer les lots broiler ou layer"])
+        P2(["Saisir alimentation et ponte"])
+        P3(["Saisir santé, mortalité et ventes"])
+        P4(["Valider les journaux saisis"])
+        P5(["Gérer l'inventaire avicole"])
+        P6(["Calculer P&L et indicateurs"])
+        P7(["Consulter prédictions et insights ML"])
+      end
+
+      subgraph DECISION["6. Pilotage, rapports et services"]
+        direction TB
+        R0["Point d'accès<br/>pilotage"]
+        R1(["Consulter le tableau de bord"])
+        R2(["Visualiser fermes, ruches, marchés et vétérinaires"])
+        R3(["Consulter météo et prévisions"])
+        R4(["Générer un rapport d'exploitation"])
+        R5(["Interroger l'assistant souverain"])
+        R6(["Gérer abonnement et paiement"])
+        R7(["Recevoir une notification"])
+      end
+    end
+
+    subgraph ADMIN["7. Supervision de la plateforme"]
+      direction TB
+      S0["Point d'accès<br/>super-administration"]
+      S1(["Gérer locataires, utilisateurs et plans"])
+      S2(["Gérer drapeaux fonctionnels"])
+      S3(["Superviser les modèles IA"])
+      S4(["Consulter l'audit"])
+      S5(["Contrôler la santé et les sauvegardes"])
+      S6(["Publier une annonce"])
+    end
+  end
+
+  subgraph MACHINES[" "]
+    direction TB
+    SENSOR["Capteur IoT / MQTT"]
+    CAMERA["Caméra / image mobile"]
+    SERVICES["Services externes"]
+  end
+
+  OWNER --> A0
+  OWNER --> F0
+  OWNER --> D0
+  OWNER --> B0
+  OWNER --> P0
+  OWNER --> R0
+
+  WORKER --> A0
+  WORKER --> F0
+  WORKER --> D0
+  WORKER --> B0
+  WORKER --> P0
+  WORKER --> R0
+
+  SUPER --> A0
+  SUPER --> D0
+  SUPER --> S0
+
+  SENSOR --> D0
+  CAMERA --> D0
+  SERVICES --> A0
+  SERVICES --> R0
+
+  A0 ~~~ A1
+  A1 ~~~ A2 ~~~ A3 ~~~ A4 ~~~ A5 ~~~ A6 ~~~ A7
+  F0 ~~~ F1
+  F1 ~~~ F2 ~~~ F3 ~~~ F4 ~~~ F5 ~~~ F6 ~~~ F7 ~~~ F8 ~~~ F9
+  D0 ~~~ D1
+  D1 ~~~ D2 ~~~ D3 ~~~ D4 ~~~ D5 ~~~ D6 ~~~ D7 ~~~ D8 ~~~ D9 ~~~ D10
+  B0 ~~~ B1
+  B1 ~~~ B2 ~~~ B3 ~~~ B4 ~~~ B5 ~~~ B6 ~~~ B7 ~~~ B8 ~~~ B9
+  P0 ~~~ P1
+  P1 ~~~ P2 ~~~ P3 ~~~ P4 ~~~ P5 ~~~ P6 ~~~ P7
+  R0 ~~~ R1
+  R1 ~~~ R2 ~~~ R3 ~~~ R4 ~~~ R5 ~~~ R6 ~~~ R7
+  S0 ~~~ S1
+  S1 ~~~ S2 ~~~ S3 ~~~ S4 ~~~ S5 ~~~ S6
+
+  A2 -.->|inclut| A3
+  D1 -.->|inclut| D2
+  D1 -.->|alimente| D6
+  D3 -.->|inclut| D5
+  D3 -.->|peut déclencher| D6
+  D6 -.->|inclut| D7
+  D7 -.->|inclut| D8
+  D9 -.->|alimente| D10
+  B3 -.->|étend| B4
+  B4 -.->|met à jour| B6
+  B3 -.->|peut créer| B7
+  P2 -.->|soumis à| P4
+  P3 -.->|soumis à| P4
+  P1 -.->|alimente| P6
+  R1 -.->|agrège| D1
+  R1 -.->|agrège| D7
+  R4 -.->|agrège| D8
+  R7 -.->|étend| D7
+
+  classDef actor fill:#16324f,color:#ffffff,stroke:#0b1f33,stroke-width:2px;
+  classDef machine fill:#334155,color:#ffffff,stroke:#0f172a,stroke-width:2px;
+  classDef gate fill:#0f766e,color:#ffffff,stroke:#064e3b,stroke-width:2px;
+  classDef usecase fill:#ffffff,color:#0f172a,stroke:#2563eb,stroke-width:1.25px;
+
+  class OWNER,WORKER,SUPER actor;
+  class SENSOR,CAMERA,SERVICES machine;
+  class A0,F0,D0,B0,P0,R0,S0 gate;
+  class A1,A2,A3,A4,A5,A6,A7,F1,F2,F3,F4,F5,F6,F7,F8,F9,D1,D2,D3,D4,D5,D6,D7,D8,D9,D10,B1,B2,B3,B4,B5,B6,B7,B8,B9,P1,P2,P3,P4,P5,P6,P7,R1,R2,R3,R4,R5,R6,R7,S1,S2,S3,S4,S5,S6 usecase;
+
+  style SYSTEM fill:#ffffff,stroke:#0f766e,stroke-width:3px
+  style HUMANS fill:transparent,stroke:transparent
+  style MACHINES fill:transparent,stroke:transparent
+  style ROW1 fill:transparent,stroke:transparent
+  style ROW2 fill:transparent,stroke:transparent
+  style ROW3 fill:transparent,stroke:transparent
+  style IDENTITY fill:#eff6ff,stroke:#2563eb,stroke-width:1.5px
+  style FARM fill:#ecfdf5,stroke:#059669,stroke-width:1.5px
+  style DATA fill:#fff7ed,stroke:#ea580c,stroke-width:1.5px
+  style BEE fill:#fefce8,stroke:#ca8a04,stroke-width:1.5px
+  style POULTRY fill:#f0fdfa,stroke:#0d9488,stroke-width:1.5px
+  style DECISION fill:#f8fafc,stroke:#475569,stroke-width:1.5px
+  style ADMIN fill:#faf5ff,stroke:#9333ea,stroke-width:1.5px

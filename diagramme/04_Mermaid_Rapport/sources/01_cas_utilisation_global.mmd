@@ -1,0 +1,146 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "clusterBkg": "#ffffff",
+    "clusterBorder": "#0f766e"
+  },
+  "flowchart": {
+    "htmlLabels": true,
+    "curve": "basis",
+    "nodeSpacing": 28,
+    "rankSpacing": 48
+  }
+}}%%
+flowchart LR
+  subgraph HUMANS[" "]
+    direction TB
+    OWNER["Propriétaire<br/>Administrateur"]
+    WORKER["Ouvrier agricole<br/>PWA mobile"]
+    SUPER["Super-administrateur<br/>plateforme"]
+  end
+
+  subgraph SYSTEM["SMART FARM AI - Périmètre fonctionnel"]
+    direction TB
+
+    subgraph ROW1[" "]
+      direction LR
+      subgraph ACCESS["Accès et sécurité"]
+        direction TB
+        UC_REGISTER(["Créer un compte"])
+        UC_LOGIN(["S'authentifier"])
+        UC_OTP(["Connexion ouvrier par OTP"])
+        UC_2FA(["Gérer la double authentification"])
+      end
+
+      subgraph MANAGEMENT["Gestion de l'exploitation"]
+        direction TB
+        UC_FARMS(["Gérer les fermes"])
+        UC_TEAM(["Gérer propriétaires et ouvriers"])
+        UC_ANIMALS(["Gérer animaux et unités"])
+        UC_TASKS(["Planifier et suivre les tâches"])
+        UC_WAREHOUSE(["Gérer l'entrepôt"])
+      end
+    end
+
+    subgraph ROW2[" "]
+      direction LR
+      subgraph MONITORING["Surveillance et aide à la décision"]
+        direction TB
+        UC_DASHBOARD(["Consulter le tableau de bord"])
+        UC_TELEMETRY(["Suivre la télémétrie"])
+        UC_CV(["Analyser images et vidéos"])
+        UC_ALERTS(["Traiter alertes et anomalies"])
+        UC_RECOMMEND(["Consulter recommandations et prévisions"])
+        UC_REPORTS(["Générer les rapports"])
+      end
+
+      subgraph BUSINESS["Modules métier"]
+        direction TB
+        UC_BEE(["Piloter ruchers, ruches et visites"])
+        UC_POULTRY(["Piloter lots et production avicole"])
+        UC_MAP(["Consulter carte, marchés et vétérinaires"])
+        UC_ASSISTANT(["Interroger l'assistant IA"])
+      end
+    end
+
+    subgraph PLATFORM["Administration de la plateforme"]
+      direction TB
+      UC_TENANTS(["Administrer comptes et abonnements"])
+      UC_MODELS(["Superviser les modèles IA"])
+      UC_AUDIT(["Consulter audit et santé système"])
+      UC_BROADCAST(["Diffuser des annonces"])
+    end
+  end
+
+  subgraph MACHINES[" "]
+    direction TB
+    DEVICES["Capteurs IoT<br/>et caméras"]
+    EXTERNAL["Services externes<br/>météo, cartographie,<br/>paiement, messagerie"]
+  end
+
+  OWNER --> UC_REGISTER
+  OWNER --> UC_LOGIN
+  OWNER --> UC_FARMS
+  OWNER --> UC_TEAM
+  OWNER --> UC_ANIMALS
+  OWNER --> UC_TASKS
+  OWNER --> UC_WAREHOUSE
+  OWNER --> UC_DASHBOARD
+  OWNER --> UC_TELEMETRY
+  OWNER --> UC_CV
+  OWNER --> UC_ALERTS
+  OWNER --> UC_RECOMMEND
+  OWNER --> UC_REPORTS
+  OWNER --> UC_BEE
+  OWNER --> UC_POULTRY
+  OWNER --> UC_MAP
+  OWNER --> UC_ASSISTANT
+
+  WORKER --> UC_OTP
+  WORKER --> UC_TASKS
+  WORKER --> UC_CV
+  WORKER --> UC_REPORTS
+  WORKER --> UC_BEE
+  WORKER --> UC_POULTRY
+
+  SUPER --> UC_LOGIN
+  SUPER --> UC_2FA
+  SUPER --> UC_TENANTS
+  SUPER --> UC_MODELS
+  SUPER --> UC_AUDIT
+  SUPER --> UC_BROADCAST
+
+  DEVICES --> UC_TELEMETRY
+  DEVICES --> UC_CV
+  EXTERNAL --> UC_OTP
+  EXTERNAL --> UC_MAP
+  EXTERNAL --> UC_TENANTS
+
+  UC_DASHBOARD -.->|inclut| UC_TELEMETRY
+  UC_DASHBOARD -.->|inclut| UC_ALERTS
+  UC_CV -.->|produit| UC_ALERTS
+  UC_ALERTS -.->|déclenche| UC_RECOMMEND
+  UC_REPORTS -.->|agrège| UC_TELEMETRY
+  UC_REPORTS -.->|agrège| UC_RECOMMEND
+
+  classDef actor fill:#16324f,color:#ffffff,stroke:#0b1f33,stroke-width:2px;
+  classDef external fill:#334155,color:#ffffff,stroke:#0f172a,stroke-width:2px;
+  classDef usecase fill:#f8fbff,color:#0f172a,stroke:#2563eb,stroke-width:1.5px;
+
+  class OWNER,WORKER,SUPER actor;
+  class DEVICES,EXTERNAL external;
+  class UC_REGISTER,UC_LOGIN,UC_OTP,UC_2FA,UC_FARMS,UC_TEAM,UC_ANIMALS,UC_TASKS,UC_WAREHOUSE,UC_DASHBOARD,UC_TELEMETRY,UC_CV,UC_ALERTS,UC_RECOMMEND,UC_REPORTS,UC_BEE,UC_POULTRY,UC_MAP,UC_ASSISTANT,UC_TENANTS,UC_MODELS,UC_AUDIT,UC_BROADCAST usecase;
+
+  style SYSTEM fill:#ffffff,stroke:#0f766e,stroke-width:3px
+  style HUMANS fill:transparent,stroke:transparent
+  style MACHINES fill:transparent,stroke:transparent
+  style ROW1 fill:transparent,stroke:transparent
+  style ROW2 fill:transparent,stroke:transparent
+  style ACCESS fill:#eff6ff,stroke:#2563eb,stroke-width:1.5px
+  style MANAGEMENT fill:#ecfdf5,stroke:#059669,stroke-width:1.5px
+  style MONITORING fill:#fff7ed,stroke:#ea580c,stroke-width:1.5px
+  style BUSINESS fill:#fefce8,stroke:#ca8a04,stroke-width:1.5px
+  style PLATFORM fill:#faf5ff,stroke:#9333ea,stroke-width:1.5px

@@ -1,0 +1,61 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Arial, sans-serif",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "actorBkg": "#eff6ff",
+    "actorBorder": "#2563eb",
+    "actorTextColor": "#0f172a",
+    "signalColor": "#334155",
+    "signalTextColor": "#0f172a",
+    "noteBkgColor": "#fefce8",
+    "noteBorderColor": "#ca8a04"
+  },
+  "sequence": {
+    "diagramMarginX": 40,
+    "diagramMarginY": 25,
+    "actorMargin": 65,
+    "messageMargin": 30
+  }
+}}%%
+sequenceDiagram
+  autonumber
+  title Exemple fonctionnel - Affectation et réalisation d'une tâche
+
+  actor Admin as Admin propriétaire
+  participant UIA as Interface Admin
+  participant API as API FastAPI
+  participant DB as Base de données
+  participant Push as Notification Push
+  actor Worker as Ouvrier
+  participant PWA as PWA Ouvrier
+
+  Admin->>UIA: Créer une tâche terrain
+  UIA->>API: POST /worker-tasks
+  API->>DB: Enregistrer WorkerTask
+  DB-->>API: Tâche créée
+  API->>Push: Notifier l'ouvrier affecté
+  Push-->>Worker: Nouvelle tâche disponible
+  API-->>UIA: Confirmation de création
+
+  Worker->>PWA: Se connecter par OTP
+  PWA->>API: POST /auth/worker/verify-otp
+  API-->>PWA: Jeton d'accès
+  PWA->>API: GET /worker-tasks
+  API->>DB: Charger les tâches affectées
+  DB-->>API: Liste des tâches
+  API-->>PWA: Tâches à réaliser
+
+  Worker->>PWA: Ajouter notes et photo
+  PWA->>API: PUT /worker-tasks/{id}
+  API->>DB: Statut = done, done_at = maintenant
+  DB-->>API: Mise à jour validée
+  API-->>PWA: Tâche clôturée
+
+  opt Rapport terrain complémentaire
+    Worker->>PWA: Saisir un rapport
+    PWA->>API: POST /worker/reports
+    API->>DB: Enregistrer WorkerReport
+    API-->>PWA: Rapport transmis à l'admin
+  end
