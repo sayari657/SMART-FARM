@@ -48,9 +48,15 @@ async function buildStorageState(api, username, password) {
 
 export default async function globalSetup() {
   const api = await request.newContext({ baseURL: API_BASE });
+  // Surcharge par env quand le mot de passe local diffère du seed
+  // (ex. compte dédié e2e_owner créé par backend/scripts/create_e2e_user.py)
+  const ownerUser  = process.env.E2E_OWNER_USER  || 'admin';
+  const ownerPass  = process.env.E2E_OWNER_PASS  || 'admin123';
+  const superUser  = process.env.E2E_SUPER_USER  || 'superadmin';
+  const superPass  = process.env.E2E_SUPER_PASS  || 'SuperAdmin2026!';
   try {
-    const ownerState = await buildStorageState(api, 'admin', 'admin123');
-    const superadminState = await buildStorageState(api, 'superadmin', 'SuperAdmin2026!');
+    const ownerState = await buildStorageState(api, ownerUser, ownerPass);
+    const superadminState = await buildStorageState(api, superUser, superPass);
     await mkdir(AUTH_DIR, { recursive: true });
     await Promise.all([
       writeFile(path.join(AUTH_DIR, 'owner.json'), JSON.stringify(ownerState)),

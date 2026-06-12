@@ -2,10 +2,11 @@
 import { test, expect } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
-const OWNER_USER = 'admin';
-const OWNER_PASS = 'admin123';
-const SUPERADMIN_USER = 'superadmin';
-const SUPERADMIN_PASS = 'SuperAdmin2026!';
+// Mêmes surcharges env que global-setup.js (compte dédié e2e_owner)
+const OWNER_USER = process.env.E2E_OWNER_USER || 'admin';
+const OWNER_PASS = process.env.E2E_OWNER_PASS || 'admin123';
+const SUPERADMIN_USER = process.env.E2E_SUPER_USER || 'superadmin';
+const SUPERADMIN_PASS = process.env.E2E_SUPER_PASS || 'SuperAdmin2026!';
 
 // ── Landing Page ──────────────────────────────────────────────────────────────
 
