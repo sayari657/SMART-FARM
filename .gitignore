@@ -77,3 +77,21 @@ diagramme/plantuml.jar
 # Debug / temp logs
 backend/auth_debug.log
 backend/*.log
+
+# Datasets d'entraînement (téléchargés via kaggle, voir mlops/data/DATASETS.md)
+mlops/data/bee_health/
+mlops/data/bee_hive_metrics/
+mlops/data/plantvillage/
+mlops/*.log
+
+# Sorties d'entraînement YOLO locales + poids pré-entraînés téléchargés
+mlruns_yolo/
+runs/
+yolov8n-cls.pt
+
+# Données runtime générées
+.chroma_data/
+backend/app/data/price_history.json
+
+# Archives de sauvegarde du rapport
+rapport cycle/*.zip
