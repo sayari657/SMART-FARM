@@ -1,5 +1,5 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
 const OWNER_USER = 'admin';
@@ -12,15 +12,15 @@ const SUPERADMIN_PASS = 'SuperAdmin2026!';
 test.describe('Landing Page', () => {
   test('hero section visible', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('text=SMART FARM AI')).toBeVisible();
-    await expect(page.locator('a[href="#pricing"]')).toBeVisible();
+    await expect(page.getByRole('navigation').getByText('SMART FARM AI', { exact: true })).toBeVisible();
+    await expect(page.locator('a[href="#pricing"]').first()).toBeVisible();
   });
 
   test('3 pricing plans rendered', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('text=Initiation')).toBeVisible();
     await expect(page.locator('text=Professionnel')).toBeVisible();
-    await expect(page.locator('text=Entreprise')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Entreprise', exact: true }).first()).toBeVisible();
   });
 
   test('login link → /login', async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe('Owner Auth', () => {
     await page.locator('input[type="text"], input[name="username"]').first().fill('baduser');
     await page.locator('input[type="password"]').fill('badpass');
     await page.locator('button[type="submit"]').click();
-    await expect(page.locator('text=/invalid|error|incorrect|échoué/i')).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText(/invalid credentials|login failed|incorrect|identifiants/i).first()).toBeVisible({ timeout: 8000 });
   });
 
   test('valid login → /dashboard', async ({ page }) => {
@@ -66,13 +66,14 @@ test.describe('SuperAdmin Auth', () => {
     await expect(page).toHaveURL('/superadmin', { timeout: 12000 });
   });
 
+});
+
+test.describe('SuperAdmin Dashboard', () => {
+  test.use({ storageState: './tests/e2e/.auth/superadmin.json' });
+
   test('superadmin can see dashboard stats', async ({ page }) => {
-    await page.goto('/login');
-    await page.locator('input[type="text"], input[name="username"]').first().fill(SUPERADMIN_USER);
-    await page.locator('input[type="password"]').fill(SUPERADMIN_PASS);
-    await page.locator('button[type="submit"]').click();
-    await page.waitForURL('/superadmin');
-    await expect(page.locator('text=/propriétaires|owners|dashboard/i')).toBeVisible({ timeout: 8000 });
+    await page.goto('/superadmin');
+    await expect(page.getByText('Propriétaires', { exact: true }).first()).toBeVisible({ timeout: 8000 });
   });
 });
 
@@ -81,7 +82,7 @@ test.describe('SuperAdmin Auth', () => {
 test.describe('404', () => {
   test('unknown route renders 404', async ({ page }) => {
     await page.goto('/route-that-does-not-exist-xyz123');
-    await expect(page.locator('text=/404|not found|introuvable/i')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /not found|introuvable/i })).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -94,44 +95,13 @@ test.describe('Worker Auth', () => {
   });
 });
 
-test.describe('Authentication', () => {
-  test('login page loads', async ({ page }) => {
-    await page.goto(`${BASE}/login`);
-    await expect(page.locator('input[type="text"], input[name="username"]').first()).toBeVisible();
-    await expect(page.locator('input[type="password"]').first()).toBeVisible();
-  });
-
-  test('login with valid credentials', async ({ page }) => {
-    await page.goto(`${BASE}/login`);
-    await page.fill('input[type="text"], input[name="username"]', 'admin');
-    await page.fill('input[type="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(`${BASE}/dashboard`, { timeout: 8000 });
-    await expect(page).toHaveURL(/dashboard/);
-  });
-
-  test('login with wrong password shows error', async ({ page }) => {
-    await page.goto(`${BASE}/login`);
-    await page.fill('input[type="text"], input[name="username"]', 'admin');
-    await page.fill('input[type="password"]', 'wrongpassword');
-    await page.click('button[type="submit"]');
-    // Should stay on login page
-    await page.waitForTimeout(2000);
-    await expect(page).not.toHaveURL(/dashboard/);
-  });
+test.describe('Authenticated Owner', () => {
+  test.use({ storageState: './tests/e2e/.auth/owner.json' });
 
   test('logout clears session', async ({ page }) => {
-    // Login first
-    await page.goto(`${BASE}/login`);
-    await page.fill('input[type="text"], input[name="username"]', 'admin');
-    await page.fill('input[type="password"]', 'admin123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL(`${BASE}/dashboard`, { timeout: 8000 });
-
-    // Logout via localStorage clear simulation
+    await page.goto(`${BASE}/farms`);
     await page.evaluate(() => localStorage.clear());
     await page.goto(`${BASE}/dashboard`);
-    // Should redirect to login
     await expect(page).toHaveURL(/login/);
   });
 });

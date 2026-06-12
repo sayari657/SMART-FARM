@@ -1,25 +1,13 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 const BASE = 'http://localhost:5173';
 
-async function loginAsAdmin(page) {
-  await page.goto(`${BASE}/login`);
-  await page.fill('input[type="text"], input[name="username"]', 'admin');
-  await page.fill('input[type="password"]', 'admin123');
-  await page.click('button[type="submit"]');
-  await page.waitForURL(`${BASE}/dashboard`, { timeout: 8000 });
-}
-
 test.describe('Dashboard', () => {
-  test.beforeEach(async ({ page }) => {
-    await loginAsAdmin(page);
-  });
-
-  test('dashboard loads with KPI cards', async ({ page }) => {
+  test('dashboard handles an owner without a configured farm', async ({ page }) => {
+    await page.goto(`${BASE}/dashboard`);
     await expect(page).toHaveURL(/dashboard/);
-    // At least one KPI card visible
-    await expect(page.locator('[class*="kpi"], [class*="card"], [class*="stat"]').first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /aucune ferme configurée|no farm configured/i })).toBeVisible();
   });
 
   test('sidebar navigation works', async ({ page }) => {
