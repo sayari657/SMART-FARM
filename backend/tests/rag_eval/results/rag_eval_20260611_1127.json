@@ -1,0 +1,869 @@
+{
+  "timestamp": "2026-06-11T11:27:41",
+  "top_k": 3,
+  "retrieval_backend": "keyword-fallback",
+  "kb_entries": 23,
+  "global": {
+    "n": 50,
+    "hit@1": 0.68,
+    "hit@3": 1.0,
+    "mrr": 0.827,
+    "context_precision": 0.5
+  },
+  "by_lang": {
+    "ar": {
+      "n": 23,
+      "hit@1": 0.652,
+      "hit@3": 1.0,
+      "mrr": 0.819,
+      "context_precision": 0.507
+    },
+    "fr": {
+      "n": 27,
+      "hit@1": 0.704,
+      "hit@3": 1.0,
+      "mrr": 0.833,
+      "context_precision": 0.494
+    }
+  },
+  "by_difficulty": {
+    "easy": {
+      "n": 27,
+      "hit@1": 0.852,
+      "hit@3": 1.0,
+      "mrr": 0.926,
+      "context_precision": 0.525
+    },
+    "hard": {
+      "n": 4,
+      "hit@1": 0.25,
+      "hit@3": 1.0,
+      "mrr": 0.583,
+      "context_precision": 0.458
+    },
+    "medium": {
+      "n": 19,
+      "hit@1": 0.526,
+      "hit@3": 1.0,
+      "mrr": 0.737,
+      "context_precision": 0.474
+    }
+  },
+  "failures": [],
+  "rows": [
+    {
+      "question": "Quelle alimentation donner à une vache laitière pour produire plus de lait ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "bovin-alimentation"
+      ],
+      "retrieved": [
+        "bovin-alimentation",
+        "bovin-mammite",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "شنوة نعطي للبقرة الحلوب باش تزيد في الحليب؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "bovin-alimentation"
+      ],
+      "retrieved": [
+        "bovin-alimentation",
+        "bovin-mammite",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "Comment prévenir la mammite chez mes vaches ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "bovin-mammite"
+      ],
+      "retrieved": [
+        "bovin-mammite",
+        "bovin-alimentation",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "عندي بقرة الضرع متاعها سخون ومنفوخ، شنوة نعمل؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "bovin-mammite"
+      ],
+      "retrieved": [
+        "bovin-alimentation",
+        "bovin-mammite",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.333
+    },
+    {
+      "question": "Mes vaches mangent moins quand il fait très chaud, que faire ?",
+      "lang": "fr",
+      "difficulty": "medium",
+      "expected": [
+        "bovin-stress-thermique"
+      ],
+      "retrieved": [
+        "bovin-alimentation",
+        "bovin-mammite",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.3333333333333333,
+      "precision": 0.333
+    },
+    {
+      "question": "السخانة برشة والبقر ما عادش ياكل، كيفاش نحميهم؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "bovin-stress-thermique"
+      ],
+      "retrieved": [
+        "bovin-stress-thermique",
+        "bovin-alimentation",
+        "bovin-mammite"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "Comment engraisser un agneau pour l'Aïd ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "ovin-engraissement"
+      ],
+      "retrieved": [
+        "ovin-engraissement",
+        "ovin-piétin",
+        "irrigation-et0-fao56"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "نحب نسمن علوش للعيد، شنية الراتيون المثالي؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "ovin-engraissement"
+      ],
+      "retrieved": [
+        "ovin-engraissement",
+        "ovin-piétin"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Mon mouton boite, c'est quoi le piétin et comment le traiter ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "ovin-piétin"
+      ],
+      "retrieved": [
+        "ovin-piétin",
+        "ovin-engraissement"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "عندي خروف يعرج، شنوة السبب وكيفاش نداويه؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "ovin-piétin"
+      ],
+      "retrieved": [
+        "ovin-engraissement",
+        "ovin-piétin"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    },
+    {
+      "question": "Comment améliorer la production laitière de mes chèvres ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "caprin-elevage"
+      ],
+      "retrieved": [
+        "caprin-elevage"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "الماعز متاعي حليبها قليل، شنوة نزيدلها في الماكلة؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "caprin-elevage"
+      ],
+      "retrieved": [
+        "caprin-elevage",
+        "bovin-alimentation"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Mes lapins ne mangent plus avec la chaleur, comment aménager le clapier ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "lapin-chaleur-nid"
+      ],
+      "retrieved": [
+        "lapin-chaleur-nid",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "كيفاش نحمي الأرانب من السخانة في الصيف؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "lapin-chaleur-nid"
+      ],
+      "retrieved": [
+        "lapin-chaleur-nid",
+        "bovin-stress-thermique",
+        "abeille-stress-thermique"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "J'ai une mortalité subite dans mon lot de poulets de chair, quelles mesures de biosécurité ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "volaille-broiler-biosecurite"
+      ],
+      "retrieved": [
+        "volaille-broiler-biosecurite",
+        "volaille-pondeuse"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "الدجاج يموت فجأة في الحظيرة، شنوة نعمل في أقرب وقت؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "volaille-broiler-biosecurite"
+      ],
+      "retrieved": [
+        "volaille-broiler-biosecurite",
+        "volaille-pondeuse"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Combien d'heures de lumière faut-il pour des poules pondeuses ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "volaille-pondeuse"
+      ],
+      "retrieved": [
+        "volaille-pondeuse",
+        "volaille-broiler-biosecurite"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "الدجاجات ما عادش يبيضو في الشتاء، علاش وكيفاش نصلح الوضع؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "volaille-pondeuse"
+      ],
+      "retrieved": [
+        "volaille-broiler-biosecurite",
+        "volaille-pondeuse"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    },
+    {
+      "question": "La température de mon rucher dépasse 37 degrés, est-ce dangereux pour le couvain ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "abeille-stress-thermique"
+      ],
+      "retrieved": [
+        "abeille-stress-thermique",
+        "abeille-varroa",
+        "abeille-essaimage"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "النحل في سخانة كبيرة، كيفاش نبرد الخلية؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "abeille-stress-thermique"
+      ],
+      "retrieved": [
+        "abeille-stress-thermique",
+        "abeille-varroa",
+        "abeille-essaimage"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "Comment surveiller et traiter le varroa dans mes ruches ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "abeille-varroa"
+      ],
+      "retrieved": [
+        "abeille-varroa",
+        "abeille-stress-thermique",
+        "abeille-essaimage"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "شفت فاروا على النحل، شنوة العلاج المناسب؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "abeille-varroa"
+      ],
+      "retrieved": [
+        "abeille-stress-thermique",
+        "abeille-varroa",
+        "abeille-essaimage"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.333
+    },
+    {
+      "question": "Ma ruche a perdu 2 kg en une journée, qu'est-ce que ça signifie ?",
+      "lang": "fr",
+      "difficulty": "medium",
+      "expected": [
+        "abeille-essaimage"
+      ],
+      "retrieved": [
+        "abeille-stress-thermique",
+        "abeille-varroa",
+        "abeille-essaimage"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.3333333333333333,
+      "precision": 0.333
+    },
+    {
+      "question": "كيفاش نعرف إلي الخلية باش تطرد قبل ما يصير؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "abeille-essaimage"
+      ],
+      "retrieved": [
+        "abeille-stress-thermique",
+        "abeille-varroa",
+        "abeille-essaimage"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.3333333333333333,
+      "precision": 0.333
+    },
+    {
+      "question": "Quand donner du sirop léger ou du sirop lourd aux abeilles ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "abeille-nourrissement"
+      ],
+      "retrieved": [
+        "abeille-nourrissement",
+        "abeille-stress-thermique",
+        "abeille-varroa"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "شنية التغذية المناسبة للنحل في الربيع والخريف؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "abeille-nourrissement"
+      ],
+      "retrieved": [
+        "abeille-stress-thermique",
+        "abeille-nourrissement",
+        "abeille-varroa"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.333
+    },
+    {
+      "question": "Quand récolter les olives en Tunisie et comment tailler l'olivier ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "olivier-recolte-taille"
+      ],
+      "retrieved": [
+        "olivier-recolte-taille",
+        "olivier-mouche"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "وقتاش نلموا الزيتون وكيفاش نقلموا الشجرة؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "olivier-recolte-taille"
+      ],
+      "retrieved": [
+        "olivier-recolte-taille",
+        "olivier-mouche"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Comment lutter contre la mouche de l'olive ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "olivier-mouche"
+      ],
+      "retrieved": [
+        "olivier-recolte-taille",
+        "olivier-mouche"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    },
+    {
+      "question": "ذبابة الزيتون هاجمت الغابة متاعي، شنوة الحل؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "olivier-mouche"
+      ],
+      "retrieved": [
+        "olivier-recolte-taille",
+        "olivier-mouche"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    },
+    {
+      "question": "Les jeunes feuilles de mes orangers jaunissent entre les nervures, c'est quoi ?",
+      "lang": "fr",
+      "difficulty": "medium",
+      "expected": [
+        "agrumes-chlorose-fer"
+      ],
+      "retrieved": [
+        "agrumes-chlorose-fer",
+        "agrumes-cochenille"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "ورق القوارص ولى أصفر، شنوة النقص إلي عندهم؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "agrumes-chlorose-fer"
+      ],
+      "retrieved": [
+        "agrumes-chlorose-fer",
+        "agrumes-cochenille"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "J'ai du noir collant sur les feuilles de mes citronniers, quel traitement ?",
+      "lang": "fr",
+      "difficulty": "medium",
+      "expected": [
+        "agrumes-cochenille"
+      ],
+      "retrieved": [
+        "agrumes-chlorose-fer",
+        "agrumes-cochenille",
+        "abeille-varroa"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.333
+    },
+    {
+      "question": "في حشرة صغيرة تمص في عصارة القوارص وتخلي مادة سوداء، شنية؟",
+      "lang": "ar",
+      "difficulty": "hard",
+      "expected": [
+        "agrumes-cochenille"
+      ],
+      "retrieved": [
+        "agrumes-chlorose-fer",
+        "agrumes-cochenille"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    },
+    {
+      "question": "Comment polliniser manuellement les palmiers dattiers Deglet Nour ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "palmier-pollinisation"
+      ],
+      "retrieved": [
+        "palmier-pollinisation"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "كيفاش نذكّر النخل وشنوة فايدة تغليف العراجين؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "palmier-pollinisation"
+      ],
+      "retrieved": [
+        "palmier-pollinisation"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "Quand semer le blé dur en Tunisie et quand apporter l'azote ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "cereales-conduite"
+      ],
+      "retrieved": [
+        "cereales-conduite"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "وقتاش نزرع القمح والشعير ووقتاش نحط الأمونيتر؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "cereales-conduite"
+      ],
+      "retrieved": [
+        "cereales-conduite",
+        "ovin-engraissement"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Comment piloter l'irrigation de la tomate et prévenir le mildiou ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "maraichage-tomate"
+      ],
+      "retrieved": [
+        "maraichage-tomate",
+        "irrigation-et0-fao56"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "الطماطم متاعي فيها مرض الميلديو، شنوة نعمل؟",
+      "lang": "ar",
+      "difficulty": "easy",
+      "expected": [
+        "maraichage-tomate"
+      ],
+      "retrieved": [
+        "maraichage-tomate"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "Quelles sont les saisons de plantation de la pomme de terre en Tunisie ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "maraichage-pomme-terre"
+      ],
+      "retrieved": [
+        "maraichage-pomme-terre"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "وقتاش نزرع البطاطا وشنوة السماد المناسب ليها؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "maraichage-pomme-terre"
+      ],
+      "retrieved": [
+        "maraichage-pomme-terre"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 1.0
+    },
+    {
+      "question": "Comment calculer le besoin en eau d'une culture avec ET0 et Kc ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "irrigation-et0-fao56"
+      ],
+      "retrieved": [
+        "irrigation-et0-fao56",
+        "irrigation-salinite",
+        "maraichage-tomate"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "كيفاش نحسب قداش من ماء تستحق الصابة متاعي كل نهار؟",
+      "lang": "ar",
+      "difficulty": "hard",
+      "expected": [
+        "irrigation-et0-fao56"
+      ],
+      "retrieved": [
+        "irrigation-et0-fao56",
+        "irrigation-salinite"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Mon eau d'irrigation est saumâtre, quel impact sur mes cultures ?",
+      "lang": "fr",
+      "difficulty": "easy",
+      "expected": [
+        "irrigation-salinite"
+      ],
+      "retrieved": [
+        "irrigation-et0-fao56",
+        "irrigation-salinite",
+        "maraichage-tomate"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.333
+    },
+    {
+      "question": "الماء متاع البير مالح شوية، شنية الزراعات إلي تتحمل الملوحة؟",
+      "lang": "ar",
+      "difficulty": "medium",
+      "expected": [
+        "irrigation-salinite"
+      ],
+      "retrieved": [
+        "irrigation-salinite",
+        "irrigation-et0-fao56"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.5
+    },
+    {
+      "question": "Quel taux de calcium dans l'aliment des poules pour des coquilles solides ?",
+      "lang": "fr",
+      "difficulty": "medium",
+      "expected": [
+        "volaille-pondeuse"
+      ],
+      "retrieved": [
+        "volaille-pondeuse",
+        "volaille-broiler-biosecurite",
+        "irrigation-salinite"
+      ],
+      "hit@1": true,
+      "hit@3": true,
+      "rr": 1.0,
+      "precision": 0.333
+    },
+    {
+      "question": "Faut-il parer les onglons d'un mouton qui boite ?",
+      "lang": "fr",
+      "difficulty": "medium",
+      "expected": [
+        "ovin-piétin"
+      ],
+      "retrieved": [
+        "ovin-engraissement",
+        "ovin-piétin"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    },
+    {
+      "question": "Le THI dépasse 72 dans mon étable, quelles conséquences sur la production laitière ?",
+      "lang": "fr",
+      "difficulty": "hard",
+      "expected": [
+        "bovin-stress-thermique"
+      ],
+      "retrieved": [
+        "bovin-alimentation",
+        "bovin-mammite",
+        "bovin-stress-thermique"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.3333333333333333,
+      "precision": 0.333
+    },
+    {
+      "question": "Des taches noires apparaissent sur mes olives et elles tombent avant maturité, quelle est la cause probable ?",
+      "lang": "fr",
+      "difficulty": "hard",
+      "expected": [
+        "olivier-mouche"
+      ],
+      "retrieved": [
+        "olivier-recolte-taille",
+        "olivier-mouche"
+      ],
+      "hit@1": false,
+      "hit@3": true,
+      "rr": 0.5,
+      "precision": 0.5
+    }
+  ]
+}

@@ -93,6 +93,9 @@ class User(Base):
     role = Column(String(20), default="owner")
     plan = Column(String(20), default="free")          # free | pro | enterprise
     plan_expires_at = Column(DateTime, nullable=True)  # None = never expires
+    stripe_customer_id = Column(String(64), nullable=True)
+    totp_secret = Column(String(64), nullable=True)
+    totp_enabled = Column(Boolean, default=False, nullable=True)
     is_active = Column(Boolean, default=True)
     refresh_token_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -591,12 +594,22 @@ class BeeVisit(Base):
     hive_id = Column(Integer, ForeignKey("bee_hives.id", ondelete="CASCADE"), nullable=True)
     apiary_id = Column(Integer, ForeignKey("bee_apiaries.id", ondelete="CASCADE"), nullable=True)
     visit_date = Column(String(20), nullable=False)      # Date stockée telle quelle (fr-FR)
+    visit_name = Column(String(150), nullable=True)      # Nom / titre de la visite
     gps_coords = Column(String(100), nullable=True)
     health_state = Column(String(20), default="health")  # health | warning | urgent
-    health_score = Column(Float, nullable=True)           # Score numérique direct (Mode Terrain)
-    force_level  = Column(Float, nullable=True)           # Force colonie observée
+    health_score = Column(Float, nullable=True)
+    force_level  = Column(Float, nullable=True)
     temperature = Column(Float, nullable=True)
     honey_level = Column(String(20), default="Moyen")    # Abondant | Moyen | Faible
+    # ── Champs Excel (gestion rucher) ──────────────────────────────
+    type_ruche  = Column(String(20), nullable=True)       # MERE | POUSSIN | VIDE | MORTE
+    reine       = Column(Boolean, nullable=True)          # Reine présente OUI/NON
+    oeufs       = Column(Boolean, nullable=True)          # Œufs présents
+    couvain     = Column(Boolean, nullable=True)          # Couvain présent
+    population  = Column(String(10), nullable=True)       # FAIBLE | MOYEN | FORT
+    pollen_level = Column(String(10), nullable=True)      # FAIBLE | MOYEN | FORT
+    nb_cadres   = Column(String(30), nullable=True)       # "7+2 CIRE", "10 C", "8"
+    # ───────────────────────────────────────────────────────────────
     needs_sirop = Column(Float, default=0)
     needs_pate = Column(Float, default=0)
     needs_traitement = Column(Float, default=0)
@@ -604,6 +617,8 @@ class BeeVisit(Base):
     pollen_kg = Column(Float, default=0)
     notes = Column(Text, nullable=True)
     photo_url = Column(Text, nullable=True)
+    visited_by   = Column(String(100), nullable=True)   # Nom du visiteur
+    visitor_role = Column(String(20),  nullable=True)   # owner | ouvrier
     created_at = Column(DateTime, default=datetime.utcnow)
 
     hive = relationship("BeeHive", back_populates="visits")

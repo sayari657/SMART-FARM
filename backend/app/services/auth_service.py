@@ -115,7 +115,7 @@ class AuthService:
             import random as _r
             import logging as _log
             otp = str(_r.randint(100000, 999999))
-            otp_service.OTP_STORE[f"whatsapp:{phone_number}"] = otp
+            otp_service.store_otp("whatsapp", phone_number, otp)
             _log.getLogger(__name__).warning(f"[DEV] WhatsApp non configuré — OTP pour {phone_number} dans OTP_STORE")
 
         return {"message": f"Code OTP envoyé sur WhatsApp au {phone_number}", "phone": phone_number}

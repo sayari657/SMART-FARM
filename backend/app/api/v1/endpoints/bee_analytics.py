@@ -21,6 +21,14 @@ from app.models.domain import BeeApiary, BeeHive, BeeVisit, BeeProduction
 router = APIRouter(prefix="/bee/analytics", tags=["Bee Analytics"], dependencies=[Depends(get_current_user)])
 
 
+@router.get("/swarm-risk", summary="Risque d'essaimage (balance ruche + T° couvain, modèle expert + ML)")
+def swarm_risk(db: Session = Depends(get_db)):
+    """Score 0-100 basé sur la télémétrie du nœud rucher (chute de poids brutale,
+    congestion, saison). Voir bee_swarm_service pour les règles et le modèle ML."""
+    from app.services.bee_swarm_service import compute_swarm_risk
+    return compute_swarm_risk(db)
+
+
 # ─── Scientific Constants ─────────────────────────────────────────────────────
 
 HEALTH_WEIGHTS = {

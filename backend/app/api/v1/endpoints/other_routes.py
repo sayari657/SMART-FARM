@@ -711,6 +711,25 @@ async def et0_endpoint(
     }
 
 
+@irrigation_router.get("/water-balance/{farm_id}", summary="Bilan hydrique parcelle (SoilGrids + ERA5 + FAO-56)")
+async def farm_water_balance(
+    farm_id: int,
+    crop: str = Query("olivier", description="olivier, agrumes, vigne, tomate, pomme_de_terre, ble_dur, amandier"),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    """Réserve utile (pédotransfert Saxton-Rawls sur sol SoilGrids), bilan
+    pluie−ETc sur 30 j et recommandation d'irrigation en mm / m³/ha."""
+    from app.services.soil_water_service import compute_water_balance  # noqa: PLC0415
+    farm = db.query(Farm).filter(Farm.id == farm_id).first()
+    if not farm:
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+    lat = float(farm.latitude or 36.8)
+    lon = float(farm.longitude or 10.1)
+    result = await compute_water_balance(lat, lon, crop)
+    return {"farm_id": farm_id, **result}
+
+
 # ---------------------------------------------------------------------------
 # Crop Calendar Router
 # ---------------------------------------------------------------------------
@@ -789,6 +808,39 @@ def available_crops(
     return list_available_crops(zone=zone)
 
 
+@calendar_router.get("/gdd/{farm_id}", summary="Phénologie par degrés-jours (GDD, Open-Meteo ERA5)")
+async def farm_gdd(
+    farm_id: int,
+    crop: str = Query("olivier", description="olivier, vigne, agrumes, tomate, ble_dur, amandier"),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    from app.services.agro_climate_service import get_farm_gdd  # noqa: PLC0415
+    farm = db.query(Farm).filter(Farm.id == farm_id).first()
+    if not farm:
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+    lat = float(farm.latitude or 36.8)
+    lon = float(farm.longitude or 10.1)
+    result = await get_farm_gdd(lat, lon, crop.lower())
+    return {"farm_id": farm_id, "lat": lat, "lon": lon, **result}
+
+
+@calendar_router.get("/disease-risk/{farm_id}", summary="Indices de risque maladie météo-pilotés (règle 3-10, DJ mouche olive…)")
+async def farm_disease_risk(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    from app.services.agro_climate_service import get_farm_disease_risks  # noqa: PLC0415
+    farm = db.query(Farm).filter(Farm.id == farm_id).first()
+    if not farm:
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+    lat = float(farm.latitude or 36.8)
+    lon = float(farm.longitude or 10.1)
+    result = await get_farm_disease_risks(lat, lon)
+    return {"farm_id": farm_id, **result}
+
+
 # ---------------------------------------------------------------------------
 # Market Prices Router
 # ---------------------------------------------------------------------------
@@ -831,6 +883,30 @@ def available_products(
     _=Depends(get_current_user),
 ):
     return list_available_products(category=category)
+
+
+@market_router.get("/history/{product}", summary="Historique de prix collecté (snapshots quotidiens)")
+def price_history(product: str, _=Depends(get_current_user)):
+    from app.services.price_history_service import get_price_history  # noqa: PLC0415
+    return get_price_history(product.lower())
+
+
+@market_router.get("/forecast/{product}", summary="Prévision de prix SARIMA/Prophet sur historique réel")
+def price_forecast(
+    product: str,
+    horizon: int = Query(14, ge=3, le=60, description="Horizon en jours"),
+    _=Depends(get_current_user),
+):
+    """Refuse honnêtement si l'historique collecté est insuffisant
+    (< 14 snapshots) — aucune donnée rétroactive n'est inventée."""
+    from app.services.price_history_service import forecast_price  # noqa: PLC0415
+    return forecast_price(product.lower(), horizon_days=horizon)
+
+
+@market_router.post("/snapshot", summary="Forcer le snapshot quotidien des prix (sinon job 5h)")
+def force_snapshot(user=Depends(require_roles("owner", "superadmin"))):
+    from app.services.price_history_service import snapshot_daily_prices  # noqa: PLC0415
+    return snapshot_daily_prices()
 
 
 # ---------------------------------------------------------------------------

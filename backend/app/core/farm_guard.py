@@ -39,9 +39,16 @@ def get_user_farm_ids(
 
 def assert_farm_owner(
     farm_id: int,
+    db: Session = Depends(get_db),
     farm_ids: List[int] = Depends(get_user_farm_ids),
 ) -> int:
-    """Raise HTTP 403 if the current user does not own / have access to farm_id."""
+    """Raise 404 for an absent farm, otherwise enforce tenant ownership."""
+    from app.models.domain import Farm
+    if not db.query(Farm.id).filter(Farm.id == farm_id).first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ferme introuvable.",
+        )
     if farm_id not in farm_ids:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

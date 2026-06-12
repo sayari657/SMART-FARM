@@ -123,8 +123,10 @@ class AlertService:
         if not farm_ids:
             return []
         from app.models.domain import Alert, AnimalUnit
+        from sqlalchemy.orm import selectinload
         return (
             self.repo.db.query(Alert)
+            .options(selectinload(Alert.unit).selectinload(AnimalUnit.farm))
             .join(AnimalUnit, Alert.unit_id == AnimalUnit.id)
             .filter(Alert.is_resolved == False, AnimalUnit.farm_id.in_(farm_ids))
             .order_by(Alert.timestamp.desc())

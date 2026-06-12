@@ -1,13 +1,13 @@
-"""Geo endpoint tests — farms map, vets, hives, overpass proxy.
-
-Note: all geo endpoints are public (no auth required).
-The overpass proxy returns 400 when query is missing, 422 when body is invalid.
-"""
+"""Geo endpoint tests — public resources and tenant-protected farm data."""
 
 
 class TestGeo:
-    def test_geo_farms_public(self, client):
+    def test_geo_farms_requires_auth(self, client):
         r = client.get("/api/v1/geo/farms")
+        assert r.status_code == 401
+
+    def test_geo_farms_authenticated(self, client, auth_headers):
+        r = client.get("/api/v1/geo/farms", headers=auth_headers)
         assert r.status_code == 200
         data = r.json()
         assert "type" in data
@@ -19,8 +19,12 @@ class TestGeo:
         data = r.json()
         assert "features" in data
 
-    def test_geo_hives_public(self, client):
+    def test_geo_hives_requires_auth(self, client):
         r = client.get("/api/v1/geo/hives")
+        assert r.status_code == 401
+
+    def test_geo_hives_authenticated(self, client, auth_headers):
+        r = client.get("/api/v1/geo/hives", headers=auth_headers)
         assert r.status_code == 200
         data = r.json()
         assert "features" in data

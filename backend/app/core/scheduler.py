@@ -7,6 +7,12 @@ Jobs :
   2. cleanup_audit_logs         — tous les jours : purge logs > 90 jours
   3. expire_plans               — toutes les heures : désactiver plans expirés
   4. send_daily_health_push     — chaque matin 7h : push récap santé aux owners actifs
+  5. send_crop_calendar_alerts  — chaque matin 6h : alertes calendrier agricole tunisien
+                                  (gel critique quotidien + digest mensuel le 1er du mois)
+  6. scan_telemetry_anomalies   — toutes les heures : IsolationForest sur la télémétrie
+                                  → lignes Anomaly (+ notification si critique)
+  7. snapshot_market_prices     — chaque jour 5h : snapshot des prix agricoles
+                                  → historique réel pour la prévision SARIMA
 """
 import logging
 from datetime import datetime, timedelta, timezone
@@ -32,8 +38,8 @@ def get_scheduler():
 def check_drift_and_retrain():
     """Check PSI drift for each farm and trigger retraining when threshold exceeded."""
     try:
-        from app.core.database import SessionLocal
         from app.core.config import settings
+        from app.core.database import SessionLocal
         from app.models.domain import Farm
         from app.services.drift_detection_service import compute_psi
 
@@ -93,7 +99,7 @@ def expire_plans():
         db = SessionLocal()
         try:
             expired = db.query(User).filter(
-                User.plan_expires_at != None,
+                User.plan_expires_at.isnot(None),
                 User.plan_expires_at < now,
                 User.plan != "free",
             ).all()
@@ -119,7 +125,7 @@ def send_daily_health_push():
 
         db = SessionLocal()
         try:
-            owners = db.query(User).filter(User.role == "owner", User.is_active == True).all()
+            owners = db.query(User).filter(User.role == "owner", User.is_active.is_(True)).all()
             for owner in owners:
                 send_to_user(
                     db, owner.id,
@@ -131,6 +137,165 @@ def send_daily_health_push():
             db.close()
     except Exception as e:
         logger.error("send_daily_health_push error: %s", e)
+
+
+# ── Job 5 : Crop calendar alerts (6h UTC) ────────────────────────────────────
+
+_MONTHS_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+              "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+
+
+def _zone_from_latitude(lat: float) -> str:
+    """Même découpage agroclimatique que /calendar/alerts/{farm_id}."""
+    if lat > 36.5:
+        return "nord"
+    if lat > 34.5:
+        return "centre"
+    if lat > 33.0:
+        return "cotier"
+    return "sud"
+
+
+def _current_temperature(lat: float, lon: float):
+    """Température actuelle Open-Meteo (None si indisponible)."""
+    try:
+        import httpx
+        resp = httpx.get(
+            f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m&timezone=Africa%2FTunis",
+            timeout=5,
+        )
+        return resp.json().get("current", {}).get("temperature_2m")
+    except Exception:
+        return None
+
+
+def send_crop_calendar_alerts():
+    """Notifie chaque ferme active (owner + ouvriers, WhatsApp + push) :
+    - alertes gel tardif critiques → tous les jours
+    - risques maladie météo-pilotés critiques → tous les jours (élevés → le lundi)
+    - digest mensuel des actions/traitements du calendrier → le 1er du mois
+    """
+    try:
+        import asyncio
+
+        from app.core.database import SessionLocal
+        from app.models.domain import Farm
+        from app.services.agro_climate_service import get_farm_disease_risks
+        from app.services.alert_notify_service import notify_farm_alert
+        from app.services.crop_calendar_service import get_phenological_alerts
+
+        today = datetime.now(timezone.utc)
+        is_month_start = today.day == 1
+        is_monday = today.weekday() == 0
+
+        db = SessionLocal()
+        try:
+            farms = db.query(Farm).filter(Farm.status == "active", Farm.owner_id != None).all()  # noqa: E711
+            for farm in farms:
+                try:
+                    lat = float(farm.latitude or 36.8)
+                    lon = float(farm.longitude or 10.1)
+                    zone = _zone_from_latitude(lat)
+                    temperature = _current_temperature(lat, lon)
+                    alerts = get_phenological_alerts(zone=zone, lat=lat, temperature=temperature)
+
+                    # 1) Gel tardif — envoi immédiat tous les jours
+                    criticals = [a for a in alerts if a.get("severity") == "critical"]
+                    for a in criticals:
+                        notify_farm_alert(
+                            db, farm.id,
+                            title=f"Gel tardif — {a['culture'].title()}",
+                            message=f"{a['message']}\n⚡ {a.get('action_immediate', '')}",
+                            target="all", sent_by="crop_calendar",
+                        )
+
+                    # 2) Risques maladie météo-pilotés (règle 3-10, DJ mouche olive…)
+                    try:
+                        risk_data = asyncio.run(get_farm_disease_risks(lat, lon))
+                        for r in risk_data.get("risks", []):
+                            urgent = r["niveau"] == "critical" or (r["niveau"] == "high" and is_monday)
+                            if urgent:
+                                notify_farm_alert(
+                                    db, farm.id,
+                                    title=f"Risque {r['maladie']} — {r['score']}%",
+                                    message=f"{r['justification']}\n💊 {r['recommandation']}",
+                                    target="all", sent_by="disease_risk",
+                                )
+                    except Exception as e:
+                        logger.debug("Disease risk farm %s: %s", farm.id, e)
+
+                    # 3) Digest mensuel — le 1er du mois uniquement
+                    if is_month_start:
+                        infos = [a for a in alerts if a.get("severity") == "info"]
+                        if infos:
+                            lines = []
+                            for a in infos[:10]:
+                                line = f"• {a['message']}"
+                                for tr in a.get("traitements", []):
+                                    line += f"\n   💊 {tr['traitement']} → {tr['cible']}"
+                                lines.append(line)
+                            notify_farm_alert(
+                                db, farm.id,
+                                title=f"Calendrier agricole — {_MONTHS_FR[today.month - 1]} (zone {zone})",
+                                message="\n".join(lines),
+                                target="all", sent_by="crop_calendar",
+                            )
+                except Exception as e:
+                    logger.warning("Crop calendar alerts farm %s: %s", farm.id, e)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error("send_crop_calendar_alerts error: %s", e)
+
+
+# ── Job 6 : IsolationForest sur la télémétrie (toutes les heures) ────────────
+
+def scan_telemetry_anomalies():
+    """Scan IsolationForest de la télémétrie récente de chaque unité.
+    Les anomalies créées alimentent /anomalies/recent et le Moniteur Souverain ;
+    les critiques déclenchent une notification ferme (WhatsApp + push)."""
+    try:
+        from app.core.database import SessionLocal
+        from app.models.domain import AnimalUnit
+        from app.services.alert_notify_service import notify_farm_alert
+        from app.services.anomaly_ml_service import scan_all_units
+
+        db = SessionLocal()
+        try:
+            found = scan_all_units(db)
+            for a in found:
+                if a["severity"] != "critical":
+                    continue
+                unit = db.query(AnimalUnit).filter(AnimalUnit.id == a["unit_id"]).first()
+                if not unit or not unit.farm_id:
+                    continue
+                top = ", ".join(f"{k} (z={v})" for k, v in list(a["top_features"].items())[:3])
+                notify_farm_alert(
+                    db, unit.farm_id,
+                    title=f"Anomalie capteurs — {unit.name or f'unité {unit.id}'}",
+                    message=f"Profil télémétrique anormal détecté (Isolation Forest, "
+                            f"score {a['isolation_score']}).\nMétriques déviantes : {top}",
+                    target="all", sent_by="isolation_forest",
+                )
+            if found:
+                logger.info("IsolationForest scan: %d anomalie(s) détectée(s)", len(found))
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error("scan_telemetry_anomalies error: %s", e)
+
+
+# ── Job 7 : Snapshot quotidien des prix agricoles (5h UTC) ──────────────────
+
+def snapshot_market_prices():
+    """Alimente l'historique de prix réel (price_history.json) — la prévision
+    SARIMA s'active automatiquement après 14 snapshots."""
+    try:
+        from app.services.price_history_service import snapshot_daily_prices
+        snapshot_daily_prices()
+    except Exception as e:
+        logger.error("snapshot_market_prices error: %s", e)
 
 
 # ── Start / Stop ──────────────────────────────────────────────────────────────
@@ -148,9 +313,12 @@ def start_scheduler():
         sched.add_job(cleanup_audit_logs,      CronTrigger(hour=3, minute=0), id="audit_cleanup", replace_existing=True)
         sched.add_job(expire_plans,            IntervalTrigger(hours=1),  id="expire_plans",  replace_existing=True)
         sched.add_job(send_daily_health_push,  CronTrigger(hour=7, minute=0), id="daily_push",    replace_existing=True)
+        sched.add_job(send_crop_calendar_alerts, CronTrigger(hour=6, minute=0), id="crop_calendar_alerts", replace_existing=True)
+        sched.add_job(scan_telemetry_anomalies,  IntervalTrigger(hours=1), id="anomaly_if_scan", replace_existing=True)
+        sched.add_job(snapshot_market_prices,    CronTrigger(hour=5, minute=0), id="price_snapshot", replace_existing=True)
 
         sched.start()
-        logger.info("APScheduler started — 4 jobs registered")
+        logger.info("APScheduler started — 7 jobs registered")
     except Exception as e:
         logger.error("Scheduler start failed: %s", e)
 

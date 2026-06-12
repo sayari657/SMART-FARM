@@ -12,6 +12,7 @@ Fallback gracieux si Prophet/statsmodels non installé.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -42,6 +43,31 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _record_value(record: Any, key: str, default: Any = None) -> Any:
+    if isinstance(record, Mapping):
+        return record.get(key, default)
+    values = getattr(record, "__dict__", {})
+    if key in values:
+        return values[key]
+    return getattr(record, key, default)
+
+
+def _telemetry_value(record: Any, metric: str) -> Any:
+    metrics = _record_value(record, "metrics")
+    if isinstance(metrics, Mapping) and metric in metrics:
+        return metrics.get(metric)
+
+    aliases = {
+        "soil": ("soil", "soil_moisture"),
+        "soil_moisture": ("soil_moisture", "soil"),
+    }
+    for key in aliases.get(metric, (metric,)):
+        value = _record_value(record, key)
+        if value is not None:
+            return value
+    return None
+
 
 def _linear_forecast(values: list[float], horizon: int) -> dict[str, Any]:
     """Fallback linear regression forecast when Prophet is unavailable."""
@@ -113,6 +139,57 @@ def _prophet_forecast(df: pd.DataFrame, horizon: int, freq: str = "D") -> dict[s
         return _linear_forecast(df["y"].tolist(), horizon)
 
 
+def _apply_conformal(df: pd.DataFrame, result: dict, horizon: int,
+                     freq: str = "D", alpha: float = 0.1) -> dict:
+    """
+    Prédiction conforme (split-conformal) : garantit une couverture ≥ 1-α
+    des intervalles sans hypothèse sur la distribution des résidus.
+
+    Backtest : le modèle est réajusté sur les ~80 % premiers points, les
+    résidus absolus sont mesurés sur les ~20 % restants, et le quantile
+    conformel q = ⌈(k+1)(1-α)⌉/k élargit les intervalles yhat ± q si les
+    intervalles du modèle sont plus étroits.
+
+    Référence : Vovk et al., "Algorithmic Learning in a Random World" (2005).
+    """
+    n = len(df)
+    k = min(30, n // 3)
+    if k < 5 or not result.get("yhat"):
+        return result            # série trop courte pour calibrer
+
+    try:
+        train, calib = df.iloc[:-k], df.iloc[-k:]
+        back = _prophet_forecast(train, horizon=k, freq=freq)
+        preds = back.get("yhat", [])[: len(calib)]
+        if len(preds) < len(calib):
+            return result
+        residuals = sorted(
+            abs(float(y) - float(p)) for y, p in zip(calib["y"].tolist(), preds)
+        )
+        rank = min(int(np.ceil((k + 1) * (1 - alpha))), k) - 1
+        q = residuals[rank]
+
+        widened = 0
+        lower, upper = [], []
+        for yh, lo, up in zip(result["yhat"], result["yhat_lower"], result["yhat_upper"]):
+            c_lo, c_up = yh - q, yh + q
+            if c_lo < lo or c_up > up:
+                widened += 1
+            lower.append(round(min(lo, c_lo), 4))
+            upper.append(round(max(up, c_up), 4))
+        result["yhat_lower"], result["yhat_upper"] = lower, upper
+        result["conformal"] = {
+            "alpha": alpha,
+            "coverage_target": f"{(1 - alpha):.0%}",
+            "q": round(float(q), 4),
+            "calibration_points": k,
+            "intervals_widened": widened,
+        }
+    except Exception as exc:
+        logger.warning("Calibration conforme échouée : %s", exc)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -127,7 +204,7 @@ def forecast_telemetry(
 
     Parameters
     ----------
-    records : list of dicts with keys 'timestamp' (ISO str | datetime) and 'metrics' (dict)
+    records : mappings or model-like objects containing timestamp and metric values
     metric  : key inside metrics JSON, e.g. 'temperature', 'humidity'
     horizon_days : forecast horizon in days
 
@@ -137,14 +214,13 @@ def forecast_telemetry(
     """
     rows = []
     for r in records:
-        ts = r.get("timestamp")
+        ts = _record_value(r, "timestamp")
         if isinstance(ts, str):
             try:
                 ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             except ValueError:
                 continue
-        metrics = r.get("metrics", {}) or {}
-        val = metrics.get(metric)
+        val = _telemetry_value(r, metric)
         if val is not None:
             try:
                 rows.append({"ds": pd.Timestamp(ts), "y": float(val)})
@@ -159,6 +235,7 @@ def forecast_telemetry(
 
     df = pd.DataFrame(rows).sort_values("ds").drop_duplicates("ds")
     result = _prophet_forecast(df, horizon_days, freq="D")
+    result = _apply_conformal(df, result, horizon_days, freq="D")
     result["metric"] = metric
     result["data_points"] = len(df)
     return result
@@ -209,8 +286,8 @@ def forecast_honey_production(
     """
     rows = []
     for rec in production_records:
-        date_val = rec.get("production_date")
-        kg = rec.get("honey_kg")
+        date_val = _record_value(rec, "production_date") or _record_value(rec, "date")
+        kg = _record_value(rec, "honey_kg")
         if date_val and kg is not None:
             try:
                 if isinstance(date_val, str):
@@ -242,11 +319,15 @@ def forecast_honey_production(
             slope = np.polyfit(range(min(7, len(series))), series.tail(7).values, 1)[0]
             trend = "up" if slope > 0 else ("down" if slope < 0 else "stable")
 
+            yhat = [max(0.0, round(float(v), 4)) for v in mean]
             return {
                 "dates": dates,
-                "yhat": [round(float(v), 4) for v in mean],
-                "yhat_lower": [round(float(v), 4) for v in ci.iloc[:, 0]],
-                "yhat_upper": [round(float(v), 4) for v in ci.iloc[:, 1]],
+                "yhat": yhat,
+                "yhat_lower": [max(0.0, round(float(v), 4)) for v in ci.iloc[:, 0]],
+                "yhat_upper": [
+                    max(mid, round(float(v), 4))
+                    for mid, v in zip(yhat, ci.iloc[:, 1])
+                ],
                 "trend": trend,
                 "method": "sarima",
                 "metric": "honey_kg",
@@ -256,6 +337,11 @@ def forecast_honey_production(
             logger.warning("SARIMA failed: %s — using Prophet", exc)
 
     result = _prophet_forecast(df, horizon_days, freq="D")
+    result["yhat"] = [max(0.0, value) for value in result["yhat"]]
+    result["yhat_lower"] = [max(0.0, value) for value in result["yhat_lower"]]
+    result["yhat_upper"] = [
+        max(mid, high) for mid, high in zip(result["yhat"], result["yhat_upper"])
+    ]
     result["metric"] = "honey_kg"
     result["data_points"] = len(df)
     return result
@@ -272,18 +358,21 @@ def decompose_telemetry(
     Returns trend, seasonal, and residual components.
     """
     if not _STATSMODELS_AVAILABLE:
-        return {"error": "statsmodels not installed", "metric": metric}
+        return {
+            "metric": metric, "period": period, "dates": [],
+            "observed": [], "trend": [], "seasonal": [], "residual": [],
+            "data_points": 0, "method": "unavailable",
+        }
 
     rows = []
     for r in records:
-        ts = r.get("timestamp")
+        ts = _record_value(r, "timestamp")
         if isinstance(ts, str):
             try:
                 ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
             except ValueError:
                 continue
-        metrics = r.get("metrics", {}) or {}
-        val = metrics.get(metric)
+        val = _telemetry_value(r, metric)
         if val is not None:
             try:
                 rows.append({"ds": pd.Timestamp(ts), "y": float(val)})
@@ -291,7 +380,11 @@ def decompose_telemetry(
                 pass
 
     if len(rows) < period * 2:
-        return {"error": f"Need at least {period * 2} points for decomposition (got {len(rows)})", "metric": metric}
+        return {
+            "metric": metric, "period": period, "dates": [],
+            "observed": [], "trend": [], "seasonal": [], "residual": [],
+            "data_points": len(rows), "method": "insufficient_data",
+        }
 
     df = pd.DataFrame(rows).sort_values("ds").drop_duplicates("ds")
     series = df.set_index("ds")["y"]
@@ -311,4 +404,9 @@ def decompose_telemetry(
         }
     except Exception as exc:
         logger.error("Decomposition failed: %s", exc)
-        return {"error": str(exc), "metric": metric}
+        return {
+            "metric": metric, "period": period, "dates": [],
+            "observed": [], "trend": [], "seasonal": [], "residual": [],
+            "data_points": len(rows), "method": "decomposition_error",
+            "error": str(exc),
+        }

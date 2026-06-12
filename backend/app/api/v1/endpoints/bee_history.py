@@ -59,12 +59,21 @@ class VisitIn(BaseModel):
     hive_id: Optional[int] = None
     apiary_id: Optional[int] = None
     visit_date: str
+    visit_name: Optional[str] = None
     gps_coords: Optional[str] = None
     health_state: str = "health"
-    health_score: Optional[float] = None   # Score numérique direct (Mode Terrain, 0-10)
-    force_level: Optional[float] = None    # Force colonie observée (Mode Terrain, 0-10)
+    health_score: Optional[float] = None
+    force_level: Optional[float] = None
     temperature: Optional[float] = None
-    honey_level: str = "Moyen"             # Abondant | Bon | Moyen | Faible
+    honey_level: str = "Moyen"
+    # Champs gestion rucher (Excel)
+    type_ruche: Optional[str] = None   # MERE | POUSSIN | VIDE | MORTE
+    reine: Optional[bool] = None
+    oeufs: Optional[bool] = None
+    couvain: Optional[bool] = None
+    population: Optional[str] = None      # FAIBLE | MOYEN | FORT
+    pollen_level: Optional[str] = None    # FAIBLE | MOYEN | FORT
+    nb_cadres: Optional[str] = None
     needs_sirop: float = 0
     needs_pate: float = 0
     needs_traitement: float = 0
@@ -72,6 +81,8 @@ class VisitIn(BaseModel):
     pollen_kg: float = 0
     notes: Optional[str] = None
     photo_url: Optional[str] = None
+    visited_by:   Optional[str] = None
+    visitor_role: Optional[str] = None   # owner | ouvrier
 
 class VisitOut(VisitIn):
     id: int

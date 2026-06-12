@@ -57,23 +57,39 @@ MODEL_REGISTRY = {
     "plantdoc":        settings.YOLO_PLANTDOC_PATH,
     "fire":            settings.YOLO_FIRE_PATH,
     "plants":          settings.YOLO_LEAVES_PATH,
+    "bee_health":      settings.YOLO_BEE_HEALTH_PATH,    # classification (YOLOv8-cls)
+    "plantvillage":    settings.YOLO_PLANTVILLAGE_PATH,  # classification 38 classes
 }
 
+# Catégories en mode CLASSIFICATION (probs, pas de bounding boxes)
+CLASSIFY_CATEGORIES = {"bee_health", "plantvillage"}
+
 _models = {}
+
+MODEL_ALIASES = {
+    "goat": "livestock",
+    "cow": "livestock",
+    "cattle": "livestock",
+    "sheep": "livestock",
+}
+
+
+def resolve_model_key(category: str = "bee") -> str:
+    """Resolve species aliases without masking specialized models."""
+    key = (category or "bee").strip().lower()
+    return MODEL_ALIASES.get(key, key)
+
 
 def get_yolo_model(category: str = "bee"):
     global _models
     if not HAS_YOLO:
         return None
-    key = category.lower()
-    # goat/cow/sheep → livestock detection model
-    if any(k in key for k in ["cow", "sheep"]):
-        key = "livestock"
-    # goat alone → livestock (detection), goat_disease → disease model
-    if key == "goat":
-        key = "livestock"
+    key = resolve_model_key(category)
 
-    path = MODEL_REGISTRY.get(key, MODEL_REGISTRY["bee"])
+    path = MODEL_REGISTRY.get(key)
+    if path is None:
+        logger.warning("Unknown YOLO model category: %s", category)
+        return None
 
     if key not in _models:
         if os.path.exists(path):
@@ -342,6 +358,136 @@ def plant_recent_events(
         .all()
     )
     return [_serialize(e) for e in rows]
+
+
+@router.post("/classify")
+@limiter.limit("30/minute")
+async def classify_in_file(
+    request: Request,  # noqa: ARG001 — slowapi reads client IP from this
+    file: UploadFile = File(...),
+    category: Optional[str] = Query("bee_health"),
+    top_k: int = Query(3, ge=1, le=6),
+    _=Depends(get_current_user),
+):
+    """Classification d'image (YOLOv8-cls) — ex. santé colonie d'abeilles :
+    healthy / varroa / missing_queen / hive_being_robbed / ant_problems."""
+    from starlette.concurrency import run_in_threadpool
+
+    cat = (category or "bee_health").lower()
+    if cat not in CLASSIFY_CATEGORIES:
+        raise HTTPException(400, f"Catégorie de classification inconnue : {cat}")
+    model = get_yolo_model(cat)
+    if model is None:
+        raise HTTPException(503, f"Modèle '{cat}' indisponible")
+
+    async with inference_lock:
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents)).convert("RGB")
+        start_t = time.time()
+        preds = await run_in_threadpool(lambda: model(image, verbose=False)[0])
+
+    probs = preds.probs
+    if probs is None:
+        raise HTTPException(500, "Le modèle n'a pas renvoyé de probabilités")
+    ranked = sorted(
+        ((model.names[i], float(p)) for i, p in enumerate(probs.data.tolist())),
+        key=lambda t: -t[1],
+    )[:top_k]
+    top_label, top_conf = ranked[0]
+    logger.info("[YOLO classify %s] %s (%.2f) en %.1f ms",
+                cat, top_label, top_conf, (time.time() - start_t) * 1000)
+
+    return {
+        "filename": file.filename,
+        "category": cat,
+        "top": {"label": top_label, "confidence": round(top_conf, 3)},
+        "classes": [{"label": l, "confidence": round(c, 3)} for l, c in ranked],
+        # bee_health : classe exacte "healthy" ; PlantVillage : "Apple___healthy", etc.
+        "healthy": "healthy" in top_label.lower(),
+        "status": "success",
+    }
+
+
+@router.post("/track-count")
+@limiter.limit("6/minute")
+async def track_count_in_video(
+    request: Request,  # noqa: ARG001 — slowapi reads client IP from this
+    file: UploadFile = File(...),
+    category: Optional[str] = Query("chicken_detect", description="chicken_detect, livestock, bee…"),
+    max_frames: int = Query(300, ge=30, le=900, description="Frames analysées (≈10-30 s de vidéo)"),
+    conf: float = Query(0.35, ge=0.1, le=0.9),
+    _=Depends(get_current_user),
+):
+    """Comptage d'animaux sur un clip vidéo par tracking multi-objets
+    (ByteTrack, Zhang et al. 2022) : chaque identité de piste unique = 1 animal.
+    Évite le double comptage des détections frame par frame."""
+    import tempfile
+
+    from starlette.concurrency import run_in_threadpool
+
+    cat = (category or "chicken_detect").lower()
+    model = get_yolo_model(cat)
+    if model is None:
+        raise HTTPException(503, f"Modèle '{cat}' indisponible")
+
+    contents = await file.read()
+    if len(contents) > 60 * 1024 * 1024:
+        raise HTTPException(413, "Vidéo trop volumineuse (max 60 Mo)")
+
+    suffix = os.path.splitext(file.filename or "clip.mp4")[1] or ".mp4"
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    try:
+        tmp.write(contents)
+        tmp.close()
+
+        def _run_tracking():
+            track_ids_per_class: dict = {}
+            frames_with_dets = 0
+            frames_total = 0
+            max_simultaneous = 0
+            # vid_stride=2 : 1 frame sur 2 — suffisant pour le comptage, 2× plus rapide
+            results = model.track(
+                source=tmp.name, conf=conf, tracker="bytetrack.yaml",
+                stream=True, verbose=False, vid_stride=2, persist=True,
+            )
+            for r in results:
+                frames_total += 1
+                if frames_total > max_frames:
+                    break
+                boxes = r.boxes
+                if boxes is None or boxes.id is None:
+                    continue
+                frames_with_dets += 1
+                max_simultaneous = max(max_simultaneous, len(boxes.id))
+                for tid, cls_id in zip(boxes.id.tolist(), boxes.cls.tolist()):
+                    label = model.names[int(cls_id)]
+                    track_ids_per_class.setdefault(label, set()).add(int(tid))
+            return track_ids_per_class, frames_total, frames_with_dets, max_simultaneous
+
+        start_t = time.time()
+        async with inference_lock:
+            tracks, n_frames, n_det_frames, max_sim = await run_in_threadpool(_run_tracking)
+        elapsed = time.time() - start_t
+
+        counts = {label: len(ids) for label, ids in tracks.items()}
+        logger.info("[ByteTrack %s] %s en %.1fs (%d frames)", cat, counts, elapsed, n_frames)
+        return {
+            "filename": file.filename,
+            "category": cat,
+            "tracker": "bytetrack",
+            "counts": counts,                         # identités uniques par classe
+            "total_unique": sum(counts.values()),
+            "max_simultaneous": max_sim,              # borne basse robuste (occlusions)
+            "frames_processed": n_frames,
+            "frames_with_detections": n_det_frames,
+            "elapsed_s": round(elapsed, 1),
+            "status": "success",
+        }
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
 
 
 @router.post("/detect")

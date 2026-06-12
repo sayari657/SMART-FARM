@@ -121,6 +121,18 @@ class Settings(BaseSettings):
         "YOLO_FIRE_PATH",
         str(_BASE_DIR / "ai_assets" / "Alert" / "model-fire-detection-and-smoke" / "best.pt")
     )
+    # Classifieur santé colonie (varroa, reine manquante, pillage…) — YOLOv8-cls
+    # entraîné sur BeeImage via mlops/train_varroa.py (top-1 = 97,9 %)
+    YOLO_BEE_HEALTH_PATH: str = os.getenv(
+        "YOLO_BEE_HEALTH_PATH",
+        str(_BASE_DIR / "ai_assets" / "animal_weights" / "bee" / "bee_health_cls" / "best.pt")
+    )
+    # Classifieur PlantVillage 38 classes maladie×espèce — YOLOv8-cls
+    # entraîné via mlops/train_plantvillage.py
+    YOLO_PLANTVILLAGE_PATH: str = os.getenv(
+        "YOLO_PLANTVILLAGE_PATH",
+        str(_BASE_DIR / "ai_assets" / "plantations" / "plantvillage_cls" / "best.pt")
+    )
 
 
 

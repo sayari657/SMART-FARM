@@ -4,6 +4,7 @@ Smart Farm AI - Security (JWT + Password hashing)
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 import bcrypt
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
@@ -17,7 +18,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 def hash_password(password: str) -> str:
     pwd_bytes = password.encode('utf-8')
-    salt = bcrypt.gensalt()
+    salt = bcrypt.gensalt(rounds=12)
     hashed = bcrypt.hashpw(pwd_bytes, salt)
     return hashed.decode('utf-8')
 
@@ -33,18 +34,30 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
+    issued_at = datetime.now(timezone.utc)
+    expire = issued_at + (
         expires_delta if expires_delta else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire, "type": "access"})
+    to_encode.update({
+        "exp": expire,
+        "iat": issued_at,
+        "jti": str(uuid4()),
+        "type": "access",
+    })
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def create_refresh_token(data: dict) -> str:
     """Creates a long-lived refresh token (30 days). Stored hash in DB."""
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=30)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    issued_at = datetime.now(timezone.utc)
+    expire = issued_at + timedelta(days=30)
+    to_encode.update({
+        "exp": expire,
+        "iat": issued_at,
+        "jti": str(uuid4()),
+        "type": "refresh",
+    })
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -110,12 +123,26 @@ def require_roles(*roles: str):
     return _checker
 
 
+def require_pro(current_user=Depends(get_current_user)):
+    """Dependency — restricts endpoint to users with an active Pro (or Enterprise) plan."""
+    if current_user.role == "superadmin":
+        return current_user
+    if getattr(current_user, "plan", "free") not in ("pro", "enterprise"):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="plan_required:pro",
+        )
+    return current_user
+
+
 def get_ws_tenant_id(token: Optional[str]) -> str:
     """Helper for WebSocket auth. Raises HTTPException if token is absent or invalid."""
     if not token:
         raise HTTPException(status_code=403, detail="WebSocket requires authentication")
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "access":
+            raise HTTPException(status_code=403, detail="Invalid WebSocket token type")
         return str(payload.get("tenant_id", payload.get("sub", "unknown")))
     except Exception:
         raise HTTPException(status_code=403, detail="Invalid WebSocket token")

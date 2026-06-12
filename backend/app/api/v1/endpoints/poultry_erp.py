@@ -21,6 +21,15 @@ from app.services.poultry_ml_service import generate_ml_insights
 
 router = APIRouter(dependencies=[Depends(get_current_user)])
 
+
+@router.get("/analytics/survival", summary="Analyse de survie Kaplan-Meier des lots (lifelines)")
+def poultry_survival(farm_id: int, db: Session = Depends(get_db)):
+    """Courbes de survie par lot (mortalité PoultryHealthLog, censure à droite
+    des survivants), survie à J42/J56 vs standard Ross/Cobb, test log-rank."""
+    from app.services.poultry_survival_service import analyze_farm_survival
+    return analyze_farm_survival(db, farm_id)
+
+
 # ── BATCHES ──────────────────────────────────────────────────────────────────
 
 @router.post("/batches", response_model=PoultryBatchResponse)

@@ -29,6 +29,7 @@ METRIC_RANGES: dict[str, tuple[float, float]] = {
     "temp":             (-10.0, 60.0),
     "humidity":         (0.0,   100.0),
     "soil":             (0.0,   100.0),   # humidité sol %
+    "soil_moisture":    (0.0,   100.0),
     "pressure":         (0.0,   10.0),    # bar
     "flow":             (0.0,   500.0),   # L/min
 
@@ -65,37 +66,32 @@ MIN_HISTORY_FOR_SPIKE = 5
 # Core validation
 # ---------------------------------------------------------------------------
 
-def check_metric_range(metric: str, value: float) -> dict[str, Any]:
+def check_metric_range(metric: str, value: float) -> tuple[bool, str | None]:
     """Vérifie qu'une valeur est dans les bornes physiques."""
     key = metric.lower()
     if key not in METRIC_RANGES:
-        return {"valid": True, "warning": None, "out_of_range": False}
+        return True, None
 
     lo, hi = METRIC_RANGES[key]
     if not (lo <= value <= hi):
-        return {
-            "valid": False,
-            "warning": f"{metric}={value} hors bornes [{lo}, {hi}]",
-            "out_of_range": True,
-        }
-    return {"valid": True, "warning": None, "out_of_range": False}
+        return False, f"{metric}={value} hors bornes [{lo}, {hi}]"
+    return True, None
 
 
-def check_spike(metric: str, value: float, history: list[float]) -> dict[str, Any]:
+def check_spike(metric: str, value: float, history: list[float]) -> tuple[bool, dict[str, Any]]:
     """Détecte un spike : valeur > SPIKE_SIGMA_THRESHOLD σ par rapport à l'historique."""
     if len(history) < MIN_HISTORY_FOR_SPIKE:
-        return {"is_spike": False, "z_score": None}
+        return False, {"z_score": None, "warning": None}
 
     arr = np.array(history, dtype=float)
     mean = float(np.mean(arr))
     std = float(np.std(arr))
     if std < 1e-6:
-        return {"is_spike": False, "z_score": 0.0}
+        return False, {"z_score": 0.0, "warning": None}
 
     z_score = abs(value - mean) / std
     is_spike = z_score > SPIKE_SIGMA_THRESHOLD
-    return {
-        "is_spike": is_spike,
+    return is_spike, {
         "z_score": round(z_score, 2),
         "mean": round(mean, 4),
         "std": round(std, 4),
@@ -134,18 +130,18 @@ def check_telemetry_quality(
             continue
 
         # Range check
-        range_result = check_metric_range(metric, val)
-        if not range_result["valid"]:
-            issues.append(range_result["warning"])
+        in_range, range_warning = check_metric_range(metric, val)
+        if not in_range:
+            issues.append(range_warning)
             flags[f"{metric}_out_of_range"] = True
 
         # Spike check
         if metric in history_by_metric:
-            spike_result = check_spike(metric, val, history_by_metric[metric])
-            if spike_result["is_spike"]:
-                issues.append(spike_result["warning"])
+            is_spike, spike_details = check_spike(metric, val, history_by_metric[metric])
+            if is_spike:
+                issues.append(spike_details["warning"])
                 flags[f"{metric}_spike"] = True
-                flags[f"{metric}_z_score"] = spike_result["z_score"]
+                flags[f"{metric}_z_score"] = spike_details["z_score"]
 
     n_metrics = len(metrics)
     n_issues = len(issues)

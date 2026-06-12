@@ -83,10 +83,12 @@ def get_feedback_stats(db) -> dict[str, Any]:
 
     return {
         "total_corrections": total,
+        "pending": pending,
         "pending_for_training": pending,
         "used_for_training": used,
         "retrain_threshold": RETRAIN_THRESHOLD,
         "retrain_ready": pending >= RETRAIN_THRESHOLD,
+        "distribution": label_distribution,
         "label_distribution": label_distribution,
         "category_distribution": category_distribution,
         "recent_corrections": recent_list,
@@ -123,6 +125,8 @@ def submit_feedback(
 
     pending = get_pending_count(db)
     return {
+        "id": feedback.id,
+        "status": "accepted",
         "feedback_id": feedback.id,
         "pending_for_training": pending,
         "retrain_threshold": RETRAIN_THRESHOLD,
