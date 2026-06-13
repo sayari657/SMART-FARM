@@ -141,6 +141,55 @@ def send_otp_whatsapp(phone: str) -> str:
     return otp
 
 
+def send_whatsapp_alert(phone: str, title: str, message: str) -> bool:
+    """Send a farm alert over WhatsApp.
+
+    Uses an approved template (WHATSAPP_ALERT_TEMPLATE) when configured — this
+    delivers business-initiated messages outside the 24h window. Otherwise falls
+    back to free-form text (24h window only).
+    """
+    template = getattr(settings, "WHATSAPP_ALERT_TEMPLATE", "")
+    if not template:
+        return send_whatsapp_text(phone, f"🚨 {title}\n{message}\n\n— Smart Farm AI")
+
+    if not settings.WHATSAPP_TOKEN or not settings.WHATSAPP_PHONE_ID:
+        logger.warning("WhatsApp not configured — alert not sent to %s", phone)
+        return False
+    api_version = getattr(settings, "WHATSAPP_API_VERSION", "v25.0")
+    lang = getattr(settings, "WHATSAPP_ALERT_TEMPLATE_LANG", "fr")
+    url = f"https://graph.facebook.com/{api_version}/{settings.WHATSAPP_PHONE_ID}/messages"
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": phone,
+        "type": "template",
+        "template": {
+            "name": template,
+            "language": {"code": lang},
+            "components": [{
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": title[:120]},
+                    {"type": "text", "text": message[:600]},
+                ],
+            }],
+        },
+    }
+    try:
+        r = requests.post(url, headers={
+            "Authorization": f"Bearer {settings.WHATSAPP_TOKEN}",
+            "Content-Type": "application/json",
+        }, json=payload, timeout=15)
+        if r.status_code not in (200, 201):
+            logger.error("WhatsApp alert template failed %s → %s: %s", phone, r.status_code, r.text)
+            # fall back to free-form text (works inside 24h window)
+            return send_whatsapp_text(phone, f"🚨 {title}\n{message}\n\n— Smart Farm AI")
+        logger.info("WhatsApp alert template sent to %s", phone)
+        return True
+    except Exception as exc:
+        logger.error("WhatsApp alert error to %s: %s", phone, exc)
+        return False
+
+
 def send_whatsapp_text(phone: str, message: str) -> bool:
     """Send a free-form WhatsApp text (Meta Cloud API). Best-effort: returns success.
 

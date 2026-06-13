@@ -179,7 +179,13 @@ class Settings(BaseSettings):
     WHATSAPP_PHONE_ID: str = os.getenv("WHATSAPP_PHONE_ID", "")
     WHATSAPP_API_VERSION: str = os.getenv("WHATSAPP_API_VERSION", "v25.0")
 
-    # Telegram Bot (alerts — no 24h window limit, unlike WhatsApp free-form text)
+    # WhatsApp alert template (approved in Meta Business Manager). When set,
+    # alerts are sent via this template (delivers outside the 24h window);
+    # otherwise free-form text is used (24h window only).
+    WHATSAPP_ALERT_TEMPLATE: str = os.getenv("WHATSAPP_ALERT_TEMPLATE", "")
+    WHATSAPP_ALERT_TEMPLATE_LANG: str = os.getenv("WHATSAPP_ALERT_TEMPLATE_LANG", "fr")
+
+    # Telegram Bot (optional secondary alert channel — no 24h window limit)
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")  # default farm group/channel
 

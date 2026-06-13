@@ -10,7 +10,7 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 
 from app.models.domain import Farm, User, WorkerAssignment
-from app.services.otp_service import send_whatsapp_text
+from app.services.otp_service import send_whatsapp_alert
 from app.services.push_service import send_to_user
 from app.services.telegram_service import send_telegram_message, is_configured as telegram_configured
 
@@ -60,14 +60,13 @@ def notify_farm_alert(
 ) -> Dict:
     """Dispatch an alert to a farm's owner + assigned workers via WhatsApp + push."""
     recipients = get_farm_recipients(db, farm_id, target)
-    body = f"🚨 {title}\n{message}\n\n— Smart Farm AI"
 
     results = []
     for u in recipients:
         whatsapp_ok = False
         push_count = 0
         if u.phone_number:
-            whatsapp_ok = send_whatsapp_text(u.phone_number, body)
+            whatsapp_ok = send_whatsapp_alert(u.phone_number, title, message)
         try:
             push_count = send_to_user(db, u.id, f"🚨 {title}", message, {"type": "alert", "farm_id": farm_id})
         except Exception as exc:
