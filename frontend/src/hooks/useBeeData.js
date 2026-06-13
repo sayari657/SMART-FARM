@@ -10,6 +10,12 @@ const getQueue  = ()    => { try { return JSON.parse(localStorage.getItem(QUEUE_
 const saveQueue = (q)   => localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
 const pushQueue = (item) => saveQueue([...getQueue(), item]);
 
+/* ── Offline read cache — last snapshots so the page works with no network ── */
+const CACHE_KEYS = { ruches: 'bee_cache_ruches', visites: 'bee_cache_visites',
+                     emplacements: 'bee_cache_emplacements', productions: 'bee_cache_productions' };
+const readCache  = (k, max = 100) => { try { return JSON.parse(localStorage.getItem(CACHE_KEYS[k]) || '[]'); } catch { return []; } };
+const writeCache = (k, v, max = 100) => { try { localStorage.setItem(CACHE_KEYS[k], JSON.stringify((v || []).slice(0, max))); } catch {} };
+
 export function useBeeData(toast) {
   const [emplacements, setEmplacements] = useState([]);
   const [ruches,       setRuches]       = useState([]);
@@ -41,9 +47,22 @@ export function useBeeData(toast) {
     };
   }, [productions, ruches, visites]);
 
-  /* ── Refresh from server ── */
+  /* ── Refresh from server (offline → load last cached snapshot) ── */
   const refresh = useCallback(async (showSpin = true) => {
-    if (!navigator.onLine) return;
+    if (!navigator.onLine) {
+      // No network: hydrate from the offline cache so the page still works,
+      // and prepend any visits queued offline (not yet synced).
+      const queuedVisits = getQueue()
+        .filter(it => it.url?.includes('/visits') && it.method === 'POST')
+        .map(it => { try { return { ...JSON.parse(it.body), _offline: true }; } catch { return null; } })
+        .filter(Boolean);
+      setEmplacements(readCache('emplacements'));
+      setRuches(readCache('ruches'));
+      setProductions(readCache('productions'));
+      setVisites([...queuedVisits, ...readCache('visites')]);
+      setLoading(false);
+      return;
+    }
     if (showSpin) setSyncing(true);
     setLoading(true);
     try {
@@ -53,10 +72,14 @@ export function useBeeData(toast) {
         beeApi.getProductions(),
         beeApi.getVisits(),
       ]);
-      setEmplacements(apiariesRes.ok    ? await apiariesRes.json()    : []);
-      setRuches(      hivesRes.ok       ? await hivesRes.json()       : []);
-      setProductions( productionsRes.ok ? await productionsRes.json() : []);
-      setVisites(     visitsRes.ok      ? await visitsRes.json()      : []);
+      const emp  = apiariesRes.ok    ? await apiariesRes.json()    : [];
+      const hiv  = hivesRes.ok       ? await hivesRes.json()       : [];
+      const prod = productionsRes.ok ? await productionsRes.json() : [];
+      const vis  = visitsRes.ok      ? await visitsRes.json()      : [];
+      setEmplacements(emp);  setRuches(hiv);  setProductions(prod);  setVisites(vis);
+      // Cache fresh snapshots for offline use
+      writeCache('emplacements', emp);  writeCache('ruches', hiv);
+      writeCache('productions', prod);  writeCache('visites', vis);
     } catch {
       /* silent — offline banner handles visibility */
     } finally {
@@ -76,7 +99,12 @@ export function useBeeData(toast) {
     for (const item of queue) {
       try {
         const res = await beeApi.call(item.url, { method: item.method, body: item.body });
-        if (!res.ok) failed.push(item);
+        if (!res.ok) { failed.push(item); continue; }
+        // Visit synced → run the cascade (updates hive health, stock, production)
+        if (item.url?.includes('/visits') && item.method === 'POST') {
+          const saved = await res.json().catch(() => null);
+          if (saved?.id) await beeApi.applyVisit(saved.id).catch(() => {});
+        }
       } catch {
         failed.push(item);
       }
@@ -170,8 +198,10 @@ export function useBeeData(toast) {
       });
       setPendingCount(q => q + 1);
       toast('Visite sauvegardée hors-ligne · sera synchronisée au retour', 'warning');
-      /* Optimistic local update */
-      setVisites(prev => [{ ...payload, id: Date.now(), _offline: true }, ...prev]);
+      /* Optimistic local update + persist to cache so it survives a reload */
+      const offlineVisit = { ...payload, id: Date.now(), _offline: true };
+      setVisites(prev => [offlineVisit, ...prev]);
+      writeCache('visites', [offlineVisit, ...readCache('visites')]);
       return true;
     }
 
