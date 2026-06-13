@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.domain import Farm, User, WorkerAssignment
 from app.services.otp_service import send_whatsapp_text
 from app.services.push_service import send_to_user
+from app.services.telegram_service import send_telegram_message, is_configured as telegram_configured
 
 logger = logging.getLogger(__name__)
 
@@ -80,13 +81,19 @@ def notify_farm_alert(
             "push_devices": push_count,
         })
 
+    # Telegram broadcast to the farm group/channel (no 24h window limit)
+    telegram_sent = False
+    if telegram_configured():
+        telegram_sent = send_telegram_message(f"🚨 <b>{title}</b>\n{message}\n\n— Smart Farm AI")
+
     sent_wa = sum(1 for r in results if r["whatsapp_sent"])
-    logger.info("Alert '%s' dispatched by %s to farm %s: %d recipients, %d WhatsApp",
-                title, sent_by, farm_id, len(results), sent_wa)
+    logger.info("Alert '%s' dispatched by %s to farm %s: %d recipients, %d WhatsApp, telegram=%s",
+                title, sent_by, farm_id, len(results), sent_wa, telegram_sent)
     return {
         "farm_id": farm_id,
         "target": target,
         "recipients": len(results),
         "whatsapp_sent": sent_wa,
+        "telegram_sent": telegram_sent,
         "results": results,
     }

@@ -95,3 +95,7 @@ backend/app/data/price_history.json
 
 # Archives de sauvegarde du rapport
 rapport cycle/*.zip
+
+# Cloudflare worker secrets
+.ingest_token.local
+cloudflare/**/.ingest_token.local

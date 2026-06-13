@@ -92,6 +92,13 @@ def get_yolo_model(category: str = "bee"):
         return None
 
     if key not in _models:
+        # Lazy-fetch from Cloudflare R2 if the weight is missing locally
+        # (no-op unless R2_MODELS_BASE_URL is configured).
+        try:
+            from app.utils.model_fetch import ensure_local_model
+            path = ensure_local_model(path)
+        except Exception:
+            pass
         if os.path.exists(path):
             try:
                 _models[key] = YOLO(path)

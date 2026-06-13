@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     # Sovereign Intelligence (v3.0)
     CHROMA_HOST: str = os.getenv("CHROMA_HOST", "localhost")
     CHROMA_PORT: int = int(os.getenv("CHROMA_PORT", 8001))
+    # Cloudflare RAG Worker (Workers AI + Vectorize). When set, used as the
+    # primary retrieval backend — always-on, serverless, no ChromaDB/Ollama.
+    RAG_WORKER_URL: str = os.getenv("RAG_WORKER_URL", "")
+    # Cloudflare R2 public base URL for YOLO model weights (lazy-download if
+    # the local .pt is missing). Empty = always use local files.
+    R2_MODELS_BASE_URL: str = os.getenv("R2_MODELS_BASE_URL", "")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     VISION_MODEL: str = os.getenv("VISION_MODEL", "llava:latest")
     DERJA_MODEL: str = os.getenv("DERJA_MODEL", "llama3.1:8b")
@@ -172,6 +178,10 @@ class Settings(BaseSettings):
     WHATSAPP_TOKEN: str = os.getenv("WHATSAPP_TOKEN", "")
     WHATSAPP_PHONE_ID: str = os.getenv("WHATSAPP_PHONE_ID", "")
     WHATSAPP_API_VERSION: str = os.getenv("WHATSAPP_API_VERSION", "v25.0")
+
+    # Telegram Bot (alerts — no 24h window limit, unlike WhatsApp free-form text)
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")  # default farm group/channel
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 

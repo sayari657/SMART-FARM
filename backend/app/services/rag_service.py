@@ -117,8 +117,33 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error adding to RAG: {str(e)}")
 
+    async def _query_cloudflare_worker(self, query: str, species: str, n_results: int) -> List[str]:
+        """Query the Cloudflare RAG Worker (Workers AI embeddings + Vectorize)."""
+        url = getattr(settings, "RAG_WORKER_URL", "")
+        if not url:
+            return []
+        try:
+            import httpx
+            payload = {"query": query, "top_k": n_results}
+            if species:
+                payload["species"] = species
+            async with httpx.AsyncClient(timeout=12) as client:
+                resp = await client.post(f"{url.rstrip('/')}/query", json=payload)
+                resp.raise_for_status()
+                matches = resp.json().get("matches", [])
+                return [m["text"] for m in matches if m.get("text")]
+        except Exception as exc:
+            logger.warning("Cloudflare RAG worker query failed: %s", exc)
+            return []
+
     async def query_wisdom(self, query: str, species: str = None, n_results: int = 3) -> List[str]:
-        """Search the local vector database for specific agricultural advice."""
+        """Search for agricultural advice. Priority: Cloudflare Vectorize worker →
+        local ChromaDB → JSON knowledge base (offline fallback)."""
+        # 1. Cloudflare Workers AI + Vectorize (serverless, always-on)
+        cf_hits = await self._query_cloudflare_worker(query, species, n_results)
+        if cf_hits:
+            return cf_hits
+
         if not self.is_active:
             # ChromaDB offline → retrieve from the JSON knowledge base
             # (animals, bee, plants, trees). This is real data, not hardcoded.
