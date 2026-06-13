@@ -124,9 +124,9 @@ class RAGService:
             return []
         try:
             import httpx
-            payload = {"query": query, "top_k": n_results}
-            if species:
-                payload["species"] = species
+            # Semantic embeddings already rank by relevance — no hard species
+            # filter (which would need a Vectorize metadata index + re-ingest).
+            payload = {"query": f"{species + ' ' if species else ''}{query}", "top_k": n_results}
             async with httpx.AsyncClient(timeout=12) as client:
                 resp = await client.post(f"{url.rstrip('/')}/query", json=payload)
                 resp.raise_for_status()

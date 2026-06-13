@@ -93,13 +93,21 @@ export default {
       const sys = `Tu es PlantBot, un assistant agricole expert pour la Tunisie. `
         + `Réponds en ${lang === "ar" ? "arabe/derja" : "français"}, de façon concise et pratique. `
         + `Appuie-toi STRICTEMENT sur le contexte fourni. Si le contexte ne couvre pas la question, dis-le.`;
-      const ai = await env.AI.run(LLM_MODEL, {
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: `Contexte:\n${context}\n\nQuestion: ${query}` },
-        ],
-      });
-      return json({ answer: ai.response, sources: (result.matches || []).map((m) => m.metadata?.topic).filter(Boolean) });
+      const sources = (result.matches || []).map((m) => m.metadata?.topic).filter(Boolean);
+      let answer = "";
+      try {
+        const ai = await env.AI.run(LLM_MODEL, {
+          messages: [
+            { role: "system", content: sys },
+            { role: "user", content: `Contexte:\n${context}\n\nQuestion: ${query}` },
+          ],
+        });
+        answer = ai.response || ai.result?.response || "";
+      } catch (e) {
+        // LLM unavailable → degrade gracefully to the retrieved context
+        answer = context || "Aucune information pertinente trouvée.";
+      }
+      return json({ answer, sources, context });
     }
 
     return json({ error: "not found", routes: ["/health", "/ingest", "/query", "/chat"] }, 404);
