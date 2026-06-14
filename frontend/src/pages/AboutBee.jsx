@@ -24,6 +24,7 @@ import HiveMetricCard    from '../components/bee/HiveMetricCard';
 import BeeMLDashboard  from '../components/bee/BeeMLDashboard';
 import SwarmRiskCard   from '../components/bee/SwarmRiskCard';
 import BeeHealthScanner from '../components/bee/BeeHealthScanner';
+import AlertDrawer      from '../components/bee/AlertDrawer';
 import { beeApi }      from '../services/beeApi';
 import api             from '../services/api';
 import { useAuth }     from '../context/AuthContext';
@@ -255,6 +256,7 @@ export default function AboutBee() {
   const { farmId } = useAuth();
 
   const [modalActive,  setModalActive] = useState(null);
+  const [alertOpen,    setAlertOpen]   = useState(false);
   const [filterApiary, setFilterApiary] = useState('');
   const [prodForm,     setProdForm]    = useState({ production_date:'', apiary_id:'', honey_kg:'', pollen_kg:'' });
   const [stock]                        = useState(() => {
@@ -518,17 +520,20 @@ export default function AboutBee() {
               </span>
             </div>
 
-            {/* 🔔 Alert badge */}
-            {alertCount > 0 && (
-              <div style={{
-                height:32, padding:'0 10px', borderRadius:99, background:W.red,
+            {/* 🔔 Alert badge — click to open the alerts side panel */}
+            <button
+              onClick={() => setAlertOpen(true)}
+              title="Voir les alertes"
+              style={{
+                height:32, padding:'0 10px', borderRadius:99,
+                background: alertCount > 0 ? W.red : 'rgba(255,255,255,.15)',
+                border: 'none', cursor:'pointer',
                 display:'flex', alignItems:'center', gap:5,
-                boxShadow:'0 2px 8px rgba(239,68,68,.35)',
+                boxShadow: alertCount > 0 ? '0 2px 8px rgba(239,68,68,.35)' : 'none',
               }}>
-                <Bell size={12} color="#fff" style={{ animation:'badge 2s ease-in-out infinite' }}/>
-                <span style={{ color:'#fff', fontSize:12, fontWeight:800 }}>{alertCount}</span>
-              </div>
-            )}
+              <Bell size={12} color="#fff" style={{ animation: alertCount > 0 ? 'badge 2s ease-in-out infinite' : 'none' }}/>
+              {alertCount > 0 && <span style={{ color:'#fff', fontSize:12, fontWeight:800 }}>{alertCount}</span>}
+            </button>
 
             {/* Offline / pending sync indicator */}
             {!isOnline && (
@@ -963,6 +968,14 @@ export default function AboutBee() {
       </main>
 
       <ExpertAssistant species="bee" color={COLORS.accent}/>
+
+      <AlertDrawer
+        open={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        ruches={ruches}
+        visites={visites}
+        farmId={farmId}
+      />
     </div>
   );
 }
