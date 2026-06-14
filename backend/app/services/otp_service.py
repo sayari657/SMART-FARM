@@ -108,6 +108,50 @@ def send_otp_email(email: str) -> str:
     return otp
 
 
+def send_email_alert(to_email: str, title: str, message: str) -> bool:
+    """Send a farm alert by email via Gmail SMTP. Real delivery, no Meta limits.
+    Best-effort: returns True on success, False otherwise."""
+    if not to_email or "@" not in to_email:
+        return False
+    if not settings.SMTP_EMAIL or not settings.SMTP_PASSWORD:
+        logger.warning("SMTP not configured — alert email not sent to %s", to_email)
+        return False
+
+    safe_msg = (message or "").replace("\n", "<br/>")
+    html_body = f"""
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #0f1117; border-radius: 16px; padding: 36px; color: #e5e7eb; border: 1px solid #1f2937;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:24px;">
+        <span style="font-size:30px;">🚨</span>
+        <div>
+          <div style="font-size:19px; font-weight:800; color:#fff;">Smart Farm AI — Alerte</div>
+          <div style="font-size:12px; color:#6b7280;">Notification automatique</div>
+        </div>
+      </div>
+      <div style="background:#1f2937; border-left:4px solid #ef4444; border-radius:10px; padding:18px 20px; margin-bottom:20px;">
+        <div style="font-size:16px; font-weight:800; color:#fca5a5; margin-bottom:8px;">{title}</div>
+        <div style="font-size:14px; color:#d1d5db; line-height:1.6;">{safe_msg}</div>
+      </div>
+      <p style="color:#6b7280; font-size:12px;">Connectez-vous à la plateforme pour traiter cette alerte.</p>
+      <hr style="border-color:#1f2937; margin:20px 0;" />
+      <p style="color:#4b5563; font-size:11px; text-align:center;">Smart Farm AI Enterprise Platform</p>
+    </div>
+    """
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"🚨 Smart Farm AI — {title}"
+    msg["From"] = f"Smart Farm AI <{settings.SMTP_EMAIL}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+    try:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.login(settings.SMTP_EMAIL, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_EMAIL, to_email, msg.as_string())
+        logger.info("Alert email sent to %s", to_email)
+        return True
+    except Exception as e:
+        logger.error("SMTP alert error to %s: %s", to_email, e)
+        return False
+
+
 # ─────────────────────────────────────────────────────────────
 # WHATSAPP OTP via Meta Cloud API
 # ─────────────────────────────────────────────────────────────

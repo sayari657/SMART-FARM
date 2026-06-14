@@ -36,8 +36,9 @@ export default function AlertDrawer({ open, onClose, ruches = [], visites = [], 
     try {
       const { data } = await alertsAPI.notify(farmId, title, message, 'all');
       const r = data.recipients || 0;
-      if (r === 0) toast('Aucun destinataire avec numéro valide (propriétaire/ouvriers)');
+      if (r === 0) toast('Aucun destinataire (propriétaire/ouvriers)');
       else toast.success(`Notifié ${r} destinataire${r > 1 ? 's' : ''} (propriétaire + ouvriers)`
+        + (data.email_sent ? ` · ${data.email_sent} e-mail` : '')
         + (data.whatsapp_sent ? ` · ${data.whatsapp_sent} WhatsApp` : '')
         + (data.results?.some(x => x.push_devices > 0) ? ' · push' : ''));
     } catch (e) {
@@ -102,10 +103,10 @@ export default function AlertDrawer({ open, onClose, ruches = [], visites = [], 
               width: '100%', height: 48, borderRadius: 12, border: 'none', cursor: sending ? 'wait' : 'pointer',
               background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', fontWeight: 800, fontSize: 14,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: sending ? .6 : 1 }}>
-              <Send size={16} /> {sending ? 'Envoi…' : 'Notifier propriétaire + ouvriers (WhatsApp)'}
+              <Send size={16} /> {sending ? 'Envoi…' : 'Notifier propriétaire + ouvriers'}
             </button>
             <p style={{ fontSize: 10, color: '#94a3b8', textAlign: 'center', marginTop: 8 }}>
-              Envoie aux numéros du propriétaire et des ouvriers reliés à la ferme, + notification push.
+              Envoie au propriétaire et aux ouvriers de la ferme par e-mail + WhatsApp + notification push.
             </p>
           </div>
         )}
