@@ -25,20 +25,16 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // selfDestroying ships a service worker that unregisters itself and clears
-      // all caches on existing clients. The custom sw.js was breaking the
-      // cross-origin tunnel deployment: it intercepted cross-origin /api calls
-      // (caching failures), queued farm mutations for background replay, and
-      // returned redirected responses for navigations (breaking page loads).
-      // Disabled for now — the app runs fine as a plain SPA.
-      selfDestroying: true,
+      // generateSW (Workbox) — a SAFE service worker that only touches SAME-ORIGIN
+      // requests. The previous custom sw.js broke the cross-origin Pages+Tunnel
+      // setup (intercepted cross-origin /api, queued mutations, redirected
+      // navigations). This config never caches the cross-origin API: navigation
+      // falls back to the precached index.html, and only same-origin static
+      // assets get runtime caching. Re-enables installability without the bugs.
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      strategies: 'injectManifest',   // use custom src/sw.js instead of generateSW
-      srcDir: 'src',
-      filename: 'sw.js',
       devOptions: {
-        enabled: false,   // SW disabled in dev — bare workbox imports break without bundling
+        enabled: false,
       },
       manifest: {
         name: "Smart Farm AI",
@@ -78,19 +74,32 @@ export default defineConfig({
         id: '/smart-farm-ai',   /* stable PWA identity — required for re-install detection */
         protocol_handlers: []
       },
-      injectManifest: {
-        // Exclude large monitoring images (+800 KB each) — loaded lazily, not needed at install
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
         globIgnores: [
-          '**/goat_monitoring_ia.png',
-          '**/poultry_monitoring_ia.png',
-          '**/rabbit_monitoring_ia.png',
-          '**/sheep_monitoring_ia.png',
-          '**/sw-offline-sync.js',          // dead file removed
-          '**/models/**',                   // 3D GLB models — too large
-          '**/models designe/**',
+          '**/goat_monitoring_ia.png', '**/poultry_monitoring_ia.png',
+          '**/rabbit_monitoring_ia.png', '**/sheep_monitoring_ia.png',
+          '**/models/**', '**/models designe/**', '**/*.glb',
         ],
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,jpeg,woff2}'],
-        maximumFileSizeToCacheInBytes: 5000000,   // 5 MB max per file (was 12 MB)
+        maximumFileSizeToCacheInBytes: 4000000,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        // SPA fallback to the precached shell — never for the cross-origin API/WS
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/ws/, /^\/metrics/],
+        runtimeCaching: [
+          {
+            // Same-origin images/fonts only — NEVER the cross-origin tunnel API
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /\.(?:png|jpg|jpeg|svg|webp|woff2)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'farmai-static',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+        ],
       }
     })
   ],

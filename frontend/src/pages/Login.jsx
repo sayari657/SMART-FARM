@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+const LoginBackground3D = lazy(() => import('../components/LoginBackground3D'));
 import {
   Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle,
   Shield, Cpu, Wifi, ServerOff, Leaf, Sparkles, Lock, User,
@@ -167,11 +168,14 @@ export default function Login() {
     <div style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: '1fr 1fr', fontFamily: "'Inter', system-ui, sans-serif", direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
       {/* ── LEFT PANEL ─────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(160deg, #1e1b4b 0%, #312e81 35%, #4f46e5 70%, #6d28d9 100%)', padding: '60px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        {/* Decorative blobs */}
-        <div style={{ position:'absolute', top:-100, right:-80, width:320, height:320, borderRadius:'50%', background:'rgba(255,255,255,.05)', pointerEvents:'none' }}/>
+      <div style={{ background: 'linear-gradient(160deg, #064e3b 0%, #1e1b4b 30%, #312e81 60%, #4f46e5 100%)', padding: '60px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Dynamic Three.js Smart Farm AI background */}
+        <Suspense fallback={null}>
+          <LoginBackground3D />
+        </Suspense>
+        {/* Decorative blobs (base layer under the 3D canvas) */}
+        <div style={{ position:'absolute', top:-100, right:-80, width:320, height:320, borderRadius:'50%', background:'rgba(52,211,153,.06)', pointerEvents:'none' }}/>
         <div style={{ position:'absolute', bottom:-80, left:-40, width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,.04)', pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', top:'40%', left:'60%', width:160, height:160, borderRadius:'50%', background:'rgba(139,92,246,.15)', pointerEvents:'none' }}/>
 
         <div style={{ position:'relative', zIndex:2 }}>
           {/* Logo */}
