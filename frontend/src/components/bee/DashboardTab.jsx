@@ -269,8 +269,16 @@ export default function DashboardTab({ ruches = [], emplacements = [], productio
     const message = alertItems.map(a => `• ${a.label} — ${a.reason}`).join('\n');
     try {
       const { data } = await alertsAPI.notify(farmId, title, message, target);
-      toast.success(`Envoyé à ${data.recipients} destinataire${data.recipients > 1 ? 's' : ''}`
-        + (data.whatsapp_sent ? ` · ${data.whatsapp_sent} WhatsApp` : ''));
+      const r = data.recipients || 0;
+      if (r === 0) {
+        toast('Aucun destinataire (propriétaire/ouvriers) avec numéro valide');
+      } else {
+        toast.success(
+          `Notifié ${r} destinataire${r > 1 ? 's' : ''}`
+          + (data.whatsapp_sent ? ` · ${data.whatsapp_sent} transmis à WhatsApp` : '')
+          + (data.results?.some(x => x.push_devices > 0) ? ' · push envoyé' : '')
+        );
+      }
     } catch (e) {
       toast.error(getErrorMessage(e, "Échec de l'envoi"));
     } finally {

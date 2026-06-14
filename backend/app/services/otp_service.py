@@ -18,6 +18,23 @@ OTP_STORE: dict = {}
 OTP_TTL_MINUTES = settings.OTP_TTL_MINUTES
 
 
+def normalize_msisdn(phone: str) -> str | None:
+    """Normalise a phone to E.164 digits (no '+') for the WhatsApp Cloud API.
+    Returns None if the number is clearly invalid (so we don't send garbage)."""
+    if not phone:
+        return None
+    digits = "".join(ch for ch in str(phone) if ch.isdigit())
+    if digits.startswith("00"):
+        digits = digits[2:]
+    # Collapse a doubled country code typo, e.g. "216216..." → "216..."
+    if digits.startswith("216216"):
+        digits = digits[3:]
+    # Valid international numbers are ~8–15 digits (E.164 max 15)
+    if not (8 <= len(digits) <= 15):
+        return None
+    return digits
+
+
 def _generate_otp() -> str:
     return str(secrets.randbelow(900000) + 100000)
 
@@ -148,19 +165,24 @@ def send_whatsapp_alert(phone: str, title: str, message: str) -> bool:
     delivers business-initiated messages outside the 24h window. Otherwise falls
     back to free-form text (24h window only).
     """
+    msisdn = normalize_msisdn(phone)
+    if not msisdn:
+        logger.warning("WhatsApp alert skipped — invalid phone number: %r", phone)
+        return False
+
     template = getattr(settings, "WHATSAPP_ALERT_TEMPLATE", "")
     if not template:
-        return send_whatsapp_text(phone, f"🚨 {title}\n{message}\n\n— Smart Farm AI")
+        return send_whatsapp_text(msisdn, f"🚨 {title}\n{message}\n\n— Smart Farm AI")
 
     if not settings.WHATSAPP_TOKEN or not settings.WHATSAPP_PHONE_ID:
-        logger.warning("WhatsApp not configured — alert not sent to %s", phone)
+        logger.warning("WhatsApp not configured — alert not sent to %s", msisdn)
         return False
     api_version = getattr(settings, "WHATSAPP_API_VERSION", "v25.0")
     lang = getattr(settings, "WHATSAPP_ALERT_TEMPLATE_LANG", "fr")
     url = f"https://graph.facebook.com/{api_version}/{settings.WHATSAPP_PHONE_ID}/messages"
     payload = {
         "messaging_product": "whatsapp",
-        "to": phone,
+        "to": msisdn,
         "type": "template",
         "template": {
             "name": template,
@@ -180,13 +202,13 @@ def send_whatsapp_alert(phone: str, title: str, message: str) -> bool:
             "Content-Type": "application/json",
         }, json=payload, timeout=15)
         if r.status_code not in (200, 201):
-            logger.error("WhatsApp alert template failed %s → %s: %s", phone, r.status_code, r.text)
+            logger.error("WhatsApp alert template failed %s → %s: %s", msisdn, r.status_code, r.text)
             # fall back to free-form text (works inside 24h window)
-            return send_whatsapp_text(phone, f"🚨 {title}\n{message}\n\n— Smart Farm AI")
-        logger.info("WhatsApp alert template sent to %s", phone)
+            return send_whatsapp_text(msisdn, f"🚨 {title}\n{message}\n\n— Smart Farm AI")
+        logger.info("WhatsApp alert template sent to %s", msisdn)
         return True
     except Exception as exc:
-        logger.error("WhatsApp alert error to %s: %s", phone, exc)
+        logger.error("WhatsApp alert error to %s: %s", msisdn, exc)
         return False
 
 
@@ -200,6 +222,11 @@ def send_whatsapp_text(phone: str, message: str) -> bool:
     if not settings.WHATSAPP_TOKEN or not settings.WHATSAPP_PHONE_ID:
         logger.warning("WhatsApp not configured — alert text not sent to %s", phone)
         return False
+    msisdn = normalize_msisdn(phone)
+    if not msisdn:
+        logger.warning("WhatsApp text skipped — invalid phone number: %r", phone)
+        return False
+    phone = msisdn
     api_version = getattr(settings, "WHATSAPP_API_VERSION", "v25.0")
     url = f"https://graph.facebook.com/{api_version}/{settings.WHATSAPP_PHONE_ID}/messages"
     headers = {
