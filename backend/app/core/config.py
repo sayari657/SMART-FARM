@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # Cloudflare R2 public base URL for YOLO model weights (lazy-download if
     # the local .pt is missing). Empty = always use local files.
     R2_MODELS_BASE_URL: str = os.getenv("R2_MODELS_BASE_URL", "")
+    # DeepForest microservice (isolated venv) for tree-crown detection.
+    # Empty = fall back to the built-in OpenCV detector.
+    DEEPFOREST_URL: str = os.getenv("DEEPFOREST_URL", "")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     VISION_MODEL: str = os.getenv("VISION_MODEL", "llava:latest")
     DERJA_MODEL: str = os.getenv("DERJA_MODEL", "llama3.1:8b")

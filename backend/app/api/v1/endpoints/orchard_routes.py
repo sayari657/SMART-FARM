@@ -253,18 +253,38 @@ def detect_trees(
     except Exception as exc:
         raise HTTPException(503, f"Imagerie satellite indisponible: {exc}")
 
-    import cv2
-    import numpy as np
-    img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
-    if img is None:
-        raise HTTPException(503, "Image satellite illisible")
-    ih, iw = img.shape[:2]
+    # 1. Prefer the isolated DeepForest microservice (best recall on dense canopy)
+    from app.core.config import settings
+    centres, iw, ih, engine = None, None, None, "opencv"
+    df_url = getattr(settings, "DEEPFOREST_URL", "")
+    if df_url:
+        try:
+            import httpx
+            resp = httpx.post(f"{df_url.rstrip('/')}/detect",
+                              files={"file": ("tile.png", img_bytes, "image/png")}, timeout=120)
+            resp.raise_for_status()
+            j = resp.json()
+            iw, ih = j.get("width"), j.get("height")
+            if iw and ih:
+                centres = [(t["cx"], t["cy"]) for t in j.get("trees", [])]
+                engine = "deepforest"
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("DeepForest service unavailable (%s) → OpenCV", exc)
 
-    # Crown size window relative to image (skip tiny noise + huge merged canopy)
-    area = iw * ih
-    centres = _detect_crowns(img, min_area=int(area * 0.00015), max_area=int(area * 0.02))
+    # 2. Fallback — built-in OpenCV detector
+    if centres is None:
+        import cv2
+        import numpy as np
+        img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if img is None:
+            raise HTTPException(503, "Image satellite illisible")
+        ih, iw = img.shape[:2]
+        area = iw * ih
+        centres = _detect_crowns(img, min_area=int(area * 0.00015), max_area=int(area * 0.02))
+        engine = "deepforest-inproc" if __import__("importlib.util").util.find_spec("deepforest") else "opencv"
 
-    # Deduplicate near-identical points + cap
+    # Map pixel → GPS, deduplicate near-identical points, cap
     species = (data.get("species") or None)
     created, seen = [], []
     for (cx, cy) in centres:
@@ -277,10 +297,10 @@ def detect_trees(
                         status="healthy", species=species)
         db.add(t)
         created.append(t)
-        if len(created) >= 400:
+        if len(created) >= 2000:
             break
     db.commit()
-    return {"detected": len(created), "engine": "deepforest" if __import__("importlib.util").util.find_spec("deepforest") else "opencv"}
+    return {"detected": len(created), "engine": engine}
 
 
 # ── Events (timeline) ─────────────────────────────────────────────────────────
