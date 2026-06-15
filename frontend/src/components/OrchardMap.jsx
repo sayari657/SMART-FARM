@@ -151,6 +151,13 @@ export default function OrchardMap() {
     finally { setBusy(false); }
   };
 
+  const setTreeSpecies = async (sp) => {
+    if (!selected) return;
+    setBusy(true);
+    try { const { data } = await orchardAPI.update(selected.id, { species: sp || null }); setSelected(data); await load(); }
+    finally { setBusy(false); }
+  };
+
   const submitAction = async () => {
     if (!selected || !actionMode) return;
     setBusy(true);
@@ -284,6 +291,24 @@ export default function OrchardMap() {
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* tree species */}
+              <div>
+                <div style={lbl}>Type d'arbre</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {SPECIES.map(sp => {
+                    const active = (selected.species || '') === sp.v;
+                    return (
+                      <button key={sp.v || 'autre'} onClick={() => setTreeSpecies(sp.v)} disabled={busy}
+                        style={{ padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                          background: active ? '#16a34a' : '#fff', color: active ? '#fff' : '#475569',
+                          border: `1.5px solid ${active ? '#16a34a' : '#e2e8f0'}` }}>
+                        {sp.l}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* status */}
               <div>
                 <div style={lbl}>Statut</div>
