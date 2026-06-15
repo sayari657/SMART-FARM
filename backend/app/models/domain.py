@@ -538,6 +538,52 @@ class DiagnosticHistory(Base):
 
 
 # ---------------------------------------------------------------------------
+# Orchard Planigramme — per-tree spatial tracking (disease / treatment)
+# ---------------------------------------------------------------------------
+
+class OrchardTree(Base):
+    """A single tree placed on the farm's orchard planigramme (row × column grid)."""
+    __tablename__ = "orchard_trees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id", ondelete="CASCADE"), nullable=True, index=True)
+    row = Column(Integer, nullable=False, default=0)       # grid row (legacy planigramme)
+    col = Column(Integer, nullable=False, default=0)       # grid column (legacy planigramme)
+    lat = Column(Float, nullable=True)                     # geographic position (WGS84)
+    lng = Column(Float, nullable=True)
+    source = Column(String(20), nullable=True)             # gps | manual | detected
+    species = Column(String(40), nullable=True)            # olive, orange, lemon, ...
+    label = Column(String(80), nullable=True)              # optional human name / number
+    status = Column(String(20), nullable=False, default="healthy")  # healthy|watch|diseased|treated
+    disease = Column(String(120), nullable=True)           # detected disease name
+    notes = Column(Text, nullable=True)
+    last_treatment_at = Column(DateTime, nullable=True)
+    last_event_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    events = relationship("OrchardTreeEvent", back_populates="tree", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("ix_orchard_tree_farm_pos", "farm_id", "row", "col"),
+    )
+
+
+class OrchardTreeEvent(Base):
+    """Timeline entry for a tree: disease detected, treatment applied, observation, note."""
+    __tablename__ = "orchard_tree_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tree_id = Column(Integer, ForeignKey("orchard_trees.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = Column(String(20), nullable=False, default="note")   # disease|treatment|observation|note
+    label = Column(String(120), nullable=True)                  # disease name / product used
+    note = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    tree = relationship("OrchardTree", back_populates="events")
+
+
+# ---------------------------------------------------------------------------
 # Bee Management — Historisation complète
 # ---------------------------------------------------------------------------
 

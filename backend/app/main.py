@@ -63,6 +63,9 @@ def _run_column_migrations() -> None:
             ("bee_visits",          "nb_cadres",     "VARCHAR(30)"),
             ("bee_visits",          "visited_by",    "VARCHAR(100)"),
             ("bee_visits",          "visitor_role",  "VARCHAR(20)"),
+            ("orchard_trees",       "lat",           "FLOAT"),
+            ("orchard_trees",       "lng",           "FLOAT"),
+            ("orchard_trees",       "source",        "VARCHAR(20)"),
         ]
 
         for table, col, col_def in _migrations:
@@ -503,3 +506,136 @@ async def websocket_endpoint(
             await websocket.close(code=1008)  # Policy Violation
         except Exception:
             pass
+
+
+# -- RTSP / IP camera relay → YOLO inference (Sovereign Emergency Monitor) --
+@app.websocket("/ws/rtsp")
+async def ws_rtsp_inference(
+    websocket: WebSocket,
+    token: Optional[str] = None,
+    url: Optional[str] = None,
+    model: str = "fire",
+    fps: int = 4,
+):
+    """Ingest a network camera (RTSP / HTTP-MJPEG) server-side with OpenCV, run YOLO
+    on each frame, and stream {frame, detections} to the browser. Browsers cannot
+    read RTSP directly, hence this relay.
+
+    Query params: token (JWT, required), url (rtsp://… or http://…), model, fps.
+    Note: `url` is owner-provided — endpoint stays authenticated (SSRF surface).
+    """
+    import asyncio
+    import base64
+    import time
+    from starlette.websockets import WebSocketState
+
+    if not token:
+        await websocket.close(code=1008, reason="Authentication required")
+        return
+    try:
+        from app.core.security import get_ws_tenant_id
+        get_ws_tenant_id(token)
+    except Exception:
+        await websocket.close(code=1008, reason="Invalid token")
+        return
+
+    if not url or not url.lower().startswith(("rtsp://", "http://", "https://")):
+        await websocket.accept()
+        await websocket.send_json({"error": "URL caméra invalide (rtsp:// ou http://)."})
+        await websocket.close()
+        return
+
+    await websocket.accept()
+
+    try:
+        import cv2
+    except Exception:
+        await websocket.send_json({"error": "OpenCV indisponible sur ce serveur."})
+        await websocket.close()
+        return
+    try:
+        from app.api.v1.endpoints.cv_routes import get_yolo_model, inference_lock, HAS_YOLO
+        from app.api.v1.endpoints.stream_routes import _run_inference
+    except ImportError:
+        await websocket.send_json({"error": "Module CV indisponible."})
+        await websocket.close()
+        return
+    if not HAS_YOLO:
+        await websocket.send_json({"error": "YOLO non disponible (mode cloud)."})
+        await websocket.close()
+        return
+
+    from starlette.concurrency import run_in_threadpool
+    from PIL import Image
+
+    def _open(u):
+        cap = cv2.VideoCapture(u)
+        try:
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        except Exception:
+            pass
+        return cap
+
+    def _grab(cap, max_w=640):
+        ok, frame = cap.read()
+        if not ok or frame is None:
+            return False, None, None
+        h, w = frame.shape[:2]
+        if w > max_w:
+            s = max_w / float(w)
+            frame = cv2.resize(frame, (int(w * s), int(h * s)))
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        ok2, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
+        b64 = base64.b64encode(buf.tobytes()).decode() if ok2 else None
+        return True, b64, Image.fromarray(rgb)
+
+    cap = await run_in_threadpool(_open, url)
+    if not await run_in_threadpool(cap.isOpened):
+        await websocket.send_json({"error": "Impossible d'ouvrir le flux. Vérifie l'URL / les identifiants."})
+        await run_in_threadpool(cap.release)
+        await websocket.close()
+        return
+
+    await websocket.send_json({"status": "connected", "model": model})
+    interval = 1.0 / max(1, min(int(fps or 4), 8))
+    frame_id, fails = 0, 0
+    try:
+        while websocket.client_state == WebSocketState.CONNECTED:
+            t0 = time.monotonic()
+            ok, b64, image = await run_in_threadpool(_grab, cap, 640)
+            if not ok:
+                fails += 1
+                if fails > 40:
+                    await websocket.send_json({"error": "Flux interrompu."})
+                    break
+                await asyncio.sleep(0.15)
+                continue
+            fails = 0
+            try:
+                async with inference_lock:
+                    yolo = await run_in_threadpool(get_yolo_model, model)
+                    if not yolo:
+                        await websocket.send_json({"error": f"Modèle '{model}' indisponible."})
+                        break
+                    detections = await run_in_threadpool(_run_inference, yolo, image)
+            except Exception as exc:
+                detections = []
+                logger.warning("[RTSP] inference error: %s", exc)
+            frame_id += 1
+            await websocket.send_json({
+                "frame": b64,
+                "detections": detections,
+                "count": len(detections),
+                "frame_id": frame_id,
+            })
+            dt = time.monotonic() - t0
+            if dt < interval:
+                await asyncio.sleep(interval - dt)
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logger.warning("[RTSP] stream error: %s", exc)
+    finally:
+        await run_in_threadpool(cap.release)
+        if websocket.client_state == WebSocketState.CONNECTED:
+            await websocket.close()

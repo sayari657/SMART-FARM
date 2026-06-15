@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import Navbar from '../components/Navbar';
 import CropCalendar from '../components/CropCalendar';
+import OrchardMap from '../components/OrchardMap';
 import ModelClassesInfo from '../components/ModelClassesInfo';
 import PlantVillageScanner from '../components/PlantVillageScanner';
 import { agentAPI, cvAPI, diagnosticAPI } from '../services/api';
@@ -889,6 +890,9 @@ export default function ArbresPlantations() {
               </div>
             )}
           </div>
+
+          {/* ── CARTE SATELLITE DU VERGER (positions GPS réelles) ────────── */}
+          <OrchardMap />
         </div>
 
         {/* ── Zoom Modal ────────────────────────────────── */}
