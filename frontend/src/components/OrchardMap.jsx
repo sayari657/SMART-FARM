@@ -69,6 +69,8 @@ export default function OrchardMap() {
   const [actionNote, setActionNote]   = useState('');
   const [detecting, setDetecting]   = useState(false);
   const [species, setSpecies]       = useState('olive');
+  const [customSpecies, setCustomSpecies] = useState('');  // toolbar "Autre" name
+  const [nameInput, setNameInput]   = useState('');        // per-tree "Autre" name
   const [zoneMode, setZoneMode]     = useState(false);
   const [zoneCorners, setZoneCorners] = useState([]);
   const mapRef = useRef(null);
@@ -109,7 +111,7 @@ export default function OrchardMap() {
         const { data } = await orchardAPI.create({
           farm_id: farmId || undefined,
           lat: pos.coords.latitude, lng: pos.coords.longitude,
-          source: 'gps', status: 'healthy', species: species || undefined,
+          source: 'gps', status: 'healthy', species: effectiveSpecies(),
         });
         setCenter([data.lat, data.lng]);
         await load();
@@ -122,7 +124,7 @@ export default function OrchardMap() {
   const runDetect = async (bounds) => {
     setDetecting(true);
     try {
-      const { data } = await orchardAPI.detect(bounds, farmId, species || undefined);
+      const { data } = await orchardAPI.detect(bounds, farmId, effectiveSpecies());
       if (data.detected > 0) { toast.success(`${data.detected} ${SPECIES.find(s => s.v === species)?.l || 'arbre'}(s) détecté(s) · moteur ${data.engine}`); await load(); }
       else toast('Aucun arbre détecté — zoomez davantage ou cadrez le verger');
     } catch (e) { toast.error(getErrorMessage(e, 'Échec de la détection')); }
@@ -157,6 +159,20 @@ export default function OrchardMap() {
     try { const { data } = await orchardAPI.update(selected.id, { species: sp || null }); setSelected(data); await load(); }
     finally { setBusy(false); }
   };
+
+  // Sync the per-tree custom-name field when a tree is opened
+  useEffect(() => { setNameInput(selected?.label || ''); }, [selected?.id]); // eslint-disable-line
+
+  const saveName = async () => {
+    if (!selected) return;
+    setBusy(true);
+    try { const { data } = await orchardAPI.update(selected.id, { label: nameInput.trim() || null }); setSelected(data); await load(); }
+    finally { setBusy(false); }
+  };
+
+  // For batch detection / GPS add: known species, or the typed custom name when "Autre"
+  const effectiveSpecies = () => (species || (customSpecies.trim() || undefined));
+  const KNOWN_SPECIES = ['olive', 'orange', 'lemon'];
 
   const submitAction = async () => {
     if (!selected || !actionMode) return;
@@ -212,6 +228,11 @@ export default function OrchardMap() {
           style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 10px', fontSize: 13, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
           {SPECIES.map(s => <option key={s.v || 'autre'} value={s.v}>{s.l}</option>)}
         </select>
+        {species === '' && (
+          <input value={customSpecies} onChange={e => setCustomSpecies(e.target.value)}
+            placeholder="Nom de l'arbre (ex: Figuier)"
+            style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 12px', fontSize: 13, width: 180, outline: 'none' }} />
+        )}
         <button onClick={load} title="Rafraîchir" style={iconBtn}>
           <RefreshCw size={16} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
@@ -296,7 +317,8 @@ export default function OrchardMap() {
                 <div style={lbl}>Type d'arbre</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {SPECIES.map(sp => {
-                    const active = (selected.species || '') === sp.v;
+                    // "Autre" is active when the tree's species is empty or a custom (unknown) value
+                    const active = sp.v ? selected.species === sp.v : !KNOWN_SPECIES.includes(selected.species || '');
                     return (
                       <button key={sp.v || 'autre'} onClick={() => setTreeSpecies(sp.v)} disabled={busy}
                         style={{ padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700,
@@ -307,6 +329,16 @@ export default function OrchardMap() {
                     );
                   })}
                 </div>
+                {/* "Autre" → free-text name for this tree */}
+                {!KNOWN_SPECIES.includes(selected.species || '') && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <input value={nameInput} onChange={e => setNameInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && saveName()}
+                      placeholder="Nom de l'arbre (ex: Figuier, Grenadier…)"
+                      style={{ flex: 1, height: 38, borderRadius: 10, border: '1px solid #e2e8f0', padding: '0 12px', fontSize: 13, outline: 'none' }} />
+                    <button onClick={saveName} disabled={busy} style={{ ...primaryBtn, padding: '0 16px' }}>OK</button>
+                  </div>
+                )}
               </div>
 
               {/* status */}
