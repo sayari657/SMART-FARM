@@ -403,23 +403,34 @@ export default function Login() {
 
               <ErrBanner msg={error}/>
 
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                 {[
-                  { ch:'email', label:t('login.by_email','Par E-mail'), icon:Mail, color:'#3b82f6', desc:t('login.email_desc','Code envoyé à votre adresse mail'), badge:'Gratuit · Instantané' },
-                  { ch:'whatsapp', label:t('login.via_whatsapp','Via WhatsApp'), icon:MessageCircle, color:'#25D366', desc:t('login.whatsapp_desc','Code envoyé sur votre WhatsApp'), badge:'Gratuit · Instantané' },
-                ].map(({ ch, label, icon: Icon, color, desc, badge }) => (
+                  { ch:'email', label:t('login.by_email','Par E-mail'), icon:Mail, color:'#3b82f6', grad:'linear-gradient(135deg,#3b82f6,#6366f1)', desc:t('login.email_desc','Code envoyé à votre adresse email enregistrée'), badge:'Gratuit · Instantané' },
+                  { ch:'whatsapp', label:t('login.via_whatsapp','Via WhatsApp'), icon:MessageCircle, color:'#25D366', grad:'linear-gradient(135deg,#25D366,#128C7E)', desc:t('login.whatsapp_desc','Code OTP sur votre numéro WhatsApp enregistré'), badge:'Gratuit · Instantané' },
+                ].map(({ ch, label, icon: Icon, color, grad, desc, badge }) => (
                   <button key={ch} onClick={() => { setChannel(ch); setIdentifier(ch==='whatsapp'?'+216':''); setView('enter_id'); setError(''); }}
-                    style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 20px', background:T.white, border:`1.5px solid ${T.border}`, borderRadius:14, cursor:'pointer', textAlign:'left', transition:'all .2s' }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor=color; e.currentTarget.style.boxShadow=`0 4px 12px ${color}15`; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor=T.border; e.currentTarget.style.boxShadow='none'; }}>
-                    <div style={{ width:44, height:44, background:`${color}15`, borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <Icon size={20} color={color}/>
+                    style={{
+                      position:'relative', overflow:'hidden', display:'flex', alignItems:'center', gap:16,
+                      padding:'18px 18px', background:'rgba(255,255,255,.75)', backdropFilter:'blur(8px)',
+                      border:`1.5px solid ${T.border}`, borderRadius:16, cursor:'pointer', textAlign:'left',
+                      transition:'transform .2s, box-shadow .2s, border-color .2s',
+                      boxShadow:'0 1px 3px rgba(15,23,42,.05)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor=color; e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow=`0 14px 30px -10px ${color}55`; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor=T.border; e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 1px 3px rgba(15,23,42,.05)'; }}>
+                    {/* accent bar */}
+                    <div style={{ position:'absolute', left:0, top:0, bottom:0, width:4, background:grad }}/>
+                    <div style={{ width:52, height:52, background:grad, borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:`0 8px 18px -6px ${color}88` }}>
+                      <Icon size={24} color="#fff"/>
                     </div>
-                    <div>
-                      <div style={{ fontWeight:700, fontSize:14, color:T.text, marginBottom:2 }}>{label}</div>
-                      <div style={{ fontSize:12, color:T.dim }}>{desc}</div>
-                      <div style={{ fontSize:10, color:T.green, fontWeight:700, marginTop:3 }}>✓ {badge}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:800, fontSize:15, color:T.text, marginBottom:3 }}>{label}</div>
+                      <div style={{ fontSize:12, color:T.dim, lineHeight:1.4 }}>{desc}</div>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:7, fontSize:10, fontWeight:800, color:'#15803d', background:'#dcfce7', border:'1px solid #bbf7d0', padding:'2px 9px', borderRadius:99 }}>
+                        <CheckCircle size={10}/> {badge}
+                      </span>
                     </div>
+                    <ChevronRight size={20} color={T.muted} style={{ flexShrink:0 }}/>
                   </button>
                 ))}
               </div>
