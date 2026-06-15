@@ -4,9 +4,16 @@ import { RefreshCw, Database, Bell, ShieldCheck, Smartphone, LogOut, ChevronRigh
 import { useAuth } from '../../context/AuthContext';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from './workerUI';
+
+const LANGS = [
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'ar', label: 'العربية',  flag: '🇹🇳' },
+  { code: 'en', label: 'English',  flag: '🇬🇧' },
+];
 
 function WorkerSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { isOnline, syncing, pendingCount, syncData } = useNetworkSync();
   const navigate = useNavigate();
@@ -46,12 +53,7 @@ function WorkerSettings() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 32 }}>
 
-      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '14px 18px 12px' }}>
-        <h1 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: 0 }}>{t('worker.settings.title')}</h1>
-        <p style={{ color: '#94a3b8', fontSize: 12, margin: '2px 0 0' }}>
-          {t('worker.settings.subtitle')}
-        </p>
-      </div>
+      <PageHeader title={t('worker.settings.title')} subtitle={t('worker.settings.subtitle')} icon="⚙️" />
 
       <div style={{ margin: '14px 14px 0' }}>
         {/* User card */}
@@ -85,6 +87,31 @@ function WorkerSettings() {
               {isOnline ? t('worker.settings.online') : t('worker.settings.offline')}
             </div>
           </div>
+        </div>
+
+        {/* Language section */}
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 8 }}>
+          {t('worker.settings.language_section', 'Langue')}
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {LANGS.map(l => {
+            const active = (i18n.language || 'fr').startsWith(l.code);
+            return (
+              <button key={l.code}
+                onClick={() => { i18n.changeLanguage(l.code); try { localStorage.setItem('i18nextLng', l.code); } catch {} }}
+                style={{
+                  flex: 1, padding: '12px 8px', borderRadius: 12, cursor: 'pointer',
+                  background: active ? '#16a34a' : '#fff',
+                  border: `1.5px solid ${active ? '#16a34a' : '#e2e8f0'}`,
+                  color: active ? '#fff' : '#475569', fontWeight: 700, fontSize: 13,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                  boxShadow: active ? '0 4px 12px rgba(22,163,74,.25)' : 'none', transition: 'all .15s',
+                }}>
+                <span style={{ fontSize: 20 }}>{l.flag}</span>
+                {l.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Sync section */}

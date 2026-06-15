@@ -18,8 +18,14 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'fr', // Default language as requested
-    fallbackLng: 'en',
+    // No hardcoded lng → the detector restores the saved choice (localStorage),
+    // falling back to French for first-time users.
+    fallbackLng: 'fr',
+    detection: {
+      order: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng',
+      caches: ['localStorage'],
+    },
     interpolation: {
       escapeValue: false
     }

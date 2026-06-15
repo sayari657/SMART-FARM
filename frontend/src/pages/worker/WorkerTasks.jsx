@@ -1,148 +1,265 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Circle, Clock, ChevronRight, RefreshCw, WifiOff, Milk, Utensils, Stethoscope, Eraser, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  CheckCircle2, Clock, RefreshCw, WifiOff, AlertTriangle,
+  Milk, Utensils, Stethoscope, Eraser,
+} from 'lucide-react';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import offlineDB from '../../db/offlineDB';
 import api from '../../services/api';
+import {
+  WT, WorkerPage, PageHeader, Card,
+  Skeleton, EmptyState, Segmented, ProgressRing, FloatingCTA, WorkerStyles,
+} from './workerUI';
+import OwnerReportCard from './OwnerReportCard';
 
 function WorkerTasks() {
   const { t } = useTranslation();
   const { isOnline } = useNetworkSync();
+  const navigate = useNavigate();
   const [tasks, setTasks]     = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError]     = useState(false);
+  const [filter, setFilter]   = useState('pending');
 
-  const CATEGORY_ICONS = {
+  const CATEGORY = {
     milking:  { icon: Milk,        color: '#3b82f6', bg: '#eff6ff', label: t('worker.tasks.category.milking') },
     feeding:  { icon: Utensils,    color: '#10b981', bg: '#ecfdf5', label: t('worker.tasks.category.feeding') },
     health:   { icon: Stethoscope, color: '#ef4444', bg: '#fef2f2', label: t('worker.tasks.category.health') },
     cleaning: { icon: Eraser,      color: '#f59e0b', bg: '#fffbeb', label: t('worker.tasks.category.cleaning') },
-    other:    { icon: Clock,       color: '#6b7280', bg: '#f9fafb', label: t('worker.tasks.category.other') },
+    other:    { icon: Clock,       color: '#6b7280', bg: '#f3f4f6', label: t('worker.tasks.category.other') },
   };
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setError(false);
     try {
       if (isOnline) {
         const { data } = await api.get('/worker-tasks');
-        setTasks(data);
+        setTasks(Array.isArray(data) ? data : []);
       } else {
         const local = await offlineDB.pendingTasks.toArray();
-        setTasks(local.map(t => ({ id: t.task_id, title: t.title || `Task #${t.task_id}`, status: t.status, category: t.category || 'other' })));
+        setTasks(local.map(l => ({
+          id: l.task_id, title: l.title || `Task #${l.task_id}`,
+          status: l.status, category: l.category || 'other',
+        })));
       }
     } catch {
-      setError(t('common.no_data'));
+      setError(true);
     } finally {
       setLoading(false);
     }
-  }, [isOnline, t]);
+  }, [isOnline]);
 
   useEffect(() => { loadTasks(); }, [loadTasks]);
 
   const toggleTask = async (task) => {
     if (task.status === 'done') return;
-    const newStatus = 'done';
-    const doneAt    = new Date().toISOString();
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
+    const doneAt = new Date().toISOString();
+    setTasks(prev => prev.map(x => x.id === task.id ? { ...x, status: 'done' } : x));
     try {
-      if (isOnline) {
-        await api.put(`/worker-tasks/${task.id}`, { status: newStatus, done_at: doneAt });
-      } else {
-        await offlineDB.pendingTasks.put({ task_id: task.id, status: newStatus, done_at: doneAt, synced: 0 });
-      }
+      if (isOnline) await api.put(`/worker-tasks/${task.id}`, { status: 'done', done_at: doneAt });
+      else await offlineDB.pendingTasks.put({ task_id: task.id, status: 'done', done_at: doneAt, synced: 0 });
     } catch (err) {
       console.error(err);
+      setTasks(prev => prev.map(x => x.id === task.id ? { ...x, status: task.status } : x)); // rollback
     }
   };
 
-  return (
-    <div style={{ background: '#f3f4f6', minHeight: '100dvh', paddingBottom: 'calc(100px + env(safe-area-inset-bottom))' }}>
-      <header style={{ background: '#2563eb', padding: '24px 20px', color: 'white', borderRadius: '0 0 24px 24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>{t('worker.tasks.title')}</h1>
-            <p style={{ fontSize: 13, opacity: 0.8, margin: '4px 0 0' }}>{t('worker.tasks.subtitle')}</p>
-          </div>
-          <button onClick={loadTasks} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <RefreshCw size={18} />
-          </button>
-        </div>
-      </header>
+  const counts = useMemo(() => {
+    const done = tasks.filter(x => x.status === 'done').length;
+    return { total: tasks.length, done, pending: tasks.length - done };
+  }, [tasks]);
 
-      <div style={{ padding: '20px' }}>
+  const visible = useMemo(() => {
+    if (filter === 'pending') return tasks.filter(x => x.status !== 'done');
+    if (filter === 'done')    return tasks.filter(x => x.status === 'done');
+    return tasks;
+  }, [tasks, filter]);
+
+  return (
+    <WorkerPage style={{ paddingBottom: 'calc(110px + env(safe-area-inset-bottom))' }}>
+      <WorkerStyles />
+
+      <PageHeader
+        title={t('worker.tasks.title')}
+        subtitle={t('worker.tasks.subtitle')}
+        icon="✅"
+        right={
+          <button
+            onClick={loadTasks}
+            aria-label={t('worker.tasks.retry')}
+            style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: WT.bg, border: `1px solid ${WT.border}`,
+              color: WT.body, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <RefreshCw size={17} style={{ animation: loading ? 'wkSpin 1s linear infinite' : 'none' }} />
+          </button>
+        }
+      />
+
+      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
         {!isOnline && (
-          <div style={{ background: '#fffbeb', color: '#92400e', padding: '12px', borderRadius: '12px', marginBottom: '16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #fde68a' }}>
+          <div style={{
+            background: '#fffbeb', color: '#92400e', padding: '10px 12px',
+            borderRadius: WT.r.sm, fontSize: 13, fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: 8, border: '1px solid #fde68a',
+          }}>
             <WifiOff size={16} /> {t('worker.tasks.offline_mode')}
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {tasks.map(task => {
-            const isDone = task.status === 'done';
-            const cat = CATEGORY_ICONS[task.category] || CATEGORY_ICONS.other;
-            const Icon = cat.icon;
-
-            return (
-              <div
-                key={task.id}
-                onClick={() => !isDone && toggleTask(task)}
-                style={{
-                  background: isDone ? 'rgba(255,255,255,0.6)' : 'white',
-                  borderRadius: 20, padding: 18, border: `1px solid ${isDone ? '#e5e7eb' : '#fff'}`,
-                  boxShadow: isDone ? 'none' : '0 4px 6px -1px rgba(0,0,0,0.05)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  transition: 'transform 0.1s', cursor: isDone ? 'default' : 'pointer',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{ width: 50, height: 50, borderRadius: 14, background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cat.color }}>
-                    <Icon size={24} />
+        {/* ── Progress summary ── */}
+        {!error && (loading || counts.total > 0) && (
+          <Card style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16 }}>
+            {loading ? (
+              <>
+                <Skeleton width={56} height={56} radius="50%" />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width="55%" height={14} style={{ marginBottom: 8 }} />
+                  <Skeleton width="35%" height={11} />
+                </div>
+              </>
+            ) : (
+              <>
+                <ProgressRing value={counts.done} max={counts.total} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: WT.ink }}>
+                    {t('worker.tasks.progress_title')}
                   </div>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: isDone ? '#9ca3af' : '#1f2937' }}>{task.title}</h3>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: isDone ? '#d1d5db' : '#6b7280' }}>
-                      {cat.label} {task.due_date && '· ' + new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                  <div style={{ fontSize: 13, color: WT.muted, marginTop: 2 }}>
+                    {t('worker.tasks.progress_sub', { done: counts.done, total: counts.total })}
                   </div>
                 </div>
+              </>
+            )}
+          </Card>
+        )}
 
-                {isDone ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#10b981', fontWeight: 800, fontSize: 14 }}>
-                    <CheckCircle2 size={20} /> <span>{t('worker.tasks.done')}</span>
+        {/* ── Filter segments ── */}
+        {!error && !loading && counts.total > 0 && (
+          <Segmented
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: 'all',     label: t('worker.tasks.filter_all'),     count: counts.total },
+              { value: 'pending', label: t('worker.tasks.filter_pending'), count: counts.pending },
+              { value: 'done',    label: t('worker.tasks.filter_done'),    count: counts.done },
+            ]}
+          />
+        )}
+
+        {/* ── List / states ── */}
+        {error ? (
+          <EmptyState
+            emoji="📡"
+            title={t('worker.tasks.error_title')}
+            desc={t('worker.tasks.error_desc')}
+            action={
+              <button
+                onClick={loadTasks}
+                style={{
+                  background: WT.brandGrad, border: 'none', borderRadius: WT.r.md,
+                  padding: '12px 26px', color: '#fff', fontWeight: 700, fontSize: 14,
+                  cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8,
+                }}
+              >
+                <RefreshCw size={15} /> {t('worker.tasks.retry')}
+              </button>
+            }
+          />
+        ) : loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[0, 1, 2, 3].map(i => (
+              <Card key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16 }}>
+                <Skeleton width={48} height={48} radius={14} />
+                <div style={{ flex: 1 }}>
+                  <Skeleton width="70%" height={14} style={{ marginBottom: 8 }} />
+                  <Skeleton width="40%" height={11} />
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : counts.total === 0 ? (
+          <EmptyState emoji="🎉" title={t('worker.tasks.all_done_title')} desc={t('worker.tasks.all_done_desc')} />
+        ) : visible.length === 0 ? (
+          <EmptyState emoji="🗂️" title={t('worker.tasks.filter_empty')} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {visible.map(task => {
+              const done = task.status === 'done';
+              const cat = CATEGORY[task.category] || CATEGORY.other;
+              const Icon = cat.icon;
+              return (
+                <Card
+                  key={task.id}
+                  onClick={() => !done && toggleTask(task)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14, padding: 14,
+                    opacity: done ? 0.7 : 1, animation: 'wkRise .25s ease both',
+                    cursor: done ? 'default' : 'pointer',
+                  }}
+                >
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                    background: cat.bg, color: cat.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon size={22} />
                   </div>
-                ) : (
-                  <button style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 18px', borderRadius: 12, fontWeight: 800, fontSize: 13 }}>
-                    {t('worker.tasks.validate')}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {tasks.length === 0 && !loading && (
-          <div style={{ textAlign: 'center', marginTop: 60 }}>
-            <div style={{ fontSize: 60, marginBottom: 20 }}>🎉</div>
-            <h2 style={{ color: '#1f2937', fontWeight: 900 }}>{t('worker.tasks.all_done_title')}</h2>
-            <p style={{ color: '#6b7280' }}>{t('worker.tasks.all_done_desc')}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{
+                      margin: 0, fontSize: 15, fontWeight: 700,
+                      color: done ? WT.muted : WT.ink,
+                      textDecoration: done ? 'line-through' : 'none',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {task.title}
+                    </h3>
+                    <p style={{ margin: '3px 0 0', fontSize: 12, color: WT.muted }}>
+                      {cat.label}
+                      {task.due_date && ` · ${new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                    </p>
+                  </div>
+                  {done ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#10b981', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                      <CheckCircle2 size={20} /> {t('worker.tasks.done')}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleTask(task); }}
+                      style={{
+                        background: WT.brand, color: '#fff', border: 'none',
+                        padding: '9px 16px', borderRadius: WT.r.sm, fontWeight: 700,
+                        fontSize: 13, cursor: 'pointer', flexShrink: 0, minHeight: 40,
+                      }}
+                    >
+                      {t('worker.tasks.validate')}
+                    </button>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         )}
+
+        {/* ── Send a report (description + photo) to the farm owner ── */}
+        <OwnerReportCard />
       </div>
 
-      <div style={{ position: 'fixed', bottom: 'calc(100px + env(safe-area-inset-bottom))', left: 20, right: 20 }}>
-        <button
-          onClick={() => window.location.href = '/worker/report'}
-          style={{ width: '100%', background: '#f59e0b', color: 'white', padding: '16px', borderRadius: 20, border: 'none', fontWeight: 900, fontSize: 16, boxShadow: '0 10px 15px -3px rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 52, touchAction: 'manipulation' }}
-        >
-          <AlertTriangle size={20} /> {t('worker.tasks.report_anomaly')}
-        </button>
-      </div>
-
-      <style>{`
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-      `}</style>
-    </div>
+      {/* ── Report-anomaly CTA — clamped to the 480px frame (no more "out of cadre") ── */}
+      <FloatingCTA
+        onClick={() => navigate('/worker/report')}
+        icon={<AlertTriangle size={19} />}
+      >
+        {t('worker.tasks.report_anomaly')}
+      </FloatingCTA>
+    </WorkerPage>
   );
 }
 
