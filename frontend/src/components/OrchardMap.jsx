@@ -7,9 +7,9 @@
  */
 import 'leaflet/dist/leaflet.css';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Tooltip, Rectangle, useMap, useMapEvents } from 'react-leaflet';
 import {
-  Trees, MapPin, RefreshCw, X, Trash2, Stethoscope, SprayCan, Eye, Loader2, ScanSearch,
+  Trees, MapPin, RefreshCw, X, Trash2, Stethoscope, SprayCan, Eye, Loader2, ScanSearch, Square,
 } from 'lucide-react';
 import { orchardAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +24,26 @@ const STATUS = {
   treated:  { label: 'Traité',        color: '#2563eb' },
 };
 const DEFAULT_CENTER = [36.8065, 10.1815]; // Tunis
+
+const SPECIES = [
+  { v: 'olive',  l: '🫒 Olivier' },
+  { v: 'orange', l: '🍊 Oranger' },
+  { v: 'lemon',  l: '🍋 Citronnier' },
+  { v: '',       l: '🌳 Autre' },
+];
+
+function ZoneSelector({ active, corners, setCorners, onComplete }) {
+  useMapEvents({
+    click(e) {
+      if (!active) return;
+      const pt = [e.latlng.lat, e.latlng.lng];
+      const next = [...corners, pt];
+      if (next.length >= 2) { onComplete(next); setCorners([]); }
+      else setCorners(next);
+    },
+  });
+  return null;
+}
 
 function Recenter({ center }) {
   const map = useMap();
@@ -48,6 +68,9 @@ export default function OrchardMap() {
   const [actionLabel, setActionLabel] = useState('');
   const [actionNote, setActionNote]   = useState('');
   const [detecting, setDetecting]   = useState(false);
+  const [species, setSpecies]       = useState('olive');
+  const [zoneMode, setZoneMode]     = useState(false);
+  const [zoneCorners, setZoneCorners] = useState([]);
   const mapRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -86,7 +109,7 @@ export default function OrchardMap() {
         const { data } = await orchardAPI.create({
           farm_id: farmId || undefined,
           lat: pos.coords.latitude, lng: pos.coords.longitude,
-          source: 'gps', status: 'healthy',
+          source: 'gps', status: 'healthy', species: species || undefined,
         });
         setCenter([data.lat, data.lng]);
         await load();
@@ -96,18 +119,29 @@ export default function OrchardMap() {
     }, () => { setBusy(false); alert('Position GPS refusée'); }, { enableHighAccuracy: true, timeout: 10000 });
   };
 
-  const detectAI = async () => {
+  const runDetect = async (bounds) => {
+    setDetecting(true);
+    try {
+      const { data } = await orchardAPI.detect(bounds, farmId, species || undefined);
+      if (data.detected > 0) { toast.success(`${data.detected} ${SPECIES.find(s => s.v === species)?.l || 'arbre'}(s) détecté(s) · moteur ${data.engine}`); await load(); }
+      else toast('Aucun arbre détecté — zoomez davantage ou cadrez le verger');
+    } catch (e) { toast.error(getErrorMessage(e, 'Échec de la détection')); }
+    finally { setDetecting(false); }
+  };
+
+  // Detect on the whole current view
+  const detectAI = () => {
     const map = mapRef.current;
     if (!map) return;
     const b = map.getBounds();
-    setDetecting(true);
-    try {
-      const bounds = { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() };
-      const { data } = await orchardAPI.detect(bounds, farmId);
-      if (data.detected > 0) { toast.success(`${data.detected} arbre(s) détecté(s) · moteur ${data.engine}`); await load(); }
-      else toast('Aucun arbre détecté — zoomez davantage sur le verger');
-    } catch (e) { toast.error(getErrorMessage(e, 'Échec de la détection')); }
-    finally { setDetecting(false); }
+    runDetect({ north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() });
+  };
+
+  // Detect inside a user-drawn rectangle zone (2 corner clicks)
+  const onZoneComplete = (corners) => {
+    setZoneMode(false);
+    const lats = corners.map(c => c[0]); const lngs = corners.map(c => c[1]);
+    runDetect({ north: Math.max(...lats), south: Math.min(...lats), east: Math.max(...lngs), west: Math.min(...lngs) });
   };
 
   const setStatus = async (status) => {
@@ -166,19 +200,36 @@ export default function OrchardMap() {
             <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color }} /> {s.label} {counts[k] || 0}
           </span>
         ))}
+        {/* Tree type selector */}
+        <select value={species} onChange={e => setSpecies(e.target.value)} title="Type d'arbre"
+          style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 10px', fontSize: 13, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
+          {SPECIES.map(s => <option key={s.v || 'autre'} value={s.v}>{s.l}</option>)}
+        </select>
         <button onClick={load} title="Rafraîchir" style={iconBtn}>
           <RefreshCw size={16} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
-        <button onClick={detectAI} disabled={detecting} title="Détecter automatiquement les arbres sur la vue satellite actuelle"
+        <button onClick={() => { setZoneCorners([]); setZoneMode(z => !z); }}
+          title="Dessiner une zone : cliquez 2 coins sur la carte"
+          style={{ ...primaryBtn, background: zoneMode ? '#ef4444' : 'linear-gradient(135deg,#0891b2,#0e7490)', opacity: detecting ? .6 : 1 }}>
+          <Square size={15} /> {zoneMode ? 'Annuler la zone' : 'Détecter une zone'}
+        </button>
+        <button onClick={detectAI} disabled={detecting} title="Détecter sur toute la vue satellite actuelle"
           style={{ ...primaryBtn, background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', opacity: detecting ? .6 : 1 }}>
           {detecting ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <ScanSearch size={15} />}
-          Détecter les arbres (IA)
+          Détecter (vue)
         </button>
         <button onClick={addAtGps} disabled={busy} style={{ ...primaryBtn, opacity: busy ? .6 : 1 }}>
           {busy ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <MapPin size={15} />}
           Ajouter à ma position GPS
         </button>
       </div>
+
+      {zoneMode && (
+        <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#0e7490', fontWeight: 600 }}>
+          📐 Cliquez <b>2 coins</b> sur la carte pour délimiter la zone à détecter ({SPECIES.find(s => s.v === species)?.l}).
+          {zoneCorners.length === 1 && ' — 1ᵉʳ coin posé, cliquez le 2ᵉ.'}
+        </div>
+      )}
 
       {unplaced > 0 && (
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#92400e' }}>
@@ -196,6 +247,10 @@ export default function OrchardMap() {
           />
           <Recenter center={center} />
           <SetMapRef mapRef={mapRef} />
+          <ZoneSelector active={zoneMode} corners={zoneCorners} setCorners={setZoneCorners} onComplete={onZoneComplete} />
+          {zoneCorners.length === 1 && (
+            <CircleMarker center={zoneCorners[0]} radius={6} pathOptions={{ color: '#0891b2', fillColor: '#0891b2', fillOpacity: 1 }} />
+          )}
           {placed.map(t => {
             const s = STATUS[t.status] || STATUS.healthy;
             return (
