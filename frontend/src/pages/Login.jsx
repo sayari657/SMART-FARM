@@ -91,6 +91,7 @@ export default function Login() {
   const [offline, setOffline]   = useState(false);
   const [msg, setMsg]           = useState('');
   const [loading2, setLoading2] = useState(false);
+  const [playingLoginVid, setPlayingLoginVid] = useState(false);
 
   const [view, setView]               = useState('login');
   const [channel, setChannel]         = useState(null);
@@ -113,17 +114,21 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault(); setError(''); setOffline(false);
+    // Play the transition video while authenticating
+    setPlayingLoginVid(true);
     const res = await login(form.username, form.password);
     if (res.ok) {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
-      if (u?.role === 'worker') { navigate('/worker'); return; }
-      if (planChoice === 'pro') {
-        await redirectToCheckout('pro');
-        return;
-      }
-      const farms = JSON.parse(localStorage.getItem('user_farms') || '[]');
-      navigate(farms.length === 0 ? '/farms' : '/dashboard');
+      // Let the transition video play briefly before routing
+      const go = () => {
+        if (u?.role === 'worker') { navigate('/worker'); return; }
+        if (planChoice === 'pro') { redirectToCheckout('pro'); return; }
+        const farms = JSON.parse(localStorage.getItem('user_farms') || '[]');
+        navigate(farms.length === 0 ? '/farms' : '/dashboard');
+      };
+      setTimeout(go, 1400);
     } else {
+      setPlayingLoginVid(false);
       if (res.offline) setOffline(true);
       setError(res.error);
     }
@@ -228,14 +233,21 @@ export default function Login() {
 
       {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
       <div style={{ position:'relative', background:'linear-gradient(155deg, #f8fafc 0%, #eef2ff 45%, #f5f3ff 100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px', overflowY:'auto' }}>
+        {/* Background video behind the connection form */}
+        <video autoPlay loop muted playsInline
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}>
+          <source src="/videos/1.mp4" type="video/mp4" />
+        </video>
+        {/* readability tint over the video */}
+        <div style={{ position:'absolute', inset:0, zIndex:0, background:'linear-gradient(155deg, rgba(248,250,252,.62), rgba(238,242,255,.55), rgba(245,243,255,.6))', pointerEvents:'none' }}/>
         {/* soft ambient glows */}
         <div style={{ position:'absolute', top:'6%', right:'-12%', width:420, height:420, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,.12), transparent 70%)', pointerEvents:'none' }}/>
         <div style={{ position:'absolute', bottom:'-10%', left:'-10%', width:380, height:380, borderRadius:'50%', background:'radial-gradient(circle, rgba(16,185,129,.10), transparent 70%)', pointerEvents:'none' }}/>
         <div style={{
-          position:'relative', width:'100%', maxWidth:440,
-          background:'rgba(255,255,255,.72)', backdropFilter:'blur(18px)', WebkitBackdropFilter:'blur(18px)',
-          border:'1px solid rgba(255,255,255,.8)', borderRadius:24, padding:'36px 34px',
-          boxShadow:'0 30px 70px -18px rgba(30,27,75,.22), 0 8px 24px -10px rgba(15,23,42,.10)',
+          position:'relative', zIndex:2, width:'100%', maxWidth:440,
+          background:'rgba(255,255,255,.78)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
+          border:'1px solid rgba(255,255,255,.85)', borderRadius:24, padding:'36px 34px',
+          boxShadow:'0 30px 70px -18px rgba(30,27,75,.28), 0 8px 24px -10px rgba(15,23,42,.12)',
         }}>
 
           {/* ── LOGIN ───────────────────────────────────────────────── */}
@@ -555,6 +567,17 @@ export default function Login() {
           )}
         </div>
       </div>
+
+      {/* Fullscreen transition video on login */}
+      {playingLoginVid && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'#000', display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeSlide .25s ease' }}>
+          <video autoPlay muted playsInline
+            onEnded={() => { /* routing handled by handleLogin timeout */ }}
+            style={{ width:'100%', height:'100%', objectFit:'cover' }}>
+            <source src="/videos/2.mp4" type="video/mp4" />
+          </video>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
