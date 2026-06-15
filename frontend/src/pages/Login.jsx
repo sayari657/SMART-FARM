@@ -28,10 +28,12 @@ const T = {
 
 /* ── Shared input style ───────────────────────────────────────────────── */
 const INP = {
-  width: '100%', padding: '11px 14px', background: T.raised,
-  border: `1px solid ${T.border}`, borderRadius: 10, color: T.text,
-  fontSize: 13, outline: 'none', boxSizing: 'border-box',
-  fontFamily: 'Inter, system-ui, sans-serif', transition: 'border-color .15s',
+  width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,.9)',
+  border: `1.5px solid ${T.border}`, borderRadius: 12, color: T.text,
+  fontSize: 13.5, outline: 'none', boxSizing: 'border-box',
+  fontFamily: 'Inter, system-ui, sans-serif',
+  transition: 'border-color .18s, box-shadow .18s, background .18s',
+  boxShadow: '0 1px 2px rgba(15,23,42,.04)',
 };
 
 function Input({ icon: Icon, type = 'text', placeholder, value, onChange, required, minLength, style = {}, right }) {
@@ -43,7 +45,7 @@ function Input({ icon: Icon, type = 'text', placeholder, value, onChange, requir
         type={type} placeholder={placeholder} value={value} onChange={onChange}
         required={required} minLength={minLength}
         onFocus={e => { setFocus(true); e.target.style.borderColor = T.primary; e.target.style.boxShadow = `0 0 0 3px ${T.primary}18`; }}
-        onBlur={e => { setFocus(false); e.target.style.borderColor = T.border; e.target.style.boxShadow = 'none'; }}
+        onBlur={e => { setFocus(false); e.target.style.borderColor = T.border; e.target.style.boxShadow = '0 1px 2px rgba(15,23,42,.04)'; }}
         style={{ ...INP, paddingLeft: Icon ? 38 : 14, paddingRight: right ? 40 : 14, ...style }}
       />
       {right}
@@ -225,8 +227,16 @@ export default function Login() {
       </div>
 
       {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
-      <div style={{ background: T.bg, display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px', overflowY:'auto' }}>
-        <div style={{ width:'100%', maxWidth:420 }}>
+      <div style={{ position:'relative', background:'linear-gradient(155deg, #f8fafc 0%, #eef2ff 45%, #f5f3ff 100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px', overflowY:'auto' }}>
+        {/* soft ambient glows */}
+        <div style={{ position:'absolute', top:'6%', right:'-12%', width:420, height:420, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,.12), transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-10%', left:'-10%', width:380, height:380, borderRadius:'50%', background:'radial-gradient(circle, rgba(16,185,129,.10), transparent 70%)', pointerEvents:'none' }}/>
+        <div style={{
+          position:'relative', width:'100%', maxWidth:440,
+          background:'rgba(255,255,255,.72)', backdropFilter:'blur(18px)', WebkitBackdropFilter:'blur(18px)',
+          border:'1px solid rgba(255,255,255,.8)', borderRadius:24, padding:'36px 34px',
+          boxShadow:'0 30px 70px -18px rgba(30,27,75,.22), 0 8px 24px -10px rgba(15,23,42,.10)',
+        }}>
 
           {/* ── LOGIN ───────────────────────────────────────────────── */}
           {view === 'login' && (
@@ -337,19 +347,20 @@ export default function Login() {
                     }/>
                 </div>
 
-                <button type="submit" disabled={loading} style={{
-                  marginTop:4, width:'100%', padding:'13px', borderRadius:11, border:'none',
+                <button type="submit" disabled={loading} className={loading ? '' : 'loginCta'} style={{
+                  position:'relative', overflow:'hidden',
+                  marginTop:6, width:'100%', padding:'14px', borderRadius:14, border:'none',
                   background: loading ? '#94a3b8' : planChoice==='pro'
                     ? 'linear-gradient(135deg,#16a34a,#15803d)'
-                    : `linear-gradient(135deg,${T.primary},#6d28d9)`,
-                  color:'#fff', fontSize:14, fontWeight:800,
+                    : `linear-gradient(135deg,${T.primary} 0%,#6d28d9 60%,#8b5cf6 100%)`,
+                  color:'#fff', fontSize:14.5, fontWeight:800, letterSpacing:.2,
                   cursor:loading?'not-allowed':'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                  boxShadow: loading ? 'none' : planChoice==='pro' ? '0 4px 14px rgba(22,163,74,.35)' : `0 4px 14px ${T.primary}35`,
-                  opacity:loading ? .7 : 1, transition:'all .2s',
+                  boxShadow: loading ? 'none' : planChoice==='pro' ? '0 10px 26px -8px rgba(22,163,74,.55)' : '0 10px 26px -8px rgba(79,70,229,.55)',
+                  opacity:loading ? .7 : 1, transition:'transform .2s, box-shadow .2s',
                 }}
-                  onMouseEnter={e => !loading && (e.currentTarget.style.transform='translateY(-1px)')}
-                  onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+                  onMouseEnter={e => { if(!loading){ e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow = planChoice==='pro' ? '0 16px 32px -8px rgba(22,163,74,.6)' : '0 16px 32px -8px rgba(79,70,229,.6)'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow = planChoice==='pro' ? '0 10px 26px -8px rgba(22,163,74,.55)' : '0 10px 26px -8px rgba(79,70,229,.55)'; }}>
                   {loading ? (
                     <><RefreshCw size={14} style={{animation:'spin .8s linear infinite'}}/> {planChoice==='pro' ? 'Connexion → Stripe…' : 'Connexion…'}</>
                   ) : planChoice==='pro' ? (
@@ -538,9 +549,16 @@ export default function Login() {
         @keyframes fadeSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
+        @keyframes ctaShine { 0%{left:-160%} 60%,100%{left:160%} }
+        /* Premium CTA shine sweep */
+        .loginCta::after {
+          content:''; position:absolute; top:0; left:-160%; width:55%; height:100%;
+          background:linear-gradient(120deg, transparent, rgba(255,255,255,.45), transparent);
+          transform:skewX(-20deg); animation:ctaShine 3.8s ease-in-out infinite; pointer-events:none;
+        }
         @media (max-width:768px) {
           div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns:1fr !important; }
-          div[style*="160deg, #1e1b4b"] { display:none !important; }
+          div[style*="155deg, #1e1b4b"], div[style*="160deg, #064e3b"] { display:none !important; }
         }
       `}</style>
     </div>
