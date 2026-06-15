@@ -1,6 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-const LoginBackground3D = lazy(() => import('../components/LoginBackground3D'));
 import {
   Eye, EyeOff, Mail, MessageCircle, ArrowLeft, CheckCircle,
   Shield, Cpu, Wifi, ServerOff, Leaf, Sparkles, Lock, User,
@@ -172,18 +171,18 @@ export default function Login() {
   ];
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'grid', gridTemplateColumns: '1fr 1fr', fontFamily: "'Inter', system-ui, sans-serif", direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
+    <div style={{ position:'relative', minHeight: '100dvh', display: 'grid', gridTemplateColumns: '1fr 1fr', fontFamily: "'Inter', system-ui, sans-serif", direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
 
-      {/* ── LEFT PANEL ─────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(160deg, #064e3b 0%, #1e1b4b 30%, #312e81 60%, #4f46e5 100%)', padding: '60px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-        {/* Dynamic Three.js Smart Farm AI background */}
-        <Suspense fallback={null}>
-          <LoginBackground3D />
-        </Suspense>
-        {/* Decorative blobs (base layer under the 3D canvas) */}
-        <div style={{ position:'absolute', top:-100, right:-80, width:320, height:320, borderRadius:'50%', background:'rgba(52,211,153,.06)', pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', bottom:-80, left:-40, width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,.04)', pointerEvents:'none' }}/>
+      {/* ── FULLSCREEN BACKGROUND VIDEO (whole page) ───────────────── */}
+      <video autoPlay loop muted playsInline
+        style={{ position:'fixed', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}>
+        <source src="/videos/1.mp4" type="video/mp4" />
+      </video>
+      <div style={{ position:'fixed', inset:0, zIndex:0, pointerEvents:'none',
+        background:'linear-gradient(120deg, rgba(6,17,40,.62) 0%, rgba(15,23,42,.42) 50%, rgba(30,27,75,.5) 100%)' }}/>
 
+      {/* ── LEFT PANEL (brand, over the video) ─────────────────────── */}
+      <div className="loginBrand" style={{ position:'relative', zIndex:1, padding: '60px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{ position:'relative', zIndex:2 }}>
           {/* Logo */}
           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:48 }}>
@@ -231,18 +230,8 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
-      <div style={{ position:'relative', background:'linear-gradient(155deg, #f8fafc 0%, #eef2ff 45%, #f5f3ff 100%)', display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px', overflowY:'auto' }}>
-        {/* Background video behind the connection form */}
-        <video autoPlay loop muted playsInline
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', zIndex:0, pointerEvents:'none' }}>
-          <source src="/videos/1.mp4" type="video/mp4" />
-        </video>
-        {/* readability tint over the video */}
-        <div style={{ position:'absolute', inset:0, zIndex:0, background:'linear-gradient(155deg, rgba(248,250,252,.62), rgba(238,242,255,.55), rgba(245,243,255,.6))', pointerEvents:'none' }}/>
-        {/* soft ambient glows */}
-        <div style={{ position:'absolute', top:'6%', right:'-12%', width:420, height:420, borderRadius:'50%', background:'radial-gradient(circle, rgba(79,70,229,.12), transparent 70%)', pointerEvents:'none' }}/>
-        <div style={{ position:'absolute', bottom:'-10%', left:'-10%', width:380, height:380, borderRadius:'50%', background:'radial-gradient(circle, rgba(16,185,129,.10), transparent 70%)', pointerEvents:'none' }}/>
+      {/* ── RIGHT PANEL (connection form, over the video) ──────────── */}
+      <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'40px 32px', overflowY:'auto' }}>
         <div style={{
           position:'relative', zIndex:2, width:'100%', maxWidth:440,
           background:'rgba(255,255,255,.78)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
@@ -592,7 +581,7 @@ export default function Login() {
         }
         @media (max-width:768px) {
           div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns:1fr !important; }
-          div[style*="155deg, #1e1b4b"], div[style*="160deg, #064e3b"] { display:none !important; }
+          .loginBrand { display:none !important; }
         }
       `}</style>
     </div>
