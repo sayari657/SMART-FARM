@@ -414,4 +414,16 @@ export const warehouseAPI = {
   assistant: (query, lang = 'fr') => api.post('/warehouse/assistant', { query, lang }),
 };
 
+// ---- Orchard Planigramme (per-tree disease / treatment tracking, farm-scoped)
+export const orchardAPI = {
+  trees:    (farmId)  => api.get('/orchard/trees', { params: farmId ? { farm_id: farmId } : {} }),
+  tree:     (id)      => api.get(`/orchard/trees/${id}`),
+  create:   (data)    => api.post('/orchard/trees', data),
+  update:   (id, d)   => api.put(`/orchard/trees/${id}`, d),
+  remove:   (id)      => api.delete(`/orchard/trees/${id}`),
+  addEvent: (id, d)   => api.post(`/orchard/trees/${id}/events`, d),
+  delEvent: (id)      => api.delete(`/orchard/events/${id}`),
+  detect:   (bounds, farmId, species) => api.post('/orchard/detect', { bounds, farm_id: farmId, species }, { timeout: 60000 }),
+};
+
 export default api;

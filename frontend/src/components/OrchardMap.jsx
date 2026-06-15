@@ -6,14 +6,16 @@
  * tree at their live GPS position. Backend-persisted + farm-scoped (orchardAPI).
  */
 import 'leaflet/dist/leaflet.css';
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import {
-  Trees, MapPin, RefreshCw, X, Trash2, Stethoscope, SprayCan, Eye, Loader2, Plus,
+  Trees, MapPin, RefreshCw, X, Trash2, Stethoscope, SprayCan, Eye, Loader2, ScanSearch,
 } from 'lucide-react';
 import { orchardAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../utils/errors';
 import { TREE_DISEASES, TREE_TREATMENTS } from '../data/orchardCatalog';
+import toast from 'react-hot-toast';
 
 const STATUS = {
   healthy:  { label: 'Sain',          color: '#16a34a' },
@@ -29,6 +31,12 @@ function Recenter({ center }) {
   return null;
 }
 
+function SetMapRef({ mapRef }) {
+  const map = useMap();
+  useEffect(() => { mapRef.current = map; }, [map]); // eslint-disable-line
+  return null;
+}
+
 export default function OrchardMap() {
   const { farmId } = useAuth();
   const [trees, setTrees]       = useState([]);
@@ -39,6 +47,8 @@ export default function OrchardMap() {
   const [actionMode, setActionMode] = useState(null); // disease|treatment|observation
   const [actionLabel, setActionLabel] = useState('');
   const [actionNote, setActionNote]   = useState('');
+  const [detecting, setDetecting]   = useState(false);
+  const mapRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,6 +94,20 @@ export default function OrchardMap() {
       } catch (e) { alert("Échec de l'ajout de l'arbre"); }
       finally { setBusy(false); }
     }, () => { setBusy(false); alert('Position GPS refusée'); }, { enableHighAccuracy: true, timeout: 10000 });
+  };
+
+  const detectAI = async () => {
+    const map = mapRef.current;
+    if (!map) return;
+    const b = map.getBounds();
+    setDetecting(true);
+    try {
+      const bounds = { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() };
+      const { data } = await orchardAPI.detect(bounds, farmId);
+      if (data.detected > 0) { toast.success(`${data.detected} arbre(s) détecté(s) · moteur ${data.engine}`); await load(); }
+      else toast('Aucun arbre détecté — zoomez davantage sur le verger');
+    } catch (e) { toast.error(getErrorMessage(e, 'Échec de la détection')); }
+    finally { setDetecting(false); }
   };
 
   const setStatus = async (status) => {
@@ -145,9 +169,14 @@ export default function OrchardMap() {
         <button onClick={load} title="Rafraîchir" style={iconBtn}>
           <RefreshCw size={16} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
+        <button onClick={detectAI} disabled={detecting} title="Détecter automatiquement les arbres sur la vue satellite actuelle"
+          style={{ ...primaryBtn, background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', opacity: detecting ? .6 : 1 }}>
+          {detecting ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <ScanSearch size={15} />}
+          Détecter les arbres (IA)
+        </button>
         <button onClick={addAtGps} disabled={busy} style={{ ...primaryBtn, opacity: busy ? .6 : 1 }}>
           {busy ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <MapPin size={15} />}
-          Ajouter l'arbre à ma position GPS
+          Ajouter à ma position GPS
         </button>
       </div>
 
@@ -166,6 +195,7 @@ export default function OrchardMap() {
             maxZoom={21}
           />
           <Recenter center={center} />
+          <SetMapRef mapRef={mapRef} />
           {placed.map(t => {
             const s = STATUS[t.status] || STATUS.healthy;
             return (
