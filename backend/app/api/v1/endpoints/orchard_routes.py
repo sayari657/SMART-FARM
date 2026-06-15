@@ -226,9 +226,9 @@ def _fetch_satellite_mosaic(north, south, east, west, max_tiles=420):
         y = (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * n
         return x, y
 
-    # Prefer z20 (~0.15 m/px — ideal for DeepForest); step down only if the
-    # area needs more than the tile budget.
-    z = 20
+    # Target z19 (~0.25 m/px → crowns ~20 px, DeepForest's sweet spot). z20 makes
+    # crowns too large and the model misses them; step down only if over budget.
+    z = 19
     while z > 15:
         xw, yn = d2t(west, north, z)
         xe, ys = d2t(east, south, z)

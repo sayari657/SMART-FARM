@@ -39,6 +39,11 @@ def get_model():
         except Exception as exc:
             logger.warning("named load_model failed (%s) → default", exc)
             _model.load_model()
+        # More sensitive than the 0.1 default → catches more crowns
+        try:
+            _model.config["score_thresh"] = 0.05
+        except Exception:
+            pass
         logger.info("DeepForest model loaded.")
     return _model
 
