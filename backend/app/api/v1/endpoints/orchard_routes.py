@@ -210,10 +210,11 @@ def _detect_crowns(img_bgr, min_area: int, max_area: int):
     return centres
 
 
-def _fetch_satellite_mosaic(north, south, east, west, max_px=2560, max_tiles=90):
+def _fetch_satellite_mosaic(north, south, east, west, max_tiles=420):
     """Stitch Esri World Imagery XYZ tiles into one image for the bbox.
     Reliable (the same tiles the map shows) — unlike the /export op which 500s
-    above ~1024 px. Returns (png_bytes, width, height)."""
+    above ~1024 px. Keeps the HIGHEST zoom (best resolution for crown detection)
+    that fits the tile budget. Returns (png_bytes, width, height)."""
     import math
     import httpx
     import cv2
@@ -225,14 +226,15 @@ def _fetch_satellite_mosaic(north, south, east, west, max_px=2560, max_tiles=90)
         y = (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * n
         return x, y
 
+    # Prefer z20 (~0.15 m/px — ideal for DeepForest); step down only if the
+    # area needs more than the tile budget.
     z = 20
-    while z > 13:
+    while z > 15:
         xw, yn = d2t(west, north, z)
         xe, ys = d2t(east, south, z)
-        wpx, hpx = (xe - xw) * 256, (ys - yn) * 256
         nx = math.floor(xe) - math.floor(xw) + 1
         ny = math.floor(ys) - math.floor(yn) + 1
-        if wpx <= max_px and hpx <= max_px and nx * ny <= max_tiles:
+        if nx * ny <= max_tiles:
             break
         z -= 1
 
@@ -306,7 +308,7 @@ def detect_trees(
         try:
             import httpx
             resp = httpx.post(f"{df_url.rstrip('/')}/detect",
-                              files={"file": ("tile.png", img_bytes, "image/png")}, timeout=120)
+                              files={"file": ("tile.png", img_bytes, "image/png")}, timeout=300)
             resp.raise_for_status()
             j = resp.json()
             iw, ih = j.get("width"), j.get("height")

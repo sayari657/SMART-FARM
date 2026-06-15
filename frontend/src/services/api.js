@@ -423,7 +423,7 @@ export const orchardAPI = {
   remove:   (id)      => api.delete(`/orchard/trees/${id}`),
   addEvent: (id, d)   => api.post(`/orchard/trees/${id}/events`, d),
   delEvent: (id)      => api.delete(`/orchard/events/${id}`),
-  detect:   (bounds, farmId, species) => api.post('/orchard/detect', { bounds, farm_id: farmId, species }, { timeout: 60000 }),
+  detect:   (bounds, farmId, species) => api.post('/orchard/detect', { bounds, farm_id: farmId, species }, { timeout: 300000 }),
 };
 
 export default api;

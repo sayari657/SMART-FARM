@@ -123,11 +123,13 @@ export default function OrchardMap() {
 
   const runDetect = async (bounds) => {
     setDetecting(true);
+    const tid = toast.loading('Détection IA en cours… (jusqu\'à 1-2 min sur grande zone)');
     try {
       const { data } = await orchardAPI.detect(bounds, farmId, effectiveSpecies());
+      toast.dismiss(tid);
       if (data.detected > 0) { toast.success(`${data.detected} ${SPECIES.find(s => s.v === species)?.l || 'arbre'}(s) détecté(s) · moteur ${data.engine}`); await load(); }
-      else toast('Aucun arbre détecté — zoomez davantage ou cadrez le verger');
-    } catch (e) { toast.error(getErrorMessage(e, 'Échec de la détection')); }
+      else toast('Aucun arbre détecté — cadrez une zone avec des arbres verts visibles');
+    } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, 'Échec de la détection')); }
     finally { setDetecting(false); }
   };
 
