@@ -27,12 +27,17 @@ if ($recreate) {
     Invoke-Expression "$pyExe -m venv .venv"
 }
 
-# 3. Install (prefer prebuilt wheels; CPU torch from the official index)
-Write-Host "[2/3] Installation (1er run: torch + modèle ~1-2 Go)..." -ForegroundColor Cyan
-& ".venv\Scripts\python.exe" -m pip install --upgrade pip -q
-& ".venv\Scripts\python.exe" -m pip install --only-binary=:all: "numpy<2.0"
-& ".venv\Scripts\python.exe" -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-& ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+# 3. Install (skip if already installed → fast restart)
+& ".venv\Scripts\python.exe" -c "import deepforest, fastapi, uvicorn" 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "[2/3] Dépendances déjà installées — démarrage rapide." -ForegroundColor Green
+} else {
+    Write-Host "[2/3] Installation (1er run: torch + modèle ~1-2 Go)..." -ForegroundColor Cyan
+    & ".venv\Scripts\python.exe" -m pip install --upgrade pip -q
+    & ".venv\Scripts\python.exe" -m pip install --only-binary=:all: "numpy<2.0"
+    & ".venv\Scripts\python.exe" -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+    & ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+}
 
 Write-Host "[3/3] Démarrage sur http://localhost:8800 ..." -ForegroundColor Green
 Write-Host "      Mettez DEEPFOREST_URL=http://localhost:8800 dans backend\.env puis redémarrez le backend." -ForegroundColor Yellow

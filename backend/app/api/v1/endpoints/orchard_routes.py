@@ -238,10 +238,11 @@ def detect_trees(
     if not farm_id and farm_ids:
         farm_id = farm_ids[0]
 
-    # Image sized to the bbox aspect (lat-corrected) so pixel→geo mapping is linear
+    # Image sized to the bbox aspect (lat-corrected) so pixel→geo mapping is linear.
+    # High resolution (2048) so crowns are large enough for DeepForest.
     midlat = math.radians((north + south) / 2)
-    W = 1024
-    H = max(64, min(1024, int(W * (north - south) / ((east - west) * max(0.2, math.cos(midlat))))))
+    W = 2048
+    H = max(64, min(2048, int(W * (north - south) / ((east - west) * max(0.2, math.cos(midlat))))))
     bbox = f"{west},{south},{east},{north}"
     url = ("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/"
            f"MapServer/export?bbox={bbox}&bboxSR=4326&imageSR=4326&size={W},{H}&format=png&f=image")

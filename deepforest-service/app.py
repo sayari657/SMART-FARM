@@ -33,7 +33,12 @@ def get_model():
     if _model is None:
         from deepforest import main as df_main
         _model = df_main.deepforest()
-        _model.use_release()  # pretrained NEON crown model
+        # DeepForest 2.x: pretrained tree-crown model from HuggingFace
+        try:
+            _model.load_model("weecology/deepforest-tree")
+        except Exception as exc:
+            logger.warning("named load_model failed (%s) → default", exc)
+            _model.load_model()
         logger.info("DeepForest model loaded.")
     return _model
 
@@ -57,11 +62,11 @@ async def detect(file: UploadFile = File(...), patch: int = 400, overlap: float 
     df = None
     try:
         # predict_tile slices the image into windows → high recall on big areas
-        df = model.predict_tile(image=rgb, patch_size=patch, patch_overlap=overlap, return_plot=False)
+        df = model.predict_tile(image=rgb, patch_size=patch, patch_overlap=overlap)
     except Exception as exc:
         logger.warning("predict_tile failed (%s) → predict_image", exc)
         try:
-            df = model.predict_image(image=rgb, return_plot=False)
+            df = model.predict_image(image=rgb)
         except Exception as exc2:
             logger.error("predict_image failed: %s", exc2)
 
