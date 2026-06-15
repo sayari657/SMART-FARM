@@ -210,6 +210,59 @@ def _detect_crowns(img_bgr, min_area: int, max_area: int):
     return centres
 
 
+def _fetch_satellite_mosaic(north, south, east, west, max_px=2560, max_tiles=90):
+    """Stitch Esri World Imagery XYZ tiles into one image for the bbox.
+    Reliable (the same tiles the map shows) — unlike the /export op which 500s
+    above ~1024 px. Returns (png_bytes, width, height)."""
+    import math
+    import httpx
+    import cv2
+    import numpy as np
+
+    def d2t(lon, lat, z):
+        n = 2.0 ** z
+        x = (lon + 180.0) / 360.0 * n
+        y = (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * n
+        return x, y
+
+    z = 20
+    while z > 13:
+        xw, yn = d2t(west, north, z)
+        xe, ys = d2t(east, south, z)
+        wpx, hpx = (xe - xw) * 256, (ys - yn) * 256
+        nx = math.floor(xe) - math.floor(xw) + 1
+        ny = math.floor(ys) - math.floor(yn) + 1
+        if wpx <= max_px and hpx <= max_px and nx * ny <= max_tiles:
+            break
+        z -= 1
+
+    x0i, y0i = math.floor(xw), math.floor(yn)
+    x1i, y1i = math.floor(xe), math.floor(ys)
+    cols, rows = x1i - x0i + 1, y1i - y0i + 1
+    mosaic = np.zeros((rows * 256, cols * 256, 3), np.uint8)
+    base = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile"
+    with httpx.Client(timeout=20, headers={"User-Agent": "SmartFarmAI/1.0"}) as cli:
+        for tx in range(x0i, x1i + 1):
+            for ty in range(y0i, y1i + 1):
+                try:
+                    r = cli.get(f"{base}/{z}/{ty}/{tx}")
+                    if r.status_code == 200:
+                        tile = cv2.imdecode(np.frombuffer(r.content, np.uint8), cv2.IMREAD_COLOR)
+                        if tile is not None and tile.shape[:2] == (256, 256):
+                            oy, ox = (ty - y0i) * 256, (tx - x0i) * 256
+                            mosaic[oy:oy + 256, ox:ox + 256] = tile
+                except Exception:
+                    pass
+
+    left, top = int(round((xw - x0i) * 256)), int(round((yn - y0i) * 256))
+    right, bottom = int(round((xe - x0i) * 256)), int(round((ys - y0i) * 256))
+    crop = mosaic[top:max(top + 1, bottom), left:max(left + 1, right)]
+    ok, buf = cv2.imencode(".png", crop)
+    if not ok:
+        raise RuntimeError("encode failed")
+    return buf.tobytes(), crop.shape[1], crop.shape[0]
+
+
 @router.post("/detect")
 def detect_trees(
     data: dict,
@@ -238,19 +291,10 @@ def detect_trees(
     if not farm_id and farm_ids:
         farm_id = farm_ids[0]
 
-    # Image sized to the bbox aspect (lat-corrected) so pixel→geo mapping is linear.
-    # High resolution (2048) so crowns are large enough for DeepForest.
-    midlat = math.radians((north + south) / 2)
-    W = 2048
-    H = max(64, min(2048, int(W * (north - south) / ((east - west) * max(0.2, math.cos(midlat))))))
-    bbox = f"{west},{south},{east},{north}"
-    url = ("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/"
-           f"MapServer/export?bbox={bbox}&bboxSR=4326&imageSR=4326&size={W},{H}&format=png&f=image")
+    # High-resolution satellite image of the bbox, stitched from XYZ tiles
+    # (reliable — the /export op 500s above ~1024 px).
     try:
-        import httpx
-        r = httpx.get(url, timeout=30)
-        r.raise_for_status()
-        img_bytes = r.content
+        img_bytes, W, H = _fetch_satellite_mosaic(north, south, east, west)
     except Exception as exc:
         raise HTTPException(503, f"Imagerie satellite indisponible: {exc}")
 
