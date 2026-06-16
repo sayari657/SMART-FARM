@@ -10,6 +10,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { MapContainer, TileLayer, CircleMarker, Tooltip, Rectangle, useMap, useMapEvents } from 'react-leaflet';
 import {
   Trees, MapPin, RefreshCw, X, Trash2, Stethoscope, SprayCan, Eye, Loader2, ScanSearch, Square,
+  Apple, Camera, Sparkles,
 } from 'lucide-react';
 import { orchardAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -74,6 +75,12 @@ export default function OrchardMap() {
   const [zoneMode, setZoneMode]     = useState(false);
   const [zoneCorners, setZoneCorners] = useState([]);
   const mapRef = useRef(null);
+  // Harvest estimation by photo
+  const [hFile, setHFile]       = useState(null);
+  const [hPreview, setHPreview] = useState('');
+  const [hSpecies, setHSpecies] = useState('');
+  const [hBusy, setHBusy]       = useState(false);
+  const [hResult, setHResult]   = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -131,6 +138,27 @@ export default function OrchardMap() {
       else toast('Aucun arbre détecté — cadrez une zone avec des arbres verts visibles');
     } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, 'Échec de la détection')); }
     finally { setDetecting(false); }
+  };
+
+  // ── Harvest estimation by photo ──────────────────────────────────────────
+  const onHarvestFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setHFile(f); setHResult(null);
+    setHPreview(URL.createObjectURL(f));
+  };
+
+  const runHarvest = async () => {
+    if (!hFile) { toast("Choisissez d'abord une photo de l'arbre / branche"); return; }
+    setHBusy(true);
+    const tid = toast.loading('Analyse de la photo… (comptage des fruits)');
+    try {
+      const { data } = await orchardAPI.harvest(hFile, hSpecies);
+      setHResult(data);
+      toast.dismiss(tid);
+      toast.success(`${data.count} fruit(s) · ≈ ${data.harvest_kg} kg`);
+    } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, "Échec de l'analyse")); }
+    finally { setHBusy(false); }
   };
 
   // Detect on the whole current view
@@ -294,6 +322,62 @@ export default function OrchardMap() {
         </MapContainer>
       </div>
 
+      {/* harvest estimation by photo */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#0f172a', flexWrap: 'wrap' }}>
+          <Apple size={18} color="#ef4444" /> Estimation de récolte par photo
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>— comptez les fruits d'un arbre / d'une branche, quel que soit le type</span>
+        </div>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {/* upload + controls */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 240 }}>
+            <label style={{ ...primaryBtn, background: 'linear-gradient(135deg,#0891b2,#0e7490)', cursor: 'pointer', justifyContent: 'center' }}>
+              <Camera size={15} /> {hFile ? 'Changer la photo' : 'Choisir une photo'}
+              <input type="file" accept="image/*" capture="environment" onChange={onHarvestFile} style={{ display: 'none' }} />
+            </label>
+            <select value={hSpecies} onChange={e => setHSpecies(e.target.value)} title="Type de fruit"
+              style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 10px', fontSize: 13, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
+              <option value="">🤖 Auto (l'IA détecte le type)</option>
+              <option value="olive">🫒 Olive</option>
+              <option value="orange">🍊 Orange</option>
+              <option value="lemon">🍋 Citron</option>
+              <option value="other">🍎 Autre fruit</option>
+            </select>
+            <button onClick={runHarvest} disabled={hBusy || !hFile}
+              style={{ ...primaryBtn, justifyContent: 'center', opacity: (hBusy || !hFile) ? .6 : 1 }}>
+              {hBusy ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={15} />}
+              Estimer la récolte
+            </button>
+          </div>
+          {/* preview */}
+          {hPreview && (
+            <img src={hPreview} alt="aperçu" style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 12, border: '1px solid #e2e8f0' }} />
+          )}
+          {/* result */}
+          {hResult && (
+            <div style={{ flex: 1, minWidth: 230, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <Stat label="Fruits comptés" value={hResult.count} accent="#0f172a" />
+                <Stat label="Récolte estimée" value={`≈ ${hResult.harvest_kg} kg`} accent="#16a34a" />
+                <Stat label="Type" value={FRUIT_FR[hResult.fruit_type] || hResult.fruit_type} accent="#0891b2" />
+                <Stat label="Confiance" value={`${Math.round((hResult.confidence || 0) * 100)}%`} accent="#7c3aed" />
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                Moteur : <b>{hResult.method === 'vision-llm' ? 'Vision IA' : 'OpenCV (couleur)'}</b>
+                {' · '}contrôle OpenCV : {hResult.cv_count} · maturité : {hResult.ripeness}
+                {' · '}poids moyen ≈ {hResult.avg_fruit_g} g/fruit
+              </div>
+              {hResult.notes && (
+                <div style={{ fontSize: 12, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px' }}>{hResult.notes}</div>
+              )}
+            </div>
+          )}
+        </div>
+        <div style={{ fontSize: 11, color: '#94a3b8' }}>
+          Astuce : un gros plan net d'un arbre ou d'une branche donne le meilleur comptage. Récolte (kg) = nombre de fruits × poids moyen du fruit.
+        </div>
+      </div>
+
       {/* management panel (drawer) */}
       {selected && (
         <>
@@ -430,6 +514,17 @@ export default function OrchardMap() {
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+const FRUIT_FR = { olive: '🫒 Olive', orange: '🍊 Orange', lemon: '🍋 Citron', other: '🍎 Autre' };
+
+function Stat({ label, value, accent }) {
+  return (
+    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '8px 12px', minWidth: 92 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#94a3b8' }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 900, color: accent || '#0f172a' }}>{value}</div>
     </div>
   );
 }

@@ -115,11 +115,12 @@ class MLLMService:
     async def analyze_visual(self, image_b64: str, prompt: str) -> str:
         """
         Analyse an image:
-          1. Groq Vision   — llama-3.2-11b-vision-preview (10 s timeout, primary)
+          1. Groq Vision   — Llama 4 Scout (multimodal, 15 s timeout, primary)
           2. Ollama LLaVA  — local vision model (15 s timeout, fallback + warning)
           3. Text fallback — returns empty string so caller can degrade gracefully
         """
-        # Priority 1 — Groq Vision (llama-3.2-11b-vision-preview)
+        # Priority 1 — Groq Vision (Llama 4 Scout — current multimodal model;
+        # the old llama-3.2-11b-vision-preview was decommissioned by Groq)
         groq_attempted = False
         if settings.GROQ_API_KEY:
             groq_attempted = True
@@ -129,7 +130,7 @@ class MLLMService:
                         "https://api.groq.com/openai/v1/chat/completions",
                         headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
                         json={
-                            "model": "llama-3.2-11b-vision-preview",
+                            "model": "meta-llama/llama-4-scout-17b-16e-instruct",
                             "messages": [
                                 {
                                     "role": "user",
@@ -147,7 +148,7 @@ class MLLMService:
                             "max_tokens": 600,
                             "temperature": 0.3,
                         },
-                        timeout=10.0,
+                        timeout=15.0,
                     )
                     if resp.status_code == 200:
                         text = resp.json()["choices"][0]["message"]["content"].strip()

@@ -7,7 +7,7 @@ exact same live plan (same rows in the DB).
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -348,6 +348,154 @@ def detect_trees(
             break
     db.commit()
     return {"detected": len(created), "engine": engine}
+
+
+# ── Harvest estimation from a close-up photo ──────────────────────────────────
+
+# Mean single-fruit weight (g) → turns a fruit count into a kg estimate.
+FRUIT_AVG_G = {"olive": 4.0, "orange": 180.0, "lemon": 110.0, "other": 100.0}
+
+
+def _count_fruits_cv(img_bgr, species: str) -> int:
+    """Deterministic OpenCV fruit count by colour (works with no LLM). Masks the
+    fruit colour for the given species, then counts round blobs; clustered blobs
+    are split by area. A cross-check / offline fallback for the vision model."""
+    import cv2
+    import numpy as np
+
+    h, w = img_bgr.shape[:2]
+    scale = 1100.0 / max(h, w)
+    if scale < 1:
+        img_bgr = cv2.resize(img_bgr, (int(w * scale), int(h * scale)))
+    hsv = cv2.cvtColor(cv2.GaussianBlur(img_bgr, (5, 5), 0), cv2.COLOR_BGR2HSV)
+
+    sp = (species or "").lower()
+    masks = []
+    if sp == "orange":
+        masks.append(cv2.inRange(hsv, (5, 90, 90), (22, 255, 255)))      # orange skin
+    elif sp == "lemon":
+        masks.append(cv2.inRange(hsv, (20, 70, 110), (38, 255, 255)))    # yellow skin
+    elif sp == "olive":
+        masks.append(cv2.inRange(hsv, (30, 25, 20), (90, 255, 120)))     # green olives
+        masks.append(cv2.inRange(hsv, (0, 0, 0), (180, 90, 70)))         # black/ripe olives
+    else:  # other / unknown → any typical fruit colour
+        masks.append(cv2.inRange(hsv, (5, 90, 90), (22, 255, 255)))      # orange
+        masks.append(cv2.inRange(hsv, (20, 70, 110), (38, 255, 255)))    # yellow
+        masks.append(cv2.inRange(hsv, (0, 110, 80), (10, 255, 255)))     # red
+        masks.append(cv2.inRange(hsv, (170, 110, 80), (180, 255, 255)))  # red (wrap)
+
+    mask = masks[0]
+    for m in masks[1:]:
+        mask = cv2.bitwise_or(mask, m)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    area_img = mask.shape[0] * mask.shape[1]
+    lo, hi = area_img * 2e-5, area_img * 0.05
+    typical = max(lo * 4, area_img * 4e-4)  # ~ one fruit's blob area
+    count = 0
+    for c in cnts:
+        a = cv2.contourArea(c)
+        if a < lo or a > hi:
+            continue
+        per = cv2.arcLength(c, True)
+        circ = (4 * np.pi * a / (per * per)) if per > 0 else 0
+        # round → 1 fruit; large irregular blob → cluster, split by area
+        count += 1 if circ >= 0.45 else max(1, int(round(a / typical)))
+    return count
+
+
+@router.post("/harvest-estimate")
+async def harvest_estimate(
+    file: UploadFile = File(...),
+    species: str = Form(""),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    """Estimate the harvest from a close-up photo of a tree/branch — any fruit type.
+    Vision LLM (Groq Vision → LLaVA) is primary; an OpenCV colour count is the
+    deterministic cross-check / offline fallback. Returns the visible fruit count
+    and a rough kg estimate (mean fruit weight × count)."""
+    import base64
+    import json
+    import re
+
+    import cv2
+    import numpy as np
+
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(422, "Image vide")
+    img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
+    if img is None:
+        raise HTTPException(422, "Image illisible")
+
+    sp = (species or "").lower().strip()
+
+    # 1. OpenCV deterministic count (always available)
+    try:
+        cv_count = _count_fruits_cv(img, sp)
+    except Exception:
+        cv_count = 0
+
+    # 2. Vision LLM — generalises to any fruit, returns a structured JSON
+    llm_count = None
+    fruit_type = sp if sp in FRUIT_AVG_G else "other"
+    ripeness, confidence, notes = "mixed", 0.5, ""
+    try:
+        from app.services.mllm_service import mllm_service
+        b64 = base64.b64encode(raw).decode()
+        hint = sp if sp in FRUIT_AVG_G else "unknown"
+        prompt = (
+            "You are an agronomy vision system estimating a fruit harvest. "
+            f"Tree type hint: {hint}. Count the visible fruits on the tree or branch "
+            "in this image (estimate if many overlap). Respond ONLY with compact JSON, "
+            "no prose: {\"count\": <int>, \"fruit_type\": \"<olive|orange|lemon|other>\", "
+            "\"ripeness\": \"<unripe|ripe|mixed>\", \"confidence\": <0..1>, "
+            "\"notes\": \"<short note in French>\"}"
+        )
+        txt = await mllm_service.analyze_visual(b64, prompt)
+        m = re.search(r"\{.*\}", txt or "", re.S)
+        if m:
+            j = json.loads(m.group(0))
+            c = str(j.get("count", "")).strip()
+            llm_count = int(float(c)) if re.fullmatch(r"\d+(\.\d+)?", c) else None
+            ft = (j.get("fruit_type") or "").lower().strip()
+            if ft in FRUIT_AVG_G:
+                fruit_type = ft
+            ripeness = (j.get("ripeness") or ripeness)[:20]
+            try:
+                confidence = max(0.0, min(1.0, float(j.get("confidence", confidence))))
+            except (TypeError, ValueError):
+                pass
+            notes = (j.get("notes") or "")[:300]
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("harvest-estimate LLM failed: %s", exc)
+
+    # 3. Combine — LLM count primary, OpenCV as fallback
+    if llm_count is not None:
+        count, method = llm_count, "vision-llm"
+    else:
+        count, method, confidence = cv_count, "opencv", 0.4
+
+    if fruit_type not in FRUIT_AVG_G:
+        fruit_type = "other"
+    avg_g = FRUIT_AVG_G[fruit_type]
+    harvest_kg = round(count * avg_g / 1000.0, 2)
+
+    return {
+        "count": count,
+        "cv_count": cv_count,
+        "llm_count": llm_count,
+        "fruit_type": fruit_type,
+        "ripeness": ripeness,
+        "confidence": round(confidence, 2),
+        "harvest_kg": harvest_kg,
+        "avg_fruit_g": avg_g,
+        "method": method,
+        "notes": notes,
+    }
 
 
 # ── Events (timeline) ─────────────────────────────────────────────────────────

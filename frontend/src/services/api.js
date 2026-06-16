@@ -424,6 +424,12 @@ export const orchardAPI = {
   addEvent: (id, d)   => api.post(`/orchard/trees/${id}/events`, d),
   delEvent: (id)      => api.delete(`/orchard/events/${id}`),
   detect:   (bounds, farmId, species) => api.post('/orchard/detect', { bounds, farm_id: farmId, species }, { timeout: 300000 }),
+  harvest:  (file, species = '') => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('species', species || '');
+    return api.post('/orchard/harvest-estimate', fd, { timeout: 120000 });
+  },
 };
 
 export default api;
