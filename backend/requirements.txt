@@ -1,7 +1,10 @@
 ﻿# Smart Farm AI â€” Backend Requirements
 
 # FastAPI & server
-fastapi>=0.100.0
+# Pinned: newer FastAPI/Starlette refactored routing (_IncludedRouter) and break
+# the app build under TestClient in CI. These are the validated working versions.
+fastapi==0.110.0
+starlette==0.36.3
 uvicorn[standard]>=0.24.0
 
 # Database

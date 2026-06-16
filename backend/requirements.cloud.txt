@@ -2,8 +2,9 @@
 # No YOLO, no PyTorch, no ChromaDB — fast build, small image (~400 MB vs ~8 GB).
 # AI scan features (WorkerScan) gracefully degrade to "model unavailable" at runtime.
 
-# FastAPI & server
-fastapi>=0.100.0
+# FastAPI & server (pinned — newer Starlette routing breaks the app build)
+fastapi==0.110.0
+starlette==0.36.3
 uvicorn[standard]>=0.24.0
 
 # Database — supports both SQLite (dev) and PostgreSQL (prod)
