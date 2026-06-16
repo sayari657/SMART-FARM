@@ -75,12 +75,14 @@ export default function OrchardMap() {
   const [zoneMode, setZoneMode]     = useState(false);
   const [zoneCorners, setZoneCorners] = useState([]);
   const mapRef = useRef(null);
-  // Harvest estimation by photo
-  const [hFile, setHFile]       = useState(null);
-  const [hPreview, setHPreview] = useState('');
-  const [hSpecies, setHSpecies] = useState('');
-  const [hBusy, setHBusy]       = useState(false);
-  const [hResult, setHResult]   = useState(null);
+  // Harvest & revenue estimation (multi-photo)
+  const [hFiles, setHFiles]       = useState([]);   // File[]
+  const [hPreviews, setHPreviews] = useState([]);   // object URLs
+  const [hSpecies, setHSpecies]   = useState('');
+  const [hTrees, setHTrees]       = useState('');   // number of trees in orchard
+  const [hPrice, setHPrice]       = useState('');   // price per kg
+  const [hBusy, setHBusy]         = useState(false);
+  const [hResult, setHResult]     = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -140,23 +142,35 @@ export default function OrchardMap() {
     finally { setDetecting(false); }
   };
 
-  // ── Harvest estimation by photo ──────────────────────────────────────────
-  const onHarvestFile = (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setHFile(f); setHResult(null);
-    setHPreview(URL.createObjectURL(f));
+  // ── Harvest & revenue estimation (up to 10 photos) ──────────────────────────
+  const onHarvestFiles = (e) => {
+    const incoming = Array.from(e.target.files || []);
+    if (!incoming.length) return;
+    const merged = [...hFiles, ...incoming].slice(0, 10);
+    setHFiles(merged);
+    setHPreviews(merged.map(f => URL.createObjectURL(f)));
+    setHResult(null);
+    e.target.value = '';
+  };
+
+  const removeHFile = (i) => {
+    const merged = hFiles.filter((_, idx) => idx !== i);
+    setHFiles(merged);
+    setHPreviews(merged.map(f => URL.createObjectURL(f)));
+    setHResult(null);
   };
 
   const runHarvest = async () => {
-    if (!hFile) { toast("Choisissez d'abord une photo de l'arbre / branche"); return; }
+    if (!hFiles.length) { toast('Ajoutez 1 à 10 photos de vos arbres'); return; }
     setHBusy(true);
-    const tid = toast.loading('Analyse de la photo… (comptage des fruits)');
+    const tid = toast.loading(`Analyse de ${hFiles.length} photo(s)…`);
     try {
-      const { data } = await orchardAPI.harvest(hFile, hSpecies);
+      const { data } = await orchardAPI.harvestBatch(hFiles, {
+        species: hSpecies, numTrees: Number(hTrees) || 0, pricePerKg: Number(hPrice) || 0,
+      });
       setHResult(data);
       toast.dismiss(tid);
-      toast.success(`${data.count} fruit(s) · ≈ ${data.harvest_kg} kg`);
+      toast.success(`≈ ${data.total_kg} kg` + (data.total_price ? ` · ${data.total_price} ${data.currency}` : ''));
     } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, "Échec de l'analyse")); }
     finally { setHBusy(false); }
   };
@@ -322,60 +336,87 @@ export default function OrchardMap() {
         </MapContainer>
       </div>
 
-      {/* harvest estimation by photo */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#0f172a', flexWrap: 'wrap' }}>
-          <Apple size={18} color="#ef4444" /> Estimation de récolte par photo
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>— comptez les fruits d'un arbre / d'une branche, quel que soit le type</span>
-        </div>
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {/* upload + controls */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 240 }}>
-            <label style={{ ...primaryBtn, background: 'linear-gradient(135deg,#0891b2,#0e7490)', cursor: 'pointer', justifyContent: 'center' }}>
-              <Camera size={15} /> {hFile ? 'Changer la photo' : 'Choisir une photo'}
-              <input type="file" accept="image/*" capture="environment" onChange={onHarvestFile} style={{ display: 'none' }} />
-            </label>
-            <select value={hSpecies} onChange={e => setHSpecies(e.target.value)} title="Type de fruit"
-              style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 10px', fontSize: 13, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
-              <option value="">🤖 Auto (l'IA détecte le type)</option>
-              <option value="olive">🫒 Olive</option>
-              <option value="orange">🍊 Orange</option>
-              <option value="lemon">🍋 Citron</option>
-              <option value="other">🍎 Autre fruit</option>
-            </select>
-            <button onClick={runHarvest} disabled={hBusy || !hFile}
-              style={{ ...primaryBtn, justifyContent: 'center', opacity: (hBusy || !hFile) ? .6 : 1 }}>
-              {hBusy ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={15} />}
-              Estimer la récolte
-            </button>
+      {/* ── Harvest & revenue estimation ───────────────────────────────────── */}
+      <div style={hv.card}>
+        <div style={hv.head}>
+          <div style={hv.headIcon}><Apple size={20} color="#fff" /></div>
+          <div>
+            <div style={hv.title}>Estimation de récolte &amp; chiffre d'affaires</div>
+            <div style={hv.sub}>Jusqu'à 10 photos d'arbres → comptage des fruits, rendement par arbre et revenu estimé</div>
           </div>
-          {/* preview */}
-          {hPreview && (
-            <img src={hPreview} alt="aperçu" style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 12, border: '1px solid #e2e8f0' }} />
-          )}
-          {/* result */}
-          {hResult && (
-            <div style={{ flex: 1, minWidth: 230, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <Stat label="Fruits comptés" value={hResult.count} accent="#0f172a" />
-                <Stat label="Récolte estimée" value={`≈ ${hResult.harvest_kg} kg`} accent="#16a34a" />
-                <Stat label="Type" value={FRUIT_FR[hResult.fruit_type] || hResult.fruit_type} accent="#0891b2" />
-                <Stat label="Confiance" value={`${Math.round((hResult.confidence || 0) * 100)}%`} accent="#7c3aed" />
+        </div>
+
+        <div style={hv.body}>
+          {/* uploader */}
+          <div style={hv.uploadCol}>
+            <label style={{ ...hv.dropzone, ...(hFiles.length >= 10 ? { opacity: .6, cursor: 'not-allowed' } : {}) }}>
+              <Camera size={22} color="#0e7490" />
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>{hFiles.length ? `${hFiles.length}/10 photo(s)` : 'Ajouter des photos'}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>Gros plan d'un arbre / branche · max 10</div>
+              <input type="file" accept="image/*" capture="environment" multiple onChange={onHarvestFiles} style={{ display: 'none' }} disabled={hFiles.length >= 10} />
+            </label>
+            {hPreviews.length > 0 && (
+              <div style={hv.thumbs}>
+                {hPreviews.map((src, i) => (
+                  <div key={i} style={hv.thumbWrap}>
+                    <img src={src} alt="" style={hv.thumb} />
+                    {hResult?.per_image?.[i] && <span style={hv.thumbBadge}>{hResult.per_image[i].count}</span>}
+                    <button onClick={() => removeHFile(i)} style={hv.thumbX} title="Retirer"><X size={11} /></button>
+                  </div>
+                ))}
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                Moteur : <b>{hResult.method === 'vision-llm' ? 'Vision IA' : 'OpenCV (couleur)'}</b>
-                {' · '}contrôle OpenCV : {hResult.cv_count} · maturité : {hResult.ripeness}
-                {' · '}poids moyen ≈ {hResult.avg_fruit_g} g/fruit
+            )}
+          </div>
+
+          {/* controls */}
+          <div style={hv.controls}>
+            <div style={hv.fieldRow}>
+              <div style={{ flex: '1 1 130px' }}>
+                <div style={lbl}>Type de fruit</div>
+                <select value={hSpecies} onChange={e => setHSpecies(e.target.value)} style={hv.input}>
+                  <option value="">🤖 Auto (l'IA détecte)</option>
+                  <option value="olive">🫒 Olive</option>
+                  <option value="orange">🍊 Orange</option>
+                  <option value="lemon">🍋 Citron</option>
+                  <option value="other">🍎 Autre fruit</option>
+                </select>
               </div>
-              {hResult.notes && (
-                <div style={{ fontSize: 12, color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 10px' }}>{hResult.notes}</div>
-              )}
+              <div style={{ flex: '1 1 110px' }}>
+                <div style={lbl}>Nombre d'arbres</div>
+                <input type="number" min="0" value={hTrees} onChange={e => setHTrees(e.target.value)} placeholder="ex: 120" style={hv.input} />
+              </div>
+              <div style={{ flex: '1 1 110px' }}>
+                <div style={lbl}>Prix / kg (DT)</div>
+                <input type="number" min="0" step="0.1" value={hPrice} onChange={e => setHPrice(e.target.value)} placeholder="ex: 2.5" style={hv.input} />
+              </div>
             </div>
-          )}
+            <button onClick={runHarvest} disabled={hBusy || !hFiles.length}
+              style={{ ...hv.cta, opacity: (hBusy || !hFiles.length) ? .55 : 1 }}>
+              {hBusy ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />}
+              Analyser &amp; estimer
+            </button>
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>
+              Chaque photo = 1 arbre échantillon. Récolte totale = rendement moyen/arbre × nombre d'arbres · CA = récolte × prix/kg.
+            </div>
+          </div>
         </div>
-        <div style={{ fontSize: 11, color: '#94a3b8' }}>
-          Astuce : un gros plan net d'un arbre ou d'une branche donne le meilleur comptage. Récolte (kg) = nombre de fruits × poids moyen du fruit.
-        </div>
+
+        {/* results */}
+        {hResult && (
+          <div style={hv.results}>
+            <div style={hv.kpis}>
+              <Kpi label="Fruits / arbre (moy.)" value={hResult.avg_fruits_per_tree} sub={`sur ${hResult.sampled} photo(s)`} color="#0891b2" />
+              <Kpi label="Récolte / arbre" value={`${hResult.avg_kg_per_tree} kg`} color="#0f172a" />
+              <Kpi label="Arbres" value={hResult.num_trees} color="#7c3aed" />
+              <Kpi label="Récolte totale" value={`${hResult.total_kg} kg`} color="#16a34a" big />
+              {hResult.total_price > 0 && <Kpi label="Chiffre d'affaires" value={`${hResult.total_price.toLocaleString()} ${hResult.currency}`} color="#15803d" big />}
+            </div>
+            <div style={hv.formula}>
+              {FRUIT_FR[hResult.fruit_type] || hResult.fruit_type} · {hResult.avg_kg_per_tree} kg/arbre × {hResult.num_trees} arbres = <b>{hResult.total_kg} kg</b>
+              {hResult.total_price > 0 && <> &nbsp;×&nbsp; {hResult.price_per_kg} {hResult.currency}/kg = <b>{hResult.total_price.toLocaleString()} {hResult.currency}</b></>}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* management panel (drawer) */}
@@ -520,14 +561,38 @@ export default function OrchardMap() {
 
 const FRUIT_FR = { olive: '🫒 Olive', orange: '🍊 Orange', lemon: '🍋 Citron', other: '🍎 Autre' };
 
-function Stat({ label, value, accent }) {
+function Kpi({ label, value, sub, color, big }) {
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: '8px 12px', minWidth: 92 }}>
+    <div style={{ flex: '1 1 130px', minWidth: 120, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '12px 14px' }}>
       <div style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: '#94a3b8' }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 900, color: accent || '#0f172a' }}>{value}</div>
+      <div style={{ fontSize: big ? 24 : 20, fontWeight: 900, color: color || '#0f172a', marginTop: 2, lineHeight: 1.1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
+
+const hv = {
+  card: { background: 'linear-gradient(180deg,#ffffff,#f8fafc)', border: '1px solid #e2e8f0', borderRadius: 18, overflow: 'hidden', boxShadow: '0 1px 3px rgba(15,23,42,.06)' },
+  head: { display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', background: 'linear-gradient(135deg,#0e7490,#0891b2)' },
+  headIcon: { width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  title: { fontWeight: 900, fontSize: 16, color: '#fff' },
+  sub: { fontSize: 12, color: 'rgba(255,255,255,.85)', marginTop: 1 },
+  body: { display: 'flex', gap: 18, flexWrap: 'wrap', padding: 18 },
+  uploadCol: { display: 'flex', flexDirection: 'column', gap: 12, width: 280 },
+  dropzone: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, height: 120, borderRadius: 14, border: '2px dashed #cbd5e1', background: '#f8fafc', cursor: 'pointer', textAlign: 'center' },
+  thumbs: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+  thumbWrap: { position: 'relative', width: 60, height: 60 },
+  thumb: { width: 60, height: 60, objectFit: 'cover', borderRadius: 10, border: '1px solid #e2e8f0' },
+  thumbBadge: { position: 'absolute', bottom: -4, left: -4, background: '#16a34a', color: '#fff', fontSize: 11, fontWeight: 900, borderRadius: 8, padding: '1px 6px', border: '2px solid #fff' },
+  thumbX: { position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: '#ef4444', color: '#fff', border: '2px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
+  controls: { flex: 1, minWidth: 260, display: 'flex', flexDirection: 'column', gap: 12 },
+  fieldRow: { display: 'flex', gap: 12, flexWrap: 'wrap' },
+  input: { width: '100%', boxSizing: 'border-box', height: 40, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 12px', fontSize: 14, fontWeight: 600, color: '#0f172a', outline: 'none' },
+  cta: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 46, borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer' },
+  results: { borderTop: '1px solid #e2e8f0', padding: 18, display: 'flex', flexDirection: 'column', gap: 12, background: '#f8fafc' },
+  kpis: { display: 'flex', gap: 12, flexWrap: 'wrap' },
+  formula: { fontSize: 13, color: '#475569', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '10px 14px' },
+};
 
 const EVENT_LABEL = { disease: '🦠 Maladie', treatment: '💊 Traitement', observation: '👁 Observation', note: '📝 Note' };
 const lbl = { fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 8 };

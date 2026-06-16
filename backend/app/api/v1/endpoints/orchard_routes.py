@@ -406,16 +406,10 @@ def _count_fruits_cv(img_bgr, species: str) -> int:
     return count
 
 
-@router.post("/harvest-estimate")
-async def harvest_estimate(
-    file: UploadFile = File(...),
-    species: str = Form(""),
-    farm_ids: List[int] = Depends(get_user_farm_ids),
-):
-    """Estimate the harvest from a close-up photo of a tree/branch — any fruit type.
-    Vision LLM (Groq Vision → LLaVA) is primary; an OpenCV colour count is the
-    deterministic cross-check / offline fallback. Returns the visible fruit count
-    and a rough kg estimate (mean fruit weight × count)."""
+async def _estimate_image(raw: bytes, sp: str) -> dict:
+    """Core single-image estimate: OpenCV colour count + Vision-LLM (primary).
+    Returns a result dict with ok=False if the image is unreadable (so a batch
+    can skip it rather than fail the whole request)."""
     import base64
     import json
     import re
@@ -423,14 +417,9 @@ async def harvest_estimate(
     import cv2
     import numpy as np
 
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(422, "Image vide")
-    img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR)
+    img = cv2.imdecode(np.frombuffer(raw, np.uint8), cv2.IMREAD_COLOR) if raw else None
     if img is None:
-        raise HTTPException(422, "Image illisible")
-
-    sp = (species or "").lower().strip()
+        return {"ok": False, "count": 0, "harvest_kg": 0.0}
 
     # 1. OpenCV deterministic count (always available)
     try:
@@ -485,6 +474,7 @@ async def harvest_estimate(
     harvest_kg = round(count * avg_g / 1000.0, 2)
 
     return {
+        "ok": True,
         "count": count,
         "cv_count": cv_count,
         "llm_count": llm_count,
@@ -495,6 +485,78 @@ async def harvest_estimate(
         "avg_fruit_g": avg_g,
         "method": method,
         "notes": notes,
+    }
+
+
+@router.post("/harvest-estimate")
+async def harvest_estimate(
+    file: UploadFile = File(...),
+    species: str = Form(""),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    """Estimate the harvest from one close-up photo of a tree/branch — any fruit."""
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(422, "Image vide")
+    res = await _estimate_image(raw, (species or "").lower().strip())
+    if not res.get("ok"):
+        raise HTTPException(422, "Image illisible")
+    return res
+
+
+@router.post("/harvest-estimate-batch")
+async def harvest_estimate_batch(
+    files: List[UploadFile] = File(...),
+    species: str = Form(""),
+    num_trees: int = Form(0),
+    price_per_kg: float = Form(0.0),
+    currency: str = Form("DT"),
+    farm_ids: List[int] = Depends(get_user_farm_ids),
+):
+    """Estimate a whole-orchard harvest + revenue from up to 10 sample photos.
+
+    Each photo is treated as one sampled tree: we average the per-tree yield over
+    the samples, extrapolate to `num_trees`, then multiply by `price_per_kg`."""
+    files = (files or [])[:10]
+    if not files:
+        raise HTTPException(422, "Aucune image fournie")
+    sp = (species or "").lower().strip()
+
+    per_image = []
+    for f in files:
+        raw = await f.read()
+        res = await _estimate_image(raw, sp)
+        if res.get("ok"):
+            res["filename"] = f.filename
+            per_image.append(res)
+
+    if not per_image:
+        raise HTTPException(422, "Aucune image exploitable")
+
+    sampled = len(per_image)
+    avg_fruits_per_tree = round(sum(r["count"] for r in per_image) / sampled, 1)
+    avg_kg_per_tree = round(sum(r["harvest_kg"] for r in per_image) / sampled, 2)
+
+    from collections import Counter
+    fruit_type = Counter(r["fruit_type"] for r in per_image).most_common(1)[0][0]
+
+    trees = int(num_trees) if num_trees and num_trees > 0 else sampled
+    total_kg = round(avg_kg_per_tree * trees, 1)
+    price = float(price_per_kg) if price_per_kg and price_per_kg > 0 else 0.0
+    total_price = round(total_kg * price, 2)
+
+    return {
+        "per_image": per_image,
+        "sampled": sampled,
+        "fruit_type": fruit_type,
+        "avg_fruits_per_tree": avg_fruits_per_tree,
+        "avg_kg_per_tree": avg_kg_per_tree,
+        "num_trees": trees,
+        "total_fruits": int(round(avg_fruits_per_tree * trees)),
+        "total_kg": total_kg,
+        "price_per_kg": price,
+        "currency": (currency or "DT")[:6],
+        "total_price": total_price,
     }
 
 

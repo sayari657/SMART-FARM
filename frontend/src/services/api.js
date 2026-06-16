@@ -430,6 +430,15 @@ export const orchardAPI = {
     fd.append('species', species || '');
     return api.post('/orchard/harvest-estimate', fd, { timeout: 120000 });
   },
+  harvestBatch: (files, { species = '', numTrees = 0, pricePerKg = 0, currency = 'DT' } = {}) => {
+    const fd = new FormData();
+    Array.from(files).forEach(f => fd.append('files', f));
+    fd.append('species', species || '');
+    fd.append('num_trees', String(numTrees || 0));
+    fd.append('price_per_kg', String(pricePerKg || 0));
+    fd.append('currency', currency || 'DT');
+    return api.post('/orchard/harvest-estimate-batch', fd, { timeout: 180000 });
+  },
 };
 
 export default api;
