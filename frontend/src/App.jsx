@@ -46,6 +46,7 @@ const WorkerScan          = lazy(() => import('./pages/worker/WorkerScan'));
 const WorkerReport        = lazy(() => import('./pages/worker/WorkerReport'));
 const WorkerSettings      = lazy(() => import('./pages/worker/WorkerSettings'));
 const WorkerInstructions  = lazy(() => import('./pages/worker/WorkerInstructions'));
+const WorkerWarehouse     = lazy(() => import('./pages/worker/WorkerWarehouse'));
 const IoTDevices          = lazy(() => import('./pages/IoTDevices'));
 const SuperAdminDashboard = lazy(() => import('./pages/superadmin/SuperAdminDashboard'));
 const SuperAdminTenants   = lazy(() => import('./pages/superadmin/SuperAdminTenants'));
@@ -54,7 +55,6 @@ const SuperAdminPlans     = lazy(() => import('./pages/superadmin/SuperAdminPlan
 const SuperAdminFlags     = lazy(() => import('./pages/superadmin/SuperAdminFlags'));
 const SuperAdminModels    = lazy(() => import('./pages/superadmin/SuperAdminModels'));
 const SuperAdminAudit     = lazy(() => import('./pages/superadmin/SuperAdminAudit'));
-const SuperAdminBroadcast = lazy(() => import('./pages/superadmin/SuperAdminBroadcast'));
 const SuperAdminSystem    = lazy(() => import('./pages/superadmin/SuperAdminSystem'));
 const SuperAdmin2FA       = lazy(() => import('./pages/superadmin/SuperAdmin2FA'));
 
@@ -143,6 +143,7 @@ function AppRoutes() {
         <Route path="tasks" element={<WorkerTasks />} />
         <Route path="scan" element={<WorkerScan />} />
         <Route path="report" element={<WorkerReport />} />
+        <Route path="warehouse" element={<WorkerWarehouse />} />
         <Route path="settings" element={<WorkerSettings />} />
         <Route path="instructions" element={<WorkerInstructions />} />
       </Route>
@@ -160,7 +161,6 @@ function AppRoutes() {
         <Route path="flags"     element={<SuperAdminFlags />} />
         <Route path="models"    element={<SuperAdminModels />} />
         <Route path="audit"     element={<SuperAdminAudit />} />
-        <Route path="broadcast" element={<SuperAdminBroadcast />} />
         <Route path="system"    element={<SuperAdminSystem />} />
         <Route path="2fa"       element={<SuperAdmin2FA />} />
       </Route>

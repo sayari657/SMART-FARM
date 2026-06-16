@@ -25,7 +25,7 @@ websockets>=12.0
 
 # HTTP client
 requests>=2.31.0
-httpx>=0.25.0
+httpx>=0.25.0,<0.28  # 0.28 removed the `app=` shortcut Starlette's TestClient uses
 
 # Data utilities (IoT CSV parsing, analytics)
 numpy>=1.26.0

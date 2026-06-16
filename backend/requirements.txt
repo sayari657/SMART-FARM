@@ -27,7 +27,7 @@ websockets>=12.0
 
 # HTTP client (for workers)
 requests>=2.31.0
-httpx>=0.25.0
+httpx>=0.25.0,<0.28  # 0.28 removed the `app=` shortcut Starlette's TestClient uses
 
 # MQTT
 paho-mqtt>=1.6.1
@@ -93,7 +93,7 @@ stripe>=8.0.0
 pytest>=7.4.0
 pytest-cov>=4.1.0
 pytest-asyncio>=0.23.0
-httpx>=0.25.0
+httpx>=0.25.0,<0.28  # 0.28 removed the `app=` shortcut Starlette's TestClient uses
 
 lap>=0.5.12          # ByteTrack multi-object tracking (comptage video)
 lifelines>=0.30      # Analyse de survie Kaplan-Meier volaille
