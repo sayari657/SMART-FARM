@@ -5,6 +5,7 @@ import { Download, Bell, Camera, CheckSquare, AlertTriangle, ChevronRight, Wifi,
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { WorkerPage, SectionLabel, Card } from './workerUI';
 
 function WorkerHome() {
   const { user } = useAuth();
@@ -49,6 +50,9 @@ function WorkerHome() {
     setPushStatus(p);
   };
 
+  const press   = e => e.currentTarget.style.transform = 'scale(0.97)';
+  const release = e => e.currentTarget.style.transform = 'scale(1)';
+
   const QuickAction = ({ icon, label, color, gradient, to }) => (
     <button
       onClick={() => navigate(to)}
@@ -56,12 +60,12 @@ function WorkerHome() {
         background: `linear-gradient(135deg, ${gradient})`,
         border: 'none', borderRadius: 16, padding: '18px 16px',
         cursor: 'pointer', display: 'flex', flexDirection: 'column',
-        alignItems: 'flex-start', gap: 10, width: '100%',
+        alignItems: 'flex-start', gap: 10, width: '100%', minHeight: 96,
         boxShadow: `0 4px 16px ${color}30`, transition: 'transform 0.15s, box-shadow 0.15s',
-        textAlign: 'left',
+        textAlign: 'left', touchAction: 'manipulation',
       }}
-      onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
-      onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+      onMouseDown={press} onMouseUp={release} onMouseLeave={release}
+      onTouchStart={press} onTouchEnd={release}
     >
       <div style={{
         width: 40, height: 40, borderRadius: 12,
@@ -82,7 +86,7 @@ function WorkerHome() {
   ];
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
+    <WorkerPage style={{ paddingBottom: 20 }}>
 
       {/* ── Greeting banner ── */}
       <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '18px 18px 16px' }}>
@@ -119,9 +123,7 @@ function WorkerHome() {
 
         {/* ── Quick actions ── */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            {t('worker.home.quick_actions')}
-          </div>
+          <SectionLabel>{t('worker.home.quick_actions')}</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <QuickAction
               to="/worker/scan"
@@ -172,9 +174,7 @@ function WorkerHome() {
 
         {/* ── Resources ── */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 10 }}>
-            {t('worker.home.resources')}
-          </div>
+          <SectionLabel>{t('worker.home.resources')}</SectionLabel>
           <button
             onClick={() => navigate('/worker/instructions')}
             style={{
@@ -228,10 +228,8 @@ function WorkerHome() {
         )}
 
         {/* ── System status ── */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '14px 16px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em', color: '#94a3b8', marginBottom: 12 }}>
-            {t('worker.home.system_status')}
-          </div>
+        <Card style={{ padding: '14px 16px' }}>
+          <SectionLabel style={{ marginBottom: 12 }}>{t('worker.home.system_status')}</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {systemRows.map(({ label, value, ok }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -246,10 +244,10 @@ function WorkerHome() {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
       </div>
-    </div>
+    </WorkerPage>
   );
 }
 

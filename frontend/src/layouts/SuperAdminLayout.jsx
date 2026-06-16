@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Building2, CreditCard, Flag,
-  Cpu, FileText, Radio, Brain, LogOut,
+  Cpu, FileText, Brain, LogOut,
   ChevronLeft, ChevronRight, Activity, ExternalLink, Shield,
   Menu, X,
 } from 'lucide-react';
@@ -21,7 +21,6 @@ const SECTIONS = [
     label: 'COMMERCIAL',
     items: [
       { to: '/superadmin/plans',     label: 'Abonnements',  icon: CreditCard },
-      { to: '/superadmin/broadcast', label: 'Broadcast',    icon: Radio },
     ],
   },
   {

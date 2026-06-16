@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Camera, AlertTriangle, LogOut, Wifi, WifiOff, CloudOff, RefreshCw } from 'lucide-react';
+import { Home, CheckSquare, Camera, AlertTriangle, LogOut, Wifi, WifiOff, CloudOff, RefreshCw, Settings, Warehouse } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { usePWAVersion } from '../hooks/usePWAVersion';
@@ -83,17 +83,31 @@ function WorkerLayout() {
             </div>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)',
-            color:'#f87171', borderRadius:10, padding:'8px 12px',
-            cursor:'pointer', fontSize:12, fontWeight:600,
-            display:'flex', alignItems:'center', gap:5, transition:'all 0.2s'
-          }}
-        >
-          <LogOut size={14} /> Quitter
-        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <button
+            onClick={() => navigate('/worker/settings')}
+            aria-label="Réglages"
+            style={{
+              background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
+              color:'#cbd5e1', borderRadius:10, width:36, height:36,
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+              transition:'all 0.2s'
+            }}
+          >
+            <Settings size={16} />
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{
+              background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)',
+              color:'#f87171', borderRadius:10, padding:'8px 12px',
+              cursor:'pointer', fontSize:12, fontWeight:600,
+              display:'flex', alignItems:'center', gap:5, transition:'all 0.2s'
+            }}
+          >
+            <LogOut size={14} /> Quitter
+          </button>
+        </div>
       </header>
 
       {/* ── OFFLINE BANNER ── */}
@@ -154,7 +168,7 @@ function WorkerLayout() {
         </NavLink>
 
         <NavItem to="/worker/report" icon={<AlertTriangle size={22} />} label="Signaler" />
-        <NavItem to="/worker/settings" icon={<CheckSquare size={22} />} label="Sync" />
+        <NavItem to="/worker/warehouse" icon={<Warehouse size={22} />} label="Entrepôt" />
       </nav>
 
       <style>{`

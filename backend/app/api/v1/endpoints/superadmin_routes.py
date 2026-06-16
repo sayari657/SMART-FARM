@@ -20,14 +20,15 @@ import json
 import os
 import shutil
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
+from decimal import Decimal
 from typing import Optional, List
 import tempfile
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import func, text, extract
+from sqlalchemy import MetaData, Table, extract, func, inspect, select, text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db, engine
@@ -63,6 +64,16 @@ DEFAULT_FLAGS = {
     "map_center":          True,
     "maintenance_mode":    False,
 }
+
+_SENSITIVE_COLUMN_MARKERS = (
+    "password",
+    "secret",
+    "token",
+    "api_key",
+    "apikey",
+    "credential",
+    "private_key",
+)
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────

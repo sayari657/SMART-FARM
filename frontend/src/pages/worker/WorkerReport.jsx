@@ -4,6 +4,7 @@ import { Camera, Send, X, CheckCircle, WifiOff, ImageIcon } from 'lucide-react';
 import offlineDB from '../../db/offlineDB';
 import { useNetworkSync } from '../../hooks/useNetworkSync';
 import api from '../../services/api';
+import { PageHeader } from './workerUI';
 
 function WorkerReport() {
   const { t } = useTranslation();
@@ -108,12 +109,7 @@ function WorkerReport() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
 
-      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '14px 18px 12px' }}>
-        <h1 style={{ color: '#0f172a', fontSize: 20, fontWeight: 800, margin: 0 }}>{t('worker.report.title')}</h1>
-        <p style={{ color: '#94a3b8', fontSize: 12, margin: '2px 0 0' }}>
-          {t('worker.report.subtitle')}
-        </p>
-      </div>
+      <PageHeader title={t('worker.report.title')} subtitle={t('worker.report.subtitle')} icon="🚨" />
 
       <form onSubmit={handleSubmit} style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 

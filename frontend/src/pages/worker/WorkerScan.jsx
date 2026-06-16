@@ -6,26 +6,31 @@ import ExpertAssistant from '../../components/expert/ExpertAssistant';
 export default function WorkerScan() {
   const { t } = useTranslation();
 
+  // Full YOLO registry — mirrors backend cv_routes MODEL_REGISTRY / CVModelsDashboard.
   const GROUPS = [
     {
       label: t('worker.scan.group_plant'),
       emoji: '🌱',
       items: [
-        { id: 'orange',  icon: '🍊', label: t('worker.scan.model.orange'),   color: '#f97316' },
-        { id: 'lemon',   icon: '🍋', label: t('worker.scan.model.lemon'),    color: '#eab308' },
-        { id: 'leaves',  icon: '🌿', label: t('worker.scan.model.leaves'),   color: '#16a34a' },
-        { id: 'insects', icon: '🐛', label: t('worker.scan.model.insects'),  color: '#ca8a04' },
-        { id: 'olive',   icon: '🫒', label: t('worker.scan.model.olive'),    color: '#65a30d' },
+        { id: 'orange',   icon: '🍊', label: t('worker.scan.model.orange'),   color: '#f97316' },
+        { id: 'lemon',    icon: '🍋', label: t('worker.scan.model.lemon'),    color: '#eab308' },
+        { id: 'olive',    icon: '🫒', label: t('worker.scan.model.olive'),    color: '#84cc16' },
+        { id: 'leaves',   icon: '🌿', label: t('worker.scan.model.leaves'),   color: '#16a34a' },
+        { id: 'insects',  icon: '🐛', label: t('worker.scan.model.insects'),  color: '#059669' },
+        { id: 'plantdoc', icon: '🌱', label: t('worker.scan.model.plantdoc'), color: '#22c55e' },
       ],
     },
     {
       label: t('worker.scan.group_livestock'),
       emoji: '🐾',
       items: [
-        { id: 'bee',      icon: '🐝', label: t('worker.scan.model.bee'),      color: '#f59e0b' },
-        { id: 'livestock',icon: '🐄', label: t('worker.scan.model.livestock'), color: '#3b82f6' },
-        { id: 'sheep',    icon: '🐑', label: t('worker.scan.model.sheep'),    color: '#059669' },
-        { id: 'goat',     icon: '🐐', label: t('worker.scan.model.goat'),     color: '#dc2626' },
+        { id: 'livestock',       icon: '🐄', label: t('worker.scan.model.livestock'),       color: '#7c3aed' },
+        { id: 'cow_behavior',    icon: '🐄', label: t('worker.scan.model.cow_behavior'),    color: '#0891b2' },
+        { id: 'goat_disease',    icon: '🐐', label: t('worker.scan.model.goat_disease'),    color: '#dc2626' },
+        { id: 'chicken_disease', icon: '🐔', label: t('worker.scan.model.poultry_disease'), color: '#d97706' },
+        { id: 'chicken_detect',  icon: '🐔', label: t('worker.scan.model.poultry_detect'),  color: '#f59e0b' },
+        { id: 'rabbit',          icon: '🐰', label: t('worker.scan.model.rabbit'),          color: '#db2777' },
+        { id: 'bee',             icon: '🐝', label: t('worker.scan.model.bee'),             color: '#fbbf24' },
       ],
     },
     {
@@ -44,11 +49,12 @@ export default function WorkerScan() {
   return (
     <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 20 }}>
 
-      {/* ── Page header ── */}
+      {/* ── Page header (sticky, dynamic per-model accent) ── */}
       <div style={{
         background: '#fff',
         borderBottom: '1px solid #e2e8f0',
         padding: '14px 18px 12px',
+        position: 'sticky', top: 0, zIndex: 20,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{

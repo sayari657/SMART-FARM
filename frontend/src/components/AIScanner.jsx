@@ -10,6 +10,10 @@ const CRITICAL_LABELS = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu'
 const SCAN_ALERT_KEY = 'farm_scan_alerts';
 const SCAN_ALERT_MAX = 20;
 
+// WebSocket base — connects straight to the backend (same convention as useWebSocket)
+const WS_BASE = import.meta.env.VITE_WS_URL ||
+  (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.hostname + ':8000';
+
 const compressImage = (dataUrl, maxWidth = 520, quality = 0.72) =>
   new Promise((resolve) => {
     if (!dataUrl?.startsWith('data:')) { resolve(dataUrl); return; }
@@ -301,7 +305,7 @@ const buildReportPrompt = (category, summary, avgConf, count, periodLabel) => {
   return prompts[category] || `${base} En Darija, fais un rapport avec diagnostic et recommandations pratiques.`;
 };
 
-const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color = '#7c3aed', onAnalysisComplete }) => {
+const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color = '#7c3aed', onAnalysisComplete, allowIpCamera = false }) => {
   const { i18n } = useTranslation();
   const tLabel = useCallback((label) => translateLabel(label, i18n.language), [i18n.language]);
 
@@ -321,6 +325,13 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [autoScan, setAutoScan]     = useState(false);
   const autoScanIntervalRef         = useRef(null);
+
+  // ── IP / RTSP camera relay ──
+  const [ipUrl, setIpUrl]     = useState('');
+  const [ipState, setIpState] = useState('idle');  // idle | connecting | live | error
+  const [ipMsg, setIpMsg]     = useState('');
+  const wsRef        = useRef(null);
+  const lastAlertRef = useRef(0);
 
   const videoRef     = useRef(null);
   const imgRef       = useRef(null);
@@ -596,6 +607,54 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
   const deleteReport = (id) => { setAiReports(prev => { const updated = prev.filter(r => r.id !== id); saveReports(category, updated); return updated; }); };
   const reset = () => { setCapturedImage(null); setDetections([]); setError(null); setAutoScan(false); };
 
+  // ── IP / RTSP camera: open a relay WebSocket and render streamed frames ──
+  const disconnectIp = useCallback(() => {
+    try { wsRef.current?.close(); } catch {}
+    wsRef.current = null;
+    setIpState('idle');
+    setCapturedImage(null);
+    setDetections([]);
+  }, []);
+
+  const connectIp = useCallback(() => {
+    const u = ipUrl.trim();
+    if (!u) return;
+    setIpState('connecting'); setIpMsg('');
+    const token = localStorage.getItem('token');
+    const wsUrl = `${WS_BASE}/ws/rtsp?token=${encodeURIComponent(token || '')}&url=${encodeURIComponent(u)}&model=${encodeURIComponent(category)}&fps=4`;
+    let ws;
+    try { ws = new WebSocket(wsUrl); } catch { setIpState('error'); setIpMsg('Connexion impossible'); return; }
+    wsRef.current = ws;
+
+    ws.onmessage = (evt) => {
+      let m; try { m = JSON.parse(evt.data); } catch { return; }
+      if (m.error)            { setIpMsg(m.error); setIpState('error'); try { ws.close(); } catch {} return; }
+      if (m.status === 'connected') { setIpState('live'); return; }
+      if (m.frame) {
+        const dataUrl = `data:image/jpeg;base64,${m.frame}`;
+        setCapturedImage(dataUrl);
+        setDetections(m.detections || []);
+        const crit = (m.detections || []).some(d => CRITICAL_LABELS.has(d.label?.toLowerCase()))
+          || (category === 'fire' && (m.detections || []).length > 0);
+        if (crit && Date.now() - lastAlertRef.current > 15000) {
+          lastAlertRef.current = Date.now();
+          const card = { id: Date.now() + Math.random(), timestamp: new Date().toISOString(), imageUrl: dataUrl, detections: m.detections, category };
+          pushScanAlert(card);
+          toast('🚨 Détection caméra IP', { duration: 2500, style: { background: '#fef2f2', color: '#991b1b', fontWeight: 700, fontSize: 13 } });
+          if (onAnalysisComplete) onAnalysisComplete({ detections: m.detections, imageUrl: dataUrl, category });
+        }
+      }
+    };
+    ws.onerror = () => { setIpState('error'); setIpMsg('Connexion échouée'); };
+    ws.onclose = () => { setIpState(s => (s === 'live' || s === 'connecting') ? 'idle' : s); };
+  }, [ipUrl, category, onAnalysisComplete]);
+
+  // Close the relay when leaving RTSP mode or unmounting
+  useEffect(() => {
+    if (mode !== 'rtsp' && wsRef.current) disconnectIp();
+  }, [mode, disconnectIp]);
+  useEffect(() => () => { try { wsRef.current?.close(); } catch {} }, []);
+
   return (
     <div className="card glass-card" style={{ padding: 0, overflow: 'hidden', border: `1px solid ${color}33`, display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '16px 20px', background: 'var(--glass-bg)', borderBottom: `1px solid ${color}22`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -606,6 +665,9 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: 3, borderRadius: 8, gap: 2 }}>
           <button onClick={() => { setMode('upload'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'upload' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Fichier</button>
           <button onClick={() => { setMode('camera'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'camera' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Live</button>
+          {allowIpCamera && (
+            <button onClick={() => { setMode('rtsp'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'rtsp' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>IP / RTSP</button>
+          )}
         </div>
       </div>
 
@@ -644,6 +706,17 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
           />
         )}
         {!capturedImage && mode === 'upload' && <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}><Upload size={40} /><button className="btn btn-sm" onClick={() => fileInputRef.current.click()} style={{ marginTop: 12, background: 'white', color: '#000' }}>Parcourir</button></div>}
+        {!capturedImage && mode === 'rtsp' && (
+          <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.6)', padding: 24 }}>
+            <Activity size={38} style={{ opacity: 0.5 }} />
+            <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
+              {ipState === 'connecting' ? 'Connexion au flux…'
+                : ipState === 'error' ? '⚠ ' + (ipMsg || 'Erreur de connexion')
+                : "Entrez l'URL de la caméra (rtsp:// ou http://) puis Connecter"}
+            </div>
+            {ipState === 'connecting' && <Loader2 className="animate-spin" size={20} color={color} style={{ marginTop: 10 }} />}
+          </div>
+        )}
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }} />
         {isProcessing && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}><Loader2 className="animate-spin" color={color} size={40} /></div>}
         {error && (
@@ -668,8 +741,23 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
 
       <div style={{ padding: '12px 20px', background: 'var(--glass-bg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <input type="file" ref={fileInputRef} hidden accept="image/*" multiple onChange={handleFileUpload} />
-        <div style={{ display: 'flex', gap: 8 }}>
-          {capturedImage ? (
+        <div style={{ display: 'flex', gap: 8, flex: mode === 'rtsp' ? 1 : 'unset', marginRight: 8 }}>
+          {mode === 'rtsp' ? (
+            <div style={{ display: 'flex', gap: 8, flex: 1, alignItems: 'center', width: '100%' }}>
+              <input
+                value={ipUrl}
+                onChange={e => setIpUrl(e.target.value)}
+                placeholder="rtsp://user:pass@192.168.1.50:554/stream"
+                disabled={ipState === 'live' || ipState === 'connecting'}
+                style={{ flex: 1, minWidth: 0, padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)', fontSize: 11, outline: 'none' }}
+              />
+              {(ipState === 'live' || ipState === 'connecting') ? (
+                <button className="btn btn-sm" onClick={disconnectIp} style={{ background: '#ef4444', color: '#fff', flexShrink: 0 }}>Stop</button>
+              ) : (
+                <button className="btn btn-primary btn-sm" onClick={connectIp} style={{ background: color, flexShrink: 0 }}>Connecter</button>
+              )}
+            </div>
+          ) : capturedImage ? (
             <button className="btn btn-secondary btn-sm" onClick={reset}><RefreshCcw size={14} /> Reset</button>
           ) : mode === 'camera' ? (
             <>

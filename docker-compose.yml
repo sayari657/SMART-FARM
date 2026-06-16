@@ -66,10 +66,11 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER:     ${DB_USER:-admin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.production}
       POSTGRES_DB:       ${DB_NAME:-smart_farm}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/10-smart-farm.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-admin} -d ${DB_NAME:-smart_farm}"]
       interval: 10s
@@ -91,7 +92,7 @@ services:
         condition: service_started
     env_file: .env.production
     environment:
-      DATABASE_URL: postgresql+psycopg2://${DB_USER:-admin}:${DB_PASSWORD}@db:5432/${DB_NAME:-smart_farm}
+      DATABASE_URL: postgresql+psycopg2://${DB_USER:-admin}:${DB_PASSWORD:?Set DB_PASSWORD in .env.production}@db:5432/${DB_NAME:-smart_farm}
       REDIS_URL:    "redis://redis:6379/0"
       MQTT_BROKER:  "mosquitto"
       MQTT_PORT:    "1883"

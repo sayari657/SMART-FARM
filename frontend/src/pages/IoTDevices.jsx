@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Wifi, WifiOff, Plus, Edit2, Trash2, RefreshCw,
   Cpu, Thermometer, Droplets, Scale, Camera, Radio,
   Signal, MapPin, Hash, Activity, X, Check,
-  Zap, Shield, BarChart3, Database, Download, Brain, FileJson, FileSpreadsheet,
+  BarChart3, Gauge, Bug, AlertTriangle, Waves,
+  Play, Pause, Power, RotateCcw, Battery, Volume2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import api, { telemetryAPI } from '../services/api';
+import api, { alertsAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 
@@ -282,6 +283,372 @@ function DeviceCard({ d, onEdit, onDelete }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════ */
+/* ── Enterprise live control dashboard (SCADA-style) ──────────────────────── */
+const SEV = { ok: '#10b981', info: '#64748b', warn: '#f59e0b', danger: '#ef4444' };
+const HISTN = 50;
+const fmtHour = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
+const fmtNum = (v, d = 1) => Number(v).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const realHour = () => { const n = new Date(); return n.getHours() + n.getMinutes() / 60 + n.getSeconds() / 3600; };
+const simInit = () => ({
+  hour: realHour(), dateKey: '', timeStr: '', dateStr: '', mode: 'auto', valve: false, pump: false,
+  soil: 26, soilTemp: 17, flow: 0, pressure: 0, pumpW: 0,
+  leak: false, dryPump: false, leakAlerted: false, dryAlerted: false,
+  weight: 38.0, soundHz: 210, sound: 'normal', soundTicks: 0, brood: 35.0, broodAlerted: false,
+  battery: 12.3, battAlerted: false, lastStart: -10, mielleeTicks: 0, rainTicks: 0,
+  waterToday: 0, cyclesToday: 0, mqtt: 0, ticks: 0, watering: false,
+  hist: { soil: [], soilTemp: [], flow: [], pressure: [], weight: [], brood: [], soundHz: [], battery: [] },
+});
+
+function Sparkline({ data, color, w = 132, h = 34 }) {
+  if (!data || data.length < 2) return <svg width={w} height={h} />;
+  const min = Math.min(...data), max = Math.max(...data), rng = (max - min) || 1;
+  const step = w / (data.length - 1);
+  const y = (v) => h - ((v - min) / rng) * (h - 6) - 3;
+  const pts = data.map((v, i) => `${(i * step).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `0,${h} ${pts} ${w},${h}`;
+  const lx = (data.length - 1) * step, ly = y(data[data.length - 1]);
+  const gid = 'sg' + color.replace('#', '');
+  return (
+    <svg width={w} height={h} style={{ display: 'block' }} preserveAspectRatio="none">
+      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={color} stopOpacity="0.22" /><stop offset="100%" stopColor={color} stopOpacity="0" />
+      </linearGradient></defs>
+      <polygon points={area} fill={`url(#${gid})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lx} cy={ly} r="2.4" fill={color} />
+    </svg>
+  );
+}
+
+function Metric({ icon: Icon, label, value, unit, color, data, fixed = 1 }) {
+  const prev = data && data.length > 1 ? data[data.length - 2] : value;
+  const d = value - prev;
+  const trend = Math.abs(d) < 1e-6 ? '→' : d > 0 ? '▲' : '▼';
+  const tcol = Math.abs(d) < 1e-6 ? '#64748b' : d > 0 ? '#34d399' : '#f87171';
+  return (
+    <div style={{ background: '#0b1220', border: '1px solid #1e293b', borderRadius: 12, padding: '10px 12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <Icon size={13} color={color} />
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: tcol, fontWeight: 800 }}>{trend}</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+          {fmtNum(value, fixed)}<span style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}> {unit}</span>
+        </div>
+        <Sparkline data={data} color={color} />
+      </div>
+    </div>
+  );
+}
+
+function StatusPill({ on, onLabel, offLabel }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 99,
+      fontSize: 11, fontWeight: 800, background: on ? 'rgba(16,185,129,.14)' : T.raised, color: on ? T.green : T.muted,
+      border: `1px solid ${on ? T.green + '55' : T.border}` }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: on ? T.green : T.muted,
+        animation: on ? 'livePulse 1.6s infinite' : 'none' }} />
+      {on ? onLabel : offLabel}
+    </span>
+  );
+}
+
+function Chip({ label, value, color, led }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '6px 14px', borderRight: '1px solid rgba(255,255,255,.08)' }}>
+      <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.06em' }}>{label}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 900, color: color || '#f1f5f9', fontVariantNumeric: 'tabular-nums' }}>
+        {led && <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, boxShadow: `0 0 8px ${color}`, animation: 'livePulse 1.6s infinite' }} />}
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function IoTSimulator() {
+  const { farmId } = useAuth();
+  const s = useRef(simInit());
+  const evRef = useRef([]);
+  const wasCrit = useRef(false);
+  const lastAlert = useRef(0);
+  const [snap, setSnap] = useState({ ...s.current });
+  const [events, setEvents] = useState([]);
+  const [running, setRunning] = useState(true);
+  const [alertsOn, setAlertsOn] = useState(true);
+
+  const pushEvent = (msg, level = 'info') => {
+    evRef.current = [{ id: Date.now() + Math.random(), t: new Date().toLocaleTimeString('fr-FR'), msg, level }, ...evRef.current].slice(0, 16);
+  };
+
+  const clockUpdate = (st) => {
+    const now = new Date();
+    st.hour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+    st.timeStr = now.toLocaleTimeString('fr-FR');
+    st.dateStr = now.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+    const dkey = now.toDateString();
+    if (st.dateKey && st.dateKey !== dkey) { st.waterToday = 0; st.cyclesToday = 0; pushEvent('Nouveau jour — compteurs réinitialisés', 'info'); }
+    st.dateKey = dkey;
+    return now;
+  };
+
+  const step = () => {
+    const st = s.current;
+    clockUpdate(st);                          // 1 tick = 1 real second
+    const fav = (st.hour >= 5 && st.hour < 9) || (st.hour >= 18 && st.hour < 21);
+    const midday = st.hour >= 11 && st.hour < 16;
+
+    // Weather — occasional rain (~ once per few minutes)
+    if (st.rainTicks <= 0 && Math.random() < 0.004) { st.rainTicks = 90 + Math.floor(Math.random() * 120); pushEvent('🌧 Pluie détectée — irrigation suspendue', 'info'); }
+    const raining = st.rainTicks > 0; if (raining) st.rainTicks--;
+
+    // Irrigation auto logic (dossier §5.1) — keyed on the REAL time of day
+    if (st.mode === 'auto') {
+      const gap = (st.hour - st.lastStart + 24) % 24;
+      if (!st.valve && st.soil < 30 && fav && gap > 0.05 && !st.leak && !st.dryPump && !raining) {
+        st.valve = true; st.pump = true; st.lastStart = st.hour;
+        pushEvent('Cycle d’irrigation démarré (sol sec + créneau favorable)', 'ok');
+      } else if (st.valve && st.soil >= 45) {
+        st.valve = false; st.pump = false;
+        pushEvent('Sol suffisamment humide → arrosage arrêté', 'info');
+      }
+    }
+
+    // Hydraulics (per-second rates)
+    const watering = st.valve && st.pump && !st.dryPump && !st.leak;
+    if (watering && !st.watering) st.cyclesToday++;
+    st.watering = watering;
+    if (watering) {
+      st.flow = 19 + Math.random() * 3;
+      st.pressure = 2.1 + Math.random() * 0.3;
+      st.pumpW = 1080 + Math.random() * 80;
+      st.soil = Math.min(100, st.soil + 0.15);
+      st.waterToday += st.flow / 60;          // L/min → L per second
+    } else {
+      st.flow = st.leak ? 5 + Math.random() * 2 : 0;
+      st.pressure = st.dryPump && st.pump ? 3.3 + Math.random() * 0.3 : (st.leak ? 0.6 : 0);
+      st.pumpW = st.dryPump && st.pump ? 1320 : 0;
+      st.soil = Math.max(3, st.soil - (midday ? 0.05 : 0.02) + (raining ? 0.1 : 0));
+      if (st.leak) st.waterToday += st.flow / 60;
+    }
+
+    // Safety detections (dossier §5.3)
+    if (st.leak && !st.leakAlerted) { pushEvent('⚠ FUITE détectée (débit, vanne fermée) → arrêt pompe + alerte', 'danger'); st.leakAlerted = true; st.pump = false; st.valve = false; }
+    if (st.dryPump && st.pump && !st.dryAlerted) { pushEvent('⚠ POMPE À SEC (rotation sans débit) → arrêt pompe + alerte', 'danger'); st.dryAlerted = true; st.pump = false; st.valve = false; }
+
+    // Soil temperature — follows the real day cycle (smooth)
+    const tgt = 13 + 15 * Math.max(0, Math.sin((st.hour - 6) / 12 * Math.PI));
+    st.soilTemp += (tgt - st.soilTemp) * 0.02 + (Math.random() - 0.5) * 0.05;
+
+    // Beehive (dossier §3.2 / §5.4) — realistic daily rhythm
+    st.brood += (35 - st.brood) * 0.05 + (Math.random() - 0.5) * 0.06;
+    if (st.brood < 34 || st.brood > 36) { if (!st.broodAlerted) { pushEvent('⚠ Température couvain anormale → vérifier la colonie', 'danger'); st.broodAlerted = true; } } else st.broodAlerted = false;
+    if (st.mielleeTicks > 0) { st.weight += 0.02; st.mielleeTicks--; if (st.mielleeTicks === 0) pushEvent('Miellée terminée', 'info'); }
+    else if (st.hour >= 7 && st.hour < 11) st.weight -= 0.0008;   // foragers leaving
+    else if (st.hour >= 16 && st.hour < 20) st.weight += 0.0016;  // returning with nectar
+    else st.weight -= 0.0002;
+    if (st.soundTicks > 0) { st.soundTicks--; st.soundHz += (300 - st.soundHz) * 0.05; if (st.soundTicks === 0) { st.sound = 'normal'; pushEvent('Bourdonnement revenu à la normale', 'info'); } }
+    else st.soundHz += (210 - st.soundHz) * 0.05 + (Math.random() - 0.5) * 3;
+    const dayLight = st.hour >= 7 && st.hour < 18;
+    const battTgt = dayLight ? 12.6 : 10.9;
+    st.battery = Math.max(10.4, Math.min(12.7, st.battery + (battTgt - st.battery) * 0.004));
+    if (st.battery < 11.3 && !st.battAlerted) { pushEvent('⚠ Batterie rucher faible → mise en veille', 'danger'); st.battAlerted = true; }
+    if (st.battery > 11.8) st.battAlerted = false;
+
+    // Telemetry packet + history
+    st.mqtt++;
+    const H = st.hist;
+    const rec = (k, v) => { H[k].push(v); if (H[k].length > HISTN) H[k].shift(); };
+    rec('soil', st.soil); rec('soilTemp', st.soilTemp); rec('flow', st.flow); rec('pressure', st.pressure);
+    rec('weight', st.weight); rec('brood', st.brood); rec('soundHz', st.soundHz); rec('battery', st.battery);
+  };
+
+  useEffect(() => { clockUpdate(s.current); setSnap({ ...s.current }); }, []); // eslint-disable-line
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (running) step();
+      else clockUpdate(s.current);            // keep the clock live even on pause
+      setSnap({ ...s.current });
+      setEvents([...evRef.current]);
+    }, 1000);                                  // synchronised to real time (1 s)
+    return () => clearInterval(iv);
+  }, [running]); // eslint-disable-line
+
+  const sync = () => setSnap({ ...s.current });
+  const toggleMode = () => { s.current.mode = s.current.mode === 'auto' ? 'manual' : 'auto'; pushEvent(`Mode ${s.current.mode === 'auto' ? 'AUTOMATIQUE' : 'MANUEL'} activé`, 'info'); sync(); };
+  const toggleValve = () => { const st = s.current; st.valve = !st.valve; if (!st.valve) st.pump = false; pushEvent(`Vanne ${st.valve ? 'OUVERTE' : 'FERMÉE'} (manuel)`, 'info'); sync(); };
+  const togglePump = () => { const st = s.current; st.pump = !st.pump; if (st.pump) st.valve = true; pushEvent(`Pompe ${st.pump ? 'DÉMARRÉE' : 'ARRÊTÉE'} (manuel)`, 'info'); sync(); };
+  const injLeak = () => { s.current.leak = true; s.current.leakAlerted = false; sync(); };
+  const injDry = () => { s.current.dryPump = true; s.current.dryAlerted = false; sync(); };
+  const repair = () => { s.current.leak = false; s.current.dryPump = false; pushEvent('Anomalies réparées — système nominal', 'ok'); sync(); };
+  const injSwarm = () => { s.current.weight -= 1.8; s.current.sound = 'rising'; s.current.soundTicks = 60; pushEvent('🐝 Chute -1.8 kg + bourdonnement ↑ → ESSAIMAGE probable', 'danger'); sync(); };
+  const injMiellee = () => { s.current.mielleeTicks = 120; pushEvent('Forte prise de poids → miellée en cours', 'ok'); sync(); };
+  const injBrood = () => { s.current.brood = 37.6; sync(); };
+  const reset = () => { s.current = simInit(); evRef.current = []; setEvents([]); sync(); };
+
+  const critical = snap.leak || snap.dryPump || snap.battery < 11.3 || snap.brood < 34 || snap.brood > 36 || snap.pressure > 3;
+  const warning = !critical && (snap.soil < 15 || snap.sound === 'rising' || snap.rainTicks > 0);
+  const sysColor = critical ? SEV.danger : warning ? SEV.warn : SEV.ok;
+  const sysLabel = critical ? 'CRITIQUE' : warning ? 'ALERTE' : 'NOMINAL';
+
+  // On a rising edge to CRITICAL → dispatch a real alert (WhatsApp + email + push)
+  useEffect(() => {
+    if (critical && !wasCrit.current) {
+      const now = Date.now();
+      if (alertsOn && farmId && now - lastAlert.current > 60000) {
+        lastAlert.current = now;
+        const reasons = [];
+        if (snap.leak) reasons.push("fuite d'eau");
+        if (snap.dryPump) reasons.push('pompe à sec');
+        if (snap.pressure > 3) reasons.push('pression anormale');
+        if (snap.battery < 11.3) reasons.push('batterie rucher faible');
+        if (snap.brood < 34 || snap.brood > 36) reasons.push('température couvain anormale');
+        const msg = `🚨 Anomalie critique détectée (${snap.dateStr} ${snap.timeStr}) : ${reasons.join(', ')}. Intervention requise sur la ferme.`;
+        alertsAPI.notify(farmId, '🚨 Alerte Smart Farm AI', msg, 'all')
+          .then(() => { pushEvent('🔔 Alerte critique envoyée à la ferme (WhatsApp/email/push)', 'ok'); setEvents([...evRef.current]); })
+          .catch((e) => { pushEvent(`Alerte non envoyée (${e?.response?.status === 403 ? 'droits owner requis' : 'serveur hors ligne'})`, 'warn'); setEvents([...evRef.current]); });
+      } else if (!alertsOn) {
+        pushEvent('Cas critique détecté (alertes auto désactivées)', 'warn'); setEvents([...evRef.current]);
+      }
+    }
+    wasCrit.current = critical;
+  }, [critical]); // eslint-disable-line
+
+  const soilColor = snap.soil < 15 ? SEV.danger : snap.soil < 30 ? SEV.warn : '#38bdf8';
+  const presColor = snap.pressure > 3 ? SEV.danger : (snap.valve && snap.pump && snap.pressure < 1) ? SEV.danger : '#22d3ee';
+  const broodColor = (snap.brood < 34 || snap.brood > 36) ? SEV.danger : '#34d399';
+  const battColor = snap.battery < 11.3 ? SEV.danger : snap.battery < 11.8 ? SEV.warn : '#34d399';
+  const ctrlBtn = (bg, fg, brd) => ({ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, border: `1px solid ${brd || bg}`, background: bg, color: fg, fontSize: 12, fontWeight: 800, cursor: 'pointer' });
+
+  return (
+    <div style={{ marginBottom: 22, borderRadius: 18, overflow: 'hidden', border: '1px solid #1e293b', boxShadow: '0 10px 30px rgba(2,6,23,.18)' }}>
+      {/* header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', background: 'linear-gradient(135deg,#0f172a,#0b3b46)', flexWrap: 'wrap' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(56,189,248,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Activity size={20} color="#38bdf8" />
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 16, fontWeight: 900, color: '#f1f5f9' }}>Centre de supervision — Smart Farm AI</div>
+          <div style={{ fontSize: 12, color: 'rgba(226,232,240,.65)', marginTop: 1 }}>Supervision temps réel · MQTT · pilotage à distance</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* live real-time clock */}
+          <div style={{ textAlign: 'right', marginRight: 4 }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{snap.timeStr || '—'}</div>
+            <div style={{ fontSize: 10, color: 'rgba(226,232,240,.6)', textTransform: 'capitalize' }}>{snap.dateStr}</div>
+          </div>
+          <button onClick={() => setAlertsOn(a => !a)} title={alertsOn ? 'Alertes auto activées' : 'Alertes auto désactivées'}
+            style={{ ...ctrlBtn(alertsOn ? 'rgba(239,68,68,.18)' : 'rgba(255,255,255,.08)', alertsOn ? '#fca5a5' : '#94a3b8', alertsOn ? 'rgba(239,68,68,.4)' : 'rgba(255,255,255,.15)'), padding: '8px 12px' }}>
+            <AlertTriangle size={14} /> Alertes {alertsOn ? 'ON' : 'OFF'}
+          </button>
+          <button onClick={() => setRunning(r => !r)} title={running ? 'Pause' : 'Lecture'} style={{ ...ctrlBtn('#38bdf8', '#0f172a'), padding: '8px' }}>
+            {running ? <Pause size={16} /> : <Play size={16} />}
+          </button>
+          <button onClick={reset} title="Réinitialiser" style={{ ...ctrlBtn('rgba(255,255,255,.08)', '#e2e8f0', 'rgba(255,255,255,.15)'), padding: '8px' }}>
+            <RotateCcw size={15} />
+          </button>
+        </div>
+      </div>
+
+      {/* status strip */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', background: '#0b1220', borderBottom: '1px solid #1e293b', padding: '4px 6px' }}>
+        <Chip label="État système" value={sysLabel} color={sysColor} led />
+        <Chip label="Date" value={snap.dateStr || '—'} />
+        <Chip label="Débit" value={`${fmtNum(snap.flow, 1)} L/min`} color="#22d3ee" />
+        <Chip label="Eau aujourd’hui" value={`${fmtNum(snap.waterToday / 1, 0)} L`} color="#38bdf8" />
+        <Chip label="Cycles irrig." value={snap.cyclesToday} />
+        <Chip label="Liaison MQTT" value={`${snap.mqtt} msg`} color="#34d399" led />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(226,232,240,.55)' }}>Mode</span>
+          <div style={{ display: 'inline-flex', borderRadius: 9, overflow: 'hidden', border: '1px solid #1e293b' }}>
+            {['auto', 'manual'].map(m => (
+              <button key={m} onClick={() => snap.mode !== m && toggleMode()}
+                style={{ padding: '6px 14px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
+                  background: snap.mode === m ? '#38bdf8' : '#0b1220', color: snap.mode === m ? '#0f172a' : '#94a3b8' }}>
+                {m === 'auto' ? '⚙ Auto' : '✋ Manuel'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* unit panels */}
+      <div style={{ display: 'flex', gap: 14, padding: 16, flexWrap: 'wrap', background: '#0f172a' }}>
+        {/* Unité A */}
+        <div style={{ flex: '1 1 380px', background: T.white, borderRadius: 14, padding: 14, border: '1px solid #1e293b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Droplets size={16} color={T.indigo} />
+            <span style={{ fontWeight: 800, color: T.text, fontSize: 14 }}>Unité A — Irrigation</span>
+            <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <StatusPill on={snap.valve} onLabel="Vanne ouverte" offLabel="Vanne fermée" />
+              <StatusPill on={snap.pump} onLabel="Pompe ON" offLabel="Pompe OFF" />
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Metric icon={Droplets} label="Humidité sol" value={snap.soil} unit="%" color={soilColor} data={snap.hist?.soil} fixed={0} />
+            <Metric icon={Thermometer} label="Temp. sol" value={snap.soilTemp} unit="°C" color="#fb923c" data={snap.hist?.soilTemp} />
+            <Metric icon={Gauge} label="Débit" value={snap.flow} unit="L/min" color="#22d3ee" data={snap.hist?.flow} />
+            <Metric icon={Activity} label="Pression" value={snap.pressure} unit="bar" color={presColor} data={snap.hist?.pressure} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <button onClick={toggleValve} disabled={snap.mode !== 'manual'} style={{ ...ctrlBtn(snap.valve ? T.green : T.white, snap.valve ? '#fff' : T.dim, T.border), opacity: snap.mode !== 'manual' ? .5 : 1, flex: 1 }}>
+              <Waves size={14} /> {snap.valve ? 'Fermer vanne' : 'Ouvrir vanne'}
+            </button>
+            <button onClick={togglePump} disabled={snap.mode !== 'manual'} style={{ ...ctrlBtn(snap.pump ? T.green : T.white, snap.pump ? '#fff' : T.dim, T.border), opacity: snap.mode !== 'manual' ? .5 : 1, flex: 1 }}>
+              <Power size={14} /> {snap.pump ? 'Arrêter pompe' : 'Démarrer pompe'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+            <button onClick={injLeak} style={{ ...ctrlBtn(`${T.red}12`, T.red, `${T.red}40`), flex: 1 }}><AlertTriangle size={13} /> Fuite</button>
+            <button onClick={injDry} style={{ ...ctrlBtn(`${T.red}12`, T.red, `${T.red}40`), flex: 1 }}><AlertTriangle size={13} /> Pompe à sec</button>
+            <button onClick={repair} style={{ ...ctrlBtn(`${T.green}12`, T.green, `${T.green}40`), flex: 1 }}><Check size={13} /> Réparer</button>
+          </div>
+        </div>
+
+        {/* Unité B */}
+        <div style={{ flex: '1 1 380px', background: T.white, borderRadius: 14, padding: 14, border: '1px solid #1e293b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Bug size={16} color={T.amber} />
+            <span style={{ fontWeight: 800, color: T.text, fontSize: 14 }}>Unité B — Rucher</span>
+            <span style={{ marginLeft: 'auto' }}><StatusPill on={snap.sound === 'rising'} onLabel="Son élevé" offLabel="Son normal" /></span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Metric icon={Scale} label="Poids ruche" value={snap.weight} unit="kg" color="#fbbf24" data={snap.hist?.weight} />
+            <Metric icon={Thermometer} label="Temp. couvain" value={snap.brood} unit="°C" color={broodColor} data={snap.hist?.brood} />
+            <Metric icon={Volume2} label="Son colonie" value={snap.soundHz} unit="Hz" color={snap.sound === 'rising' ? SEV.danger : '#a78bfa'} data={snap.hist?.soundHz} fixed={0} />
+            <Metric icon={Battery} label="Batterie" value={snap.battery} unit="V" color={battColor} data={snap.hist?.battery} fixed={2} />
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <button onClick={injSwarm} style={{ ...ctrlBtn(`${T.red}12`, T.red, `${T.red}40`), flex: 1 }}>🐝 Essaimage</button>
+            <button onClick={injMiellee} style={{ ...ctrlBtn(`${T.green}12`, T.green, `${T.green}40`), flex: 1 }}><Scale size={13} /> Miellée</button>
+            <button onClick={injBrood} style={{ ...ctrlBtn(`${T.amber}14`, T.amber, `${T.amber}40`), flex: 1 }}><Thermometer size={13} /> Stress couvain</button>
+          </div>
+        </div>
+      </div>
+
+      {/* live event log */}
+      <div style={{ padding: '0 16px 16px', background: '#0f172a' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+          <Signal size={13} color="#38bdf8" /> Journal des événements (live)
+        </div>
+        <div style={{ maxHeight: 170, overflowY: 'auto', display: 'grid', gap: 5, background: '#0b1220', border: '1px solid #1e293b', borderRadius: 12, padding: 10 }}>
+          {events.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#475569', padding: '6px 2px' }}>En attente d'événements… (le système tourne)</div>
+          ) : events.map(ev => (
+            <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span style={{ fontVariantNumeric: 'tabular-nums', color: '#475569', fontWeight: 700, width: 42 }}>{ev.t}</span>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: SEV[ev.level] || SEV.info, flexShrink: 0 }} />
+              <span style={{ color: ev.level === 'danger' ? '#f87171' : '#cbd5e1', fontWeight: ev.level === 'danger' ? 700 : 500 }}>{ev.msg}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function IoTDevices() {
   const { farmId } = useAuth();
   const [devices, setDevices]     = useState([]);
@@ -289,8 +656,6 @@ export default function IoTDevices() {
   const [loading, setLoading]     = useState(true);
   const [modal, setModal]         = useState(null);
   const [filterType, setFilterType] = useState('');
-  const [dsInfo, setDsInfo]       = useState(null);   // dataset export info
-  const [dsBusy, setDsBusy]       = useState('');     // '' | 'jsonl' | 'csv'
 
   const load = async () => {
     if (!farmId) return;
@@ -307,29 +672,6 @@ export default function IoTDevices() {
   };
 
   useEffect(() => { load(); }, [farmId, filterType]);
-
-  // Dataset export info (how many fine-tuning examples are available)
-  useEffect(() => {
-    telemetryAPI.exportInfo(farmId).then(r => setDsInfo(r.data)).catch(() => setDsInfo(null));
-  }, [farmId]);
-
-  const downloadDataset = async (format) => {
-    setDsBusy(format);
-    try {
-      const res = await telemetryAPI.exportDataset(format, farmId);
-      const url = URL.createObjectURL(new Blob([res.data]));
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = format === 'csv' ? 'smartfarm_telemetry.csv' : 'smartfarm_finetune.jsonl';
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      const n = res.headers?.['x-example-count'];
-      toast.success(format === 'csv'
-        ? `Télémétrie exportée (${n || 0} lignes)`
-        : `Dataset fine-tuning téléchargé (${n || dsInfo?.total_examples || 0} exemples)`);
-    } catch { toast.error("Échec de l'export du dataset"); }
-    finally { setDsBusy(''); }
-  };
 
   const deleteDevice = async (id) => {
     if (!confirm('Supprimer ce capteur ?')) return;
@@ -450,67 +792,8 @@ export default function IoTDevices() {
         {/* ═══ MAIN ═════════════════════════════════════════════════════ */}
         <div style={{ padding: '24px 32px' }}>
 
-          {/* ─── Dataset export (fine-tuning) ─────────────────────────── */}
-          <div style={{ marginBottom: 22, borderRadius: 18, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.white, boxShadow: '0 1px 3px rgba(15,23,42,.06)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'linear-gradient(135deg,#312e81,#4f46e5)' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Brain size={20} color="#fff" />
-              </div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>Base de données IA — Export pour fine-tuning</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.85)', marginTop: 1 }}>
-                  Téléchargez le dataset des capteurs &amp; règles métier pour entraîner Smart Farm AI
-                </div>
-              </div>
-              {dsInfo && (
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{dsInfo.total_examples}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Exemples</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{dsInfo.real_records}</div>
-                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Mesures réelles</div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ padding: '18px 20px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'stretch' }}>
-              {/* JSONL — LLM fine-tuning */}
-              <div style={{ flex: '1 1 280px', border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileJson size={18} color={T.indigo} />
-                  <div style={{ fontWeight: 800, color: T.dim, fontSize: 14 }}>Dataset LLM (.jsonl)</div>
-                </div>
-                <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.6, flex: 1 }}>
-                  Format chat <code style={{ background: T.raised, padding: '1px 5px', borderRadius: 5 }}>messages[]</code> — encode la logique d'irrigation, les détections de sécurité et les alertes rucher + la télémétrie réelle. Prêt pour fine-tuner un modèle.
-                </div>
-                <button onClick={() => downloadDataset('jsonl')} disabled={dsBusy === 'jsonl'}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 11, border: 'none', background: `linear-gradient(135deg,${T.indigo},${T.purple})`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: dsBusy === 'jsonl' ? .6 : 1 }}>
-                  <Download size={15} /> {dsBusy === 'jsonl' ? 'Préparation…' : 'Télécharger .jsonl'}
-                </button>
-              </div>
-
-              {/* CSV — classic ML */}
-              <div style={{ flex: '1 1 280px', border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FileSpreadsheet size={18} color={T.green} />
-                  <div style={{ fontWeight: 800, color: T.dim, fontSize: 14 }}>Télémétrie brute (.csv)</div>
-                </div>
-                <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.6, flex: 1 }}>
-                  Table à plat des mesures capteurs (1 ligne / relevé, métriques en colonnes). Idéal pour le ML classique : détection d'anomalies, prévision, séries temporelles.
-                </div>
-                <button onClick={() => downloadDataset('csv')} disabled={dsBusy === 'csv'}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 11, border: `1px solid ${T.border}`, background: T.white, color: T.dim, fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: dsBusy === 'csv' ? .6 : 1 }}>
-                  <Download size={15} /> {dsBusy === 'csv' ? 'Préparation…' : 'Télécharger .csv'}
-                </button>
-              </div>
-            </div>
-            <div style={{ padding: '0 20px 16px', fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Database size={12} /> Les exemples « règles » reproduisent le comportement documenté du système ; les mesures réelles s'y ajoutent au fil des relevés MQTT.
-            </div>
-          </div>
+          {/* ─── Centre de supervision temps réel ─────────────────────── */}
+          <IoTSimulator />
 
           {/* Filter pills */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>

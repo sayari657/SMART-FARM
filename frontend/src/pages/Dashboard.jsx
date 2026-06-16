@@ -745,6 +745,7 @@ export default function Dashboard() {
               title={t('dashboard.sovereign_emergency_monitor')}
               color="#ef4444"
               onAnalysisComplete={handleFireDetection}
+              allowIpCamera
             />
           </Suspense>
 

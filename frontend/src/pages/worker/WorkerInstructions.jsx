@@ -56,12 +56,13 @@ export default function WorkerInstructions() {
   const catColor = cat?.color ?? '#0891b2';
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: '100%', maxWidth: 480, margin: '0 auto', paddingBottom: 90 }}>
+    <div style={{ background: '#f8fafc', minHeight: '100%', paddingBottom: 90 }}>
 
       {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #0891b2 0%, #0369a1 100%)',
-        padding: '16px 18px 24px', color: 'white', position: 'relative',
+        padding: '16px 18px 24px', color: 'white',
+        position: 'sticky', top: 0, zIndex: 20,
       }}>
         <button
           onClick={() => navigate(-1)}
