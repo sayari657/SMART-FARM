@@ -184,6 +184,12 @@ export const telemetryAPI = {
     if (isNaN(id)) return Promise.resolve({ data: {} });
     return api.get(`/telemetry/${id}/latest`);
   },
+  exportInfo: (farmId) => api.get('/telemetry/export/info', { params: farmId ? { farm_id: farmId } : {} }),
+  exportDataset: (format = 'jsonl', farmId) =>
+    api.get('/telemetry/export/dataset', {
+      params: { format, ...(farmId ? { farm_id: farmId } : {}) },
+      responseType: 'blob',
+    }),
 };
 
 // ---- CV Events

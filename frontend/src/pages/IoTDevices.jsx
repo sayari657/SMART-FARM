@@ -3,10 +3,10 @@ import {
   Wifi, WifiOff, Plus, Edit2, Trash2, RefreshCw,
   Cpu, Thermometer, Droplets, Scale, Camera, Radio,
   Signal, MapPin, Hash, Activity, X, Check,
-  Zap, Shield, BarChart3,
+  Zap, Shield, BarChart3, Database, Download, Brain, FileJson, FileSpreadsheet,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import api, { telemetryAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 
@@ -289,6 +289,8 @@ export default function IoTDevices() {
   const [loading, setLoading]     = useState(true);
   const [modal, setModal]         = useState(null);
   const [filterType, setFilterType] = useState('');
+  const [dsInfo, setDsInfo]       = useState(null);   // dataset export info
+  const [dsBusy, setDsBusy]       = useState('');     // '' | 'jsonl' | 'csv'
 
   const load = async () => {
     if (!farmId) return;
@@ -305,6 +307,29 @@ export default function IoTDevices() {
   };
 
   useEffect(() => { load(); }, [farmId, filterType]);
+
+  // Dataset export info (how many fine-tuning examples are available)
+  useEffect(() => {
+    telemetryAPI.exportInfo(farmId).then(r => setDsInfo(r.data)).catch(() => setDsInfo(null));
+  }, [farmId]);
+
+  const downloadDataset = async (format) => {
+    setDsBusy(format);
+    try {
+      const res = await telemetryAPI.exportDataset(format, farmId);
+      const url = URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = format === 'csv' ? 'smartfarm_telemetry.csv' : 'smartfarm_finetune.jsonl';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      const n = res.headers?.['x-example-count'];
+      toast.success(format === 'csv'
+        ? `Télémétrie exportée (${n || 0} lignes)`
+        : `Dataset fine-tuning téléchargé (${n || dsInfo?.total_examples || 0} exemples)`);
+    } catch { toast.error("Échec de l'export du dataset"); }
+    finally { setDsBusy(''); }
+  };
 
   const deleteDevice = async (id) => {
     if (!confirm('Supprimer ce capteur ?')) return;
@@ -424,6 +449,68 @@ export default function IoTDevices() {
 
         {/* ═══ MAIN ═════════════════════════════════════════════════════ */}
         <div style={{ padding: '24px 32px' }}>
+
+          {/* ─── Dataset export (fine-tuning) ─────────────────────────── */}
+          <div style={{ marginBottom: 22, borderRadius: 18, overflow: 'hidden', border: `1px solid ${T.border}`, background: T.white, boxShadow: '0 1px 3px rgba(15,23,42,.06)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'linear-gradient(135deg,#312e81,#4f46e5)' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Brain size={20} color="#fff" />
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>Base de données IA — Export pour fine-tuning</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,.85)', marginTop: 1 }}>
+                  Téléchargez le dataset des capteurs &amp; règles métier pour entraîner Smart Farm AI
+                </div>
+              </div>
+              {dsInfo && (
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{dsInfo.total_examples}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Exemples</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#fff' }}>{dsInfo.real_records}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,.7)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Mesures réelles</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '18px 20px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'stretch' }}>
+              {/* JSONL — LLM fine-tuning */}
+              <div style={{ flex: '1 1 280px', border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileJson size={18} color={T.indigo} />
+                  <div style={{ fontWeight: 800, color: T.dim, fontSize: 14 }}>Dataset LLM (.jsonl)</div>
+                </div>
+                <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.6, flex: 1 }}>
+                  Format chat <code style={{ background: T.raised, padding: '1px 5px', borderRadius: 5 }}>messages[]</code> — encode la logique d'irrigation, les détections de sécurité et les alertes rucher + la télémétrie réelle. Prêt pour fine-tuner un modèle.
+                </div>
+                <button onClick={() => downloadDataset('jsonl')} disabled={dsBusy === 'jsonl'}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 11, border: 'none', background: `linear-gradient(135deg,${T.indigo},${T.purple})`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: dsBusy === 'jsonl' ? .6 : 1 }}>
+                  <Download size={15} /> {dsBusy === 'jsonl' ? 'Préparation…' : 'Télécharger .jsonl'}
+                </button>
+              </div>
+
+              {/* CSV — classic ML */}
+              <div style={{ flex: '1 1 280px', border: `1px solid ${T.border}`, borderRadius: 14, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <FileSpreadsheet size={18} color={T.green} />
+                  <div style={{ fontWeight: 800, color: T.dim, fontSize: 14 }}>Télémétrie brute (.csv)</div>
+                </div>
+                <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.6, flex: 1 }}>
+                  Table à plat des mesures capteurs (1 ligne / relevé, métriques en colonnes). Idéal pour le ML classique : détection d'anomalies, prévision, séries temporelles.
+                </div>
+                <button onClick={() => downloadDataset('csv')} disabled={dsBusy === 'csv'}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 16px', borderRadius: 11, border: `1px solid ${T.border}`, background: T.white, color: T.dim, fontWeight: 800, fontSize: 14, cursor: 'pointer', opacity: dsBusy === 'csv' ? .6 : 1 }}>
+                  <Download size={15} /> {dsBusy === 'csv' ? 'Préparation…' : 'Télécharger .csv'}
+                </button>
+              </div>
+            </div>
+            <div style={{ padding: '0 20px 16px', fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Database size={12} /> Les exemples « règles » reproduisent le comportement documenté du système ; les mesures réelles s'y ajoutent au fil des relevés MQTT.
+            </div>
+          </div>
 
           {/* Filter pills */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
