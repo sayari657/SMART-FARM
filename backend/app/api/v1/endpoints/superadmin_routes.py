@@ -178,7 +178,7 @@ def platform_stats(db: Session = Depends(get_db), _: User = Depends(require_supe
     new_month  = db.query(func.count(User.id)).filter(User.role == "owner", User.created_at >= cutoff_30).scalar() or 0
     new_week   = db.query(func.count(User.id)).filter(User.role == "owner", User.created_at >= cutoff_7).scalar() or 0
 
-    return {
+    stats_result = {
         "owners": total_owners, "workers": total_workers,
         "farms": total_farms, "animals": total_animals,
         "active_users": active_users, "inactive_users": inactive,

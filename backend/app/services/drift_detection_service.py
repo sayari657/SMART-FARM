@@ -138,7 +138,7 @@ class DriftDetectionService:
             return {"status": "insufficient_data", "category": category}
 
         b_mean, b_std = float(np.mean(baseline_confs)), float(np.std(baseline_confs))
-        r_mean, r_std = float(np.mean(recent_confs)),   float(np.std(recent_confs))
+        r_mean = float(np.mean(recent_confs))
 
         z_score  = abs(r_mean - b_mean) / (b_std + 1e-8)
         psi      = _psi(baseline_confs, recent_confs) if len(baseline_confs) > 10 else 0.0

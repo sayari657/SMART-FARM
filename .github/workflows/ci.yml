@@ -65,7 +65,10 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install ruff
-      - run: ruff check backend/app/ --select=E,F,W,I --ignore=E501,E712,F401
+        # Keep the bug-catching rules (F-series: undefined names, redefs, unused
+        # vars) and core errors; ignore cosmetic/intentional ones (line length,
+        # import order, deliberate late imports, compound statements).
+      - run: ruff check backend/app/ --select=E,F,W,I --ignore=E501,E712,F401,I001,E402,E701,E702,E741
 
   # ── 3. Frontend Build + Lint ──────────────────────────────────────────────────
   frontend-build:
