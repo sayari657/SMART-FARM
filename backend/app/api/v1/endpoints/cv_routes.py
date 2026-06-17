@@ -305,7 +305,16 @@ def get_model_metadata(category: str):
     model = get_yolo_model(category)
     if not model:
         return {"category": category, "names": {}, "available": False, "reason": "model_not_found"}
-    return {"category": category, "names": model.names, "available": True}
+    names = model.names
+    # The fire model bakes in noisy placeholder classes (numeric 0-4 "zones" +
+    # a generic "object"); operationally the Sovereign Emergency Monitor only
+    # reports Fire and Smoke. Surface just those two real classes.
+    if category == "fire":
+        keep = {i: n for i, n in names.items()
+                if str(n).strip().lower() in ("fire", "smoke", "incendie", "fumee", "feu", "fumée")}
+        if keep:
+            names = keep
+    return {"category": category, "names": names, "available": True}
 
 @router.get("/stats/plants")
 def plant_cv_stats(
