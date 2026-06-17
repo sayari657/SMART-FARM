@@ -9,7 +9,10 @@ jobs:
   docker:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    # Disabled by default: the live deployment is Cloudflare Pages (frontend) +
+    # Hugging Face Spaces (backend), not Docker Hub/VPS. Re-enable by setting the
+    # repo variable ENABLE_DOCKER_CD=true (and the DOCKERHUB_/VPS_ secrets).
+    if: ${{ vars.ENABLE_DOCKER_CD == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) }}
 
     steps:
       - uses: actions/checkout@v4
