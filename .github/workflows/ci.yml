@@ -178,7 +178,9 @@ jobs:
         run: nohup npx serve dist -l 5173 > "$GITHUB_WORKSPACE/frontend.log" 2>&1 & echo "frontend pid $!"
 
       - name: Wait for services
-        run: npx wait-on http://localhost:8000/health http://localhost:5173 --timeout 120000
+        # http-get:// forces GET — /health only allows GET (HEAD → 405, which
+        # wait-on would read as "not ready" even though the server is up).
+        run: npx wait-on http-get://localhost:8000/health http-get://localhost:5173 --timeout 120000
 
       - name: Run Playwright tests
         working-directory: frontend
