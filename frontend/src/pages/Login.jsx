@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { authAPI } from '../services/api';
 import { redirectToCheckout } from '../services/billingApi';
+import InstallAppButton from '../components/InstallAppButton';
 
 /* ── Design tokens ────────────────────────────────────────────────────── */
 const T = {
@@ -385,6 +386,10 @@ export default function Login() {
                   onMouseLeave={e => e.currentTarget.style.color=T.dim}>
                   👷 Accès ouvriers →
                 </Link>
+              </div>
+
+              <div style={{ marginTop:12 }}>
+                <InstallAppButton label="📲 Installer l'application sur le téléphone" />
               </div>
             </div>
           )}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import InstallAppButton from '../components/InstallAppButton';
 import {
   Phone, ArrowRight, RotateCcw, Check, Shield,
   Leaf, ChevronLeft, MessageCircle, Loader2,
@@ -265,6 +266,10 @@ export default function WorkerLogin() {
               }}>
                 <Shield size={13} color="#16a34a" style={{ flexShrink: 0 }} />
                 <span>{t('worker_login.otp_expires')} <strong style={{ color: '#0f172a' }}>{t('worker_login.otp_minutes')}</strong></span>
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <InstallAppButton label="📲 Installer l'app sur le téléphone" />
               </div>
             </>
           )}
