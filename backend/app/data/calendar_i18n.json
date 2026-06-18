@@ -1,0 +1,552 @@
+{
+  "cultures": {
+    "agrumes": {
+      "en": "citrus fruits",
+      "ar": "الحمضيات"
+    },
+    "amandier": {
+      "en": "almond tree",
+      "ar": "لوز"
+    },
+    "ble dur": {
+      "en": "hard wheat",
+      "ar": "قمح صلب"
+    },
+    "datte": {
+      "en": "date",
+      "ar": "نخلة"
+    },
+    "figuier": {
+      "en": "fig tree",
+      "ar": "تين"
+    },
+    "melon": {
+      "en": "melon",
+      "ar": "شمام"
+    },
+    "oignon": {
+      "en": "onion",
+      "ar": "بصل"
+    },
+    "olivier": {
+      "en": "olive tree",
+      "ar": "زيتون"
+    },
+    "orge": {
+      "en": "barley",
+      "ar": "شعير"
+    },
+    "piment": {
+      "en": "pepper",
+      "ar": "فلفل"
+    },
+    "pomme de terre": {
+      "en": "potato",
+      "ar": "بطاطس"
+    },
+    "tomate": {
+      "en": "tomato",
+      "ar": "طماطم"
+    },
+    "vigne": {
+      "en": "vine",
+      "ar": "كرم"
+    }
+  },
+  "stades": {
+    "croissance": {
+      "en": "growth",
+      "ar": "النمو"
+    },
+    "debourrement": {
+      "en": "swelling of buds",
+      "ar": "التفتح"
+    },
+    "ensachage": {
+      "en": "bagging",
+      "ar": "التغليف"
+    },
+    "epiaison": {
+      "en": "shattering",
+      "ar": "التكوين"
+    },
+    "floraison": {
+      "en": "bloom",
+      "ar": "التزهير"
+    },
+    "levee": {
+      "en": "sprouting",
+      "ar": "الإنبات"
+    },
+    "nouaison": {
+      "en": "fruit set",
+      "ar": "التكوين"
+    },
+    "pepiniere": {
+      "en": "nursery",
+      "ar": "مشتل"
+    },
+    "plantation": {
+      "en": "planting",
+      "ar": "الزراعة"
+    },
+    "pollinisation": {
+      "en": "pollination",
+      "ar": "التلقيح"
+    },
+    "recolte": {
+      "en": "harvest",
+      "ar": "الحصاد"
+    },
+    "repiquage": {
+      "en": "replanting",
+      "ar": "الزراعة الثانية"
+    },
+    "semis": {
+      "en": "sowing",
+      "ar": "الزراعة"
+    },
+    "taille": {
+      "en": "pruning",
+      "ar": "القطع"
+    },
+    "tallage": {
+      "en": "training",
+      "ar": "الضرب"
+    },
+    "transplantation": {
+      "en": "transplanting",
+      "ar": "النقل"
+    },
+    "veraison": {
+      "en": "veraison",
+      "ar": "التلون"
+    }
+  },
+  "actions": {
+    "Caprifiguier si présent — pollinisation": {
+      "en": "Fig tree present - pollination",
+      "ar": "التّنّين الموجود - تَلقيح"
+    },
+    "Désherbage, binage": {
+      "en": "Weeding, hoeing",
+      "ar": "إزالة الأعشاب الضارة، حراثة"
+    },
+    "Désherbage, fertilisation azotée fractionnée": {
+      "en": "Weeding, split nitrogen fertilization",
+      "ar": "إزالة الأعشاب الضارة، تسميد آزوتي متجزء"
+    },
+    "Ensachage des régimes contre insectes": {
+      "en": "Bagging of dates against insects",
+      "ar": "تغليف النباتات ضد الحشرات"
+    },
+    "Ensachage plastique contre pluies et insectes": {
+      "en": "Plastic bagging against rain and insects",
+      "ar": "تغليف بلاستيكي ضد الأمطار والحشرات"
+    },
+    "Fertilisation azotée": {
+      "en": "Nitrogen fertilization",
+      "ar": "تسميد آزوتي"
+    },
+    "Fertilisation potassique, surveillance botrytis": {
+      "en": "Potassium fertilization, botrytis monitoring",
+      "ar": "تسميد بوتاسي، مراقبة فطر البوتريتيس"
+    },
+    "Figues fraîches (Juillet), figues sèches (Août-Sept)": {
+      "en": "Fresh figs (July), dried figs (August-September)",
+      "ar": "تين طازج (يوليو)، تين مجفف (أغسطس-سبتمبر)"
+    },
+    "Fleur d'oranger — irrigation suspendue": {
+      "en": "Orange blossom - irrigation suspended",
+      "ar": "زهر البرتقال - إيقاف الري"
+    },
+    "Irrigation déficitaire contrôlée": {
+      "en": "Controlled deficit irrigation",
+      "ar": "ري ناقص متحكم"
+    },
+    "Irrigation goutte-à-goutte obligatoire": {
+      "en": "Drip irrigation mandatory",
+      "ar": "ري بالتنقيط إجباري"
+    },
+    "Irrigation par séguia ou goutte-à-goutte": {
+      "en": "Irrigation by seguias or drip",
+      "ar": "ري بالساقية أو التنقيط"
+    },
+    "Irrigation régulière, fertilisation": {
+      "en": "Regular irrigation, fertilization",
+      "ar": "ري منتظم، تسميد"
+    },
+    "Maltaise (Jan-Fév), Navel (Nov-Jan), Clémentines (Oct-Déc)": {
+      "en": "Maltaise (Jan-Feb), Navel (Nov-Jan), Clementines (Oct-Dec)",
+      "ar": "مالطية (يناير-فبراير)، نافيل (نوفمبر-يناير)، كليمنتين (أكتوبر-ديسمبر)"
+    },
+    "Moisson avant vagues de chaleur": {
+      "en": "Harvest before heat waves",
+      "ar": "حصاد قبل موجات الحرارة"
+    },
+    "Moisson mécanique à humidité <14%": {
+      "en": "Mechanical harvest at humidity <14%",
+      "ar": "حصاد ميكانيكي عند رطوبة أقل من 14%"
+    },
+    "Ne pas irriguer — favorise la nouaison naturelle": {
+      "en": "Do not irrigate - promotes natural fruit set",
+      "ar": "لا يُروى - يعزز التزهير الطبيعي"
+    },
+    "Piment rouge pour harissa — séchage solaire": {
+      "en": "Red pepper for harissa - solar drying",
+      "ar": "فلفل أحمر للحرissa - تجفيف شمسي"
+    },
+    "Plantation après gel": {
+      "en": "Planting after frost",
+      "ar": "غرس بعد الصقيع"
+    },
+    "Plantation primeur sous tunnel ou plein champ": {
+      "en": "Early planting under tunnel or in open field",
+      "ar": "غرس الباكر تحت الأنفاق أو في الحقل المفتوح"
+    },
+    "Pollinisation croisée — variétés Zalmati, Oueslati": {
+      "en": "Cross-pollination - Zalmati, Oueslati varieties",
+      "ar": "تَلقيح متقاطع - أصناف زلماطي، وسلاتي"
+    },
+    "Pollinisation manuelle des régimes": {
+      "en": "Manual pollination of dates",
+      "ar": "تَلقيح يدوية للنباتات"
+    },
+    "Pollinisation manuelle — variétés Deglet, Kenta, Alig": {
+      "en": "Manual pollination - Deglet, Kenta, Alig varieties",
+      "ar": "تَلقيح يدوية - أصناف دقلت، كنتا، عاليق"
+    },
+    "Pollinisation — éviter traitements insecticides": {
+      "en": "Pollination - avoid insecticide treatments",
+      "ar": "تَلقيح - تجنب معالجات الحشرات"
+    },
+    "Pollinisation, contrôle oïdium": {
+      "en": "Pollination, powdery mildew control",
+      "ar": "تَلقيح، مراقبة العدوى الفطرية"
+    },
+    "Premier traitement cuivre (bouillie bordelaise)": {
+      "en": "First copper treatment (Bordeaux mixture)",
+      "ar": "العلاج الأول بالنحاس (حساء بوردو)"
+    },
+    "Pépinière sous serre (Tozeur, Kebili)": {
+      "en": "Nursery under greenhouse (Tozeur, Kebili)",
+      "ar": "مشتل تحت الصوبة (توزر، قبلي)"
+    },
+    "Repiquage bulbilles ou plants": {
+      "en": "Replanting of bulbs or seedlings",
+      "ar": "نقل البصيلات أو النباتات"
+    },
+    "Récolte Deglet Nour à maturité": {
+      "en": "Deglet Nour harvest at maturity",
+      "ar": "حصاد دقلت نور عند النضج"
+    },
+    "Récolte avant fortes chaleurs": {
+      "en": "Harvest before high temperatures",
+      "ar": "حصاد قبل الحرارة الشديدة"
+    },
+    "Récolte avant sécheresse estivale": {
+      "en": "Harvest before summer drought",
+      "ar": "حصاد قبل الجفاف الصيفي"
+    },
+    "Récolte et stockage en cave fraîche": {
+      "en": "Harvest and storage in a cool cellar",
+      "ar": "حصاد وتخزين في مخزن بارد"
+    },
+    "Récolte manuelle ou mécanique — oliviers Chemlali": {
+      "en": "Manual or mechanical harvest - Chemlali olive trees",
+      "ar": "حصاد يدوية أو ميكانيكي - زيتون شملالي"
+    },
+    "Récolte manuelle — olives à maturité violacée": {
+      "en": "Manual harvest - olives at purple maturity",
+      "ar": "حصاد يدوية - زيتون ناضج بني"
+    },
+    "Récolte oranges (Nov-Fév), mandarines (Oct-Déc)": {
+      "en": "Orange harvest (Nov-Feb), mandarin (Oct-Dec)",
+      "ar": "حصاد البرتقال (نوفمبر-فبراير)، المندارين (أكتوبر-ديسمبر)"
+    },
+    "Récolte progressive selon maturité": {
+      "en": "Progressive harvest according to maturity",
+      "ar": "حصاد تدريجي حسب النضج"
+    },
+    "Récolte progressive, traitement mildiou si humide": {
+      "en": "Progressive harvest, mildew treatment if humid",
+      "ar": "حصاد تدريجي، معالجة الميلديو إذا كان رطب"
+    },
+    "Récolte quand 50% des fanes versées": {
+      "en": "Harvest when 50% of the leaves are wilted",
+      "ar": "حصاد عند سقوط 50% من الأوراق"
+    },
+    "Récolte quand fanes jaunissent": {
+      "en": "Harvest when leaves turn yellow",
+      "ar": "حصاد عند صفرة الأوراق"
+    },
+    "Récolte tôt le matin": {
+      "en": "Early morning harvest",
+      "ar": "حصاد في الصباح الباكر"
+    },
+    "Récolte vert ou rouge selon destination": {
+      "en": "Green or red harvest depending on destination",
+      "ar": "حصاد أخضر أو أحمر حسب الوجهة"
+    },
+    "Récolte à 30-40% maturité pour huile extra-vierge": {
+      "en": "Harvest at 30-40% maturity for extra-virgin oil",
+      "ar": "حصاد عند 30-40% نضج لزيت الزيتون الفيرجين"
+    },
+    "Récolte à l'ouverture du brou": {
+      "en": "Harvest at the opening of the bud",
+      "ar": "حصاد عند فتح البراعم"
+    },
+    "Récolte à maturité olfactive": {
+      "en": "Harvest at olfactory maturity",
+      "ar": "حصاد عند نضج العطر"
+    },
+    "Récolte à son creux et couleur ventre jaune": {
+      "en": "Harvest at its hollow and yellow belly color",
+      "ar": "حصاد عند انخفاضه ولون بطنه الأصفر"
+    },
+    "Semis": {
+      "en": "Sowing",
+      "ar": "بذر"
+    },
+    "Semis automnal": {
+      "en": "Autumn sowing",
+      "ar": "بذر خريفي"
+    },
+    "Semis direct ou repiquage": {
+      "en": "Direct sowing or transplanting",
+      "ar": "بذر مباشر أو نقل"
+    },
+    "Semis en butte avec paillis": {
+      "en": "Sowing in ridges with mulch",
+      "ar": "بذر على تلة مع غطاء"
+    },
+    "Semis en pépinière chauffée": {
+      "en": "Sowing in a heated nursery",
+      "ar": "بذر في مشتل مدفأ"
+    },
+    "Semis précoce pour bénéficier des pluies": {
+      "en": "Early sowing to benefit from rainfall",
+      "ar": "بذر مبكر للاستفادة من الأمطار"
+    },
+    "Semis précoce pour pluies d'automne": {
+      "en": "Early sowing for autumn rainfall",
+      "ar": "بذر مبكر للأمطار الخريفية"
+    },
+    "Semis précoce — bénéfice de la douceur côtière": {
+      "en": "Early sowing - benefit of coastal mildness",
+      "ar": "بذر مبكر - الاستفادة من لطافة الساحل"
+    },
+    "Semis sous abri": {
+      "en": "Sowing under shelter",
+      "ar": "بذر تحت المأوى"
+    },
+    "Semis sous tunnel plastique": {
+      "en": "Sowing under plastic tunnel",
+      "ar": "بذر تحت الأنفاق البلاستيكي"
+    },
+    "Semis sous tunnel pour protection vent": {
+      "en": "Sowing under tunnel for wind protection",
+      "ar": "بذر تحت الأنفاق لحماية الرياح"
+    },
+    "Semis variétés INRAT (Karim, Salambo)": {
+      "en": "Sowing INRAT varieties (Karim, Salambo)",
+      "ar": "بذر أصناف إنرات (كريم، سلامبو)"
+    },
+    "Taille Guyot ou Gobelet selon variété": {
+      "en": "Guyot or Gobelet pruning according to variety",
+      "ar": "قص غيوت أو كوبليت حسب الصنف"
+    },
+    "Taille courte pour Muscat de Kelibia": {
+      "en": "Short pruning for Kelibia Muscat",
+      "ar": "قص قصير لموسكات قلبيا"
+    },
+    "Taille de fructification": {
+      "en": "Fruiting pruning",
+      "ar": "قص الثمر"
+    },
+    "Taille légère des rameaux de l'année": {
+      "en": "Light pruning of this year's branches",
+      "ar": "قص خفيف للفرع السنوي"
+    },
+    "Taille légère, éliminer bois mort": {
+      "en": "Light pruning, eliminating dead wood",
+      "ar": "قص خفيف، إزالة الخشب الميت"
+    },
+    "Tomate industrielle Sbiba — contrat coopérative": {
+      "en": "Industrial tomato Sbiba - cooperative contract",
+      "ar": "طماطم صناعية سبيبة - عقد تعاوني"
+    },
+    "Traitement alternaria/mildiou": {
+      "en": "Alternaria/mildew treatment",
+      "ar": "معالجة ألترناريا/مилديو"
+    },
+    "Traitement anarsia, tordeuse orientale": {
+      "en": "Anarsia, oriental fruit moth treatment",
+      "ar": "معالجة أنارسيا، دودة ورق الشرق"
+    },
+    "Traitement anti-mildiou, oïdium": {
+      "en": "Anti-mildew, powdery mildew treatment",
+      "ar": "معالجة مضادة للميلديو، العدوى الفطرية"
+    },
+    "Traitement fongicide si rouille": {
+      "en": "Fungicide treatment if rust",
+      "ar": "معالجة فطرية إذا كان هناك صدأ"
+    },
+    "Traitement teigne de l'olivier": {
+      "en": "Olive moth treatment",
+      "ar": "معالجة دودة زيتون"
+    },
+    "Transplantation Cap Bon, Sahel": {
+      "en": "Transplantation Cap Bon, Sahel",
+      "ar": "نقل رأس البون، الساحل"
+    },
+    "Transplantation Nabeul, Hammamet": {
+      "en": "Transplantation Nabeul, Hammamet",
+      "ar": "نقل نابل، حمامات"
+    },
+    "Transplantation après dernières gelées": {
+      "en": "Transplantation after last frosts",
+      "ar": "نقل بعد الصقيع الأخير"
+    },
+    "Transplantation en plein champ après gel": {
+      "en": "Transplantation in open field after frost",
+      "ar": "نقل في الحقل المفتوح بعد الصقيع"
+    },
+    "Transplantation en sol préparé": {
+      "en": "Transplantation in prepared soil",
+      "ar": "نقل في التربة المعدة"
+    },
+    "Transplantation sous tunnel froid": {
+      "en": "Transplantation under cold tunnel",
+      "ar": "نقل تحت الأنفاق البارد"
+    },
+    "Très précoce — risque gel tardif, traitement moniliose": {
+      "en": "Very early - risk of late frost, moniliose treatment",
+      "ar": "مبكر جدا - خطر الصقيع المتأخر، معالجة المنيلوز"
+    },
+    "Vendanges précoces côte (chaleur maritime)": {
+      "en": "Early harvest coast (maritime heat)",
+      "ar": "حصاد مبكر ساحل (حرارة بحرية)"
+    },
+    "Vendanges selon degré brix (≥20° pour rouge)": {
+      "en": "Harvest according to brix degree (≥20° for red)",
+      "ar": "حصاد حسب درجة بريكس (≥20° لل红)"
+    },
+    "Vérifier maturité, piège mouche olive": {
+      "en": "Check maturity, olive fly trap",
+      "ar": "التحقق من النضج، فخ ذبابة الزيتون"
+    },
+    "Ébourgeonnage, traitement botrytis": {
+      "en": "Debudding, botrytis treatment",
+      "ar": "إزالة البراعم، معالجة البوتريتيس"
+    },
+    "Éclaircissage si surcharge": {
+      "en": "Thinning if overloaded",
+      "ar": "تخفيف الحمل إذا كان هناك زيادة"
+    },
+    "Éclaircissage si surcharge fruits": {
+      "en": "Thinning if fruit overload",
+      "ar": "تخفيف الحمل إذا كان هناك زيادة في الفواكه"
+    },
+    "Éviter irrigation — stress hydrique favorise floraison": {
+      "en": "Avoid irrigation - water stress promotes flowering",
+      "ar": "تجنب الري - التوتر المائي يعزز التزهير"
+    }
+  },
+  "diseases": {
+    "Mildiou": {
+      "en": "Downy mildew",
+      "ar": "بياض دقيقي"
+    },
+    "Œil de paon": {
+      "en": "Peacock eye",
+      "ar": "عين البابا"
+    },
+    "Oïdium": {
+      "en": "Powdery mildew",
+      "ar": "مثعنة"
+    },
+    "Mouche de l'olive": {
+      "en": "Olive fly",
+      "ar": "ذبابة الزيتون"
+    },
+    "Rouille brune": {
+      "en": "Brown rust",
+      "ar": "صدا بروني"
+    }
+  },
+  "extra": {
+    "Nord": {
+      "en": "North",
+      "ar": "الشمال"
+    },
+    "Centre": {
+      "en": "Central",
+      "ar": "الوسط"
+    },
+    "Côtier": {
+      "en": "Coastal",
+      "ar": "الساحلي"
+    },
+    "Sud": {
+      "en": "South",
+      "ar": "الجنوب"
+    },
+    "Tell": {
+      "en": "Tell",
+      "ar": "التل"
+    },
+    "Kroumirie": {
+      "en": "Kroumirie",
+      "ar": "الكرامير"
+    },
+    "Dorsale": {
+      "en": "Dorsal",
+      "ar": "الضبابة"
+    },
+    "Steppes": {
+      "en": "Steppes",
+      "ar": "السهوب"
+    },
+    "Sahel": {
+      "en": "Sahel",
+      "ar": "الساحل"
+    },
+    "Cap Bon": {
+      "en": "Cap Bon",
+      "ar": "رأس البنات"
+    },
+    "Jeffara": {
+      "en": "Jeffara",
+      "ar": "الجفارة"
+    },
+    "Oasis": {
+      "en": "Oasis",
+      "ar": "الواحة"
+    },
+    "nouaison": {
+      "en": "set",
+      "ar": "تثمر"
+    },
+    "durcissement noyau": {
+      "en": "hardening of the core",
+      "ar": "تصلد النواة"
+    },
+    "floraison": {
+      "en": "bloom",
+      "ar": "تزهير"
+    },
+    "véraison": {
+      "en": "veraison",
+      "ar": "تلوين"
+    },
+    "récolte": {
+      "en": "harvest",
+      "ar": "حصاد"
+    },
+    "dormance": {
+      "en": "dormancy",
+      "ar": "سكون"
+    }
+  }
+}

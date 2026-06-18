@@ -5,6 +5,7 @@ import {
   CheckCircle2, X, Wheat, Thermometer, Microscope, TrendingUp, Droplets,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import CAL_I18N from '../data/calendarI18n.json';
 import { calendarAPI, alertsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,7 +35,20 @@ const ZONES = [
   { id: 'sud',    label: 'Sud',     desc: 'Jeffara · Oasis' },
 ];
 
-const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTHS = {
+  fr: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  ar: ['جانفي','فيفري','مارس','أفريل','ماي','جوان','جويلية','أوت','سبتمبر','أكتوبر','نوفمبر','ديسمبر'],
+};
+
+// Translate backend French calendar data for DISPLAY (IDs stay French for logic).
+const calNorm = (s) => (s || '').replace(/_/g, ' ').trim();
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+function calTr(group, value, lang) {
+  if (!value || lang === 'fr') return null;
+  const e = CAL_I18N[group]?.[calNorm(value)] || CAL_I18N[group]?.[value];
+  return e?.[lang] || null;
+}
 
 const STAGE_COLORS = {
   semis: T.green, pepiniere: T.green, plantation: T.green, transplantation: T.green,
@@ -50,7 +64,14 @@ const GDD_CROPS = ['olivier', 'vigne', 'agrumes', 'tomate', 'ble_dur', 'amandier
 const RISK_COLORS = { critical: '#dc2626', high: '#ea580c', moderate: '#d97706', low: '#16a34a' };
 
 export default function CropCalendar() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language || 'fr').slice(0, 2);
+  const ML = MONTHS[lang] || MONTHS.fr;
+  const dispCulture = (id) => { const x = calTr('cultures', id, lang); return x ? (lang === 'ar' ? x : cap(x)) : cropLabel(id); };
+  const dispStade   = (v)  => calTr('stades', v, lang) || (v || '').replace(/_/g, ' ');
+  const dispAction  = (a)  => calTr('actions', a, lang) || a;
+  const dispDisease = (m)  => calTr('diseases', m, lang) || m;
+  const dispZone    = (z)  => { const x = calTr('extra', z, lang); return x ? (lang === 'ar' ? x : cap(x)) : z; };
   const { farmId, user } = useAuth();
 
   const [zone,       setZone]       = useState('nord');
@@ -128,10 +149,10 @@ export default function CropCalendar() {
     try {
       const lines = crops.slice(0, 8).map((c) => {
         const treats = (c.traitements_preventifs || [])
-          .map((tr) => ` → ${tr.traitement} (${tr.cible})`).join('');
-        return `• ${cropLabel(c.culture)} [${c.stade}] : ${c.action}${treats}`;
+          .map((tr) => ` → ${tr.traitement} (${dispDisease(tr.cible)})`).join('');
+        return `• ${dispCulture(c.culture)} [${dispStade(c.stade)}] : ${dispAction(c.action)}${treats}`;
       });
-      const title = `${t('crop_calendar.notif_title')} — ${MONTHS_FR[month - 1]}`;
+      const title = `${t('crop_calendar.notif_title')} — ${ML[month - 1]}`;
       const res = await alertsAPI.notify(farmId, title, lines.join('\n'), 'all');
       setNotified(res.data);
     } catch {
@@ -206,7 +227,7 @@ export default function CropCalendar() {
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: T.red }}>{a.message}</div>
-            {a.action_immediate && <div style={{ fontSize: 10, color: T.textSec, marginTop: 2 }}>⚡ {a.action_immediate}</div>}
+            {a.action_immediate && <div style={{ fontSize: 10, color: T.textSec, marginTop: 2 }}>⚡ {dispAction(a.action_immediate)}</div>}
           </div>
           <span style={{ fontSize: 8, padding: '3px 10px', borderRadius: 99, background: T.red, color: '#fff', fontWeight: 900, letterSpacing: 0.8 }}>CRITIQUE</span>
         </div>
@@ -230,7 +251,7 @@ export default function CropCalendar() {
                 fontSize: 10, fontWeight: 700, color: T.textSec, background: T.surfaceAlt,
                 border: `1.5px solid ${T.border}`, borderRadius: 8, padding: '4px 8px', cursor: 'pointer',
               }}>
-                {GDD_CROPS.map((c) => <option key={c} value={c}>{cropLabel(c)}</option>)}
+                {GDD_CROPS.map((c) => <option key={c} value={c}>{dispCulture(c)}</option>)}
               </select>
             </div>
             {gddLoading ? (
@@ -245,11 +266,11 @@ export default function CropCalendar() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 9, fontWeight: 800, background: T.greenLt, color: T.green, padding: '2px 10px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {(gdd.stade_actuel?.stade || '').replace(/_/g, ' ')}
+                    {dispStade(gdd.stade_actuel?.stade)}
                   </span>
                   {gdd.stade_suivant && (
                     <span style={{ fontSize: 9, color: T.textMut }}>
-                      → {(gdd.stade_suivant.stade || '').replace(/_/g, ' ')} ({Math.round(gdd.stade_suivant.gdd_restants)} DJ)
+                      → {dispStade(gdd.stade_suivant.stade)} ({Math.round(gdd.stade_suivant.gdd_restants)} DJ)
                     </span>
                   )}
                 </div>
@@ -260,7 +281,7 @@ export default function CropCalendar() {
                 )}
                 <div style={{ fontSize: 10.5, color: T.textSec, lineHeight: 1.5 }}>
                   <TrendingUp size={10} color={T.blue} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-                  {gdd.stade_actuel?.action}
+                  {dispAction(gdd.stade_actuel?.action)}
                 </div>
               </>
             )}
@@ -286,7 +307,7 @@ export default function CropCalendar() {
                   return (
                     <div key={i} title={`${r.justification} — ${r.recommandation}`}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textSec }}>{r.maladie}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: T.textSec }}>{dispDisease(r.maladie)}</span>
                         <span style={{ fontSize: 10, fontWeight: 900, color: rc }}>{r.score}%</span>
                       </div>
                       <div style={{ height: 5, background: '#f1f5f9', borderRadius: 99, overflow: 'hidden' }}>
@@ -349,17 +370,17 @@ export default function CropCalendar() {
               boxShadow: T.shadow,
             }}>
               <span style={{ fontSize: 11, fontWeight: 800, color: zone === z.id ? T.green : T.textSec, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={10} /> {z.label}
+                <MapPin size={10} /> {dispZone(z.label)}
                 {autoZone === z.id && <span style={{ fontSize: 7, background: T.green, color: '#fff', borderRadius: 99, padding: '1px 6px', fontWeight: 900 }}>{t('crop_calendar.my_farm')}</span>}
               </span>
-              <span style={{ fontSize: 8, color: T.textMut }}>{z.desc}</span>
+              <span style={{ fontSize: 8, color: T.textMut }}>{z.desc.split(' · ').map(dispZone).join(' · ')}</span>
             </button>
           ))}
         </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: 11, padding: '5px 8px', boxShadow: T.shadow }}>
           <button onClick={() => setMonth((m) => (m === 1 ? 12 : m - 1))} style={{ background: T.surfaceAlt, border: `1px solid ${T.border}`, borderRadius: 8, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textSec }}><ChevronLeft size={13} /></button>
-          <span style={{ fontSize: 12, fontWeight: 800, color: T.textPri, minWidth: 86, textAlign: 'center' }}>{MONTHS_FR[month - 1]}</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: T.textPri, minWidth: 86, textAlign: 'center' }}>{ML[month - 1]}</span>
           <button onClick={() => setMonth((m) => (m === 12 ? 1 : m + 1))} style={{ background: T.surfaceAlt, border: `1px solid ${T.border}`, borderRadius: 8, width: 26, height: 26, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textSec }}><ChevronRight size={13} /></button>
         </div>
 
@@ -399,20 +420,20 @@ export default function CropCalendar() {
                     {c.stade === 'recolte' ? <Wheat size={15} color={sc} /> : <Sprout size={15} color={sc} />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: T.textPri }}>{cropLabel(c.culture)}</div>
-                    <div style={{ fontSize: 8, color: sc, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8 }}>{c.stade}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: T.textPri }}>{dispCulture(c.culture)}</div>
+                    <div style={{ fontSize: 8, color: sc, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8 }}>{dispStade(c.stade)}</div>
                   </div>
                   <span style={{ fontSize: 8, color: T.textMut, fontWeight: 700, flexShrink: 0 }}>
-                    {MONTHS_FR[c.mois_debut - 1]?.slice(0, 3)} → {MONTHS_FR[c.mois_fin - 1]?.slice(0, 3)}
+                    {ML[c.mois_debut - 1]?.slice(0, 3)} → {ML[c.mois_fin - 1]?.slice(0, 3)}
                   </span>
                 </div>
-                <div style={{ fontSize: 11, color: T.textSec, lineHeight: 1.55 }}>{c.action}</div>
+                <div style={{ fontSize: 11, color: T.textSec, lineHeight: 1.55 }}>{dispAction(c.action)}</div>
                 {(c.traitements_preventifs || []).map((tr, j) => (
                   <div key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 8, padding: '7px 10px', background: T.amberLt, borderRadius: 9, border: `1px solid ${T.amber}33` }}>
                     <SprayCan size={12} color={T.amber} style={{ flexShrink: 0, marginTop: 1 }} />
                     <div>
                       <div style={{ fontSize: 10, fontWeight: 800, color: T.amber }}>{tr.traitement}</div>
-                      <div style={{ fontSize: 9, color: T.textSec }}>{t('crop_calendar.target')} : {tr.cible}</div>
+                      <div style={{ fontSize: 9, color: T.textSec }}>{t('crop_calendar.target')} : {dispDisease(tr.cible)}</div>
                     </div>
                   </div>
                 ))}
@@ -448,7 +469,7 @@ export default function CropCalendar() {
                   {Object.entries(timeline?.calendrier_mensuel || {}).map(([m, data]) => (
                     <div key={m} style={{ display: 'flex', gap: 12, padding: '10px 14px', background: T.surfaceAlt, borderRadius: 11, border: `1px solid ${T.border}` }}>
                       <div style={{ width: 72, flexShrink: 0, fontSize: 11, fontWeight: 900, color: +m === new Date().getMonth() + 1 ? T.green : T.textSec }}>
-                        {MONTHS_FR[+m - 1]}
+                        {ML[+m - 1]}
                         {+m === new Date().getMonth() + 1 && <div style={{ fontSize: 7, color: T.green, fontWeight: 800 }}>● {t('crop_calendar.current')}</div>}
                       </div>
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -459,7 +480,7 @@ export default function CropCalendar() {
                         ))}
                         {(data.traitements || []).map((tr, i) => (
                           <div key={i} style={{ fontSize: 10, color: T.amber, display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <SprayCan size={10} /> {tr.traitement} → {tr.cible}
+                            <SprayCan size={10} /> {tr.traitement} → {dispDisease(tr.cible)}
                           </div>
                         ))}
                       </div>
