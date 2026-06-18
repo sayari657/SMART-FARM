@@ -120,7 +120,7 @@ class AgentService:
         logger.info(f"Agri-Agent query='{query}' species={species} detections={len(detections or [])}d")
 
         # 1. RAG context
-        wisdom_chunks = await rag_service.query_wisdom(query, species=species, n_results=3)
+        wisdom_chunks = await rag_service.query_wisdom(query, species=species, n_results=5)
         rag_context = "\n---\n".join(wisdom_chunks) if wisdom_chunks else ""
 
         # 2. CV detections context

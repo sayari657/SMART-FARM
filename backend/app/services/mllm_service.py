@@ -64,13 +64,17 @@ class MLLMService:
                                     "role": "system",
                                     "content": (
                                         "You are a Tunisian agricultural expert. "
-                                        "Always respond in Tunisian Darija (دارجة تونسية)."
+                                        "Always respond in Tunisian Darija (دارجة تونسية). "
+                                        "Give a PRECISE, complete and well-structured answer: "
+                                        "concrete numbers, doses, steps and timing when relevant. "
+                                        "Ground your answer in the provided agricultural guide context. "
+                                        "Do not invent facts; if unsure, say so."
                                     ),
                                 },
                                 {"role": "user", "content": text},
                             ],
-                            "temperature": 0.7,
-                            "max_tokens": 1024,
+                            "temperature": 0.35,
+                            "max_tokens": 2048,
                         },
                         timeout=15.0,
                     )
