@@ -83,6 +83,17 @@ DEFAULT_PROMPT = (
     "تعطي نصائح عملية للفلاح التونسي بناءً على ما تراه في الصور أو ما يسألك عنه."
 )
 
+# Strict scope guardrail appended to every prompt: the assistant must stay on its
+# agricultural category and the problem at hand, and refuse anything off-topic.
+SCOPE_GUARD = (
+    "\n\n⚠️ قاعدة صارمة في الإجابة: جاوب فقط على الأسئلة الفلاحية المرتبطة "
+    "بتخصصك وبالمشكلة المطروحة في هذه الفئة. أي سؤال خارج الفلاحة أو خارج الموضوع "
+    "(أسئلة عامة، سياسة، طبخ، برمجة، رياضة، حياة شخصية، ثقافة عامة...) → ما تجاوبش "
+    "عليه، ارفضه بأدب بالدارجة، فكّر الفلاح بلي إنت مساعد فلاحي متخصص فقط في هذا "
+    "المجال، ورجّعه للموضوع الفلاحي. ابقى مركّز على المشكلة فقط، إجابة قصيرة "
+    "ومفيدة بدون استطراد ولا مواضيع جانبية."
+)
+
 def _build_cv_context(detections: List[Dict]) -> str:
     """Convert YOLO detections list into an Arabic description for the prompt."""
     if not detections:
@@ -106,10 +117,8 @@ class AgentService:
         pass
 
     def _get_system_prompt(self, species: Optional[str]) -> str:
-        if not species:
-            return DEFAULT_PROMPT
-        key = species.lower().strip()
-        return SPECIES_PROMPTS.get(key, DEFAULT_PROMPT)
+        base = SPECIES_PROMPTS.get((species or "").lower().strip(), DEFAULT_PROMPT)
+        return base + SCOPE_GUARD
 
     async def chat(
         self,
