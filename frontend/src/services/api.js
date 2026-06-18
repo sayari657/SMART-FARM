@@ -447,4 +447,10 @@ export const orchardAPI = {
   },
 };
 
+// ── Public reviews / testimonials (landing page) ──
+export const reviewsAPI = {
+  list:   ()     => api.get('/reviews'),
+  submit: (data) => api.post('/reviews', data),
+};
+
 export default api;

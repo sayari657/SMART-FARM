@@ -152,6 +152,69 @@ def send_email_alert(to_email: str, title: str, message: str) -> bool:
         return False
 
 
+def send_payment_receipt_email(to_email: str, plan_name: str, amount: float, currency: str = "EUR",
+                               expires=None, receipt_url: str = None, invoice_pdf: str = None) -> bool:
+    """Send a payment-confirmation email with the receipt after a successful Stripe checkout.
+    Best-effort: returns True on success, False otherwise."""
+    if not to_email or "@" not in to_email:
+        return False
+    if not settings.SMTP_EMAIL or not settings.SMTP_PASSWORD:
+        logger.warning("SMTP not configured — receipt email not sent to %s", to_email)
+        return False
+
+    paid_on = datetime.now().strftime("%d/%m/%Y %H:%M")
+    valid_until = expires.strftime("%d/%m/%Y") if expires else "—"
+    amount_str = f"{amount:.2f} {currency}"
+    plan_label = {"pro": "Professionnel", "enterprise": "Entreprise"}.get(plan_name, plan_name)
+
+    buttons = ""
+    if receipt_url:
+        buttons += (f'<a href="{receipt_url}" style="display:inline-block;background:#16a34a;color:#fff;'
+                    f'text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;margin:6px 6px 0 0;">'
+                    f'Voir le reçu</a>')
+    if invoice_pdf:
+        buttons += (f'<a href="{invoice_pdf}" style="display:inline-block;background:#0f172a;color:#fff;'
+                    f'text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:700;margin:6px 0 0 0;">'
+                    f'Télécharger la facture (PDF)</a>')
+
+    html_body = f"""
+    <div style="font-family: Inter, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 36px; color: #0f172a; border: 1px solid #e2e8f0;">
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <span style="font-size:30px;">🌿</span>
+        <div style="font-size:20px; font-weight:800; color:#15803d;">Smart Farm AI</div>
+      </div>
+      <div style="font-size:22px; font-weight:800; margin:14px 0 4px;">✅ Paiement confirmé</div>
+      <p style="color:#64748b; font-size:14px; margin:0 0 22px;">Merci pour votre abonnement. Voici le récapitulatif de votre paiement.</p>
+
+      <table style="width:100%; border-collapse:collapse; font-size:14px;">
+        <tr><td style="padding:10px 0; color:#64748b;">Plan</td><td style="padding:10px 0; text-align:right; font-weight:700;">{plan_label}</td></tr>
+        <tr><td style="padding:10px 0; color:#64748b; border-top:1px solid #f1f5f9;">Montant payé</td><td style="padding:10px 0; text-align:right; font-weight:800; color:#15803d; border-top:1px solid #f1f5f9;">{amount_str}</td></tr>
+        <tr><td style="padding:10px 0; color:#64748b; border-top:1px solid #f1f5f9;">Date</td><td style="padding:10px 0; text-align:right; border-top:1px solid #f1f5f9;">{paid_on}</td></tr>
+        <tr><td style="padding:10px 0; color:#64748b; border-top:1px solid #f1f5f9;">Valable jusqu'au</td><td style="padding:10px 0; text-align:right; border-top:1px solid #f1f5f9;">{valid_until}</td></tr>
+      </table>
+
+      <div style="margin-top:22px;">{buttons}</div>
+
+      <hr style="border:none; border-top:1px solid #e2e8f0; margin:26px 0 14px;" />
+      <p style="color:#94a3b8; font-size:11px; text-align:center; margin:0;">Smart Farm AI Enterprise Platform — Ceci est un reçu automatique, merci de ne pas répondre.</p>
+    </div>
+    """
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"🌿 Smart Farm AI — Reçu de paiement ({plan_label})"
+    msg["From"] = f"Smart Farm AI <{settings.SMTP_EMAIL}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+    try:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.login(settings.SMTP_EMAIL, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_EMAIL, to_email, msg.as_string())
+        logger.info("Payment receipt email sent to %s", to_email)
+        return True
+    except Exception as e:
+        logger.error("SMTP receipt error to %s: %s", to_email, e)
+        return False
+
+
 # ─────────────────────────────────────────────────────────────
 # WHATSAPP OTP via Meta Cloud API
 # ─────────────────────────────────────────────────────────────

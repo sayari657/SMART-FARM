@@ -163,6 +163,7 @@ const BboxZoomCard = ({ imageUrl, detections, color, palette, labelFormatter }) 
 
 // ── ZoomModal: lightbox with full image, bbox, detection chips, CRUD ──────────
 const ZoomModal = ({ card, total, index, color, palette, labelFormatter, onClose, onDelete, onPrev, onNext }) => {
+  const { t } = useTranslation();
   // Close on Escape, navigate with arrow keys
   useEffect(() => {
     const onKey = (e) => {
@@ -211,16 +212,16 @@ const ZoomModal = ({ card, total, index, color, palette, labelFormatter, onClose
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 11, color: '#888' }}>{new Date(card.timestamp).toLocaleString()}</span>
             {total > 1 && <span style={{ fontSize: 10, background: '#f5f5f5', color: '#666', padding: '2px 8px', borderRadius: 20 }}>{index + 1} / {total}</span>}
-            {hasCritical && <span style={{ fontSize: 10, background: '#fef2f2', color: '#ef4444', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>⚠ CRITIQUE</span>}
+            {hasCritical && <span style={{ fontSize: 10, background: '#fef2f2', color: '#ef4444', padding: '2px 8px', borderRadius: 20, fontWeight: 700 }}>⚠ {t('aiscanner.critical')}</span>}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => { onDelete(card.id); onClose(); }}
               style={{ background: '#fef2f2', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', color: '#ef4444', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
-              <Trash2 size={12} /> Supprimer
+              <Trash2 size={12} /> {t('aiscanner.delete')}
             </button>
             <button onClick={onClose}
               style={{ background: '#f5f5f5', border: 'none', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', color: '#555', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600 }}>
-              <X size={12} /> Fermer
+              <X size={12} /> {t('aiscanner.close')}
             </button>
           </div>
         </div>
@@ -233,7 +234,7 @@ const ZoomModal = ({ card, total, index, color, palette, labelFormatter, onClose
         {/* ── Detections chips ── */}
         <div style={{ padding: '10px 14px', borderTop: '1px solid #f0f0f0', background: '#fafafa', flexShrink: 0 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#999', marginBottom: 7, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            {card.detections.length} détection{card.detections.length !== 1 ? 's' : ''}
+            {card.detections.length} {t('aiscanner.detections')}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {card.detections.map((det, i) => {
@@ -306,7 +307,7 @@ const buildReportPrompt = (category, summary, avgConf, count, periodLabel) => {
 };
 
 const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color = '#7c3aed', onAnalysisComplete, allowIpCamera = false }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const tLabel = useCallback((label) => translateLabel(label, i18n.language), [i18n.language]);
 
   const [mode, setMode]             = useState('upload');
@@ -432,9 +433,9 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
       const detail = err?.response?.data?.detail;
       const status = err?.response?.status;
       if (status === 503) {
-        setError('Modèles IA non disponibles en mode cloud. Utilisez le chat texte avec l\'assistant.');
+        setError(t('aiscanner.err_cloud'));
       } else {
-        setError(detail || 'Erreur IA.');
+        setError(detail || t('aiscanner.err_ai'));
       }
     } finally { if (!isBatch) setIsProcessing(false); }
   }, [category, onAnalysisComplete, generateAIReport]);
@@ -501,7 +502,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         })
         .catch(err => { 
           console.error("Camera error:", err);
-          setError('Accès caméra refusé.'); 
+          setError(t('aiscanner.err_camera'));
           setMode('upload'); 
         });
     }
@@ -623,7 +624,7 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
     const token = localStorage.getItem('token');
     const wsUrl = `${WS_BASE}/ws/rtsp?token=${encodeURIComponent(token || '')}&url=${encodeURIComponent(u)}&model=${encodeURIComponent(category)}&fps=4`;
     let ws;
-    try { ws = new WebSocket(wsUrl); } catch { setIpState('error'); setIpMsg('Connexion impossible'); return; }
+    try { ws = new WebSocket(wsUrl); } catch { setIpState('error'); setIpMsg(t('aiscanner.err_connect')); return; }
     wsRef.current = ws;
 
     ws.onmessage = (evt) => {
@@ -640,12 +641,12 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
           lastAlertRef.current = Date.now();
           const card = { id: Date.now() + Math.random(), timestamp: new Date().toISOString(), imageUrl: dataUrl, detections: m.detections, category };
           pushScanAlert(card);
-          toast('🚨 Détection caméra IP', { duration: 2500, style: { background: '#fef2f2', color: '#991b1b', fontWeight: 700, fontSize: 13 } });
+          toast('🚨 ' + t('aiscanner.ip_detection'), { duration: 2500, style: { background: '#fef2f2', color: '#991b1b', fontWeight: 700, fontSize: 13 } });
           if (onAnalysisComplete) onAnalysisComplete({ detections: m.detections, imageUrl: dataUrl, category });
         }
       }
     };
-    ws.onerror = () => { setIpState('error'); setIpMsg('Connexion échouée'); };
+    ws.onerror = () => { setIpState('error'); setIpMsg(t('aiscanner.err_connect')); };
     ws.onclose = () => { setIpState(s => (s === 'live' || s === 'connecting') ? 'idle' : s); };
   }, [ipUrl, category, onAnalysisComplete]);
 
@@ -663,10 +664,10 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
           <div><h3 style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>{title}</h3><span style={{ fontSize: 10, color: 'var(--color-text-3)', textTransform: 'uppercase' }}>{category}</span></div>
         </div>
         <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', padding: 3, borderRadius: 8, gap: 2 }}>
-          <button onClick={() => { setMode('upload'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'upload' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Fichier</button>
-          <button onClick={() => { setMode('camera'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'camera' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>Live</button>
+          <button onClick={() => { setMode('upload'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'upload' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>{t('aiscanner.tab_file')}</button>
+          <button onClick={() => { setMode('camera'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'camera' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>{t('aiscanner.tab_live')}</button>
           {allowIpCamera && (
-            <button onClick={() => { setMode('rtsp'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'rtsp' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>IP / RTSP</button>
+            <button onClick={() => { setMode('rtsp'); reset(); }} style={{ padding: '6px 12px', borderRadius: 6, border: 'none', background: mode === 'rtsp' ? 'white' : 'transparent', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>{t('aiscanner.tab_ip')}</button>
           )}
         </div>
       </div>
@@ -686,9 +687,9 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
         {mode === 'camera' && !capturedImage && !window.isSecureContext && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.8)', color: '#ef4444', padding: 20, textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
             <ShieldAlert size={40} style={{ marginBottom: 12 }} />
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Connexion non sécurisée</div>
-            <div style={{ fontSize: 12, marginTop: 8, opacity: 0.8 }}>Le navigateur bloque la caméra car vous n'utilisez pas HTTPS.</div>
-            <code style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 4, marginTop: 10, fontSize: 11 }}>Utilisez https:// au lieu de http://</code>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{t('aiscanner.insecure_title')}</div>
+            <div style={{ fontSize: 12, marginTop: 8, opacity: 0.8 }}>{t('aiscanner.insecure_desc')}</div>
+            <code style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: 4, marginTop: 10, fontSize: 11 }}>{t('aiscanner.insecure_hint')}</code>
           </div>
         )}
         {/* Camera live: cover fills 320px area */}
@@ -705,14 +706,14 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
             style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '70vh' }}
           />
         )}
-        {!capturedImage && mode === 'upload' && <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}><Upload size={40} /><button className="btn btn-sm" onClick={() => fileInputRef.current.click()} style={{ marginTop: 12, background: 'white', color: '#000' }}>Parcourir</button></div>}
+        {!capturedImage && mode === 'upload' && <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}><Upload size={40} /><button className="btn btn-sm" onClick={() => fileInputRef.current.click()} style={{ marginTop: 12, background: 'white', color: '#000' }}>{t('aiscanner.browse')}</button></div>}
         {!capturedImage && mode === 'rtsp' && (
           <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.6)', padding: 24 }}>
             <Activity size={38} style={{ opacity: 0.5 }} />
             <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>
-              {ipState === 'connecting' ? 'Connexion au flux…'
-                : ipState === 'error' ? '⚠ ' + (ipMsg || 'Erreur de connexion')
-                : "Entrez l'URL de la caméra (rtsp:// ou http://) puis Connecter"}
+              {ipState === 'connecting' ? t('aiscanner.rtsp_connecting')
+                : ipState === 'error' ? '⚠ ' + (ipMsg || t('aiscanner.rtsp_error'))
+                : t('aiscanner.rtsp_prompt')}
             </div>
             {ipState === 'connecting' && <Loader2 className="animate-spin" size={20} color={color} style={{ marginTop: 10 }} />}
           </div>
@@ -752,27 +753,27 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
                 style={{ flex: 1, minWidth: 0, padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.15)', fontSize: 11, outline: 'none' }}
               />
               {(ipState === 'live' || ipState === 'connecting') ? (
-                <button className="btn btn-sm" onClick={disconnectIp} style={{ background: '#ef4444', color: '#fff', flexShrink: 0 }}>Stop</button>
+                <button className="btn btn-sm" onClick={disconnectIp} style={{ background: '#ef4444', color: '#fff', flexShrink: 0 }}>{t('aiscanner.stop')}</button>
               ) : (
-                <button className="btn btn-primary btn-sm" onClick={connectIp} style={{ background: color, flexShrink: 0 }}>Connecter</button>
+                <button className="btn btn-primary btn-sm" onClick={connectIp} style={{ background: color, flexShrink: 0 }}>{t('aiscanner.connect')}</button>
               )}
             </div>
           ) : capturedImage ? (
-            <button className="btn btn-secondary btn-sm" onClick={reset}><RefreshCcw size={14} /> Reset</button>
+            <button className="btn btn-secondary btn-sm" onClick={reset}><RefreshCcw size={14} /> {t('aiscanner.reset')}</button>
           ) : mode === 'camera' ? (
             <>
-              <button className="btn btn-primary btn-sm" onClick={takePhoto} style={{ background: color }} disabled={isProcessing}><Camera size={14} /> Scan</button>
+              <button className="btn btn-primary btn-sm" onClick={takePhoto} style={{ background: color }} disabled={isProcessing}><Camera size={14} /> {t('aiscanner.scan')}</button>
               <button 
                 className={`btn btn-sm ${autoScan ? 'btn-danger' : 'btn-secondary'}`} 
                 onClick={() => setAutoScan(!autoScan)}
                 style={autoScan ? { background: '#ef4444', color: 'white' } : {}}
               >
                 {autoScan ? <Activity className="animate-pulse" size={14} /> : <Activity size={14} />} 
-                {autoScan ? 'Stop Auto' : 'Auto-Scan'}
+                {autoScan ? t('aiscanner.stop_auto') : t('aiscanner.auto_scan')}
               </button>
             </>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current.click()}><Upload size={14} /> Importer</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current.click()}><Upload size={14} /> {t('aiscanner.import')}</button>
           )}
         </div>
         <button className="btn btn-sm" style={{ width: 40, height: 40, borderRadius: '50%', background: color, color: 'white' }}><Sparkles size={18} /></button>
@@ -787,8 +788,8 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
 
       <div style={{ borderTop: `1px solid ${color}22` }}>
         <div style={{ display: 'flex', borderBottom: `1px solid ${color}22` }}>
-          <button onClick={() => setActiveTab('cards')} style={{ flex: 1, padding: '10px', border: 'none', background: activeTab === 'cards' ? `${color}15` : 'transparent', color: activeTab === 'cards' ? color : '#666', fontSize: 12, fontWeight: 600 }}>Images ({detectionHistory.length})</button>
-          <button onClick={() => setActiveTab('reports')} style={{ flex: 1, padding: '10px', border: 'none', background: activeTab === 'reports' ? `${color}15` : 'transparent', color: activeTab === 'reports' ? color : '#666', fontSize: 12, fontWeight: 600 }}>Rapports IA ({aiReports.length})</button>
+          <button onClick={() => setActiveTab('cards')} style={{ flex: 1, padding: '10px', border: 'none', background: activeTab === 'cards' ? `${color}15` : 'transparent', color: activeTab === 'cards' ? color : '#666', fontSize: 12, fontWeight: 600 }}>{t('aiscanner.tab_images')} ({detectionHistory.length})</button>
+          <button onClick={() => setActiveTab('reports')} style={{ flex: 1, padding: '10px', border: 'none', background: activeTab === 'reports' ? `${color}15` : 'transparent', color: activeTab === 'reports' ? color : '#666', fontSize: 12, fontWeight: 600 }}>{t('aiscanner.tab_reports')} ({aiReports.length})</button>
         </div>
         <div style={{ padding: '15px' }}>
           {activeTab === 'cards' && (
@@ -856,8 +857,8 @@ const AIScanner = ({ category = 'livestock', title = 'AI Vision Scanner', color 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {aiReports.map(report => (
                 <div key={report.id} style={{ background: `${color}08`, border: `1px solid ${color}22`, borderRadius: 10, padding: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontWeight: 700, fontSize: 12, color }}>Rapport IA</span><button onClick={() => deleteReport(report.id)} style={{ border: 'none', background: 'none' }}><X size={14} /></button></div>
-                  {report.isGenerating ? <div style={{ fontSize: 12 }}>Analyse en cours...</div> : <div style={{ fontSize: 12, direction: 'rtl', textAlign: 'right' }}>{report.text}</div>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span style={{ fontWeight: 700, fontSize: 12, color }}>{t('aiscanner.report_ia')}</span><button onClick={() => deleteReport(report.id)} style={{ border: 'none', background: 'none' }}><X size={14} /></button></div>
+                  {report.isGenerating ? <div style={{ fontSize: 12 }}>{t('aiscanner.analyzing')}</div> : <div style={{ fontSize: 12, direction: 'rtl', textAlign: 'right' }}>{report.text}</div>}
                 </div>
               ))}
             </div>

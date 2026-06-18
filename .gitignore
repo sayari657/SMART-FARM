@@ -99,3 +99,14 @@ rapport cycle/*.zip
 # Cloudflare worker secrets
 .ingest_token.local
 cloudflare/**/.ingest_token.local
+
+# Thesis / deliverables / defense docs (huge, not application code)
+rapport final cycle/
+jury/
+Video login/
+*.xlsx
+*.docx
+
+# Test / ML artifacts
+.coverage
+deepforest-service/lightning_logs/

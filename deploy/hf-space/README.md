@@ -6,7 +6,7 @@ colorTo: blue
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: FastAPI + YOLO backend for Smart Farm AI (farmai-7ye.pages.dev)
+short_description: Smart Farm AI backend (FastAPI + YOLO)
 ---
 
 # Smart Farm AI — Backend

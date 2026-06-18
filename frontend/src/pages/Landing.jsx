@@ -7,6 +7,7 @@ import {
   X, Lock, CheckCircle, Send, Building2, Zap, CreditCard, Loader2,
 } from 'lucide-react';
 import { redirectToCheckout } from '../services/billingApi';
+import ReviewsSection from '../components/ReviewsSection';
 import './Landing.css';
 
 /* ─── Stripe Payment Modal ─────────────────────────────────────────── */
@@ -275,6 +276,7 @@ export default function Landing() {
             <a href="#features">{t('landing.nav_features')}</a>
             <a href="#how-it-works">{t('landing.nav_how')}</a>
             <a href="#pricing">{t('landing.nav_pricing')}</a>
+            <a href="#reviews">{t('landing.nav_reviews', 'Avis')}</a>
           </div>
           <div className="landing-nav-actions">
             <div className="landing-lang"><Globe size={18} /> {i18n.language?.toUpperCase().slice(0,2) || 'FR'}</div>
@@ -443,6 +445,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* --- Reviews / Testimonials --- */}
+      <ReviewsSection />
 
       {/* --- Footer --- */}
       <footer className="landing-footer">

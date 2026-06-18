@@ -1138,3 +1138,20 @@ class ModelEvaluation(Base):
     __table_args__ = (
         Index("ix_model_eval_name_date", "model_name", "eval_date"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Public reviews / testimonials (landing page — star ratings)
+# ---------------------------------------------------------------------------
+
+class Review(Base):
+    """A public visitor review with a 1–5 star rating (landing page)."""
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rating = Column(Integer, nullable=False)               # 1..5
+    name = Column(String(80), nullable=True)
+    role = Column(String(80), nullable=True)               # e.g. "Agriculteur", "Apiculteur"
+    comment = Column(Text, nullable=True)
+    approved = Column(Boolean, default=True, nullable=False)  # moderation flag
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

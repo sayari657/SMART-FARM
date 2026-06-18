@@ -22,16 +22,6 @@ export default function Register() {
   const [searchParams] = useSearchParams();
   const plan = searchParams.get('plan');
 
-  const ROLES = [
-    { value: 'owner',  label: t('register.role_owner') },
-    { value: 'worker', label: t('register.role_worker') },
-  ];
-
-  const ROLE_DESC = {
-    owner: t('register.role_owner_desc'),
-    worker: t('register.role_worker_desc'),
-  };
-
   const PLAN_LABEL = {
     pro:  `${t('landing.plan_pro_title')} · 29€/${t('landing.pay_monthly').replace('/', '')}`,
     free: `${t('landing.plan_free_title')} · ${t('landing.plan_free_price')}`,
@@ -166,25 +156,6 @@ export default function Register() {
                   </button>
                 </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">{t('register.role')}</label>
-                <select className="form-select" id="reg-role" value={form.role} onChange={set('role')}>
-                  {ROLES.map(r => (
-                    <option key={r.value} value={r.value}>{r.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Role description card */}
-            <div style={{
-              background:'rgba(34,197,94,0.06)', border:'1px solid rgba(34,197,94,0.15)',
-              borderRadius:10, padding:'10px 14px', fontSize:13, color:'var(--color-text-2)', lineHeight:1.6
-            }}>
-              <strong style={{ color:'var(--color-text-1)' }}>
-                {form.role === 'owner' ? t('register.role_owner_label') : t('register.role_worker_label')}
-              </strong>
-              {' — '}{ROLE_DESC[form.role]}
             </div>
 
             <button

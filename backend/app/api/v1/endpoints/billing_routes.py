@@ -366,6 +366,32 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         else:
             logger.warning("Webhook checkout for unknown user_id=%s — no action", user_id)
 
+        # ── Receipt email (best-effort — does not block the webhook) ──
+        try:
+            from app.services.otp_service import send_payment_receipt_email
+            to_email = ((session.get("customer_details") or {}).get("email")
+                        or session.get("customer_email")
+                        or (user.email if user else None))
+            amount = (session.get("amount_total") or 0) / 100.0
+            currency = (session.get("currency") or "eur").upper()
+            receipt_url = invoice_pdf = None
+            inv_id = session.get("invoice")
+            if inv_id:
+                try:
+                    inv = stripe.Invoice.retrieve(inv_id)
+                    receipt_url = inv.get("hosted_invoice_url")
+                    invoice_pdf = inv.get("invoice_pdf")
+                except Exception as e:
+                    logger.warning("Invoice retrieve failed: %s", e)
+            if to_email:
+                send_payment_receipt_email(
+                    to_email, plan_name=plan, amount=amount, currency=currency,
+                    expires=(user.plan_expires_at if user else None),
+                    receipt_url=receipt_url, invoice_pdf=invoice_pdf,
+                )
+        except Exception as e:
+            logger.warning("Receipt email failed: %s", e)
+
     elif event["type"] == "invoice.paid":
         invoice = event["data"]["object"]
         customer_id = invoice.get("customer")

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { orchardAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { getErrorMessage } from '../utils/errors';
 import { TREE_DISEASES, TREE_TREATMENTS } from '../data/orchardCatalog';
 import toast from 'react-hot-toast';
@@ -27,10 +28,10 @@ const STATUS = {
 const DEFAULT_CENTER = [36.8065, 10.1815]; // Tunis
 
 const SPECIES = [
-  { v: 'olive',  l: '🫒 Olivier' },
-  { v: 'orange', l: '🍊 Oranger' },
-  { v: 'lemon',  l: '🍋 Citronnier' },
-  { v: '',       l: '🌳 Autre' },
+  { v: 'olive',  e: '🫒', k: 'olive' },
+  { v: 'orange', e: '🍊', k: 'orange' },
+  { v: 'lemon',  e: '🍋', k: 'lemon' },
+  { v: '',       e: '🌳', k: 'other' },
 ];
 
 function ZoneSelector({ active, corners, setCorners, onComplete }) {
@@ -60,6 +61,7 @@ function SetMapRef({ mapRef }) {
 
 export default function OrchardMap() {
   const { farmId } = useAuth();
+  const { t: tr } = useTranslation();
   const [trees, setTrees]       = useState([]);
   const [selected, setSelected] = useState(null);   // full tree with events
   const [loading, setLoading]   = useState(true);
