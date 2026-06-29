@@ -5,26 +5,38 @@ stages:
     deps:
     - path: mlops/dataset_builder.py
       hash: md5
-      md5: d71518a0a4ddb94602e8196bb4792f31
-      size: 1783
+      md5: 6e3c02b9cf9c1c96143c90a4d547fdb7
+      size: 2929
     outs:
+    - path: mlops/data/feedback_labels.csv
+      hash: md5
+      md5: 6a9cec1fa132068b6c4cb67d0a517ec9
+      size: 51
     - path: mlops/data/telemetry_dataset.csv
       hash: md5
-      md5: 2ef8e803501371279f43daa5e6e404ad
-      size: 141
+      md5: da81ccc5823b0f9455fee74a80ce4e64
+      size: 1642
   train_model:
     cmd: python mlops/train.py --n_estimators 150 --contamination 0.05
     deps:
     - path: mlops/data/telemetry_dataset.csv
       hash: md5
-      md5: 2ef8e803501371279f43daa5e6e404ad
-      size: 141
+      md5: da81ccc5823b0f9455fee74a80ce4e64
+      size: 1642
     - path: mlops/train.py
       hash: md5
-      md5: eb7b05e1c052bf00f3732aaa1c05741f
-      size: 2533
+      md5: 96f07204ecbab02534238d2ab8c901e0
+      size: 8505
     outs:
+    - path: mlops/metrics.json
+      hash: md5
+      md5: af7f28b76fac6bced27e75a6d0ec8de6
+      size: 106
     - path: mlops/models/anomaly_detector.pkl
       hash: md5
-      md5: 1db7bd234e3ed7e2633a2402e371343c
-      size: 88840
+      md5: dd975f2eefd80c7bcca836cbf367c9fc
+      size: 1267865
+    - path: mlops/models/scaler.pkl
+      hash: md5
+      md5: 28057133d8ba4aa3665c1b307fe73249
+      size: 679

@@ -1,0 +1,5 @@
+{
+  "best_algorithm": "LocalOutlierFactor",
+  "silhouette_score": 0.2709,
+  "anomaly_rate_pct": 5.95
+}

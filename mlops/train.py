@@ -100,7 +100,7 @@ def main(data_path: str, n_estimators: int, contamination: float):
                     mlflow.log_metric("anomaly_rate_pct", metrics["anomaly_rate_pct"])
 
                 if metrics["success"] and name != "LocalOutlierFactor":
-                    mlflow.sklearn.log_model(clf, artifact_path=f"model_{name.lower()}")
+                    mlflow.sklearn.log_model(clf, name=f"model_{name.lower()}")
         except Exception as e:
             print(f"  [{name}] MLflow logging error : {e}")
 
@@ -155,7 +155,7 @@ def main(data_path: str, n_estimators: int, contamination: float):
             mlflow.log_metric("silhouette_score", best["silhouette_score"])
             mlflow.sklearn.log_model(
                 sk_model=best_clf,
-                artifact_path="anomaly_detector",
+                name="anomaly_detector",
                 registered_model_name="TelemetryAnomalyDetector",
             )
     except Exception as e:

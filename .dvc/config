@@ -1,6 +1,7 @@
 [core]
     autostage = true
     analytics = false
+    remote = local
 
 [feature]
     machine = true
@@ -13,7 +14,4 @@
     url = gs://smart-farm-ai-dvc
 
 ['remote "local"']
-    url = /tmp/dvc-cache
-
-[remote]
-    default = local
+    url = ../.dvc-cache-local
