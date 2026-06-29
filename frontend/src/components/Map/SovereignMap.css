@@ -1,5 +1,10 @@
 /* SovereignMap Premium Styling */
 
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
 .custom-marker {
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -275,4 +280,176 @@
 
 .search-popup h3 {
     color: #4c1d95 !important;
+}
+
+/* ── IoT Sensor Markers ───────────────────────────────── */
+.iot-icon {
+    position: relative;
+    overflow: visible !important;
+}
+
+.iot-count-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    color: white;
+    font-size: 9px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.iot-offline-ring {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.2);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: iot-offline-pulse 1.4s ease-out infinite;
+    pointer-events: none;
+}
+
+@keyframes iot-offline-pulse {
+    0%   { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+.iot-popup .popup-type-tag.iot-tag {
+    color: #0284c7;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.iot-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 10px 0 6px;
+}
+
+.iot-stat {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 6px 4px;
+    text-align: center;
+}
+
+.iot-stat strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    color: #0c4a6e;
+}
+
+.iot-stat span {
+    font-size: 9px;
+    color: #0369a1;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.iot-stat.active strong { color: #166534; }
+.iot-stat.active { background: #f0fdf4; border-color: #86efac; }
+.iot-stat.active span { color: #15803d; }
+
+.iot-stat.offline strong { color: #991b1b; }
+.iot-stat.offline { background: #fff1f2; border-color: #fca5a5; }
+.iot-stat.offline span { color: #b91c1c; }
+
+/* ── Farm Alert Markers ───────────────────────────────── */
+.marker-alert {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alert-marker-ring {
+    position: absolute;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.alert-marker-ring.critical {
+    background: rgba(239, 68, 68, 0.2);
+    animation: alert-pulse-critical 1s ease-out infinite;
+}
+
+.alert-marker-ring.warning {
+    background: rgba(245, 158, 11, 0.2);
+    animation: alert-pulse-warning 1.5s ease-out infinite;
+}
+
+@keyframes alert-pulse-critical {
+    0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+
+@keyframes alert-pulse-warning {
+    0%   { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+.alert-icon {
+    z-index: 2;
+    position: relative;
+}
+
+.alert-icon.critical {
+    background: #ef4444;
+    border-color: #b91c1c;
+}
+
+.alert-icon.warning {
+    background: #f59e0b;
+    border-color: #b45309;
+}
+
+.alert-tag.critical  { color: #dc2626 !important; }
+.alert-tag.warning   { color: #d97706 !important; }
+
+.alert-popup h3 { color: #1e293b; }
+
+.alert-counts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 8px 0 4px;
+}
+
+.alert-badge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 20px;
+}
+
+.alert-badge.total {
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+}
+
+.alert-badge.critical {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
 }

@@ -5,9 +5,12 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+// Prod: VITE_WS_URL targets the backend directly. Dev: use the SAME ORIGIN so the
+// connection flows through Vite's `/ws` proxy → backend (connecting straight to
+// :8000 fails the handshake under the HTTPS dev server → "Connexion échouée").
 const WS_BASE = import.meta.env.VITE_WS_URL ||
   (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
-  window.location.hostname + ':8000';
+  window.location.host;
 
 export function useWebSocket({ endpoint = '/ws/events', enabled = true } = {}) {
   const [connected, setConnected] = useState(false);

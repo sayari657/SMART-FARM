@@ -64,6 +64,33 @@ MODEL_REGISTRY = {
 # Catégories en mode CLASSIFICATION (probs, pas de bounding boxes)
 CLASSIFY_CATEGORIES = {"bee_health", "plantvillage"}
 
+# The deployed cow-behaviour weights expose numeric class names (0/1/2), which
+# otherwise collide with the fire model's numeric "zone" labels in the UI.
+# Map them to their real behaviour labels (order = model class index).
+COW_BEHAVIOR_NAMES = {0: "Lie", 1: "Stand", 2: "Walk"}
+
+# Animal disease / behaviour models were trained at imgsz≥768 and generalize
+# poorly at the default inference size (640): on field/internet photos they emit
+# zero detections. High-resolution + test-time augmentation recovers the real
+# detections (e.g. fowl pox surfaces at 0.41 instead of nothing). These models
+# run small single images on upload, so the extra cost is acceptable.
+HIGH_RECALL_MODELS = {
+    "chicken_disease", "chicken_detect", "goat_disease",
+    "cow_behavior", "livestock",
+}
+HIGH_RECALL_IMGSZ = 1280
+
+
+def _predict_kwargs(model_key: str, conf: float = 0.25) -> dict:
+    """Inference kwargs: high-res + TTA for the recall-sensitive animal models,
+    library defaults for everything else (fire, plants, bee…)."""
+    kw = {"conf": conf, "verbose": False}
+    if model_key in HIGH_RECALL_MODELS:
+        kw["imgsz"]   = HIGH_RECALL_IMGSZ
+        kw["augment"] = True
+    return kw
+
+
 _models = {}
 
 MODEL_ALIASES = {
@@ -112,21 +139,34 @@ def get_yolo_model(category: str = "bee"):
     return _models[key]
 
 
+def _class_name(category: str, model, cls_id: int) -> str:
+    """Resolve a model's class name, overriding the cow-behaviour model's
+    numeric labels (0/1/2) with their real behaviour names (Lie/Stand/Walk)."""
+    if resolve_model_key(category) == "cow_behavior":
+        return COW_BEHAVIOR_NAMES.get(int(cls_id), str(model.names[cls_id]))
+    return model.names[cls_id]
+
+
 def _run_dual_inference(img_array, model_pairs: list, conf: float = 0.25) -> list:
-    """Generic dual inference: runs multiple (registry_key, label) model pairs."""
+    """Generic dual inference: runs multiple (registry_key, label) model pairs.
+    Emits bbox as [cx%, cy%, w%, h%] to match the frontend overlay, and uses
+    high-recall settings for the recall-sensitive animal models."""
     results = []
     for key, label in model_pairs:
         model = get_yolo_model(key)
         if model is None:
             continue
         try:
-            preds = model(img_array, conf=conf, verbose=False)[0]
+            preds = model(img_array, **_predict_kwargs(key, conf))[0]
+            h0, w0 = preds.orig_shape  # (height, width) in pixels
             for box in (preds.boxes or []):
                 cls_id = int(box.cls[0])
+                cx, cy, bw, bh = box.xywh[0].tolist()
                 results.append({
-                    "label":      model.names[cls_id],
+                    "label":      _class_name(key, model, cls_id),
                     "confidence": round(float(box.conf[0]), 3),
-                    "bbox":       [round(v, 1) for v in box.xyxy[0].tolist()],
+                    "bbox":       [round(cx / w0 * 100, 1), round(cy / h0 * 100, 1),
+                                   round(bw / w0 * 100, 1), round(bh / h0 * 100, 1)],
                     "model":      label,
                 })
         except Exception as e:
@@ -306,6 +346,10 @@ def get_model_metadata(category: str):
     if not model:
         return {"category": category, "names": {}, "available": False, "reason": "model_not_found"}
     names = model.names
+    # Cow-behaviour weights expose numeric class names (0/1/2) — map to the real
+    # behaviour labels so the UI doesn't render them as the fire model's zones.
+    if resolve_model_key(category) == "cow_behavior":
+        names = {i: COW_BEHAVIOR_NAMES.get(int(i), n) for i, n in names.items()}
     # The fire model bakes in noisy placeholder classes (numeric 0-4 "zones" +
     # a generic "object"); operationally the Sovereign Emergency Monitor only
     # reports Fire and Smoke. Surface just those two real classes.
@@ -519,7 +563,7 @@ async def detect_in_file(
     async with inference_lock:
         try:
             contents = await file.read()
-            image = Image.open(io.BytesIO(contents))
+            image = Image.open(io.BytesIO(contents)).convert("RGB")
             img_w, img_h = image.size
             cat = category.lower()
             start_t = time.time()
@@ -574,7 +618,9 @@ async def detect_in_file(
                     detail=f"Modèle IA '{category}' non disponible sur ce serveur (mode cloud sans fichiers YOLO)."
                 )
 
-            results = await run_in_threadpool(model.predict, image, conf=0.25)
+            results = await run_in_threadpool(
+                lambda: model.predict(image, **_predict_kwargs(resolve_model_key(category)))
+            )
             logger.info(f"[YOLO] OK in {(time.time()-start_t)*1000:.1f}ms")
 
             detections = []
@@ -586,7 +632,7 @@ async def detect_in_file(
                     cls_id = int(item.cls[0])
                     bbox_raw = (item.xywhr[0] if hasattr(item, 'xywhr') else item.xywh[0]).tolist()
                     detections.append({
-                        "label": model.names[cls_id],
+                        "label": _class_name(category, model, cls_id),
                         "confidence": float(item.conf[0]),
                         "bbox": [
                             (bbox_raw[0] / img_w) * 100, (bbox_raw[1] / img_h) * 100,

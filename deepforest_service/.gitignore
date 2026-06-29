@@ -1,0 +1,4 @@
+# Isolated venv (heavy: torch, deepforest…) — never commit
+.venv/
+__pycache__/
+*.pyc

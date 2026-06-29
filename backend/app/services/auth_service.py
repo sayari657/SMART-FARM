@@ -109,8 +109,9 @@ class AuthService:
             raise HTTPException(status_code=403, detail="Accès non autorisé.")
 
         # Send OTP (WhatsApp) — dev fallback stores OTP in memory
+        otp = None
         try:
-            otp_service.send_otp_whatsapp(phone_number)
+            otp = otp_service.send_otp_whatsapp(phone_number)
         except Exception:
             import random as _r
             import logging as _log
@@ -118,7 +119,7 @@ class AuthService:
             otp_service.store_otp("whatsapp", phone_number, otp)
             _log.getLogger(__name__).warning(f"[DEV] WhatsApp non configuré — OTP pour {phone_number} dans OTP_STORE")
 
-        return {"message": f"Code OTP envoyé sur WhatsApp au {phone_number}", "phone": phone_number}
+        return {"message": f"Code OTP envoyé sur WhatsApp au {phone_number}", "phone": phone_number, "debug_otp": otp}
 
     def worker_verify_otp(self, phone_number: str, otp: str) -> dict:
         """Étape 2 — Verify OTP and return a JWT with the user's actual role."""

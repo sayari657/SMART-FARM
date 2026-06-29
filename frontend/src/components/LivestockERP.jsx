@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { animalsAPI, farmsAPI, workerTasksAPI, alertsAPI, poultryAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 const C = {
@@ -49,7 +50,7 @@ const errStr = (e, fallback = 'Erreur') => {
 
 // ── Animal Workspace ──────────────────────────────────────────────────────────
 
-function AnimalWorkspace({ animal, farmId, color, species, onRefresh }) {
+function AnimalWorkspace({ animal, animals = [], onSelect, farmId, color, species, onRefresh }) {
   const [activeModule, setActiveModule] = useState('analytics');
   const [confirmDel, setConfirmDel]     = useState(false);
   const [deleting, setDeleting]         = useState(false);
@@ -91,6 +92,19 @@ function AnimalWorkspace({ animal, farmId, color, species, onRefresh }) {
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          {animals.length > 1 && (
+            <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+              <label style={{ fontSize:9, fontWeight:800, color:C.muted, letterSpacing:1, textTransform:'uppercase' }}>{sm.emoji} Changer d'animal</label>
+              <select value={animal.id} onChange={e => onSelect && onSelect(Number(e.target.value))}
+                style={{ padding:'8px 12px', borderRadius:10, border:`1px solid ${color}55`, background:'var(--color-surface, #fff)', fontSize:13, fontWeight:700, color, cursor:'pointer', maxWidth:220, outline:'none' }}>
+                {animals.map(a => (
+                  <option key={a.id} value={a.id}>
+                    {(a.name || `#${a.id}`)}{a.identifier ? ` · #${a.identifier}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {animal.health_score != null && (
             <div style={{ textAlign:'center' }}>
               <div style={{ fontSize:32, fontWeight:900, color: animal.health_score >= 70 ? C.success : animal.health_score >= 40 ? C.warning : C.error, lineHeight:1 }}>
@@ -247,7 +261,7 @@ export default function LivestockERP({ species = 'cow', color, farmId: propFarmI
         if (!sel) return null;
         return (
           <div key={sel.id} style={{ background:C.surface, borderRadius:16, border:`1px solid ${erpColor}`, padding:'28px 28px', marginTop:4 }}>
-            <AnimalWorkspace animal={sel} farmId={farmId} color={erpColor} species={species} onRefresh={loadData} />
+            <AnimalWorkspace animal={sel} animals={animals} onSelect={setSelectedId} farmId={farmId} color={erpColor} species={species} onRefresh={loadData} />
           </div>
         );
       })()}
@@ -281,6 +295,7 @@ export default function LivestockERP({ species = 'cow', color, farmId: propFarmI
 // ── MODULES ───────────────────────────────────────────────────────────────────
 
 function AnimauxCreateModule({ color, species, farmId, animalTypes, onRefresh }) {
+  const { t } = useTranslation();
   const sm = SPECIES_META[species] || SPECIES_META.cow;
   const speciesTypes = animalTypes.filter(t => t.species === species);
   const defaultTypeId = speciesTypes.length > 0 ? speciesTypes[0].id : null;
@@ -326,23 +341,23 @@ function AnimauxCreateModule({ color, species, farmId, animalTypes, onRefresh })
 
   return (
     <div className="glass-panel" style={{ maxWidth:600 }}>
-      <div className="panel-title">Nouvel Animal — {sm.emoji} {sm.title.split(' ')[0]}</div>
+      <div className="panel-title">{t('erp.new_animal')} — {sm.emoji} {sm.title.split(' ')[0]}</div>
       {speciesTypes.length > 1 && (
         <div style={{ marginBottom:14 }}>
-          <Field label="Type / Race" type="select"
+          <Field label={t('erp.type_breed')} type="select"
             options={speciesTypes.map(t => ({ v: String(t.id), l: t.display_name || t.species }))}
             value={String(typeId || '')} onChange={v => setTypeId(Number(v))} />
         </div>
       )}
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <div className="grid-2" style={{ gap:12 }}>
-          <Field label="Nom *" placeholder="ex: Bella, Vache-01…" value={form.name} onChange={v => setForm({...form, name:v})} />
-          <Field label="N° Boucle / Identifier" placeholder="ex: BOV-2026-001" value={form.identifier} onChange={v => setForm({...form, identifier:v})} />
+          <Field label={t('erp.name_req')} placeholder="ex: Bella, Vache-01…" value={form.name} onChange={v => setForm({...form, name:v})} />
+          <Field label={t('erp.ear_tag')} placeholder="ex: BOV-2026-001" value={form.identifier} onChange={v => setForm({...form, identifier:v})} />
         </div>
-        <Field label="Statut" type="select"
+        <Field label={t('erp.status_word')} type="select"
           options={[{v:'healthy',l:'✅ Sain'},{v:'sick',l:'🤒 Malade'},{v:'sold',l:'💰 Vendu'},{v:'dead',l:'💀 Décédé'}]}
           value={form.status} onChange={v => setForm({...form, status:v})} />
-        <Field label="Notes" placeholder="Observations particulières..." value={form.notes} onChange={v => setForm({...form, notes:v})} />
+        <Field label={t('erp.notes_word')} placeholder="Observations particulières..." value={form.notes} onChange={v => setForm({...form, notes:v})} />
         <button className="btn-erp-primary" onClick={handleSubmit} disabled={saving} style={{ background: color }}>
           {saving ? 'Enregistrement...' : 'Ajouter au troupeau'}
         </button>
@@ -352,6 +367,7 @@ function AnimauxCreateModule({ color, species, farmId, animalTypes, onRefresh })
 }
 
 function AnimalEditModule({ color, animal, onRefresh }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     name:         animal.name        || '',
     status:       animal.status      || 'healthy',
@@ -377,19 +393,19 @@ function AnimalEditModule({ color, animal, onRefresh }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🐄 Fiche Animal" sub="Modifiez les informations de cet animal." />
+      <SectionHeader title={t('erp.ls_title_animal_edit')} sub={t('erp.ls_sub_animal_edit')} />
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:28 }}>
         <div className="glass-panel">
-          <div className="panel-title">Modifier</div>
+          <div className="panel-title">{t('erp.ls_edit')}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            <Field label="Nom" value={form.name} onChange={v => setForm({...form, name:v})} />
+            <Field label={t('erp.name_word')} value={form.name} onChange={v => setForm({...form, name:v})} />
             <div className="grid-2" style={{ gap:12 }}>
-              <Field label="Statut" type="select"
+              <Field label={t('erp.status_word')} type="select"
                 options={[{v:'healthy',l:'✅ Sain'},{v:'active',l:'✅ Actif'},{v:'sick',l:'🤒 Malade'},{v:'sold',l:'💰 Vendu'},{v:'dead',l:'💀 Décédé'}]}
                 value={form.status} onChange={v => setForm({...form, status:v})} />
-              <Field label="Score santé (0-100)" type="number" value={form.health_score} onChange={v => setForm({...form, health_score:v})} />
+              <Field label={t('erp.health_score')} type="number" value={form.health_score} onChange={v => setForm({...form, health_score:v})} />
             </div>
-            <Field label="Notes" value={form.notes} onChange={v => setForm({...form, notes:v})} />
+            <Field label={t('erp.notes_word')} value={form.notes} onChange={v => setForm({...form, notes:v})} />
             <button className="btn-erp-primary" onClick={handleSave} disabled={saving} style={{ background:color }}>
               {saving ? 'Enregistrement...' : '💾 Enregistrer'}
             </button>
@@ -417,6 +433,7 @@ function AnimalEditModule({ color, animal, onRefresh }) {
 }
 
 function AlimentationModule({ color, animalId, species }) {
+  const { t } = useTranslation();
   const sm = SPECIES_META[species] || SPECIES_META.cow;
   const [form, setForm]     = useState({ feed_type: sm.feedTypes[0], quantity_kg:'' });
   const [saving, setSaving] = useState(false);
@@ -449,15 +466,15 @@ function AlimentationModule({ color, animalId, species }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🌾 Alimentation" sub="Suivi de la consommation journalière par animal." />
+      <SectionHeader title={t('erp.ls_title_feed')} sub={t('erp.ls_sub_feed')} />
       <div className="grid-2-1" style={{ gap:28, marginBottom:24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvelle Ration</div>
+          <div className="panel-title">{t('erp.new_ration')}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            <Field label="Type d'Aliment" type="select"
+            <Field label={t('erp.feed_type')} type="select"
               options={sm.feedTypes.map(f => ({ v:f, l:f }))}
               value={form.feed_type} onChange={v => setForm({...form, feed_type:v})} />
-            <Field label="Quantité (kg)" type="number" placeholder="ex: 5" value={form.quantity_kg} onChange={v => setForm({...form, quantity_kg:v})} />
+            <Field label={t('erp.qty_kg')} type="number" placeholder="ex: 5" value={form.quantity_kg} onChange={v => setForm({...form, quantity_kg:v})} />
             <button className="btn-erp-primary" onClick={handleSubmit} disabled={saving} style={{ background:color }}>
               {saving ? 'Enregistrement...' : 'Enregistrer la Ration'}
             </button>
@@ -500,6 +517,7 @@ function AlimentationModule({ color, animalId, species }) {
 }
 
 function SanteModule({ color, animalId }) {
+  const { t } = useTranslation();
   const [form, setForm]     = useState({ event_type:'Vaccination', description:'', medicine:'', cost:'' });
   const [saving, setSaving] = useState(false);
   const [records, setRecords] = useState([]);
@@ -531,17 +549,17 @@ function SanteModule({ color, animalId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="💊 Santé & Vétérinaire" sub="Carnet vaccinal et journal vétérinaire individuel." />
+      <SectionHeader title={t('erp.ls_title_health')} sub={t('erp.ls_sub_health')} />
       <div className="grid-2" style={{ gap:28, marginBottom:24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvel Acte Sanitaire</div>
+          <div className="panel-title">{t('erp.new_health')}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:13 }}>
-            <Field label="Type" type="select"
+            <Field label={t('erp.type_word')} type="select"
               options={[{v:'Vaccination',l:'Vaccination'},{v:'Traitement',l:'Traitement'},{v:'Visite Vétérinaire',l:'Visite Vétérinaire'},{v:'Autre',l:'Autre'}]}
               value={form.event_type} onChange={v => setForm({...form, event_type:v})} />
-            <Field label="Description" placeholder="ex: Vaccin FMD, Déparasitage..." value={form.description} onChange={v => setForm({...form, description:v})} />
-            <Field label="Médicament / Vaccin" value={form.medicine} onChange={v => setForm({...form, medicine:v})} />
-            <Field label="Coût (TND)" type="number" value={form.cost} onChange={v => setForm({...form, cost:v})} />
+            <Field label={t('erp.description')} placeholder="ex: Vaccin FMD, Déparasitage..." value={form.description} onChange={v => setForm({...form, description:v})} />
+            <Field label={t('erp.medicine_vaccine')} value={form.medicine} onChange={v => setForm({...form, medicine:v})} />
+            <Field label={t('erp.cost_tnd')} type="number" value={form.cost} onChange={v => setForm({...form, cost:v})} />
             <button className="btn-erp-primary" onClick={handleSubmit} disabled={saving} style={{ background:color }}>
               {saving ? 'Enregistrement...' : "Enregistrer l'acte"}
             </button>
@@ -584,6 +602,7 @@ function SanteModule({ color, animalId }) {
 }
 
 function ProductionModule({ color, animalId, species }) {
+  const { t } = useTranslation();
   const sm = SPECIES_META[species] || SPECIES_META.cow;
   const isMilk = sm.prodUnit === 'L';
 
@@ -632,11 +651,11 @@ function ProductionModule({ color, animalId, species }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title={`🥛 Production — ${sm.prodLabel}`} sub={`Suivi ${isMilk ? 'laitier' : 'des naissances'} + pesées.`} />
+      <SectionHeader title={`${t('erp.ls_title_prod')} — ${sm.prodLabel}`} sub={`Suivi ${isMilk ? 'laitier' : 'des naissances'} + pesées.`} />
 
       <div className="grid-2" style={{ gap:28, marginBottom:28 }}>
         <div className="glass-panel">
-          <div className="panel-title">{isMilk ? 'Traite Journalière' : 'Nouvelle Naissance'}</div>
+          <div className="panel-title">{isMilk ? t('erp.ls_milking') : t('erp.ls_birth')}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
             <Field label={isMilk ? 'Litres produits (L)' : `Nombre de ${sm.prodLabel}`}
               type="number" placeholder={isMilk ? 'ex: 18' : 'ex: 2'}
@@ -654,10 +673,10 @@ function ProductionModule({ color, animalId, species }) {
       </div>
 
       <div className="glass-panel" style={{ marginBottom:24 }}>
-        <div className="panel-title">⚖️ Pesée</div>
+        <div className="panel-title">{t('erp.ls_weighing')}</div>
         <div style={{ display:'flex', gap:14, alignItems:'flex-end', flexWrap:'wrap' }}>
           <div style={{ flex:1, minWidth:160 }}>
-            <Field label="Poids (kg)" type="number" placeholder="ex: 450" value={wForm.weight_kg} onChange={v => setWForm({...wForm, weight_kg:v})} />
+            <Field label={t('erp.weight_kg')} type="number" placeholder="ex: 450" value={wForm.weight_kg} onChange={v => setWForm({...wForm, weight_kg:v})} />
           </div>
           <button className="btn-erp-primary" onClick={handleWeight} disabled={wSaving} style={{ background:color, flexShrink:0 }}>
             {wSaving ? '…' : 'Enregistrer pesée'}
@@ -683,7 +702,7 @@ function ProductionModule({ color, animalId, species }) {
           )}
           {wData.length > 1 && (
             <div className="glass-panel" style={{ height:260 }}>
-              <div className="panel-title">Évolution du poids</div>
+              <div className="panel-title">{t('erp.ls_weight_evol')}</div>
               <ResponsiveContainer width="100%" height="82%">
                 <LineChart data={wData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -702,6 +721,7 @@ function ProductionModule({ color, animalId, species }) {
 }
 
 function LivestockFinanceModule({ color, farmId, species }) {
+  const { t } = useTranslation();
   const sm = SPECIES_META[species] || SPECIES_META.cow;
   const [form, setForm]         = useState({ tx_type:'revenue', category:'sale', amount:'', notes:'' });
   const [saving, setSaving]     = useState(false);
@@ -733,21 +753,21 @@ function LivestockFinanceModule({ color, farmId, species }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="💰 Finance & Ventes" sub="Revenus et dépenses de la ferme." />
+      <SectionHeader title={t('erp.ls_title_finance')} sub={t('erp.ls_sub_finance')} />
       <div className="grid-2" style={{ gap:28, marginBottom:24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvelle Transaction</div>
+          <div className="panel-title">{t('erp.ls_new_transaction')}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
             <div className="grid-2" style={{ gap:12 }}>
-              <Field label="Type" type="select"
+              <Field label={t('erp.type_word')} type="select"
                 options={[{v:'revenue',l:'Revenu'},{v:'expense',l:'Dépense'}]}
                 value={form.tx_type} onChange={v => setForm({...form, tx_type:v})} />
-              <Field label="Catégorie" type="select"
+              <Field label={t('erp.category_word')} type="select"
                 options={[{v:'sale',l:'Vente'},{v:'milk',l:'Vente lait'},{v:'feed',l:'Achat fourrage'},{v:'vet',l:'Frais vétérinaires'},{v:'other',l:'Autre'}]}
                 value={form.category} onChange={v => setForm({...form, category:v})} />
             </div>
-            <Field label="Montant (TND)" type="number" placeholder="ex: 1500" value={form.amount} onChange={v => setForm({...form, amount:v})} />
-            <Field label="Notes" placeholder="Description..." value={form.notes} onChange={v => setForm({...form, notes:v})} />
+            <Field label={t('erp.amount_tnd')} type="number" placeholder="ex: 1500" value={form.amount} onChange={v => setForm({...form, amount:v})} />
+            <Field label={t('erp.notes_word')} placeholder="Description..." value={form.notes} onChange={v => setForm({...form, notes:v})} />
             <button className="btn-erp-primary" onClick={handleSubmit} disabled={saving} style={{ background:color }}>
               {saving ? 'Enregistrement...' : 'Enregistrer'}
             </button>
@@ -804,6 +824,7 @@ function LivestockFinanceModule({ color, farmId, species }) {
 }
 
 function LivestockInventaireModule({ color, farmId }) {
+  const { t } = useTranslation();
   const [inventory, setInventory] = useState([]);
   const [form, setForm] = useState({ item_name:'', category:'feed', quantity:'', unit:'kg', min_threshold:'' });
 
@@ -829,7 +850,7 @@ function LivestockInventaireModule({ color, farmId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="📦 Stocks & Approvisionnement" sub="Gérez vos stocks de fourrage, médicaments et matériel." />
+      <SectionHeader title={t('erp.ls_title_stock')} sub={t('erp.ls_sub_stock')} />
       {lowStock.length > 0 && (
         <AlertBanner color={C.error} icon={AlertTriangle}>
           {lowStock.length} article(s) en stock critique : {lowStock.map(i => i.item_name).join(', ')}
@@ -855,14 +876,14 @@ function LivestockInventaireModule({ color, farmId }) {
         })}
       </div>
       <div className="glass-panel">
-        <div className="panel-title">Entrée de Stock</div>
+        <div className="panel-title">{t('erp.stock_entry')}</div>
         <div className="grid-4" style={{ gap:12 }}>
-          <Field label="Nom de l'article" value={form.item_name} onChange={v => setForm({...form, item_name:v})} />
-          <Field label="Catégorie" type="select"
+          <Field label={t('erp.article_name')} value={form.item_name} onChange={v => setForm({...form, item_name:v})} />
+          <Field label={t('erp.category_word')} type="select"
             options={[{v:'feed',l:'Fourrage'},{v:'medicine',l:'Santé'},{v:'equipment',l:'Matériel'},{v:'other',l:'Autre'}]}
             value={form.category} onChange={v => setForm({...form, category:v})} />
-          <Field label="Quantité" type="number" value={form.quantity} onChange={v => setForm({...form, quantity:v})} />
-          <Field label="Seuil Alerte" type="number" value={form.min_threshold} onChange={v => setForm({...form, min_threshold:v})} />
+          <Field label={t('erp.qty_word')} type="number" value={form.quantity} onChange={v => setForm({...form, quantity:v})} />
+          <Field label={t('erp.alert_threshold')} type="number" value={form.min_threshold} onChange={v => setForm({...form, min_threshold:v})} />
         </div>
         <button className="btn-erp-secondary" onClick={handleAdd} style={{ marginTop:16 }}>Ajouter au stock</button>
       </div>
@@ -871,6 +892,7 @@ function LivestockInventaireModule({ color, farmId }) {
 }
 
 function EquipeModule({ color, farmId }) {
+  const { t } = useTranslation();
   const [tasks, setTasks]                     = useState([]);
   const [workers, setWorkers]                 = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState(new Set());
@@ -911,7 +933,7 @@ function EquipeModule({ color, farmId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="👨🌾 Équipe & Tâches" sub="Assignation et suivi des tâches du personnel." />
+      <SectionHeader title={t('erp.ls_title_team')} sub={t('erp.ls_sub_team')} />
       <div className="grid-2" style={{ gap:28 }}>
         <div>
           <div style={{ fontWeight:900, marginBottom:12 }}>
@@ -946,9 +968,9 @@ function EquipeModule({ color, farmId }) {
           )}
         </div>
         <div className="glass-panel">
-          <div className="panel-title">Nouvelle Tâche</div>
+          <div className="panel-title">{t('erp.ls_new_task')}</div>
           <div style={{ display:'flex', flexDirection:'column', gap:13 }}>
-            <Field label="Titre" placeholder="ex: Vaccination du troupeau" value={form.title} onChange={v => setForm({...form, title:v})} />
+            <Field label={t('erp.title_word')} placeholder="ex: Vaccination du troupeau" value={form.title} onChange={v => setForm({...form, title:v})} />
             <div>
               <label style={{ fontSize:12, fontWeight:700, color:C.text, display:'block', marginBottom:6 }}>
                 Assigner à {selectedWorkers.size > 0 && <span style={{ color, fontSize:11, fontWeight:900 }}>{selectedWorkers.size} sélectionné(s)</span>}
@@ -968,10 +990,10 @@ function EquipeModule({ color, farmId }) {
                 {workers.length === 0 && <div style={{ fontSize:12, color:C.muted }}>Aucun ouvrier enregistré.</div>}
               </div>
             </div>
-            <Field label="Catégorie" type="select"
+            <Field label={t('erp.category_word')} type="select"
               options={[{v:'feeding',l:'Alimentation'},{v:'health',l:'Santé'},{v:'cleaning',l:'Nettoyage'},{v:'other',l:'Autre'}]}
               value={form.category} onChange={v => setForm({...form, category:v})} />
-            <Field label="Priorité" type="select"
+            <Field label={t('erp.priority_word')} type="select"
               options={[{v:'low',l:'Basse'},{v:'normal',l:'Normale'},{v:'urgent',l:'Urgente'}]}
               value={form.priority} onChange={v => setForm({...form, priority:v})} />
             <button className="btn-erp-primary" onClick={handleCreate} disabled={saving} style={{ background:color }}>
@@ -985,6 +1007,7 @@ function EquipeModule({ color, farmId }) {
 }
 
 function AlertesModule({ color, onResolved }) {
+  const { t } = useTranslation();
   const [alerts, setAlerts] = useState([]);
   const [busy, setBusy]     = useState(true);
 
@@ -1000,7 +1023,7 @@ function AlertesModule({ color, onResolved }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🔔 Alertes" sub="Seuils automatiques configurables." />
+      <SectionHeader title={t('erp.ls_title_alerts')} sub={t('erp.ls_sub_alerts')} />
       {busy ? (
         <div style={{ textAlign:'center', padding:40, color:C.muted }}>Chargement...</div>
       ) : alerts.length === 0 ? (

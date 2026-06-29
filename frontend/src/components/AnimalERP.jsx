@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import api, { poultryAPI, workerTasksAPI, alertsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 
 const C = {
@@ -38,6 +39,7 @@ const MODULES = [
 // ── Batch Workspace ───────────────────────────────────────────────────────────
 
 function BatchWorkspace({ batch, farmId, color, inventory, onRefresh }) {
+  const { t } = useTranslation();
   const [activeModule, setActiveModule] = useState('analytics');
   const [confirmDel,   setConfirmDel]   = useState(false);
   const [deleting,     setDeleting]     = useState(false);
@@ -97,7 +99,7 @@ function BatchWorkspace({ batch, farmId, color, inventory, onRefresh }) {
           )}
           {confirmDel ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.error }}>Supprimer ?</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.error }}>{t('erp.delete_q')}</span>
               <button onClick={handleDeleteBatch} disabled={deleting}
                 style={{ padding: '5px 12px', borderRadius: 8, border: 'none', background: C.error, color: 'white', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
                 {deleting ? '…' : 'Oui'}
@@ -108,7 +110,7 @@ function BatchWorkspace({ batch, farmId, color, inventory, onRefresh }) {
               </button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDel(true)} title="Supprimer ce lot"
+            <button onClick={() => setConfirmDel(true)} title={t('erp.delete_batch')}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, fontSize: 18, padding: '4px 8px', borderRadius: 8 }}>
               🗑
             </button>
@@ -151,6 +153,7 @@ function BatchWorkspace({ batch, farmId, color, inventory, onRefresh }) {
 // ── Root component ────────────────────────────────────────────────────────────
 
 export default function AnimalERP({ species, color = C.primary }) {
+  const { t } = useTranslation();
   const { farmId } = useAuth();
   const [batches,         setBatches]         = useState([]);
   const [inventory,       setInventory]       = useState([]);
@@ -201,7 +204,7 @@ export default function AnimalERP({ species, color = C.primary }) {
       }}>
         <div>
           <div style={{ fontSize: 9, fontWeight: 900, color: '#475569', letterSpacing: 2.5, marginBottom: 4 }}>SMART FARM AI</div>
-          <div style={{ fontSize: 18, fontWeight: 900, color: 'white' }}>Poultry ERP</div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: 'white' }}>{t('erp.poultry_erp')}</div>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
           {[
@@ -281,13 +284,13 @@ export default function AnimalERP({ species, color = C.primary }) {
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 80, flexDirection: 'column', gap: 14 }}>
           <RefreshCw size={30} className="spin" color={color} />
-          <div style={{ fontWeight: 700, color: C.muted }}>Chargement des données...</div>
+          <div style={{ fontWeight: 700, color: C.muted }}>{t('erp.loading_data')}</div>
         </div>
       ) : batches.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 20px', color: C.muted }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>🐔</div>
-          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>Aucun lot enregistré</div>
-          <div style={{ fontSize: 14 }}>Cliquez sur <strong>+ Nouveau lot</strong> pour démarrer votre premier élevage.</div>
+          <div style={{ fontWeight: 900, fontSize: 18, marginBottom: 8 }}>{t('erp.no_batch')}</div>
+          <div style={{ fontSize: 14 }}>{t('erp.no_batch_hint')}</div>
         </div>
       ) : (() => {
         const selectedBatch = batches.find(b => b.id === selectedBatchId);
@@ -314,6 +317,7 @@ export default function AnimalERP({ species, color = C.primary }) {
 // ── MODULES ───────────────────────────────────────────────────────────────────
 
 function FlockModule({ color, onRefresh, batches, farmId }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({ name: '', batch_type: 'broiler', breed: '', initial_quantity: '', supplier: '', notes: '' });
   const [saving, setSaving] = useState(false);
 
@@ -331,19 +335,19 @@ function FlockModule({ color, onRefresh, batches, farmId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🐔 Batch Management" sub="Créez et gérez le cycle de vie de vos lots (Arrivage → Vente)." />
+      <SectionHeader title={t('erp.title_flock')} sub={t('erp.sub_flock')} />
       <div className="grid-2" style={{ gap: 32, marginBottom: 32 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvel Arrivage</div>
+          <div className="panel-title">{t('erp.new_arrival')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Field label="Nom du Lot" placeholder="ex: Lot-2026-A" value={form.name} onChange={v => setForm({ ...form, name: v })} />
+            <Field label={t('erp.lot_name')} placeholder="ex: Lot-2026-A" value={form.name} onChange={v => setForm({ ...form, name: v })} />
             <Field label="Type" type="select"
               options={[{ v: 'broiler', l: 'Chair (Poulet)' }, { v: 'layer', l: 'Pondeuse' }, { v: 'breeder', l: 'Reproducteur' }, { v: 'autre', l: 'Autre' }]}
               value={form.batch_type} onChange={v => setForm({ ...form, batch_type: v, notes: '' })} />
             {form.batch_type === 'autre' && (
-              <Field label="Préciser le type" placeholder="ex: Dinde, Caille, Pintade…" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
+              <Field label={t('erp.specify_type')} placeholder="ex: Dinde, Caille, Pintade…" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
             )}
-            <Field label="Race / Souche" placeholder="Ross 308" value={form.breed} onChange={v => setForm({ ...form, breed: v })} />
+            <Field label={t('erp.breed')} placeholder="Ross 308" value={form.breed} onChange={v => setForm({ ...form, breed: v })} />
             <div className="grid-2" style={{ gap: 12 }}>
               <Field label="Quantité Initiale" type="number" value={form.initial_quantity} onChange={v => setForm({ ...form, initial_quantity: v })} />
               <Field label="Fournisseur" value={form.supplier} onChange={v => setForm({ ...form, supplier: v })} />
@@ -364,13 +368,13 @@ function FlockModule({ color, onRefresh, batches, farmId }) {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontWeight: 900, color, fontSize: 15 }}>{(b.current_quantity || 0).toLocaleString()}</div>
-                <div style={{ fontSize: 10, color: C.muted }}>têtes</div>
+                <div style={{ fontSize: 10, color: C.muted }}>{t('erp.heads')}</div>
               </div>
             </div>
           ))}
           {batches.filter(b => b.status !== 'active').length > 0 && (
             <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, marginBottom: 8 }}>LOTS TERMINÉS</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, marginBottom: 8 }}>{t('erp.finished_batches')}</div>
               {batches.filter(b => b.status !== 'active').slice(0, 3).map(b => (
                 <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: C.bg, borderRadius: 8, marginBottom: 6, opacity: 0.7 }}>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>{b.name}</span>
@@ -386,6 +390,7 @@ function FlockModule({ color, onRefresh, batches, farmId }) {
 }
 
 function FlockEditModule({ color, batch, onRefresh }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     current_quantity: batch.current_quantity ?? '',
     status:           batch.status           || 'active',
@@ -410,10 +415,10 @@ function FlockEditModule({ color, batch, onRefresh }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🐔 Batch Management" sub="Modifiez l'effectif, le statut et les notes du lot." />
+      <SectionHeader title={t('erp.title_flock')} sub={t('erp.sub_flock_edit')} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
         <div className="glass-panel">
-          <div className="panel-title">Modifier ce Lot</div>
+          <div className="panel-title">{t('erp.edit_this_batch')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field label="Race / Souche" value={form.breed} onChange={v => setForm({ ...form, breed: v })} />
             <div className="grid-2" style={{ gap: 12 }}>
@@ -429,7 +434,7 @@ function FlockEditModule({ color, batch, onRefresh }) {
           </div>
         </div>
         <div className="card-inner" style={{ borderLeft: `4px solid ${color}44` }}>
-          <div style={{ fontWeight: 900, marginBottom: 12 }}>Informations du lot</div>
+          <div style={{ fontWeight: 900, marginBottom: 12 }}>{t('erp.batch_info')}</div>
           {[
             ['Type',              batch.batch_type],
             ['Fournisseur',       batch.supplier || '—'],
@@ -448,6 +453,7 @@ function FlockEditModule({ color, batch, onRefresh }) {
 }
 
 function FeedModule({ color, batchId }) {
+  const { t } = useTranslation();
   const [form, setForm]   = useState({ feed_type: 'Croissance', quantity_kg: '', average_weight_g: '', cost_per_kg: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [logs, setLogs]   = useState([]);
@@ -491,7 +497,7 @@ function FeedModule({ color, batchId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🌾 Feed & Nutrition" sub="Suivi de la consommation journalière et analyse de l'indice de conversion (FCR)." />
+      <SectionHeader title={t('erp.title_feed')} sub={t('erp.sub_feed')} />
 
       {fcrAlert && (
         <AlertBanner color={C.warning} icon={AlertTriangle}>
@@ -501,24 +507,24 @@ function FeedModule({ color, batchId }) {
 
       <div className="grid-2-1" style={{ gap: 28, marginBottom: 24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvelle Ration</div>
+          <div className="panel-title">{t('erp.new_ration')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field label="Type d'Aliment" type="select"
               options={[{ v: 'Démarrage', l: 'Démarrage' }, { v: 'Croissance', l: 'Croissance' }, { v: 'Finition', l: 'Finition' }, { v: 'Autre', l: 'Autre' }]}
               value={form.feed_type} onChange={v => setForm({ ...form, feed_type: v, notes: '' })} />
             {form.feed_type === 'Autre' && (
-              <Field label="Préciser l'aliment" placeholder="ex: Complément vitaminé, Aliment fermenté…" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
+              <Field label={t('erp.specify_feed')} placeholder="ex: Complément vitaminé, Aliment fermenté…" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
             )}
-            <Field label="Quantité Consommée (kg)" type="number" placeholder="ex: 250" value={form.quantity_kg} onChange={v => setForm({ ...form, quantity_kg: v })} />
-            <Field label="Poids Moyen Observé (g)" type="number" placeholder="ex: 1 200" value={form.average_weight_g} onChange={v => setForm({ ...form, average_weight_g: v })} />
-            <Field label="Coût / kg (TND)" type="number" placeholder="ex: 0.85" value={form.cost_per_kg} onChange={v => setForm({ ...form, cost_per_kg: v })} />
+            <Field label={t('erp.qty_consumed')} type="number" placeholder="ex: 250" value={form.quantity_kg} onChange={v => setForm({ ...form, quantity_kg: v })} />
+            <Field label={t('erp.avg_weight')} type="number" placeholder="ex: 1 200" value={form.average_weight_g} onChange={v => setForm({ ...form, average_weight_g: v })} />
+            <Field label={t('erp.cost_kg')} type="number" placeholder="ex: 0.85" value={form.cost_per_kg} onChange={v => setForm({ ...form, cost_per_kg: v })} />
             <button className="btn-erp-primary" onClick={handleSubmit} disabled={saving} style={{ background: color }}>
               {saving ? 'Enregistrement...' : 'Enregistrer la Ration'}
             </button>
           </div>
         </div>
         <div className="card-inner" style={{ background: color + '06', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ fontSize: 10, fontWeight: 900, color: C.muted, letterSpacing: 1 }}>FCR MOYEN</div>
+          <div style={{ fontSize: 10, fontWeight: 900, color: C.muted, letterSpacing: 1 }}>{t('erp.fcr_avg')}</div>
           <div style={{ fontSize: 46, fontWeight: 900, color: fcrAlert ? C.warning : color }}>{avgFcr ?? '—'}</div>
           <p style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>{logs.length} ration(s) enregistrée(s)</p>
         </div>
@@ -550,7 +556,7 @@ function FeedModule({ color, batchId }) {
                     </td>
                     <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>{l.cost_per_kg ? `${l.cost_per_kg} TND` : '—'}</td>
                     <td style={{ padding: '9px 4px' }}>
-                      <button onClick={() => handleDeleteFeed(l.id)} title="Supprimer"
+                      <button onClick={() => handleDeleteFeed(l.id)} title={t('erp.delete')}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.error, fontSize: 15, padding: '3px 7px', borderRadius: 6, opacity: 0.7 }}>🗑</button>
                     </td>
                   </tr>
@@ -565,6 +571,7 @@ function FeedModule({ color, batchId }) {
 }
 
 function HealthModule({ color, batchId }) {
+  const { t } = useTranslation();
   const [form, setForm]   = useState({ event_type: 'Vaccination', description: '', medicine_used: '', dosage: '', vet_name: '', cost: '' });
   const [saving, setSaving] = useState(false);
   const [records, setRecords] = useState([]);
@@ -599,15 +606,15 @@ function HealthModule({ color, batchId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="💊 Health & Veterinary" sub="Carnet vaccinal, journal vétérinaire et traçabilité médicament par lot." />
+      <SectionHeader title={t('erp.title_health')} sub={t('erp.sub_health')} />
       <div className="grid-2" style={{ gap: 28, marginBottom: 24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvel Acte Sanitaire</div>
+          <div className="panel-title">{t('erp.new_health')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
             <Field label="Type d'évènement" type="select"
               options={[{ v: 'Vaccination', l: 'Vaccination' }, { v: 'Traitement', l: 'Traitement' }, { v: 'Visite Vétérinaire', l: 'Visite Vétérinaire' }, { v: 'Autre', l: 'Autre' }]}
               value={form.event_type} onChange={v => setForm({ ...form, event_type: v })} />
-            <Field label="Description" placeholder="ex: Rappel Newcastle" value={form.description} onChange={v => setForm({ ...form, description: v })} />
+            <Field label={t('erp.description')} placeholder="ex: Rappel Newcastle" value={form.description} onChange={v => setForm({ ...form, description: v })} />
             <div className="grid-2" style={{ gap: 12 }}>
               <Field label="Médicament / Vaccin" value={form.medicine_used} onChange={v => setForm({ ...form, medicine_used: v })} />
               <Field label="Dosage" value={form.dosage} onChange={v => setForm({ ...form, dosage: v })} />
@@ -623,7 +630,7 @@ function HealthModule({ color, batchId }) {
         </div>
 
         <div className="card-inner">
-          <div style={{ fontWeight: 900, marginBottom: 14 }}>Résumé Sanitaire</div>
+          <div style={{ fontWeight: 900, marginBottom: 14 }}>{t('erp.health_summary')}</div>
           {[
             { label: 'Vaccinations',        count: records.filter(r => r.event_type === 'Vaccination').length,        clr: color },
             { label: 'Traitements',         count: records.filter(r => r.event_type === 'Traitement').length,         clr: C.warning },
@@ -653,7 +660,7 @@ function HealthModule({ color, batchId }) {
                   </div>
                 </div>
                 {r.cost > 0 && <div style={{ fontWeight: 900, color: C.error, fontSize: 13 }}>{r.cost} TND</div>}
-                <button onClick={() => handleDeleteHealth(r.id)} title="Supprimer"
+                <button onClick={() => handleDeleteHealth(r.id)} title={t('erp.delete')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.error, fontSize: 15, padding: '3px 7px', borderRadius: 6, opacity: 0.7, flexShrink: 0 }}>🗑</button>
               </div>
             ))}
@@ -665,6 +672,7 @@ function HealthModule({ color, batchId }) {
 }
 
 function EggModule({ color, batchId }) {
+  const { t } = useTranslation();
   const [form, setForm]       = useState({ total_eggs: '', broken_eggs: '', grade_a_count: '' });
   const [submitting, setSubmitting] = useState(false);
   const [logs, setLogs]       = useState([]);
@@ -706,7 +714,7 @@ function EggModule({ color, batchId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="🥚 Egg Production" sub="Suivi quotidien de la ponte, qualité et taux de production." />
+      <SectionHeader title={t('erp.title_egg')} sub={t('erp.sub_egg')} />
 
       {rateAlert && (
         <AlertBanner color={C.warning} icon={AlertTriangle}>
@@ -716,7 +724,7 @@ function EggModule({ color, batchId }) {
 
       <div className="grid-2" style={{ gap: 28, marginBottom: 24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Collecte Journalière</div>
+          <div className="panel-title">{t('erp.daily_collect')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field label="Total Œufs Collectés" type="number" value={form.total_eggs} onChange={v => setForm({ ...form, total_eggs: v })} />
             <div className="grid-2" style={{ gap: 12 }}>
@@ -731,7 +739,7 @@ function EggModule({ color, batchId }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="card-inner" style={{ flex: 1, textAlign: 'center', background: color + '06', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <div style={{ fontSize: 10, fontWeight: 900, color: C.muted, letterSpacing: 1 }}>TAUX DE PONTE</div>
+            <div style={{ fontSize: 10, fontWeight: 900, color: C.muted, letterSpacing: 1 }}>{t('erp.laying_rate')}</div>
             <div style={{ fontSize: 44, fontWeight: 900, color: rateAlert ? C.warning : color }}>
               {latestRate !== undefined && latestRate !== null ? `${latestRate.toFixed(1)}%` : '—'}
             </div>
@@ -771,7 +779,7 @@ function EggModule({ color, batchId }) {
                         : '—'}
                     </td>
                     <td style={{ padding: '9px 4px' }}>
-                      <button onClick={() => handleDeleteEgg(l.id)} title="Supprimer"
+                      <button onClick={() => handleDeleteEgg(l.id)} title={t('erp.delete')}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.error, fontSize: 15, padding: '3px 7px', borderRadius: 6, opacity: 0.7 }}>🗑</button>
                     </td>
                   </tr>
@@ -786,6 +794,7 @@ function EggModule({ color, batchId }) {
 }
 
 function FinanceModule({ color, batchId }) {
+  const { t } = useTranslation();
   const [form, setForm]   = useState({ product_type: 'Live Birds', quantity: '', unit_price: '', customer_name: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [sales, setSales] = useState([]);
@@ -822,18 +831,18 @@ function FinanceModule({ color, batchId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="💰 Sales & Finance" sub="Enregistrement des ventes et bilan de rentabilité par lot." />
+      <SectionHeader title={t('erp.title_finance')} sub={t('erp.sub_finance')} />
       <div className="grid-2" style={{ gap: 28, marginBottom: 24 }}>
         <div className="glass-panel">
-          <div className="panel-title">Nouvelle Vente</div>
+          <div className="panel-title">{t('erp.new_sale')}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field label="Type de Produit" type="select"
               options={[{ v: 'Live Birds', l: 'Volailles Vives' }, { v: 'Eggs', l: 'Œufs' }, { v: 'Manure', l: 'Fumier' }, { v: 'Autre', l: 'Autre' }]}
               value={form.product_type} onChange={v => setForm({ ...form, product_type: v, notes: '' })} />
             {form.product_type === 'Autre' && (
-              <Field label="Préciser le produit" placeholder="ex: Plumes, Sous-produits, Poussins…" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
+              <Field label={t('erp.specify_product')} placeholder="ex: Plumes, Sous-produits, Poussins…" value={form.notes} onChange={v => setForm({ ...form, notes: v })} />
             )}
-            <Field label="Client" placeholder="Grossiste / Marché / Particulier" value={form.customer_name} onChange={v => setForm({ ...form, customer_name: v })} />
+            <Field label={t('erp.client')} placeholder="Grossiste / Marché / Particulier" value={form.customer_name} onChange={v => setForm({ ...form, customer_name: v })} />
             <div className="grid-2" style={{ gap: 12 }}>
               <Field label="Quantité" type="number" value={form.quantity} onChange={v => setForm({ ...form, quantity: v })} />
               <Field label="Prix Unitaire (TND)" type="number" value={form.unit_price} onChange={v => setForm({ ...form, unit_price: v })} />
@@ -850,13 +859,13 @@ function FinanceModule({ color, batchId }) {
         </div>
 
         <div className="card-inner" style={{ borderLeft: `5px solid ${C.success}` }}>
-          <div style={{ fontWeight: 900, marginBottom: 18 }}>Bilan du Lot</div>
+          <div style={{ fontWeight: 900, marginBottom: 18 }}>{t('erp.batch_balance')}</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-            <span style={{ fontSize: 13, color: C.muted }}>Nombre de ventes</span>
+            <span style={{ fontSize: 13, color: C.muted }}>{t('erp.num_sales')}</span>
             <span style={{ fontWeight: 900, color }}>{sales.length}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-            <span style={{ fontSize: 13, color: C.muted }}>Chiffre d'affaires</span>
+            <span style={{ fontSize: 13, color: C.muted }}>{t('erp.revenue')}</span>
             <span style={{ fontWeight: 900, color: C.success, fontSize: 18 }}>{totalRevenue.toFixed(0)} TND</span>
           </div>
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
@@ -897,7 +906,7 @@ function FinanceModule({ color, batchId }) {
                       <span style={{ fontWeight: 900, color: C.success }}>{s.total_amount?.toFixed(0)} TND</span>
                     </td>
                     <td style={{ padding: '9px 4px' }}>
-                      <button onClick={() => handleDeleteSale(s.id)} title="Supprimer"
+                      <button onClick={() => handleDeleteSale(s.id)} title={t('erp.delete')}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.error, fontSize: 15, padding: '3px 7px', borderRadius: 6, opacity: 0.7 }}>🗑</button>
                     </td>
                   </tr>
@@ -912,6 +921,7 @@ function FinanceModule({ color, batchId }) {
 }
 
 function InventoryModule({ inventory, onRefresh, farmId }) {
+  const { t } = useTranslation();
   const [form, setForm]         = useState({ item_name: '', category: 'feed', custom_category: '', quantity: '', unit: 'kg', min_threshold: '' });
 
   const handleDeleteInventory = async (id) => {
@@ -936,7 +946,7 @@ function InventoryModule({ inventory, onRefresh, farmId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="📦 Stocks & Approvisionnement" sub="Gérez vos stocks critiques d'aliments et de vaccins pour éviter les ruptures." />
+      <SectionHeader title={t('erp.title_stock')} sub={t('erp.sub_stock')} />
 
       {lowStock.length > 0 && (
         <AlertBanner color={C.error} icon={AlertTriangle}>
@@ -953,7 +963,7 @@ function InventoryModule({ inventory, onRefresh, farmId }) {
                 <div style={{ fontWeight: 800, fontSize: 13 }}>{item.item_name}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Package size={14} color={C.muted} />
-                  <button onClick={() => handleDeleteInventory(item.id)} title="Supprimer"
+                  <button onClick={() => handleDeleteInventory(item.id)} title={t('erp.delete')}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.error, fontSize: 14, padding: '2px 4px', borderRadius: 6, opacity: 0.6, lineHeight: 1 }}>🗑</button>
                 </div>
               </div>
@@ -969,7 +979,7 @@ function InventoryModule({ inventory, onRefresh, farmId }) {
       </div>
 
       <div className="glass-panel">
-        <div className="panel-title">Entrée de Stock</div>
+        <div className="panel-title">{t('erp.stock_entry')}</div>
         <div className="grid-4" style={{ gap: 12 }}>
           <Field label="Nom de l'article" value={form.item_name} onChange={v => setForm({ ...form, item_name: v })} />
           <Field label="Catégorie" type="select"
@@ -980,16 +990,17 @@ function InventoryModule({ inventory, onRefresh, farmId }) {
         </div>
         {form.category === 'other' && (
           <div style={{ marginTop: 12 }}>
-            <Field label="Préciser la catégorie" placeholder="ex: Désinfectant, Litière, Emballage…" value={form.custom_category} onChange={v => setForm({ ...form, custom_category: v })} />
+            <Field label={t('erp.specify_category')} placeholder="ex: Désinfectant, Litière, Emballage…" value={form.custom_category} onChange={v => setForm({ ...form, custom_category: v })} />
           </div>
         )}
-        <button className="btn-erp-secondary" onClick={handleAdd} style={{ marginTop: 16 }}>Enregistrer dans l'inventaire</button>
+        <button className="btn-erp-secondary" onClick={handleAdd} style={{ marginTop: 16 }}>{t('erp.save_inventory')}</button>
       </div>
     </div>
   );
 }
 
 function WorkforceModule({ color, farmId }) {
+  const { t } = useTranslation();
   const [tasks,           setTasks]           = useState([]);
   const [workers,         setWorkers]         = useState([]);
   const [selectedWorkers, setSelectedWorkers] = useState(new Set());
@@ -1034,9 +1045,9 @@ function WorkforceModule({ color, farmId }) {
       }
       setForm({ title: '', category: 'feeding', priority: 'normal', description: '' });
       setSelectedWorkers(new Set());
-      toast.success('Tâche(s) créée(s)');
+      toast.success(t('erp.task_created'));
       load();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Erreur création tâche'); }
+    } catch (e) { toast.error(e.response?.data?.detail || t('erp.task_err')); }
     setSaving(false);
   };
 
@@ -1052,15 +1063,15 @@ function WorkforceModule({ color, farmId }) {
 
   return (
     <div className="fade-in">
-      <SectionHeader title="👨‍🌾 Workforce & Tasks" sub="Assignation et suivi des tâches du personnel de ferme." />
+      <SectionHeader title={t('erp.title_workforce')} sub={t('erp.sub_workforce')} />
       <div className="grid-2" style={{ gap: 28 }}>
 
         {/* ── Task list ── */}
         <div>
           <div style={{ fontWeight: 900, marginBottom: 12 }}>
-            Tâches ({tasks.length})
+            {t('erp.tasks_word')} ({tasks.length})
             <span style={{ marginLeft: 8, fontSize: 11, color: C.muted }}>
-              ✅ {tasks.filter(t => t.status === 'done').length} terminées · ⏳ {tasks.filter(t => t.status === 'pending').length} en attente
+              ✅ {tasks.filter(x => x.status === 'done').length} {t('erp.done_word')} · ⏳ {tasks.filter(x => x.status === 'pending').length} {t('erp.pending_word')}
             </span>
           </div>
           {tasks.length === 0 ? (

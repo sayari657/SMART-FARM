@@ -37,6 +37,7 @@ const AboutProject        = lazy(() => import('./pages/AboutProject'));
 const ArbresPlantations   = lazy(() => import('./pages/ArbresPlantations'));
 const MapCenter           = lazy(() => import('./pages/MapCenter'));
 const Entrepot            = lazy(() => import('./pages/Entrepot'));
+const Messages            = lazy(() => import('./pages/Messages'));
 const NotFound            = lazy(() => import('./pages/NotFound'));
 const HiveInspectPage     = lazy(() => import('./pages/HiveInspectPage'));
 const WorkerLogin         = lazy(() => import('./pages/WorkerLogin'));
@@ -111,26 +112,27 @@ function AppRoutes() {
         <Route path="/dashboard"    element={<NoFarmGuard><Dashboard /></NoFarmGuard>} />
         <Route path="farms"         element={<Farms />} />
         <Route path="farms/:id"     element={<NoFarmGuard><FarmDetails /></NoFarmGuard>} />
-        <Route path="animals"       element={<NoFarmGuard><Animals /></NoFarmGuard>} />
-        <Route path="animals/:id"   element={<NoFarmGuard><AnimalDetails /></NoFarmGuard>} />
-        <Route path="cv"            element={<NoFarmGuard><CVMonitoring /></NoFarmGuard>} />
-        <Route path="alerts"        element={<NoFarmGuard><AlertsCenter /></NoFarmGuard>} />
+        <Route path="animals"       element={<NoFarmGuard><ProGate><Animals /></ProGate></NoFarmGuard>} />
+        <Route path="animals/:id"   element={<NoFarmGuard><ProGate><AnimalDetails /></ProGate></NoFarmGuard>} />
+        <Route path="cv"            element={<NoFarmGuard><ProGate><CVMonitoring /></ProGate></NoFarmGuard>} />
+        <Route path="alerts"        element={<NoFarmGuard><ProGate><AlertsCenter /></ProGate></NoFarmGuard>} />
         <Route path="recommendations" element={<Navigate to="/reports" replace />} />
         <Route path="reports"       element={<NoFarmGuard><ProGate><Reports /></ProGate></NoFarmGuard>} />
+        <Route path="messages"      element={<NoFarmGuard><Messages /></NoFarmGuard>} />
         <Route path="settings"      element={<Settings />} />
         <Route path="aboutbee" element={<AboutBee />} />
-        <Route path="aboutcow" element={<AboutCows />} />
-        <Route path="aboutpoultry" element={<AboutPoultry />} />
-        <Route path="poultry" element={<AboutPoultry />} />
-        <Route path="aboutsheep" element={<AboutSheep />} />
-        <Route path="aboutgoat" element={<AboutGoats />} />
-        <Route path="aboutrabbit" element={<AboutRabbit />} />
+        <Route path="aboutcow" element={<ProGate><AboutCows /></ProGate>} />
+        <Route path="aboutpoultry" element={<ProGate><AboutPoultry /></ProGate>} />
+        <Route path="poultry" element={<ProGate><AboutPoultry /></ProGate>} />
+        <Route path="aboutsheep" element={<ProGate><AboutSheep /></ProGate>} />
+        <Route path="aboutgoat" element={<ProGate><AboutGoats /></ProGate>} />
+        <Route path="aboutrabbit" element={<ProGate><AboutRabbit /></ProGate>} />
         <Route path="assistant" element={<ProGate><SovereignAssistant /></ProGate>} />
         <Route path="about-project" element={<AboutProject />} />
         <Route path="trees" element={<ArbresPlantations />} />
         <Route path="map" element={<MapCenter />} />
-        <Route path="entrepot"    element={<Entrepot />} />
-        <Route path="iot-devices" element={<NoFarmGuard><IoTDevices /></NoFarmGuard>} />
+        <Route path="entrepot"    element={<ProGate><Entrepot /></ProGate>} />
+        <Route path="iot-devices" element={<NoFarmGuard><ProGate><IoTDevices /></ProGate></NoFarmGuard>} />
       </Route>
 
       {/* Worker Protected layout (PWA) */}
@@ -143,6 +145,7 @@ function AppRoutes() {
         <Route path="tasks" element={<WorkerTasks />} />
         <Route path="scan" element={<WorkerScan />} />
         <Route path="report" element={<WorkerReport />} />
+        <Route path="messages" element={<Messages />} />
         <Route path="warehouse" element={<WorkerWarehouse />} />
         <Route path="settings" element={<WorkerSettings />} />
         <Route path="instructions" element={<WorkerInstructions />} />

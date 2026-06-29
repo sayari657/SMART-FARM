@@ -10,9 +10,12 @@ const CRITICAL_LABELS = new Set(['fire', 'smoke', 'predator', 'dead_bird', 'feu'
 const SCAN_ALERT_KEY = 'farm_scan_alerts';
 const SCAN_ALERT_MAX = 20;
 
-// WebSocket base — connects straight to the backend (same convention as useWebSocket)
+// WebSocket base. In prod, VITE_WS_URL points at the backend directly. In dev we
+// use the SAME ORIGIN so the request flows through Vite's `/ws` proxy → backend:
+// connecting straight to :8000 breaks under the HTTPS dev server (wss:// to a
+// non-TLS backend fails the handshake → "Connexion échouée").
 const WS_BASE = import.meta.env.VITE_WS_URL ||
-  (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.hostname + ':8000';
+  (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
 
 const compressImage = (dataUrl, maxWidth = 520, quality = 0.72) =>
   new Promise((resolve) => {

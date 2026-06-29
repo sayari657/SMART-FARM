@@ -8,6 +8,7 @@ import { COLORS } from './BeeConstants';
 import { cacheVisit } from '../../services/offlineVisitCache';
 import FullscreenVisitForm from './FullscreenVisitForm';
 import HiveHistoryPanel from './HiveHistoryPanel';
+import EntrepotCatalogue from '../EntrepotCatalogue';
 import { beeApi } from '../../services/beeApi';
 
 /* ══════════════════════════════════════════
@@ -240,8 +241,115 @@ function HivePickerModal({ ruches, emplacements, onSelect, onClose }) {
 /* ══════════════════════════════════════════
    Hive View  =  full-page form  +  history below
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   Stock popup — TAKE items from the warehouse CATALOGUE (entrepôt) → this hive.
+   Shows the real entrepôt (EntrepotCatalogue) in "take mode": every product gets
+   a "Prendre 1" button that decrements its available qty (localStorage haddad-qty,
+   the same store the Stock page reads) and records the item for this hive.
+══════════════════════════════════════════ */
+function StockPickerModal({ hive, onClose }) {
+  const [taken, setTaken] = useState([]);
+
+  const onTake = (item) => {
+    try {
+      const k = `bee_hive_materials_${hive.id}`;
+      const list = JSON.parse(localStorage.getItem(k) || '[]');
+      list.unshift({ name: item.name, price: item.price ?? null, cat: item.cat, qty: 1, at: new Date().toISOString() });
+      localStorage.setItem(k, JSON.stringify(list.slice(0, 300)));
+    } catch { /* ignore */ }
+    setTaken(t => [{ name: item.name, id: Date.now() + Math.random() }, ...t].slice(0, 8));
+  };
+
+  return (
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(15,23,42,0.6)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(3px)' }}>
+      <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 20,
+        width: 'min(1000px, 97vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', boxShadow: '0 24px 70px rgba(0,0,0,0.45)' }}>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 20px', borderBottom: `1px solid ${COLORS.border}`, flexShrink: 0 }}>
+          <div>
+            <div style={{ fontWeight: 800, color: COLORS.text, fontSize: 16 }}>📦 Prendre de l'entrepôt</div>
+            <div style={{ fontSize: 11.5, color: COLORS.textMuted, marginTop: 2 }}>
+              → {hive.identifier || `ruche #${hive.id}`} · « Prendre » décompte du stock et l'affecte à la ruche
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: COLORS.bg2, border: `1px solid ${COLORS.border}`, borderRadius: 8, width: 32, height: 32, cursor: 'pointer', color: COLORS.textMuted, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
+        </div>
+
+        {taken.length > 0 && (
+          <div style={{ padding: '9px 20px', fontSize: 12.5, fontWeight: 700, flexShrink: 0,
+            background: `${COLORS.success}14`, color: COLORS.success }}>
+            ✓ Pris pour la ruche : {taken[0].name}{taken.length > 1 ? ` (+${taken.length - 1})` : ''}
+          </div>
+        )}
+
+        <div style={{ overflowY: 'auto', padding: 6 }}>
+          <EntrepotCatalogue takeMode onTake={onTake} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   Materials taken from the entrepôt for this hive (shown near the history).
+══════════════════════════════════════════ */
+function HiveMaterialsPanel({ hive, tick }) {
+  const [items, setItems] = useState([]);
+  const key = `bee_hive_materials_${hive.id}`;
+
+  useEffect(() => {
+    try { setItems(JSON.parse(localStorage.getItem(key) || '[]')); } catch { setItems([]); }
+  }, [hive.id, tick]); // eslint-disable-line
+
+  const remove = (idx) => {
+    const next = items.filter((_, i) => i !== idx);
+    setItems(next);
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
+  };
+
+  return (
+    <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 24, padding: '24px 32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ fontWeight: 800, color: COLORS.text, fontSize: 15 }}>📦 Matériel pris de l'entrepôt</div>
+        <span style={{ fontSize: 12, color: COLORS.textMuted, fontWeight: 700 }}>
+          {items.length} article{items.length > 1 ? 's' : ''}
+        </span>
+      </div>
+      {items.length === 0 ? (
+        <div style={{ color: COLORS.textMuted, fontSize: 13 }}>Aucun article pris pour cette ruche.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {items.map((it, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: COLORS.bg2, borderRadius: 12 }}>
+              <span style={{ fontSize: 18, flexShrink: 0 }}>📦</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, color: COLORS.text, fontSize: 13.5 }}>{it.name}</div>
+                <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 1 }}>
+                  {it.cat || '—'}{it.price != null ? ` · ${it.price} DT` : ''}{it.at ? ` · ${new Date(it.at).toLocaleDateString()}` : ''}
+                </div>
+              </div>
+              <span style={{ fontWeight: 800, color: COLORS.text, fontSize: 13, flexShrink: 0 }}>×{it.qty || 1}</span>
+              <button onClick={() => remove(i)}
+                style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: 'none',
+                  color: COLORS.error, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HiveView({ hive, emplacements, onBack, onChangeHive }) {
   const [tick,       setTick]      = useState(0);
+  const [showStock,  setShowStock] = useState(false);
+  const [matTick,    setMatTick]   = useState(0);
   const [showPicker, setShowPicker] = useState(false);
   const [allHives,   setAllHives]  = useState([]);
   const apiary = emplacements.find(e => e.id === hive.apiary_id);
@@ -299,6 +407,18 @@ function HiveView({ hive, emplacements, onBack, onChangeHive }) {
 
       {/* ── Fullscreen stepper form ── */}
       <FullscreenVisitForm hive={hive} apiary={apiary} onSubmit={handleSubmit} />
+
+      {/* ── Stock allocation (entrepôt → cette ruche) — popup ── */}
+      <button onClick={() => setShowStock(true)}
+        style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8,
+          background: COLORS.bg2, border: `1px solid ${COLORS.border}`, borderRadius: 12,
+          padding: '11px 18px', cursor: 'pointer', color: COLORS.text, fontWeight: 700, fontSize: 13.5 }}>
+        📦 Prendre du stock pour cette ruche
+      </button>
+      {showStock && <StockPickerModal hive={hive} onClose={() => { setShowStock(false); setMatTick(t => t + 1); }} />}
+
+      {/* ── Matériel pris de l'entrepôt ── */}
+      <HiveMaterialsPanel hive={hive} tick={matTick} />
 
       {/* ── History below ── */}
       <div style={{

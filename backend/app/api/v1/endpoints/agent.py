@@ -111,7 +111,8 @@ async def generate_fast_report(request: Request, body: ReportRequest):
     persona = personas.get(species, "خبير زراعي تونسي")
 
     system = (
-        f"أنت {persona}. تجاوب حصراً بالدارجة التونسية. "
+        f"أنت {persona}. تجاوب حصراً بالدارجة التونسية وبالحروف العربية فقط "
+        "(ممنوع الحروف اللاتينية ولا أرقام عوض الحروف مثل 3 و7 و9). "
         "كن مباشراً وعملياً. لا تضيف مقدمات طويلة."
     )
 

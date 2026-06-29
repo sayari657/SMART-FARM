@@ -9,6 +9,8 @@ Jobs :
   4. send_daily_health_push     — chaque matin 7h : push récap santé aux owners actifs
   5. send_crop_calendar_alerts  — chaque matin 6h : alertes calendrier agricole tunisien
                                   (gel critique quotidien + digest mensuel le 1er du mois)
+  5b. check_weather_alerts      — toutes les 3h : alertes météo par ferme (canicule, gel,
+                                  tempête, fortes pluies, UV) → email + push + WhatsApp
   6. scan_telemetry_anomalies   — toutes les heures : IsolationForest sur la télémétrie
                                   → lignes Anomaly (+ notification si critique)
   7. snapshot_market_prices     — chaque jour 5h : snapshot des prix agricoles
@@ -249,6 +251,28 @@ def send_crop_calendar_alerts():
         logger.error("send_crop_calendar_alerts error: %s", e)
 
 
+# ── Job 5b : Alertes météo (toutes les 3h) ──────────────────────────────────
+
+def check_weather_alerts():
+    """Évalue la météo en temps réel de chaque ferme (Open-Meteo) et déclenche
+    des alertes (canicule, gel, tempête, fortes pluies, UV extrême) envoyées
+    par email + push + WhatsApp. Déduplique sur 12h, auto-résout les risques levés."""
+    try:
+        from app.core.database import SessionLocal
+        from app.services.weather_alert_service import run_weather_alert_check
+
+        db = SessionLocal()
+        try:
+            result = run_weather_alert_check(db, owner_id=None, notify=True)
+            if result.get("alerts_created"):
+                logger.info("Weather alerts: %d created, %d emailed",
+                            result["alerts_created"], result["emails_sent"])
+        finally:
+            db.close()
+    except Exception as e:
+        logger.error("check_weather_alerts error: %s", e)
+
+
 # ── Job 6 : IsolationForest sur la télémétrie (toutes les heures) ────────────
 
 def scan_telemetry_anomalies():
@@ -314,11 +338,12 @@ def start_scheduler():
         sched.add_job(expire_plans,            IntervalTrigger(hours=1),  id="expire_plans",  replace_existing=True)
         sched.add_job(send_daily_health_push,  CronTrigger(hour=7, minute=0), id="daily_push",    replace_existing=True)
         sched.add_job(send_crop_calendar_alerts, CronTrigger(hour=6, minute=0), id="crop_calendar_alerts", replace_existing=True)
+        sched.add_job(check_weather_alerts,       IntervalTrigger(hours=3), id="weather_alerts", replace_existing=True)
         sched.add_job(scan_telemetry_anomalies,  IntervalTrigger(hours=1), id="anomaly_if_scan", replace_existing=True)
         sched.add_job(snapshot_market_prices,    CronTrigger(hour=5, minute=0), id="price_snapshot", replace_existing=True)
 
         sched.start()
-        logger.info("APScheduler started — 7 jobs registered")
+        logger.info("APScheduler started — 8 jobs registered")
     except Exception as e:
         logger.error("Scheduler start failed: %s", e)
 

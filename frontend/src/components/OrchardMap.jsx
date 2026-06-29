@@ -25,7 +25,17 @@ const STATUS = {
   diseased: { label: 'Maladie',       color: '#ef4444' },
   treated:  { label: 'Traité',        color: '#2563eb' },
 };
-const DEFAULT_CENTER = [36.8065, 10.1815]; // Tunis
+// Verger ciblé — la carte satellite s'ouvre et reste focalisée sur cette zone.
+const ORCHARD_ZONE = [36.5554600, 10.4968230];
+const ZONE_PAD = 0.03; // ~3 km de marge autour du verger
+const ZONE_BOUNDS = [
+  [ORCHARD_ZONE[0] - ZONE_PAD, ORCHARD_ZONE[1] - ZONE_PAD],
+  [ORCHARD_ZONE[0] + ZONE_PAD, ORCHARD_ZONE[1] + ZONE_PAD],
+];
+const inZone = ([la, ln]) =>
+  la >= ZONE_BOUNDS[0][0] && la <= ZONE_BOUNDS[1][0] &&
+  ln >= ZONE_BOUNDS[0][1] && ln <= ZONE_BOUNDS[1][1];
+const DEFAULT_CENTER = ORCHARD_ZONE; // verger 36.5554600, 10.4968230
 
 const SPECIES = [
   { v: 'olive',  e: '🫒', k: 'olive' },
@@ -104,7 +114,8 @@ export default function OrchardMap() {
     if (placed.length) {
       const la = placed.reduce((s, t) => s + t.lat, 0) / placed.length;
       const ln = placed.reduce((s, t) => s + t.lng, 0) / placed.length;
-      setCenter([la, ln]);
+      // On reste focalisé sur le verger : recentrage seulement si les arbres sont dans la zone.
+      if (inZone([la, ln])) setCenter([la, ln]);
     }
   }, [placed.length]); // eslint-disable-line
 
@@ -127,7 +138,7 @@ export default function OrchardMap() {
         setCenter([data.lat, data.lng]);
         await load();
         openTree(data.id);
-      } catch (e) { alert("Échec de l'ajout de l'arbre"); }
+      } catch (e) { alert(tr('orchardmap.err_add')); }
       finally { setBusy(false); }
     }, () => { setBusy(false); alert('Position GPS refusée'); }, { enableHighAccuracy: true, timeout: 10000 });
   };
@@ -138,9 +149,9 @@ export default function OrchardMap() {
     try {
       const { data } = await orchardAPI.detect(bounds, farmId, effectiveSpecies());
       toast.dismiss(tid);
-      if (data.detected > 0) { toast.success(`${data.detected} ${SPECIES.find(s => s.v === species)?.l || 'arbre'}(s) détecté(s) · moteur ${data.engine}`); await load(); }
+      if (data.detected > 0) { toast.success(tr('orchardmap.detected', { n: data.detected, engine: data.engine })); await load(); }
       else toast('Aucun arbre détecté — cadrez une zone avec des arbres verts visibles');
-    } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, 'Échec de la détection')); }
+    } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, tr('orchardmap.err_detect'))); }
     finally { setDetecting(false); }
   };
 
@@ -173,7 +184,7 @@ export default function OrchardMap() {
       setHResult(data);
       toast.dismiss(tid);
       toast.success(`≈ ${data.total_kg} kg` + (data.total_price ? ` · ${data.total_price} ${data.currency}` : ''));
-    } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, "Échec de l'analyse")); }
+    } catch (e) { toast.dismiss(tid); toast.error(getErrorMessage(e, tr('orchardmap.err_analyze'))); }
     finally { setHBusy(false); }
   };
 
@@ -261,63 +272,69 @@ export default function OrchardMap() {
       {/* toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#0f172a' }}>
-          <Trees size={18} color="#16a34a" /> Verger — carte satellite
+          <Trees size={18} color="#16a34a" /> {tr('orchardmap.title')}
         </div>
         <div style={{ flex: 1 }} />
         {Object.entries(STATUS).map(([k, s]) => (
           <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#475569' }}>
-            <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color }} /> {s.label} {counts[k] || 0}
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color }} /> {tr('orchardmap.status_' + k)} {counts[k] || 0}
           </span>
         ))}
         {/* Tree type selector */}
-        <select value={species} onChange={e => setSpecies(e.target.value)} title="Type d'arbre"
+        <select value={species} onChange={e => setSpecies(e.target.value)} title={tr('orchardmap.type_tree')}
           style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 10px', fontSize: 13, fontWeight: 700, color: '#0f172a', cursor: 'pointer' }}>
-          {SPECIES.map(s => <option key={s.v || 'autre'} value={s.v}>{s.l}</option>)}
+          {SPECIES.map(s => <option key={s.v || 'autre'} value={s.v}>{s.e} {tr('orchardmap.sp_' + s.k)}</option>)}
         </select>
         {species === '' && (
           <input value={customSpecies} onChange={e => setCustomSpecies(e.target.value)}
-            placeholder="Nom de l'arbre (ex: Figuier)"
+            placeholder={tr('orchardmap.name_ph')}
             style={{ height: 38, borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff', padding: '0 12px', fontSize: 13, width: 180, outline: 'none' }} />
         )}
-        <button onClick={load} title="Rafraîchir" style={iconBtn}>
+        <button onClick={load} title={tr('orchardmap.refresh')} style={iconBtn}>
           <RefreshCw size={16} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
         <button onClick={() => { setZoneCorners([]); setZoneMode(z => !z); }}
-          title="Dessiner une zone : cliquez 2 coins sur la carte"
+          title={tr('orchardmap.zone_draw_title')}
           style={{ ...primaryBtn, background: zoneMode ? '#ef4444' : 'linear-gradient(135deg,#0891b2,#0e7490)', opacity: detecting ? .6 : 1 }}>
-          <Square size={15} /> {zoneMode ? 'Annuler la zone' : 'Détecter une zone'}
+          <Square size={15} /> {zoneMode ? tr('orchardmap.zone_cancel') : tr('orchardmap.zone_detect')}
         </button>
-        <button onClick={detectAI} disabled={detecting} title="Détecter sur toute la vue satellite actuelle"
+        <button onClick={detectAI} disabled={detecting} title={tr('orchardmap.detect_view_title')}
           style={{ ...primaryBtn, background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', opacity: detecting ? .6 : 1 }}>
           {detecting ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <ScanSearch size={15} />}
-          Détecter (vue)
+          {tr('orchardmap.detect_view')}
         </button>
         <button onClick={addAtGps} disabled={busy} style={{ ...primaryBtn, opacity: busy ? .6 : 1 }}>
           {busy ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <MapPin size={15} />}
-          Ajouter à ma position GPS
+          {tr('orchardmap.add_gps')}
         </button>
       </div>
 
       {zoneMode && (
         <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#0e7490', fontWeight: 600 }}>
-          📐 Cliquez <b>2 coins</b> sur la carte pour délimiter la zone à détecter ({SPECIES.find(s => s.v === species)?.l}).
-          {zoneCorners.length === 1 && ' — 1ᵉʳ coin posé, cliquez le 2ᵉ.'}
+          {tr('orchardmap.zone_hint')}
+          {zoneCorners.length === 1 && tr('orchardmap.zone_first_corner')}
         </div>
       )}
 
       {unplaced > 0 && (
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '8px 12px', fontSize: 12, color: '#92400e' }}>
-          ⚠ {unplaced} arbre(s) hérités de l'ancien planigramme sans position GPS — replacez-les via « Ajouter à ma position GPS » sur le terrain.
+          {tr('orchardmap.unplaced', { count: unplaced })}
         </div>
       )}
 
       {/* map */}
       <div style={{ height: '68vh', borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-        <MapContainer center={center} zoom={17} style={{ height: '100%', width: '100%' }}>
+        <MapContainer center={center} zoom={17} minZoom={14} maxZoom={20}
+          maxBounds={ZONE_BOUNDS} maxBoundsViscosity={1.0}
+          style={{ height: '100%', width: '100%' }}>
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="Tiles © Esri — World Imagery"
-            maxZoom={21}
+            // Esri n'a pas d'imagerie au-delà de z18 sur les zones rurales (tuiles
+            // grises « Map data not yet available »). On plafonne le zoom natif à 18 :
+            // au-delà, Leaflet agrandit les tuiles z18 au lieu d'en demander d'inexistantes.
+            maxNativeZoom={18}
+            maxZoom={20}
           />
           <Recenter center={center} />
           <SetMapRef mapRef={mapRef} />
@@ -331,7 +348,7 @@ export default function OrchardMap() {
               <CircleMarker key={t.id} center={[t.lat, t.lng]} radius={9}
                 pathOptions={{ color: '#fff', weight: 2, fillColor: s.color, fillOpacity: 0.9 }}
                 eventHandlers={{ click: () => openTree(t.id) }}>
-                <Tooltip direction="top">{t.label || t.species || `Arbre ${t.id}`} · {s.label}</Tooltip>
+                <Tooltip direction="top">{t.label || t.species || tr('orchardmap.tree_n', { id: t.id })} · {tr('orchardmap.status_' + t.status)}</Tooltip>
               </CircleMarker>
             );
           })}
@@ -343,8 +360,8 @@ export default function OrchardMap() {
         <div style={hv.head}>
           <div style={hv.headIcon}><Apple size={20} color="#fff" /></div>
           <div>
-            <div style={hv.title}>Estimation de récolte &amp; chiffre d'affaires</div>
-            <div style={hv.sub}>Jusqu'à 10 photos d'arbres → comptage des fruits, rendement par arbre et revenu estimé</div>
+            <div style={hv.title}>{tr('orchardmap.harvest_title')}</div>
+            <div style={hv.sub}>{tr('orchardmap.harvest_sub')}</div>
           </div>
         </div>
 
@@ -353,8 +370,8 @@ export default function OrchardMap() {
           <div style={hv.uploadCol}>
             <label style={{ ...hv.dropzone, ...(hFiles.length >= 10 ? { opacity: .6, cursor: 'not-allowed' } : {}) }}>
               <Camera size={22} color="#0e7490" />
-              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>{hFiles.length ? `${hFiles.length}/10 photo(s)` : 'Ajouter des photos'}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Gros plan d'un arbre / branche · max 10</div>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>{hFiles.length ? tr('orchardmap.photo_count', { n: hFiles.length }) : tr('orchardmap.add_photos')}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>{tr('orchardmap.closeup_hint')}</div>
               <input type="file" accept="image/*" capture="environment" multiple onChange={onHarvestFiles} style={{ display: 'none' }} disabled={hFiles.length >= 10} />
             </label>
             {hPreviews.length > 0 && (
@@ -363,7 +380,7 @@ export default function OrchardMap() {
                   <div key={i} style={hv.thumbWrap}>
                     <img src={src} alt="" style={hv.thumb} />
                     {hResult?.per_image?.[i] && <span style={hv.thumbBadge}>{hResult.per_image[i].count}</span>}
-                    <button onClick={() => removeHFile(i)} style={hv.thumbX} title="Retirer"><X size={11} /></button>
+                    <button onClick={() => removeHFile(i)} style={hv.thumbX} title={tr('orchardmap.remove')}><X size={11} /></button>
                   </div>
                 ))}
               </div>
@@ -374,31 +391,31 @@ export default function OrchardMap() {
           <div style={hv.controls}>
             <div style={hv.fieldRow}>
               <div style={{ flex: '1 1 130px' }}>
-                <div style={lbl}>Type de fruit</div>
+                <div style={lbl}>{tr('orchardmap.fruit_type')}</div>
                 <select value={hSpecies} onChange={e => setHSpecies(e.target.value)} style={hv.input}>
-                  <option value="">🤖 Auto (l'IA détecte)</option>
-                  <option value="olive">🫒 Olive</option>
-                  <option value="orange">🍊 Orange</option>
-                  <option value="lemon">🍋 Citron</option>
-                  <option value="other">🍎 Autre fruit</option>
+                  <option value="">{tr('orchardmap.auto_ai')}</option>
+                  <option value="olive">{tr('orchardmap.fruit_olive')}</option>
+                  <option value="orange">{tr('orchardmap.fruit_orange')}</option>
+                  <option value="lemon">{tr('orchardmap.fruit_lemon')}</option>
+                  <option value="other">{tr('orchardmap.fruit_other')}</option>
                 </select>
               </div>
               <div style={{ flex: '1 1 110px' }}>
-                <div style={lbl}>Nombre d'arbres</div>
+                <div style={lbl}>{tr('orchardmap.num_trees')}</div>
                 <input type="number" min="0" value={hTrees} onChange={e => setHTrees(e.target.value)} placeholder="ex: 120" style={hv.input} />
               </div>
               <div style={{ flex: '1 1 110px' }}>
-                <div style={lbl}>Prix / kg (DT)</div>
+                <div style={lbl}>{tr('orchardmap.price_kg')}</div>
                 <input type="number" min="0" step="0.1" value={hPrice} onChange={e => setHPrice(e.target.value)} placeholder="ex: 2.5" style={hv.input} />
               </div>
             </div>
             <button onClick={runHarvest} disabled={hBusy || !hFiles.length}
               style={{ ...hv.cta, opacity: (hBusy || !hFiles.length) ? .55 : 1 }}>
               {hBusy ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />}
-              Analyser &amp; estimer
+              {tr('orchardmap.analyze_estimate')}
             </button>
             <div style={{ fontSize: 11, color: '#94a3b8' }}>
-              Chaque photo = 1 arbre échantillon. Récolte totale = rendement moyen/arbre × nombre d'arbres · CA = récolte × prix/kg.
+              {tr('orchardmap.formula_note')}
             </div>
           </div>
         </div>
@@ -407,14 +424,14 @@ export default function OrchardMap() {
         {hResult && (
           <div style={hv.results}>
             <div style={hv.kpis}>
-              <Kpi label="Fruits / arbre (moy.)" value={hResult.avg_fruits_per_tree} sub={`sur ${hResult.sampled} photo(s)`} color="#0891b2" />
-              <Kpi label="Récolte / arbre" value={`${hResult.avg_kg_per_tree} kg`} color="#0f172a" />
-              <Kpi label="Arbres" value={hResult.num_trees} color="#7c3aed" />
-              <Kpi label="Récolte totale" value={`${hResult.total_kg} kg`} color="#16a34a" big />
-              {hResult.total_price > 0 && <Kpi label="Chiffre d'affaires" value={`${hResult.total_price.toLocaleString()} ${hResult.currency}`} color="#15803d" big />}
+              <Kpi label={tr('orchardmap.kpi_fruits_avg')} value={hResult.avg_fruits_per_tree} sub={tr('orchardmap.kpi_sampled', { n: hResult.sampled })} color="#0891b2" />
+              <Kpi label={tr('orchardmap.kpi_kg_tree')} value={`${hResult.avg_kg_per_tree} kg`} color="#0f172a" />
+              <Kpi label={tr('orchardmap.kpi_trees')} value={hResult.num_trees} color="#7c3aed" />
+              <Kpi label={tr('orchardmap.kpi_total_kg')} value={`${hResult.total_kg} kg`} color="#16a34a" big />
+              {hResult.total_price > 0 && <Kpi label={tr('orchardmap.kpi_revenue')} value={`${hResult.total_price.toLocaleString()} ${hResult.currency}`} color="#15803d" big />}
             </div>
             <div style={hv.formula}>
-              {FRUIT_FR[hResult.fruit_type] || hResult.fruit_type} · {hResult.avg_kg_per_tree} kg/arbre × {hResult.num_trees} arbres = <b>{hResult.total_kg} kg</b>
+              {tr('orchardmap.fruit_' + hResult.fruit_type, hResult.fruit_type)} · {hResult.avg_kg_per_tree} {tr('orchardmap.kg_per_tree')} × {hResult.num_trees} {tr('orchardmap.trees_word')} = <b>{hResult.total_kg} kg</b>
               {hResult.total_price > 0 && <> &nbsp;×&nbsp; {hResult.price_per_kg} {hResult.currency}/kg = <b>{hResult.total_price.toLocaleString()} {hResult.currency}</b></>}
             </div>
           </div>
@@ -431,9 +448,9 @@ export default function OrchardMap() {
             <div style={{ padding: '16px 18px', background: (STATUS[selected.status] || STATUS.healthy).color, color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontWeight: 900, fontSize: 16 }}>{selected.label || selected.species || `Arbre ${selected.id}`}</div>
+                <div style={{ fontWeight: 900, fontSize: 16 }}>{selected.label || selected.species || tr('orchardmap.tree_n', { id: selected.id })}</div>
                 <div style={{ fontSize: 12, opacity: .9 }}>
-                  {(STATUS[selected.status] || STATUS.healthy).label}
+                  {tr('orchardmap.status_' + (selected.status || 'healthy'))}
                   {selected.disease ? ` · ${selected.disease}` : ''}
                 </div>
               </div>
@@ -443,7 +460,7 @@ export default function OrchardMap() {
             <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* tree species */}
               <div>
-                <div style={lbl}>Type d'arbre</div>
+                <div style={lbl}>{tr('orchardmap.type_tree')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {SPECIES.map(sp => {
                     // "Autre" is active when the tree's species is empty or a custom (unknown) value
@@ -453,7 +470,7 @@ export default function OrchardMap() {
                         style={{ padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700,
                           background: active ? '#16a34a' : '#fff', color: active ? '#fff' : '#475569',
                           border: `1.5px solid ${active ? '#16a34a' : '#e2e8f0'}` }}>
-                        {sp.l}
+                        {sp.e} {tr('orchardmap.sp_' + sp.k)}
                       </button>
                     );
                   })}
@@ -463,7 +480,7 @@ export default function OrchardMap() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                     <input value={nameInput} onChange={e => setNameInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && saveName()}
-                      placeholder="Nom de l'arbre (ex: Figuier, Grenadier…)"
+                      placeholder={tr('orchardmap.name_ph')}
                       style={{ flex: 1, height: 38, borderRadius: 10, border: '1px solid #e2e8f0', padding: '0 12px', fontSize: 13, outline: 'none' }} />
                     <button onClick={saveName} disabled={busy} style={{ ...primaryBtn, padding: '0 16px' }}>OK</button>
                   </div>
@@ -472,14 +489,14 @@ export default function OrchardMap() {
 
               {/* status */}
               <div>
-                <div style={lbl}>Statut</div>
+                <div style={lbl}>{tr('orchardmap.status_word')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {Object.entries(STATUS).map(([k, s]) => (
                     <button key={k} onClick={() => setStatus(k)} disabled={busy}
                       style={{ padding: '8px 12px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700,
                         background: selected.status === k ? s.color : '#fff', color: selected.status === k ? '#fff' : '#475569',
                         border: `1.5px solid ${selected.status === k ? s.color : '#e2e8f0'}` }}>
-                      {s.label}
+                      {tr('orchardmap.status_' + k)}
                     </button>
                   ))}
                 </div>
@@ -487,23 +504,23 @@ export default function OrchardMap() {
 
               {/* actions */}
               <div>
-                <div style={lbl}>Actions</div>
+                <div style={lbl}>{tr('orchardmap.actions_word')}</div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={() => { setActionMode('disease'); setActionLabel(''); }} style={actBtn('#ef4444')}><Stethoscope size={15} /> Signaler maladie</button>
-                  <button onClick={() => { setActionMode('treatment'); setActionLabel(''); }} style={actBtn('#2563eb')}><SprayCan size={15} /> Traitement</button>
-                  <button onClick={() => { setActionMode('observation'); setActionNote(''); }} style={actBtn('#d97706')}><Eye size={15} /> Observation</button>
+                  <button onClick={() => { setActionMode('disease'); setActionLabel(''); }} style={actBtn('#ef4444')}><Stethoscope size={15} /> {tr('orchardmap.report_disease')}</button>
+                  <button onClick={() => { setActionMode('treatment'); setActionLabel(''); }} style={actBtn('#2563eb')}><SprayCan size={15} /> {tr('orchardmap.treatment')}</button>
+                  <button onClick={() => { setActionMode('observation'); setActionNote(''); }} style={actBtn('#d97706')}><Eye size={15} /> {tr('orchardmap.observation')}</button>
                 </div>
 
                 {actionMode && (
                   <div style={{ marginTop: 10, padding: 12, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                     {actionMode === 'observation' ? (
                       <textarea value={actionNote} onChange={e => setActionNote(e.target.value)}
-                        placeholder="Note d'observation…" rows={3}
+                        placeholder={tr('orchardmap.obs_note_ph')} rows={3}
                         style={{ width: '100%', boxSizing: 'border-box', borderRadius: 8, border: '1px solid #e2e8f0', padding: 10, fontFamily: 'inherit', resize: 'none' }} />
                     ) : (
                       <select value={actionLabel} onChange={e => setActionLabel(e.target.value)}
                         style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0', padding: 10 }}>
-                        <option value="">{actionMode === 'disease' ? 'Choisir une maladie…' : 'Choisir un traitement…'}</option>
+                        <option value="">{actionMode === 'disease' ? tr('orchardmap.choose_disease') : tr('orchardmap.choose_treatment')}</option>
                         {(actionMode === 'disease' ? speciesDiseases : TREE_TREATMENTS).map(o => (
                           <option key={o.key} value={o.fr}>{o.fr}</option>
                         ))}
@@ -511,7 +528,7 @@ export default function OrchardMap() {
                     )}
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                       <button onClick={submitAction} disabled={busy || (actionMode !== 'observation' && !actionLabel) || (actionMode === 'observation' && !actionNote.trim())}
-                        style={{ ...primaryBtn, flex: 1, justifyContent: 'center' }}>Enregistrer</button>
+                        style={{ ...primaryBtn, flex: 1, justifyContent: 'center' }}>{tr('orchardmap.save')}</button>
                       <button onClick={() => setActionMode(null)} style={iconBtn}><X size={16} /></button>
                     </div>
                   </div>
@@ -520,16 +537,16 @@ export default function OrchardMap() {
 
               {/* history */}
               <div>
-                <div style={lbl}>Historique</div>
+                <div style={lbl}>{tr('orchardmap.history')}</div>
                 {(!selected.events || selected.events.length === 0) ? (
-                  <div style={{ fontSize: 13, color: '#94a3b8', padding: '8px 0' }}>Aucun événement enregistré</div>
+                  <div style={{ fontSize: 13, color: '#94a3b8', padding: '8px 0' }}>{tr('orchardmap.no_events')}</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {selected.events.map(ev => (
                       <div key={ev.id} style={{ display: 'flex', gap: 10, padding: '10px 12px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
-                            {EVENT_LABEL[ev.type] || ev.type}{ev.label ? ` — ${ev.label}` : ''}
+                            {tr('orchardmap.ev_' + ev.type, ev.type)}{ev.label ? ` — ${ev.label}` : ''}
                           </div>
                           {ev.note && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{ev.note}</div>}
                           <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>
@@ -549,7 +566,7 @@ export default function OrchardMap() {
               <button onClick={delTree} disabled={busy}
                 style={{ width: '100%', padding: 12, borderRadius: 12, background: '#fef2f2', border: '1px solid #fecaca',
                   color: '#b91c1c', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <Trash2 size={16} /> Supprimer l'arbre
+                <Trash2 size={16} /> {tr('orchardmap.delete_tree')}
               </button>
             </div>
           </div>

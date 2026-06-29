@@ -290,6 +290,13 @@ export default function AboutBee() {
     }
   }, [ruches]); // eslint-disable-line
 
+  /* Jump to the Stock page when a child asks (e.g. visit → "Voir l'entrepôt") */
+  useEffect(() => {
+    const go = (e) => { closeHive(); setActivePage(e.detail || 'stock'); };
+    window.addEventListener('bee:goto', go);
+    return () => window.removeEventListener('bee:goto', go);
+  }, []); // eslint-disable-line
+
   /* Fetch farm workers for mission assignment */
   useEffect(() => {
     if (!farmId) return;

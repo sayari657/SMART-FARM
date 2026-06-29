@@ -14,85 +14,17 @@ automatisés développée avec \textbf{pytest} et \textbf{FastAPI TestClient}.
 Les tests s'exécutent en isolation complète grâce à une base SQLite
 en mémoire avec rollback automatique entre chaque méthode (\texttt{conftest.py}).
 
-La commande d'exécution complète est la suivante :
+La commande d'exécution complète ainsi que la sortie terminale correspondante sont présentées dans la capture d'écran de la figure~\ref{fig:pytest_execution} (293 tests, juin 2026) :
 
-\begin{lstlisting}[
-  language=bash,
-  basicstyle=\ttfamily\small,
-  backgroundcolor=\color{white},
-  keywordstyle=\color{blue!70!black},
-  stringstyle=\color{green!45!black},
-  commentstyle=\color{gray!70!black},
-  frame=single,
-  rulecolor=\color{gray!55},
-  numbers=none,
-  breaklines=true,
-  caption={Commande d'exécution de la suite de tests pytest},
-  label={lst:pytest_cmd}
-]
-(venv) PS C:\Users\Mohamed\Desktop\FARM AI\backend>
-  python -m pytest tests/ -v --tb=short --no-header
-\end{lstlisting}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/pytest_execution.png}
+  \caption{Capture d'écran de l'exécution de la suite de tests pytest (Smart Farm AI v3.0)}
+  \label{fig:pytest_execution}
+\end{figure}
 
-La sortie terminale ci-dessous présente le résultat réel de l'exécution
-complète (98 tests, 22 mai 2026) :
-
-\begin{lstlisting}[
-  language=bash,
-  basicstyle=\ttfamily\scriptsize,
-  backgroundcolor=\color{white},
-  keywordstyle=\color{blue!70!black},
-  stringstyle=\color{green!45!black},
-  commentstyle=\color{gray!70!black},
-  frame=single,
-  rulecolor=\color{gray!55},
-  numbers=none,
-  breaklines=true,
-  caption={Sortie terminale réelle — pytest 98 tests (Smart Farm AI v3.0)},
-  label={lst:pytest_output}
-]
-============================= test session starts =============================
-collecting ... collected 98 items
-
-tests/test_auth.py::TestRegister::test_register_success           PASSED [  1%]
-tests/test_auth.py::TestRegister::test_register_duplicate_username PASSED [  2%]
-tests/test_auth.py::TestRegister::test_register_duplicate_email   PASSED [  3%]
-tests/test_auth.py::TestLogin::test_login_success                 PASSED [  4%]
-tests/test_auth.py::TestLogin::test_login_wrong_password          PASSED [  5%]
-tests/test_auth.py::TestLogin::test_login_unknown_user            PASSED [  6%]
-tests/test_auth.py::TestLogin::test_login_returns_token           PASSED [  7%]
-tests/test_auth.py::TestProfile::test_profile_requires_auth       PASSED [  8%]
-tests/test_auth.py::TestProfile::test_profile_authenticated       PASSED [  9%]
-tests/test_auth.py::TestForgotPassword::test_forgot_email_unknown PASSED [ 10%]
-tests/test_auth.py::TestForgotPassword::test_forgot_email_known   PASSED [ 11%]
-tests/test_auth.py::TestForgotPassword::test_forgot_whatsapp_unknown PASSED [ 12%]
-tests/test_auth.py::TestResetPassword::test_reset_invalid_otp     PASSED [ 13%]
-tests/test_auth.py::TestResetPassword::test_reset_invalid_channel PASSED [ 14%]
-tests/test_auth.py::TestResetPassword::test_reset_full_flow       PASSED [ 15%]
-tests/test_bee_api.py::TestAuth::test_login_bad_credentials       PASSED [ 16%]
-tests/test_bee_api.py::TestAuth::test_login_success               PASSED [ 17%]
-tests/test_bee_api.py::TestApiaries::test_create_apiary           PASSED [ 19%]
-tests/test_bee_api.py::TestHives::test_create_hive                PASSED [ 23%]
-tests/test_bee_api.py::TestHives::test_hive_details_not_found     PASSED [ 29%]
-tests/test_bee_api.py::TestVisits::test_health_score_updated_after_visit PASSED [ 31%]
-tests/test_bee_api.py::TestAnalytics::test_analytics_dashboard_ok PASSED [ 46%]
-tests/test_bee_api.py::TestAnalytics::test_hive_report_grade_high_on_healthy PASSED [ 53%]
-tests/test_cv_alerts.py::TestCVEvents::test_ingest_cv_event       PASSED [ 54%]
-tests/test_cv_alerts.py::TestAlerts::test_critical_alerts         PASSED [ 67%]
-tests/test_cv_alerts.py::TestEmergency::test_emergency_monitor    PASSED [ 72%]
-tests/test_farms.py::TestFarms::test_create_farm                  PASSED [ 74%]
-tests/test_farms.py::TestFarms::test_get_nonexistent_farm         PASSED [ 79%]
-tests/test_geo.py::TestGeo::test_geo_farms_public                 PASSED [ 80%]
-tests/test_geo.py::TestGeo::test_overpass_proxy_with_query        PASSED [ 84%]
-tests/test_warehouse.py::TestWarehouse::test_create_category      PASSED [ 87%]
-tests/test_warehouse.py::TestWarehouse::test_create_and_list_alert PASSED [ 98%]
-tests/test_warehouse.py::TestWarehouse::test_resolve_alert        PASSED [100%]
-
-============================= 98 passed in 52.41s =============================
-\end{lstlisting}
-
-\noindent\textbf{Résultat global~:} \textbf{98 tests réussis sur 98}, taux de réussite \textbf{100\%},
-durée totale \textbf{52,41~secondes}, aucun avertissement ni erreur.
+\noindent\textbf{Résultat global~:} \textbf{293 tests réussis sur 293}, taux de réussite \textbf{100\%},
+durée totale \textbf{128,35~secondes}, aucun échec ni erreur.
 
 \subsection{Résultats par module}
 
@@ -173,42 +105,16 @@ s_t = 0{,}60 \times 1{,}5 + 0{,}40 \times 8{,}0 = 0{,}90 + 3{,}20 = 4{,}10
 \]
 
 \noindent L'assertion \texttt{assert hive.health\_score == pytest.approx(4.1, abs=0.01)} passe
-avec succès (\texttt{PASSED [31\%]}).
+avec succès (\texttt{PASSED [11\%]}).
 
-\begin{lstlisting}[
-  language=python,
-  basicstyle=\ttfamily\small,
-  backgroundcolor=\color{gray!8},
-  keywordstyle=\color{blue!70},
-  stringstyle=\color{green!50!black},
-  commentstyle=\color{gray!70!black},
-  frame=single,
-  rulecolor=\color{gray!55},
-  numbers=left,
-  numberstyle=\tiny\color{gray},
-  caption={Test clé COLOSS --- \texttt{test\_bee\_api.py::TestVisits}},
-  label={lst:test_coloss}
-]
-def test_health_score_updated_after_visit(self, client, auth_headers, hive):
-    """Valide la formule COLOSS : s_t = 0.6*s_visit + 0.4*s_prev"""
-    # Etat initial : hive.health_score = 8.0 (sain)
-    payload = {
-        "hive_id":      hive["id"],
-        "visit_date":   "2026-04-28",
-        "health_score": 1.5,       # visite critique
-        "queen_seen":   False,
-        "notes":        "Possible perte reine"
-    }
-    r = client.post("/api/v1/bee/visits", json=payload,
-                    headers=auth_headers)
-    assert r.status_code == 201
+La figure~\ref{fig:pytest_coloss_code} présente la capture d'écran du code source de ce test d'intégration dans l'éditeur de développement :
 
-    # Verifier le score mis a jour : 0.6*1.5 + 0.4*8.0 = 4.10
-    detail = client.get(f"/api/v1/bee/hives/{hive['id']}/details",
-                        headers=auth_headers).json()
-    assert detail["health_score"] == pytest.approx(4.1, abs=0.01)
-    # => PASSED [31%] en 0.12s
-\end{lstlisting}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{screenshots/pytest_coloss_code.png}
+  \caption{Code source du test d'intégration COLOSS (Smart Farm AI v3.0)}
+  \label{fig:pytest_coloss_code}
+\end{figure}
 
 \subsection{Benchmarks de performance}
 

@@ -3,7 +3,7 @@ import { Save, RefreshCw, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
 
 const FLAG_META = {
   cv_monitoring:       { label: 'CV Monitoring (YOLO)', desc: 'Détection animaux/maladies par caméra', group: 'Modules IA' },
@@ -22,7 +22,7 @@ const FLAG_META = {
 
 function Toggle({ checked, onChange, danger }) {
   return (
-    <div onClick={onChange} style={{ width: 42, height: 22, background: checked ? (danger ? '#ef4444' : C.purple) : '#1a2535', borderRadius: 11, position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
+    <div onClick={onChange} style={{ width: 42, height: 22, background: checked ? (danger ? '#ef4444' : C.purple) : '#cbd5e1', borderRadius: 11, position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
       <div style={{ position: 'absolute', top: 3, left: checked ? 22 : 3, width: 16, height: 16, background: '#fff', borderRadius: '50%', transition: 'left .2s' }} />
     </div>
   );
@@ -73,11 +73,11 @@ export default function SuperAdminFlags() {
           <p style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Activer/désactiver les fonctionnalités en temps réel</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, color: C.muted, cursor: 'pointer', fontSize: 13 }}>
+          <button onClick={load} style={{ padding: '9px 16px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8, color: '#64748b', cursor: 'pointer', fontSize: 13 }}>
             <RefreshCw size={13} />
           </button>
           <button onClick={save} disabled={!dirty || saving}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', background: dirty ? C.purple : '#1a2535', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: dirty ? 'pointer' : 'not-allowed', opacity: dirty ? 1 : 0.5 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', background: dirty ? C.purple : '#e2e8f0', border: 'none', borderRadius: 8, color: dirty ? '#fff' : '#64748b', fontSize: 13, fontWeight: 600, cursor: dirty ? 'pointer' : 'not-allowed', opacity: dirty ? 1 : 0.5 }}>
             <Save size={13} /> {saving ? 'Sauvegarde…' : 'Sauvegarder'}
           </button>
         </div>

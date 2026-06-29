@@ -110,3 +110,37 @@ Video login/
 # Test / ML artifacts
 .coverage
 deepforest-service/lightning_logs/
+deepforest_service/lightning_logs/
+lightning_logs/
+
+# Defense slides / presentations (deliverables, not app code)
+*.pptx
+
+# CI/CD & MLOps dashboard screenshots
+mlops_dashboard_*.png
+cicd_dashboard_*.png
+mlops_cicd_screenshots.md
+captured_screenshots/
+
+# Scratch / throwaway working scripts
+scratch/
+
+# One-off DB/debug scripts (may contain dev credentials)
+reset_med_pw*.py
+fix_users.py
+check_db.py
+check_farm_data.py
+get_tables.py
+update_user_role.py
+
+# One-off i18n / patch / presentation-generator scripts
+add_animals_i18n.py
+add_ap_i18n.py
+patch_more.py
+patch_navs.py
+patch_pages.py
+update_common.py
+update_species_i18n.py
+update_translations.py
+generate_presentation*.py
+OPEN_PHONE.bat

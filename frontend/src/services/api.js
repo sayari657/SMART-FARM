@@ -306,6 +306,7 @@ export const externalAPI = {
     current: (farmId) => api.get(`/weather/current/${farmId}`),
     byCoords: (lat, lon) => api.get('/weather/coords', { params: { lat, lon } }),
     forecast: (farmId) => api.get(`/weather/forecast/${farmId}`),
+    aiForecast: (farmId, lang = 'fr') => api.get(`/weather/forecast/${farmId}/ai`, { params: { lang } }),
   },
   geocode: {
     search: (query) => api.get('/geocode/search', { params: { q: query } }),
@@ -451,6 +452,12 @@ export const orchardAPI = {
 export const reviewsAPI = {
   list:   ()     => api.get('/reviews'),
   submit: (data) => api.post('/reviews', data),
+};
+
+export const chatAPI = {
+  farms: ()                       => api.get('/chat/farms'),
+  list:  (farmId, afterId = 0)    => api.get('/chat/messages', { params: { farm_id: farmId, after_id: afterId } }),
+  send:  (payload)                => api.post('/chat/messages', payload, { timeout: 60000 }),
 };
 
 export default api;

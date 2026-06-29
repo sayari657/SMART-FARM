@@ -62,7 +62,7 @@ const SC = {
     color:'#1d4ed8', dark:'#1e40af', emoji:'🐄',
     name:'Bovins', nameEn:'Cattle', nameAr:'الأبقار',
     title:'Gestion des Bovins', subtitle:'Suivi laitier, reproduction et santé — optimisé par IA',
-    apiSpecies:'cow', cvCategory:'cow', totalDays:305, cycleLabel:'Cycle Lactation (305 j)',
+    apiSpecies:'cow', cvCategory:'cow_behavior', totalDays:305, cycleLabel:'Cycle Lactation (305 j)',
     stats:[
       {label:'Vaches Actives',    icon:Activity,     color:'#1d4ed8'},
       {label:'Production / Jour', icon:Droplets,     color:'#0ea5e9'},

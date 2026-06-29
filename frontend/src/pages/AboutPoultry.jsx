@@ -2527,7 +2527,7 @@ export default function AboutPoultry() {
         {activeTab === 'analytics' && (
           <LivestockAICharts
             cfg={{ color:'#f59e0b', dark:'#b45309', emoji:'🐔',
-              name:'Volailles', apiSpecies:'poultry',
+              name:'Volailles', apiSpecies:'poultry', cvCategory:'chicken',
               totalDays:42, cycleLabel:'Cycle Poulet (42 j)' }}
             animals={[]}
             farmId={poultryFarmId}

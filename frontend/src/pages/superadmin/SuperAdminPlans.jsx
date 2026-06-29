@@ -17,12 +17,12 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const C = {
-  bg:     '#0a0e14',
-  card:   '#0d1520',
-  card2:  '#0f1923',
-  border: '#1a2535',
-  muted:  '#4b6380',
-  text:   '#e2e8f0',
+  bg:     '#f8fafc',
+  card:   '#ffffff',
+  card2:  '#f8fafc',
+  border: '#e2e8f0',
+  muted:  '#64748b',
+  text:   '#1e293b',
   purple: '#7c3aed',
   green:  '#22c55e',
   amber:  '#f59e0b',
@@ -140,7 +140,7 @@ function PlanSelect({ user, onChanged, planMeta }) {
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                 textAlign: 'left',
               }}
-                onMouseEnter={e => e.currentTarget.style.background = '#ffffff0a'}
+                onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <Ic size={12} color={meta.color}/>
@@ -268,7 +268,7 @@ export default function SuperAdminPlans() {
                   {key === 'pro' && count > 0 && <span style={{ color: C.green, marginLeft: 8 }}>= {count * 29}€/mois</span>}
                 </span>
               </div>
-              <div style={{ height: 6, background: '#0a0e14', borderRadius: 99 }}>
+              <div style={{ height: 6, background: '#e2e8f0', borderRadius: 99 }}>
                 <div style={{ height: '100%', width: `${pct}%`, background: meta.color, borderRadius: 99, transition: 'width .5s' }}/>
               </div>
             </div>
@@ -287,7 +287,7 @@ export default function SuperAdminPlans() {
               const meta = PLAN_META[sub.plan] || PLAN_META.free;
               const Icon = meta.icon;
               return (
-                <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#080c10', borderRadius: 10, border: `1px solid ${C.border}` }}>
+                <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: `1px solid ${C.border}` }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: `${meta.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon size={14} color={meta.color}/>
                   </div>
@@ -325,12 +325,12 @@ export default function SuperAdminPlans() {
               <input
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder={t('billing.search_ph')}
-                style={{ paddingLeft: 28, paddingRight: 10, paddingTop: 6, paddingBottom: 6, background: '#080c10', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, outline: 'none', width: 160 }}
+                style={{ paddingLeft: 28, paddingRight: 10, paddingTop: 6, paddingBottom: 6, background: '#f8fafc', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, outline: 'none', width: 160 }}
               />
             </div>
             {/* Plan filter */}
             <select value={planFilter} onChange={e => setPlanFilter(e.target.value)}
-              style={{ padding: '6px 10px', background: '#080c10', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, outline: 'none' }}>
+              style={{ padding: '6px 10px', background: '#f8fafc', border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 12, outline: 'none' }}>
               <option value="">{t('billing.all_plans')}</option>
               {Object.entries(PLAN_META).map(([k, m]) => (
                 <option key={k} value={k}>{m.label}</option>
@@ -342,7 +342,7 @@ export default function SuperAdminPlans() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#080c10' }}>
+              <tr style={{ background: '#f8fafc' }}>
                 {[t('billing.th_id'), t('billing.th_user'), t('billing.th_email'), t('billing.th_plan'), t('billing.th_change')].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>
                     {h}
@@ -364,7 +364,7 @@ export default function SuperAdminPlans() {
                 return (
                   <tr key={u.id}
                     style={{ borderBottom: `1px solid ${C.border}` }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#0f1923'}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '10px 16px', fontSize: 12, color: C.muted }}>{u.id}</td>

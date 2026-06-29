@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # DeepForest microservice (isolated venv) for tree-crown detection.
     # Empty = fall back to the built-in OpenCV detector.
     DEEPFOREST_URL: str = os.getenv("DEEPFOREST_URL", "")
+    # Satellite tile source for the orchard DETECTION mosaic: "google" (high-res,
+    # z20-21 ≈ 0.12 m/px — best for crown detection, esp. with DeepForest) or
+    # "esri" (z18 ≈ 0.48 m/px, licensed). Google is preferred where available.
+    SAT_TILE_PROVIDER: str = os.getenv("SAT_TILE_PROVIDER", "google")
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     VISION_MODEL: str = os.getenv("VISION_MODEL", "llava:latest")
     DERJA_MODEL: str = os.getenv("DERJA_MODEL", "llama3.1:8b")

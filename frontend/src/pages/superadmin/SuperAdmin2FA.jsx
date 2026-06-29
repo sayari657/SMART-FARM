@@ -3,8 +3,8 @@ import { Shield, QrCode, Check, X, RefreshCw, Lock } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
-const INPUT = { width: '100%', padding: '9px 12px', background: C.bg, border: `1px solid #2a3a50`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
+const INPUT = { width: '100%', padding: '9px 12px', background: '#f8fafc', border: `1px solid #e2e8f0`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
 const BTN_P = { padding: '9px 20px', background: C.purple, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
 
 export default function SuperAdmin2FA() {
@@ -136,7 +136,7 @@ export default function SuperAdmin2FA() {
                       <Check size={14} /> Activer la 2FA
                     </button>
                     <button onClick={() => setSetup(null)}
-                      style={{ padding: '9px 16px', background: '#1a2535', border: 'none', borderRadius: 8, color: C.muted, cursor: 'pointer', fontSize: 13 }}>
+                      style={{ padding: '9px 16px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8, color: '#64748b', cursor: 'pointer', fontSize: 13 }}>
                       Annuler
                     </button>
                   </div>

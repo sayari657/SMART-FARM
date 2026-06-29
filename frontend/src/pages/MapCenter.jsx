@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { MapPin, Shield, Search, Navigation, Phone, Info, X, Clock, Globe, Crosshair } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import SovereignMap from '../components/Map/SovereignMap';
+import WeatherDashboard from '../components/Map/WeatherDashboard';
+import WeatherAlertsPanel from '../components/Map/WeatherAlertsPanel';
 import api, { externalAPI } from '../services/api';
 
 
@@ -12,6 +14,8 @@ const CATEGORIES = (t) => [
     { id: 'vet', label: t('map_center.vets'), emoji: '🩺' },
     { id: 'farm', label: t('map_center.farms'), emoji: '🚜' },
     { id: 'market', label: t('map_center.markets'), emoji: '🍯' },
+    { id: 'iot', label: 'Capteurs IoT', emoji: '📡' },
+    { id: 'alert', label: 'Alertes', emoji: '⚠️' },
 ];
 
 const TYPE_COLOR = {
@@ -19,6 +23,8 @@ const TYPE_COLOR = {
     vet: '#ef4444',
     farm: 'var(--color-primary)',
     market: 'var(--color-accent)',
+    iot: '#0284c7',
+    alert: '#f59e0b',
 };
 
 const MapCenter = () => {
@@ -28,6 +34,8 @@ const MapCenter = () => {
     const [vets, setVets] = useState([]);
     const [hives, setHives] = useState([]);
     const [markets, setMarkets] = useState([]);
+    const [iotSensors, setIotSensors] = useState([]);
+    const [farmAlerts, setFarmAlerts] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [globalSearch, setGlobalSearch] = useState('');
@@ -62,16 +70,20 @@ const MapCenter = () => {
     useEffect(() => {
         const loadGeoData = async () => {
             try {
-                const [farmsRes, vetsRes, hivesRes, marketsRes] = await Promise.all([
+                const [farmsRes, vetsRes, hivesRes, marketsRes, iotRes, alertsRes] = await Promise.all([
                     api.get('/geo/farms'),
                     api.get('/geo/vets'),
                     api.get('/geo/hives'),
-                    api.get('/geo/markets')
+                    api.get('/geo/markets'),
+                    api.get('/geo/iot-sensors').catch(() => ({ data: { features: [] } })),
+                    api.get('/geo/farm-alerts').catch(() => ({ data: { features: [] } })),
                 ]);
                 setHives(hivesRes.data.features || []);
                 setFarms(farmsRes.data.features || []);
                 setVets(vetsRes.data.features || []);
                 setMarkets(marketsRes.data.features || []);
+                setIotSensors(iotRes.data.features || []);
+                setFarmAlerts(alertsRes.data.features || []);
                 handleLocateMe();
             } catch (err) {
                 console.error('Error loading geo data', err);
@@ -326,6 +338,8 @@ const MapCenter = () => {
         ...markets.map(m => ({ ...m, type: 'market', name: m.properties.name, coords: [m.geometry.coordinates[1], m.geometry.coordinates[0]], id: m.properties.id, properties: m.properties })),
         ...discoveredVets,
         ...osmVets,
+        ...iotSensors.map(s => ({ ...s, type: 'iot', name: s.properties?.name || 'Capteur IoT', coords: [s.geometry.coordinates[1], s.geometry.coordinates[0]], id: s.properties?.id, properties: s.properties })),
+        ...farmAlerts.map(a => ({ ...a, type: 'alert', name: a.properties?.name || 'Alerte Ferme', coords: [a.geometry.coordinates[1], a.geometry.coordinates[0]], id: a.properties?.id, properties: a.properties })),
         ...(selectedEntity?.type === 'search' ? [selectedEntity] : [])
     ].map(item => {
         const refPos = userPos || viewCenter;
@@ -344,7 +358,7 @@ const MapCenter = () => {
         : null;
 
     return (
-        <div className="page-container" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr' }}>
+        <div className="page-container" style={{ direction: i18n.language === 'ar' ? 'rtl' : 'ltr', height: '100%', overflowY: 'auto' }}>
             <Navbar title={t('sidebar.map_center')} />
 
             {/* ── Toolbar ─────────────────────────────────────────── */}
@@ -502,6 +516,8 @@ const MapCenter = () => {
                             ]}
                             hives={hives.filter(h => h.geometry?.coordinates ? haversine(userPos?.[0] ?? viewCenter[0], userPos?.[1] ?? viewCenter[1], h.geometry.coordinates[1], h.geometry.coordinates[0]) <= 1000 : false)}
                             markets={markets.filter(m => m.geometry?.coordinates ? haversine(userPos?.[0] ?? viewCenter[0], userPos?.[1] ?? viewCenter[1], m.geometry.coordinates[1], m.geometry.coordinates[0]) <= 1000 : false)}
+                            iotSensors={iotSensors.filter(s => s.geometry?.coordinates ? haversine(userPos?.[0] ?? viewCenter[0], userPos?.[1] ?? viewCenter[1], s.geometry.coordinates[1], s.geometry.coordinates[0]) <= 1000 : false)}
+                            farmAlerts={farmAlerts.filter(a => a.geometry?.coordinates ? haversine(userPos?.[0] ?? viewCenter[0], userPos?.[1] ?? viewCenter[1], a.geometry.coordinates[1], a.geometry.coordinates[0]) <= 1000 : false)}
                             userPos={userPos}
                             userAccuracy={userAccuracy}
                             center={[viewCenter[1], viewCenter[0]]}
@@ -544,7 +560,12 @@ const MapCenter = () => {
                         ) : filteredData.map((item, idx) => {
                             const isActive = selectedEntity?.id === item.id && selectedEntity?.type === item.type;
                             const color = TYPE_COLOR[item.type] || 'var(--color-text-3)';
-                            const label = item.type === 'hive' ? t('map_center.hives') : item.type === 'vet' ? t('map_center.vet_clinic') : item.type === 'market' ? t('map_center.markets') : t('map_center.farm');
+                            const label = item.type === 'hive' ? t('map_center.hives')
+                                : item.type === 'vet' ? t('map_center.vet_clinic')
+                                : item.type === 'market' ? t('map_center.markets')
+                                : item.type === 'iot' ? 'Capteur IoT'
+                                : item.type === 'alert' ? (item.properties?.severity === 'critical' ? '🚨 Alerte Critique' : '⚠️ Alerte')
+                                : t('map_center.farm');
                             return (
                                 <div
                                     key={idx}
@@ -768,6 +789,69 @@ const MapCenter = () => {
                                     </div>
                                 )}
 
+                                {/* IoT Sensor details */}
+                                {selectedEntity.type === 'iot' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                                            {[
+                                                { label: 'Total', value: selectedEntity.properties?.total ?? '—', bg: '#f0f9ff', color: '#0c4a6e', border: '#bae6fd' },
+                                                { label: 'Actifs', value: selectedEntity.properties?.active ?? '—', bg: '#f0fdf4', color: '#166534', border: '#86efac' },
+                                                { label: 'Hors ligne', value: selectedEntity.properties?.offline ?? '—', bg: '#fff1f2', color: '#991b1b', border: '#fca5a5' },
+                                            ].map(m => (
+                                                <div key={m.label} style={{ background: m.bg, border: `1px solid ${m.border}`, borderRadius: 'var(--r-sm)', padding: '8px 4px', textAlign: 'center' }}>
+                                                    <div style={{ fontSize: 10, color: m.color, textTransform: 'uppercase', fontWeight: 700, opacity: 0.7 }}>{m.label}</div>
+                                                    <div style={{ fontSize: 18, fontWeight: 800, color: m.color }}>{m.value}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-3)' }}>
+                                            <span style={{
+                                                padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                                                background: selectedEntity.properties?.status === 'ok' ? '#dcfce7' : selectedEntity.properties?.status === 'warning' ? '#fef9c3' : '#fee2e2',
+                                                color: selectedEntity.properties?.status === 'ok' ? '#166534' : selectedEntity.properties?.status === 'warning' ? '#854d00' : '#991b1b',
+                                            }}>
+                                                {selectedEntity.properties?.status === 'ok' ? '✓ Tous actifs' : selectedEntity.properties?.status === 'warning' ? '~ Partiellement actifs' : '✗ Hors ligne'}
+                                            </span>
+                                        </div>
+                                        {selectedEntity.properties?.address && (
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                                {selectedEntity.properties.address}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Alert details */}
+                                {selectedEntity.type === 'alert' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 'var(--r-sm)', padding: '8px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: 10, color: '#9a3412', fontWeight: 700, textTransform: 'uppercase' }}>Total</div>
+                                                <div style={{ fontSize: 20, fontWeight: 800, color: '#c2410c' }}>{selectedEntity.properties?.total_alerts ?? '—'}</div>
+                                            </div>
+                                            <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 'var(--r-sm)', padding: '8px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: 10, color: '#991b1b', fontWeight: 700, textTransform: 'uppercase' }}>Critiques</div>
+                                                <div style={{ fontSize: 20, fontWeight: 800, color: '#dc2626' }}>{selectedEntity.properties?.critical_alerts ?? 0}</div>
+                                            </div>
+                                        </div>
+                                        {selectedEntity.properties?.address && (
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: 'var(--color-text-2)' }}>
+                                                <MapPin size={12} color="var(--color-text-3)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                                {selectedEntity.properties.address}
+                                            </div>
+                                        )}
+                                        <a href="/alerts" style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                            marginTop: 4, padding: '8px', borderRadius: 'var(--r-sm)',
+                                            background: selectedEntity.properties?.severity === 'critical' ? '#ef4444' : '#f59e0b',
+                                            color: '#fff', textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                                        }}>
+                                            {selectedEntity.properties?.severity === 'critical' ? '🚨' : '⚠️'} Voir les alertes
+                                        </a>
+                                    </div>
+                                )}
+
                                 {/* Precise coordinates row */}
                                 {hasCoords && (
                                     <div style={{ marginTop: 10, padding: '7px 10px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -807,6 +891,16 @@ const MapCenter = () => {
                         );
                     })()}
                 </div>
+            </div>
+
+            {/* ── Full weather dashboard (MSN-style, live Open-Meteo) ──────── */}
+            <div style={{ padding: '0 24px 28px' }}>
+                <WeatherAlertsPanel />
+                <WeatherDashboard
+                    lat={userPos?.[0] ?? viewCenter[0]}
+                    lon={userPos?.[1] ?? viewCenter[1]}
+                    locationName={locationName}
+                />
             </div>
         </div>
     );

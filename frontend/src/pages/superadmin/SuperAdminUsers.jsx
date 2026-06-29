@@ -3,14 +3,14 @@ import { Search, Plus, Edit2, Trash2, RefreshCw, Key, UserCheck, UserX, LogIn } 
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
 
 const ROLE_COLORS = { owner: '#22c55e', worker: '#06b6d4', superadmin: C.purple };
 
 function Modal({ title, onClose, children }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#000a', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#0d1520', border: `1px solid #1a2535`, borderRadius: 14, padding: '24px 28px', width: 440, maxWidth: '92vw' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.3)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#ffffff', border: `1px solid #e2e8f0`, borderRadius: 14, padding: '24px 28px', width: 440, maxWidth: '92vw', boxShadow: '0 8px 32px rgba(0,0,0,.12)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>{title}</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer', fontSize: 20, lineHeight: 1 }}>×</button>
@@ -30,9 +30,9 @@ function Field({ label, children }) {
   );
 }
 
-const INPUT = { width: '100%', padding: '9px 12px', background: C.bg, border: `1px solid #2a3a50`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+const INPUT = { width: '100%', padding: '9px 12px', background: '#f8fafc', border: `1px solid #e2e8f0`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
 const BTN_P = { padding: '9px 20px', background: C.purple, border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
-const BTN_G = { ...BTN_P, background: '#1a2535' };
+const BTN_G = { ...BTN_P, background: '#f1f5f9', color: '#475569' };
 
 export default function SuperAdminUsers() {
   const [data, setData]   = useState({ users: [], total: 0 });
@@ -153,7 +153,7 @@ export default function SuperAdminUsers() {
               <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: C.muted }}>Chargement…</td></tr>
             ) : data.users.map(u => (
               <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}11` }}
-                onMouseEnter={e => e.currentTarget.style.background = '#ffffff06'}
+                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <td style={{ padding: '12px 14px' }}>
                   <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{u.full_name || u.username}</div>

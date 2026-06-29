@@ -500,7 +500,7 @@ tbody tr:hover td { background: var(--color-surface-2); }
   background: var(--color-bg);
 }
 .auth-left {
-  background: linear-gradient(145deg, #064e3b 0%, #065f46 40%, #16a34a 100%);
+  background: transparent;
   display: flex;
   flex-direction: column;
   justify-content: center;

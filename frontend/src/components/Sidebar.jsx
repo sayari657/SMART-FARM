@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Building2, PawPrint, Eye,
   AlertTriangle, FileText, Settings, LogOut, Leaf,
   Layers, Bot, TreePine, Map, X, ChevronLeft, ChevronRight,
-  Warehouse, Cpu, Sun, Moon, Languages,
+  Warehouse, Cpu, Sun, Moon, Languages, MessagesSquare,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -17,24 +17,25 @@ const NAV = [
       { to: '/about-project', icon: Layers,         labelKey: 'sidebar.project_about' },
       { to: '/dashboard',    icon: LayoutDashboard,  labelKey: 'sidebar.dashboard' },
       { to: '/farms',        icon: Building2,        labelKey: 'sidebar.farms' },
-      { to: '/animals',      icon: PawPrint,         labelKey: 'sidebar.animals' },
+      { to: '/animals',      icon: PawPrint,         labelKey: 'sidebar.animals', proOnly: true },
       { to: '/aboutbee',     emoji: '🐝',            labelKey: 'sidebar.bee',    color: '#d97706' },
       { to: '/trees',        icon: TreePine,         labelKey: 'sidebar.trees' },
       { to: '/map',          icon: Map,              labelKey: 'sidebar.map_center' },
-      { to: '/entrepot',    icon: Warehouse,        labelKey: 'sidebar.entrepot' },
-      { to: '/iot-devices', icon: Cpu,              labelKey: 'sidebar.iot_devices' },
+      { to: '/entrepot',    icon: Warehouse,        labelKey: 'sidebar.entrepot', proOnly: true },
+      { to: '/iot-devices', icon: Cpu,              labelKey: 'sidebar.iot_devices', proOnly: true },
     ]
   },
   {
     section: 'Monitoring', items: [
-      { to: '/cv',        icon: Eye,            labelKey: 'sidebar.cv_monitoring' },
-      { to: '/alerts',    icon: AlertTriangle,  labelKey: 'sidebar.alerts' },
+      { to: '/messages', icon: MessagesSquare, labelKey: 'sidebar.messages' },
+      { to: '/cv',        icon: Eye,            labelKey: 'sidebar.cv_monitoring', proOnly: true },
+      { to: '/alerts',    icon: AlertTriangle,  labelKey: 'sidebar.alerts', proOnly: true },
     ]
   },
   {
     section: 'Intelligence', items: [
-      { to: '/assistant', icon: Bot,      labelKey: 'sidebar.assistant' },
-      { to: '/reports',   icon: FileText, labelKey: 'sidebar.reports'   },
+      { to: '/assistant', icon: Bot,      labelKey: 'sidebar.assistant', proOnly: true },
+      { to: '/reports',   icon: FileText, labelKey: 'sidebar.reports', proOnly: true   },
     ]
   },
   {
@@ -84,6 +85,8 @@ export default function Sidebar() {
 
   const handleNavClick = () => close();
 
+  const isPro = user?.plan === 'pro' || user?.plan === 'enterprise' || user?.role === 'superadmin';
+
   return (
     <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
       {/* Logo */}
@@ -110,31 +113,36 @@ export default function Sidebar() {
 
       {/* Nav sections */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        {NAV.map(({ section, items }) => (
-          <div className="sidebar-section" key={section}>
-            {!collapsed && (
-              <div className="sidebar-section-label">
-                {t(`sidebar.${section.toLowerCase()}`, section)}
-              </div>
-            )}
-            {items.map(({ to, icon: Icon, emoji, labelKey, color }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={handleNavClick}
-                className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-                title={collapsed ? t(labelKey) : undefined}
-                style={({ isActive }) => color && isActive ? { borderInlineStart: `3px solid ${color}`, paddingInlineStart: collapsed ? undefined : 13 } : {}}
-              >
-                {emoji
-                  ? <span style={{ fontSize: collapsed ? 18 : 15, flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
-                  : <Icon size={16} style={{ flexShrink: 0 }} />
-                }
-                {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(labelKey)}</span>}
-              </NavLink>
-            ))}
-          </div>
-        ))}
+        {NAV.map(({ section, items }) => {
+          const visibleItems = items.filter(item => isPro || !item.proOnly);
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <div className="sidebar-section" key={section}>
+              {!collapsed && (
+                <div className="sidebar-section-label">
+                  {t(`sidebar.${section.toLowerCase()}`, section)}
+                </div>
+              )}
+              {visibleItems.map(({ to, icon: Icon, emoji, labelKey, color }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={handleNavClick}
+                  className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+                  title={collapsed ? t(labelKey) : undefined}
+                  style={({ isActive }) => color && isActive ? { borderInlineStart: `3px solid ${color}`, paddingInlineStart: collapsed ? undefined : 13 } : {}}
+                >
+                  {emoji
+                    ? <span style={{ fontSize: collapsed ? 18 : 15, flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
+                    : <Icon size={16} style={{ flexShrink: 0 }} />
+                  }
+                  {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t(labelKey)}</span>}
+                </NavLink>
+              ))}
+            </div>
+          );
+        })}
 
       </div>
 

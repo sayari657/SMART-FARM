@@ -72,7 +72,8 @@ def notify_farm_alert(
         if getattr(u, "email", None):
             email_ok = send_email_alert(u.email, title, message)
         try:
-            push_count = send_to_user(db, u.id, f"🚨 {title}", message, {"type": "alert", "farm_id": farm_id})
+            # email already sent above (send_email_alert) → email=False avoids a duplicate
+            push_count = send_to_user(db, u.id, f"🚨 {title}", message, {"type": "alert", "farm_id": farm_id}, email=False)
         except Exception as exc:
             logger.warning("Push to user %s failed: %s", u.id, exc)
         results.append({

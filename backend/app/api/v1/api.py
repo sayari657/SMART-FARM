@@ -30,6 +30,7 @@ from app.api.v1.endpoints.poultry_erp import router as poultry_erp_router
 from app.api.v1.endpoints.warehouse_routes import router as warehouse_router
 from app.api.v1.endpoints.orchard_routes import router as orchard_router
 from app.api.v1.endpoints.reviews_routes import router as reviews_router
+from app.api.v1.endpoints.chat_routes import router as chat_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -58,6 +59,7 @@ api_router.include_router(worker_reports_router)
 api_router.include_router(warehouse_router)
 api_router.include_router(orchard_router)
 api_router.include_router(reviews_router)
+api_router.include_router(chat_router)
 
 # External integrations
 api_router.include_router(weather_ext_router, prefix="/weather", tags=["Weather"])

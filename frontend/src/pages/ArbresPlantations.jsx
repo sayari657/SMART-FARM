@@ -13,6 +13,7 @@ import CropCalendar from '../components/CropCalendar';
 import OrchardMap from '../components/OrchardMap';
 import ModelClassesInfo from '../components/ModelClassesInfo';
 import PlantVillageScanner from '../components/PlantVillageScanner';
+import ProGate from '../components/ProGate';
 import { agentAPI, cvAPI, diagnosticAPI } from '../services/api';
 import agLeavesImg    from '../assets/agronomie/leaves.jpg';
 import agLemonImg     from '../assets/agronomie/lemon.jpg';
@@ -378,46 +379,20 @@ function ReportCard({ report, onDelete, accent, accentLt }) {
 /* ══════════════════════════════════════════════════════════
    GROUP SECTION (scanners + isolated reports)
 ══════════════════════════════════════════════════════════ */
-function GroupSection({ title, subtitle, accent, accentLt, icon: Icon, cardImg, scanners, reports, reportLoading, detCount, onDeleteReport }) {
+function GroupSection({ title, subtitle, accent, accentLt, cardImg, scanners, reports, reportLoading, onDeleteReport }) {
   const { t } = useTranslation();
-  const progress = detCount % REPORT_EVERY;
-  const nextIn   = REPORT_EVERY - (progress || REPORT_EVERY);
-
   return (
     <div style={{marginBottom:40}}>
-      {/* Section header */}
-      <div style={{
-        background:T.surface, border:`1.5px solid ${T.border}`,
-        borderLeft:`5px solid ${accent}`, borderRadius:16,
-        padding:'16px 22px', marginBottom:16,
-        boxShadow:T.shadowMd, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap',
-      }}>
-        <div style={{width:52,height:52,borderRadius:14,overflow:'hidden',boxShadow:`0 5px 15px ${accent}44`,flexShrink:0,border:`2px solid ${accent}30`}}>
-          {cardImg
-            ? <img src={cardImg} alt={title} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-            : <div style={{width:'100%',height:'100%',background:`linear-gradient(135deg,${accent},${accent}aa)`,display:'flex',alignItems:'center',justifyContent:'center'}}><Icon size={22} color="#fff"/></div>
-          }
-        </div>
-        <div style={{flex:1,minWidth:160}}>
-          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-            <h2 style={{margin:0,fontSize:19,fontWeight:900,color:T.textPri,letterSpacing:-0.4}}>{title}</h2>
-            <span style={{fontSize:8,padding:'2px 9px',borderRadius:99,background:accentLt,color:accent,border:`1px solid ${accent}44`,fontWeight:800,letterSpacing:0.8,textTransform:'uppercase'}}>YOLO v8</span>
+      {/* Section header — métier (titre clair + valeur agronomique) */}
+      <div style={{display:'flex',alignItems:'center',gap:13,marginBottom:16}}>
+        {cardImg && (
+          <div style={{width:46,height:46,borderRadius:12,overflow:'hidden',flexShrink:0,boxShadow:`0 4px 12px ${accent}33`,border:`2px solid ${accent}30`}}>
+            <img src={cardImg} alt={title} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
           </div>
-          <p style={{margin:'3px 0 0',fontSize:11,color:T.textMut}}>{subtitle}</p>
-        </div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5}}>
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
-            {reportLoading&&<Loader2 size={12} color={accent} style={{animation:'spin 1s linear infinite'}}/>}
-            <span style={{fontSize:10,color:T.textSec,fontWeight:600}}>
-              {reportLoading ? t('trees.generating') : `${progress}/${REPORT_EVERY} · ${nextIn>0?`${nextIn} ${t('trees.before_report')}`:t('trees.report_triggered')}`}
-            </span>
-            <span style={{fontSize:11,fontWeight:900,color:accent,background:accentLt,border:`1px solid ${accent}33`,padding:'2px 11px',borderRadius:99}}>
-              {detCount} scans
-            </span>
-          </div>
-          <div style={{width:180,height:5,background:accentLt,borderRadius:99,overflow:'hidden'}}>
-            <div style={{width:`${(progress/REPORT_EVERY)*100}%`,height:'100%',background:`linear-gradient(90deg,${accent}88,${accent})`,borderRadius:99,transition:'width 0.5s ease'}}/>
-          </div>
+        )}
+        <div style={{minWidth:0,borderLeft:`3px solid ${accent}`,paddingLeft:12}}>
+          <h2 style={{margin:0,fontSize:18,fontWeight:900,color:T.textPri,letterSpacing:-0.3}}>{title}</h2>
+          {subtitle && <p style={{margin:'3px 0 0',fontSize:11.5,color:T.textMut,lineHeight:1.4}}>{subtitle}</p>}
         </div>
       </div>
 
@@ -739,44 +714,50 @@ export default function ArbresPlantations() {
           />
 
           {/* ── PHYTO-VISION (2 scanners) ─────────────────── */}
-          <GroupSection
-            title={t('trees.phyto_vision')}
-            subtitle={t('trees.phyto_vision_desc')}
-            accent={T.amber} accentLt={T.amberLt} icon={Flower2} cardImg={agGroupPhytoImg}
-            detCount={phytoCnt} reports={phytoReps} reportLoading={repLoading.phyto}
-            onDeleteReport={id=>deleteReport('phyto',id)}
-            scanners={[
-              <ScannerPanel key="olive"
-                title={t('trees.olive_diseases')}    subtitle="Peacock spot · Anthracnose · Psyllid"
-                category="olive"   accent={T.amber} accentLt={T.amberLt} icon={Flower2} cardImg={agOliveImg}
-                onAnalyze={onAnalyze}/>,
-              <ScannerPanel key="insects"
-                title={t('trees.insects_pests')}     subtitle="Army worm · Legume beetle · Rice pest"
-                category="insects" accent={T.red}   accentLt={T.redLt}   icon={Bug} cardImg={agInsectsImg}
-                onAnalyze={onAnalyze}/>,
-            ]}
-          />
+          <ProGate>
+            <GroupSection
+              title={t('trees.phyto_vision')}
+              subtitle={t('trees.phyto_vision_desc')}
+              accent={T.amber} accentLt={T.amberLt} icon={Flower2} cardImg={agGroupPhytoImg}
+              detCount={phytoCnt} reports={phytoReps} reportLoading={repLoading.phyto}
+              onDeleteReport={id=>deleteReport('phyto',id)}
+              scanners={[
+                <ScannerPanel key="olive"
+                  title={t('trees.olive_diseases')}    subtitle="Peacock spot · Anthracnose · Psyllid"
+                  category="olive"   accent={T.amber} accentLt={T.amberLt} icon={Flower2} cardImg={agOliveImg}
+                  onAnalyze={onAnalyze}/>,
+                <ScannerPanel key="insects"
+                  title={t('trees.insects_pests')}     subtitle="Army worm · Legume beetle · Rice pest"
+                  category="insects" accent={T.red}   accentLt={T.redLt}   icon={Bug} cardImg={agInsectsImg}
+                  onAnalyze={onAnalyze}/>,
+              ]}
+            />
+          </ProGate>
 
           {/* ── PLANTDOC (30 classes / 13 species) ───────── */}
-          <GroupSection
-            title="PlantDoc — Multi-espèces"
-            subtitle="Apple · Tomato · Grape · Potato · Corn · Strawberry · 13 espèces · 30 maladies"
-            accent={T.blue} accentLt={T.blueLt} icon={Leaf} cardImg={agPlantdocImg}
-            detCount={plantdocCnt} reports={plantdocReps} reportLoading={repLoading.plantdoc}
-            onDeleteReport={id=>deleteReport('plantdoc',id)}
-            scanners={[
-              <ScannerPanel key="plantdoc"
-                title="PlantDoc Disease Detection"
-                subtitle="30 classes · Apple Scab · Tomato Blight · Grape Rot · Corn Rust · Potato Blight..."
-                category="plantdoc" accent={T.blue} accentLt={T.blueLt} icon={Leaf} cardImg={agPlantdocImg}
-                onAnalyze={onAnalyze}/>,
-            ]}
-          />
+          <ProGate>
+            <GroupSection
+              title="Diagnostic Multi-Cultures"
+              subtitle="Verger & grandes cultures — aide à la décision phytosanitaire (13 cultures, 30 maladies)"
+              accent={T.blue} accentLt={T.blueLt} icon={Leaf} cardImg={agPlantdocImg}
+              detCount={plantdocCnt} reports={plantdocReps} reportLoading={repLoading.plantdoc}
+              onDeleteReport={id=>deleteReport('plantdoc',id)}
+              scanners={[
+                <ScannerPanel key="plantdoc"
+                  title="PlantDoc Disease Detection"
+                  subtitle="30 classes · Apple Scab · Tomato Blight · Grape Rot · Corn Rust · Potato Blight..."
+                  category="plantdoc" accent={T.blue} accentLt={T.blueLt} icon={Leaf} cardImg={agPlantdocImg}
+                  onAnalyze={onAnalyze}/>,
+              ]}
+            />
+          </ProGate>
 
           {/* ── PLANTVILLAGE (classification 38 classes, top-1 99 %) ── */}
-          <div style={{marginBottom:40}}>
-            <PlantVillageScanner />
-          </div>
+          <ProGate>
+            <div style={{marginBottom:40}}>
+              <PlantVillageScanner />
+            </div>
+          </ProGate>
 
           {/* ── Detection Log ─────────────────────────────── */}
           <div style={{background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:18,overflow:'hidden',marginBottom:28,boxShadow:T.shadowMd}}>

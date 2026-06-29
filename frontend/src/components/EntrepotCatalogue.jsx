@@ -299,7 +299,7 @@ function Modal({ product, category, onClose }) {
  * Rendered both on the standalone /entrepot page and inside the AboutBee
  * "Stock" tab so the two stay identical (single source of truth).
  */
-export default function EntrepotCatalogue() {
+export default function EntrepotCatalogue({ takeMode = false, onTake } = {}) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [selected, setSelected] = useState(null);
@@ -517,6 +517,15 @@ export default function EntrepotCatalogue() {
                         <Plus size={12}/>
                       </button>
                     </div>
+                    {takeMode && (
+                      <button onClick={() => { if (q > 0) { setQty(key, q - 1); onTake?.({ name: p.name, price: (p.price ?? null), cat: cat.label, key }); } }}
+                        disabled={q <= 0}
+                        style={{ marginTop: 8, width: '100%', padding: '8px', borderRadius: 8, border: 'none',
+                          background: q <= 0 ? '#e5e7eb' : '#16a34a', color: '#fff', fontWeight: 800, fontSize: 12,
+                          cursor: q <= 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        📥 {q <= 0 ? 'Épuisé' : 'Prendre 1'}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

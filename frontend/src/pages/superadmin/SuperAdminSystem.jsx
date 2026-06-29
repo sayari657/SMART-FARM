@@ -3,9 +3,9 @@ import { Cpu, Database, Wifi, RefreshCw, Send, AlertTriangle, CheckCircle, Downl
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
 const CARD = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 24px', marginBottom: 18 };
-const INPUT = { width: '100%', padding: '9px 12px', background: C.bg, border: `1px solid #2a3a50`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
+const INPUT = { width: '100%', padding: '9px 12px', background: '#f8fafc', border: `1px solid #e2e8f0`, borderRadius: 8, color: C.text, fontSize: 13, outline: 'none', boxSizing: 'border-box' };
 
 function StatusChip({ ok, label }) {
   return (

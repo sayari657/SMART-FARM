@@ -90,8 +90,9 @@ def forgot_by_email(request: Request, req: ForgotEmailRequest, db: Session = Dep
     if not user:
         raise HTTPException(status_code=404, detail="Aucun compte trouvé avec cet e-mail.")
 
+    otp = None
     try:
-        otp_service.send_otp_email(req.email)
+        otp = otp_service.send_otp_email(req.email)
     except Exception:
         import random
         import logging as _log
@@ -99,7 +100,7 @@ def forgot_by_email(request: Request, req: ForgotEmailRequest, db: Session = Dep
         otp_service.store_otp("email", req.email, otp)
         _log.getLogger(__name__).warning(f"[DEV] SMTP non configuré — OTP généré pour {req.email} (voir logs serveur)")
 
-    return {"message": f"Code OTP envoyé à {req.email}", "channel": "email"}
+    return {"message": f"Code OTP envoyé à {req.email}", "channel": "email", "debug_otp": otp}
 
 
 @router.post("/forgot-password/whatsapp")
@@ -110,8 +111,9 @@ def forgot_by_whatsapp(request: Request, req: ForgotWhatsAppRequest, db: Session
     if not user:
         raise HTTPException(status_code=404, detail="Aucun compte trouvé avec ce numéro de téléphone.")
 
+    otp = None
     try:
-        otp_service.send_otp_whatsapp(req.phone_number)
+        otp = otp_service.send_otp_whatsapp(req.phone_number)
     except Exception:
         import random
         import logging as _log
@@ -119,7 +121,7 @@ def forgot_by_whatsapp(request: Request, req: ForgotWhatsAppRequest, db: Session
         otp_service.store_otp("whatsapp", req.phone_number, otp)
         _log.getLogger(__name__).warning(f"[DEV] WhatsApp non configuré — OTP généré pour {req.phone_number} (voir logs serveur)")
 
-    return {"message": f"Code OTP envoyé via WhatsApp à {req.phone_number}", "channel": "whatsapp"}
+    return {"message": f"Code OTP envoyé via WhatsApp à {req.phone_number}", "channel": "whatsapp", "debug_otp": otp}
 
 # ── OTP: Step 2 — Reset Password ────────────────────────────────────────────
 

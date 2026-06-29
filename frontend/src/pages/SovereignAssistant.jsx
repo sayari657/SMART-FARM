@@ -234,7 +234,7 @@ export default function SovereignAssistant() {
     abortRef.current = controller;
     const sig = controller.signal;
 
-    if (!retryPayload) {
+    if (!retryPayload?.isRetry) {
       const userMsg = {
         id: Date.now(),
         type: 'user',
@@ -424,7 +424,68 @@ export default function SovereignAssistant() {
           {/* Messages */}
           <div className="sov-msgs">
 
-            {/* Empty state (Removed to show only the logo background) */}
+            {/* Empty state — exemple Darija (problème animal + solution) + OCR */}
+            {messages.length === 0 && (
+              <div style={{ maxWidth: 780, margin: '0 auto', width: '100%' }}>
+                <div style={{ textAlign: 'center', marginBottom: 18 }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: S.botText }}>🐄 Agri-Assistant Souverain — Darija</div>
+                  <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>RAG agricole + Ollama/Groq · répond en darija · lit aussi tes images</div>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                    {['🧠 RAG UTAP/AVFA', '🗣️ Darija', '📷 Vision + OCR', '🔊 Vocal'].map(b => (
+                      <span key={b} style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 10, background: 'rgba(22,163,74,.1)', color: S.accent, border: `1px solid ${S.botBorder}` }}>{b}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Démo de conversation */}
+                <div style={{ background: S.botBubble, border: `1px solid ${S.botBorder}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: S.accent, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Exemple de discussion</div>
+                  {[
+                    { who: 'user', t: 'بقرتي ما تاكلش من 3 أيام و الحليب نقص برشة، شنوة الحل؟' },
+                    { who: 'bot', t: 'يلزمك تبدأ بهذي الفحوصات:\n• قيس الحرارة (الطبيعي 38.5–39.5°). كان فمّة حمى = عدوى محتملة.\n• شوف الروث و الكرش: إسهال ولا انتفاخ = مشكلة هضمية (أسيدوز ولا نقص ألياف).\n• تفقّد الضرع: انتفاخ، سخانة ولا حليب متبدّل = التهاب ضرع (mammite).\n\nالحل المبدئي: ماء نظيف + ظل + علف ليّن، إعزلها على القطيع. كان فمّة حمى ولا الأعراض كمّلت 24 ساعة → كلّم البيطري فيسع.\n👈 الأسباب الأكثر شيوعا: التهاب ضرع، حمى، أسيدوز، طفيليات.' },
+                    { who: 'user', img: true, t: '📷 صوّرت الوصفة البيطرية — اقراها لي و قللي الجرعة' },
+                    { who: 'bot', ocr: true, t: 'قريت الوصفة بالـ OCR 📄:\n• الدواء : Oxytétracycline 200\n• الجرعة : 1 مل لكل 10 كغ من وزن البقرة\n• التكرار : مرّة في النهار، لمدّة 3 أيام\n⚠️ احترم فترة الأمان قبل ما تستهلك الحليب. تنجّم تصوّرلي أي وصفة ولا ملصق دواء و نقراهولك.' },
+                  ].map((m, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: m.who === 'user' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
+                      <div dir="rtl" style={{
+                        maxWidth: '85%', whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 1.7,
+                        padding: '10px 14px',
+                        borderRadius: m.who === 'user' ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
+                        background: m.who === 'user' ? S.userBubble : 'rgba(14,165,233,0.08)',
+                        color: m.who === 'user' ? S.userText : S.botText,
+                        border: m.who === 'user' ? 'none' : `1px solid ${S.botBorder}`,
+                      }}>
+                        {m.ocr && <div style={{ fontSize: 9, fontWeight: 800, color: '#0ea5e9', marginBottom: 4, letterSpacing: 0.5 }}>🔎 OCR + VISION + RAG</div>}
+                        {m.t}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Exemples cliquables */}
+                <div style={{ fontSize: 11, color: S.muted, marginBottom: 8 }}>Essaie un exemple :</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    { label: '🐄 بقرة ما تاكلش', q: 'بقرتي ما تاكلش و حليبها نقص من 3 أيام، شنوة نعمل؟' },
+                    { label: '🐔 دجاج عندو إسهال', q: 'الدجاج تاعي عندو إسهال أخضر، شنوة الدوا و كيفاش نوقّاو؟' },
+                    { label: '🐐 معزة تعرج', q: 'معزة تعرج من رجلها اليمنى، شنوة الأسباب و العلاج؟' },
+                    { label: '🐝 نحل ضعيف', q: 'النحل تاعي ولّا ضعيف هالأيام و الإنتاج نقص، علاش؟' },
+                    { label: '📷 صوّر وصفة (OCR)', ocr: true },
+                  ].map((ex, i) => (
+                    <button key={i}
+                      onClick={() => ex.ocr ? fileInputRef.current?.click() : handleSend({ input: ex.q })}
+                      style={{
+                        padding: '8px 13px', borderRadius: 12, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+                        background: ex.ocr ? 'rgba(14,165,233,0.12)' : 'rgba(22,163,74,.08)',
+                        color: ex.ocr ? '#0ea5e9' : S.accent,
+                        border: `1px solid ${ex.ocr ? 'rgba(14,165,233,0.35)' : S.botBorder}`,
+                      }}>
+                      {ex.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Message bubbles */}
             {messages.map((msg, idx) => (
@@ -491,7 +552,7 @@ export default function SovereignAssistant() {
                       {/* Retry button on error messages */}
                       {msg.isError && lastQuery && (
                         <button
-                          onClick={() => handleSend(lastQuery)}
+                          onClick={() => handleSend({ ...lastQuery, isRetry: true })}
                           style={{
                             display: 'block', marginTop: 10,
                             padding: '6px 14px', borderRadius: 8,

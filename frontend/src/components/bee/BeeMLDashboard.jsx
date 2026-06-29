@@ -28,7 +28,7 @@ import {
   DollarSign, Calendar, Users, Activity, Crown,
   Zap, BarChart2, MapPin, Shield, Leaf,
 } from 'lucide-react';
-import api from '../../services/api';
+import api, { agentAPI } from '../../services/api';
 import { beeApi } from '../../services/beeApi';
 import { COLORS } from './BeeConstants';
 
@@ -318,7 +318,11 @@ function VarroaRiskSection({ ruches, visites, stock }) {
       Math.max(0,30-stockTraitement)*2 * 0.3 +
       criticals*15 * 0.3
     ));
-    const nosemaRisk=Math.min(100,Math.round(varroaRisk*0.7+Math.random()*15));
+    // Nosema risk — derived from REAL data: weak-population rate observed in visits
+    // (colonies faibles + faible santé = terrain favorable au Nosema). No randomness.
+    const weakPop=visites.filter(v=>(v.population||'').toUpperCase().trim()==='FAIBLE').length;
+    const weakPopRate=Math.round(weakPop/totalVisits*100);
+    const nosemaRisk=Math.min(100,Math.round(varroaRisk*0.6+weakPopRate*0.4));
     const pestisideRisk=Math.min(100,Math.round(varroaRisk*0.5+10));
 
     return {varroaRisk,nosemaRisk,pestisideRisk,treatRate,stockTraitement,criticals};
@@ -962,6 +966,98 @@ function QueenIntelligenceSection({ ruches }) {
 /* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
+/* ── Synthèse IA basée sur les visites RÉELLES (base de données) ── */
+function VisitAISynthesis({ ruches, visites }) {
+  const [out, setOut]   = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const s = useMemo(() => {
+    const n = visites.length;
+    const pct = (f) => n ? Math.round(visites.filter(f).length / n * 100) : 0;
+    const dist = (field) => {
+      let faible = 0, moyen = 0, fort = 0;
+      visites.forEach(v => {
+        const val = String(v[field] || '').toUpperCase();
+        if (!val) return;
+        if (val.includes('FAIB')) faible++;
+        else if (val.includes('FORT') || val.includes('ABOND')) fort++;
+        else if (val.includes('MOY')) moyen++;
+      });
+      return { faible, moyen, fort };
+    };
+    const cadres = visites.map(v => parseInt(String(v.nb_cadres || ''), 10)).filter(x => !isNaN(x));
+    return {
+      n,
+      reine:   pct(v => v.reine === true),
+      oeufs:   pct(v => v.oeufs === true),
+      couvain: pct(v => v.couvain === true),
+      pop:     dist('population'),
+      honey:   dist('honey_level'),
+      pollen:  dist('pollen_level'),
+      avgCadres: cadres.length ? Math.round(cadres.reduce((a, b) => a + b, 0) / cadres.length) : null,
+      urgent:  visites.filter(v => v.health_state === 'urgent').length,
+      lastDate: [...visites].map(v => v.visit_date).filter(Boolean).sort().slice(-1)[0] || '—',
+      notes:   visites.filter(v => v.notes && v.notes.trim()).slice(-5).map(v => v.notes.trim()),
+    };
+  }, [visites]);
+
+  const analyze = async () => {
+    if (busy) return;
+    setBusy(true); setOut(null);
+    const prompt =
+      `Analyse les visites RÉELLES du rucher (${s.n} visites, dernière le ${s.lastDate}, ${ruches.length} ruches).\n` +
+      `Reine présente: ${s.reine}% · Œufs: ${s.oeufs}% · Couvain: ${s.couvain}%.\n` +
+      `Population — faible:${s.pop.faible} moyen:${s.pop.moyen} fort:${s.pop.fort}.\n` +
+      `Miel — faible:${s.honey.faible} moyen:${s.honey.moyen} abondant:${s.honey.fort}.\n` +
+      `Pollen — faible:${s.pollen.faible} moyen:${s.pollen.moyen} fort:${s.pollen.fort}.\n` +
+      `Cadres moyens: ${s.avgCadres ?? '?'} · Ruches en état urgent: ${s.urgent}.\n` +
+      (s.notes.length ? `Observations terrain: ${s.notes.join(' | ')}.\n` : '') +
+      `Donne une analyse claire de l'état du rucher et 3 à 5 recommandations concrètes et prioritaires.`;
+    try {
+      const res = await agentAPI.chat(prompt, 'bee');
+      setOut(res?.data?.response_derja || res?.data?.response || 'Pas de réponse.');
+    } catch {
+      setOut("Erreur de connexion à l'IA.");
+    }
+    setBusy(false);
+  };
+
+  const kpis = [
+    { l: 'Visites', v: s.n },
+    { l: 'Reine', v: `${s.reine}%` },
+    { l: 'Œufs', v: `${s.oeufs}%` },
+    { l: 'Couvain', v: `${s.couvain}%` },
+    { l: 'Cadres moy.', v: s.avgCadres ?? '—' },
+    { l: 'Urgentes', v: s.urgent },
+  ];
+
+  return (
+    <div style={cS}>
+      <SH icon="🧠" title="Synthèse IA des visites" sub={`Basée sur ${s.n} visite(s) réelle(s) en base`} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(90px,1fr))', gap: 10 }}>
+        {kpis.map(k => (
+          <div key={k.l} style={{ background: DK, border: `1px solid ${BR}`, borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: TX, lineHeight: 1 }}>{k.v}</div>
+            <div style={{ fontSize: 10, color: MT, marginTop: 4, textTransform: 'uppercase', letterSpacing: .4 }}>{k.l}</div>
+          </div>
+        ))}
+      </div>
+      <button onClick={analyze} disabled={busy || s.n === 0}
+        style={{ alignSelf: 'flex-start', padding: '10px 20px', borderRadius: 12, border: 'none',
+          background: (busy || s.n === 0) ? BR : AC, color: '#fff', fontWeight: 800, fontSize: 13,
+          cursor: (busy || s.n === 0) ? 'not-allowed' : 'pointer' }}>
+        {busy ? 'Analyse en cours…' : (s.n === 0 ? 'Aucune visite à analyser' : "▶ Analyser les visites avec l'IA")}
+      </button>
+      {out && (
+        <div dir="rtl" style={{ background: DK, border: `1px solid ${BR}`, borderRadius: 14, padding: '16px 18px',
+          fontSize: 14, lineHeight: 2, color: TX, whiteSpace: 'pre-wrap', textAlign: 'right', fontFamily: 'sans-serif' }}>
+          {out}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BeeMLDashboard({ ruches=[], emplacements=[], productions=[], visites=[], stock={}, farmId }) {
   const [cvEvents,  setCvEvents]  = useState([]);
   const [depenses,  setDepenses]  = useState([]);
@@ -972,7 +1068,19 @@ export default function BeeMLDashboard({ ruches=[], emplacements=[], productions
     Promise.allSettled([
       api.get(`/cv/events${p}&limit=500`),
     ]).then(([evR])=>{
-      if(evR.status==='fulfilled') setCvEvents(Array.isArray(evR.value?.data)?evR.value.data:[]);
+      const backend = (evR.status==='fulfilled' && Array.isArray(evR.value?.data)) ? evR.value.data : [];
+      // Merge the local YOLO scan history (AIScanner stores bee scans in localStorage)
+      const local = [];
+      try {
+        ['yolo_history_bee', 'yolo_history_bee_health'].forEach(k => {
+          (JSON.parse(localStorage.getItem(k) || '[]') || []).forEach(card => {
+            (card.detections || []).forEach(d => local.push({
+              object_class: d.label, confidence: d.confidence, timestamp: card.timestamp,
+            }));
+          });
+        });
+      } catch { /* ignore */ }
+      setCvEvents([...backend, ...local]);
     }).finally(()=>setLoading(false));
   },[farmId]);
 
@@ -1017,6 +1125,7 @@ export default function BeeMLDashboard({ ruches=[], emplacements=[], productions
       )}
 
       {!loading && <>
+        <VisitAISynthesis        ruches={ruches} visites={visites}/>
         <BeeDetectionSection     cvEvents={cvEvents}/>
         <ColonyStrengthSection   ruches={ruches} visites={visites}/>
         <VarroaRiskSection       ruches={ruches} visites={visites} stock={stock}/>

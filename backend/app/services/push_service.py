@@ -83,12 +83,28 @@ def _dispatch(token: str, platform: str, title: str, body: str, data: Optional[d
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
-def send_to_user(db: Session, user_id: int, title: str, body: str, data: Optional[dict] = None) -> int:
-    """Send notification to all devices of a single user. Returns count sent."""
+def send_to_user(db: Session, user_id: int, title: str, body: str, data: Optional[dict] = None, email: bool = True) -> int:
+    """Send notification to all devices of a single user (push + email). Returns push count sent.
+
+    `email=True` (default) also delivers the same notification to the user's email
+    (Gmail SMTP), so every notification the app sends is mirrored by email. Pass
+    `email=False` when the caller already sends the email itself (avoids duplicates).
+    """
     from app.models.domain import PushToken
     tokens = db.query(PushToken).filter(PushToken.user_id == user_id).all()
     sent = sum(1 for pt in tokens if _dispatch(pt.token, pt.platform or "fcm", title, body, data))
     logger.debug("push send_to_user %s → %d/%d sent", user_id, sent, len(tokens))
+
+    if email:
+        try:
+            from app.models.domain import User
+            from app.services.otp_service import send_email_alert
+            u = db.query(User).filter(User.id == user_id).first()
+            if u and getattr(u, "email", None):
+                send_email_alert(u.email, title, body)
+        except Exception as exc:
+            logger.warning("Notification email to user %s failed: %s", user_id, exc)
+
     return sent
 
 
@@ -101,6 +117,21 @@ def broadcast_push(db: Session, title: str, body: str, target: str = "all", data
     tokens = q.all()
     sent = sum(1 for pt in tokens if _dispatch(pt.token, pt.platform or "fcm", title, body, data))
     logger.info("push broadcast target=%s → %d/%d sent", target, sent, len(tokens))
+
+    # Mirror the broadcast by email to every targeted user (best-effort)
+    try:
+        from app.services.otp_service import send_email_alert
+        uq = db.query(User)
+        if target != "all":
+            uq = uq.filter(User.role == target)
+        emailed = 0
+        for u in uq.all():
+            if getattr(u, "email", None) and send_email_alert(u.email, title, body):
+                emailed += 1
+        logger.info("broadcast email target=%s → %d emails", target, emailed)
+    except Exception as exc:
+        logger.warning("Broadcast email failed: %s", exc)
+
     return sent
 
 

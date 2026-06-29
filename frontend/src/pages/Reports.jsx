@@ -20,7 +20,7 @@ import {
 } from 'recharts';
 import Navbar from '../components/Navbar';
 import reportsHeroImg from '../assets/reports-hero.jpg';
-import api, { reportsAPI, dashboardAPI, alertsAPI, anomalyAPI, recsAPI } from '../services/api';
+import api, { reportsAPI, dashboardAPI, alertsAPI, anomalyAPI, recsAPI, orchardAPI, cvAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -510,7 +510,7 @@ function DomainCard({ icon: Icon, color, title, sub, image, metrics }) {
 }
 
 /* ── LiveView ──────────────────────────────────────────────────────── */
-function LiveView({ stats, analytics, alerts, anomalies, recs }) {
+function LiveView({ stats, analytics, alerts, anomalies, recs, agro, cvStats }) {
   const { t } = useTranslation();
   const unresolved = alerts.filter(a => !a.is_resolved);
   const alertPie = Object.entries(
@@ -519,6 +519,26 @@ function LiveView({ stats, analytics, alerts, anomalies, recs }) {
     name: name.replace(/_/g,' '), value,
     fill: [C.danger, C.warn, C.accent, '#8b5cf6', C.ok][i],
   }));
+
+  // ── Synthèse exécutive — KPIs dérivés des données réelles ──
+  const _now = Date.now();
+  const anomalies7d = anomalies.filter(a => a.timestamp && (_now - new Date(a.timestamp).getTime()) < 7 * 864e5).length;
+  const criticalRecs = recs.filter(r => ['critical', 'high'].includes(r.urgency_level)).length;
+  const hSeries = analytics.map(d => d['santé']).filter(v => typeof v === 'number');
+  const healthDelta = hSeries.length >= 2 ? Math.round(hSeries[hSeries.length - 1] - hSeries[0]) : null;
+  const summary = [
+    { label: t('reports.kpi_health', 'Score santé'),     value: `${stats.health}%`,      color: statusColor(stats.health),       delta: healthDelta, deltaGood: (healthDelta || 0) >= 0, icon: Heart },
+    { label: t('reports.kpi_animals', 'Unités animales'), value: fmt(stats.animals),       color: C.warn,                            icon: Activity },
+    { label: t('reports.kpi_open_alerts', 'Alertes ouvertes'), value: unresolved.length,   color: unresolved.length ? C.danger : C.ok, icon: Bell },
+    { label: t('reports.kpi_anomalies7', 'Anomalies (7j)'), value: anomalies7d,            color: anomalies7d ? C.warn : C.ok,       icon: AlertTriangle },
+    { label: t('reports.kpi_prio_recs', 'Recos prioritaires'), value: criticalRecs,        color: criticalRecs ? C.danger : C.ok,    icon: Lightbulb },
+  ];
+
+  // ── Sécurité — score réel dérivé des alertes ouvertes + anomalies récentes ──
+  const anomalies24h  = anomalies.filter(a => a.timestamp && (_now - new Date(a.timestamp).getTime()) < 864e5).length;
+  const cvDetections  = cvStats?.disease_alerts_7d ?? cvStats?.total_detections ?? null;
+  const securityScore = Math.max(0, Math.min(100, 100 - unresolved.length * 8 - anomalies24h * 5));
+
   return (
     <div className="rp-in" style={{ display:'flex', flexDirection:'column', gap:24 }}>
       <div style={{ height:200, borderRadius:R, overflow:'hidden', position:'relative', boxShadow:'0 2px 12px rgba(0,0,0,.08)' }}>
@@ -537,6 +557,27 @@ function LiveView({ stats, analytics, alerts, anomalies, recs }) {
           Système opérationnel
         </div>
       </div>
+
+      {/* ── Synthèse exécutive (KPIs réels + tendance) ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))', gap:12 }}>
+        {summary.map(k => (
+          <div key={k.label} style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:R, padding:'16px 18px', boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+              <span style={{ fontSize:10.5, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:.5 }}>{k.label}</span>
+              <k.icon size={15} color={k.color}/>
+            </div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:8 }}>
+              <span style={{ fontSize:26, fontWeight:900, color:C.text, lineHeight:1, fontVariantNumeric:'tabular-nums' }}>{k.value}</span>
+              {k.delta != null && (
+                <span style={{ display:'inline-flex', alignItems:'center', gap:2, fontSize:11, fontWeight:800, color:k.deltaGood?C.ok:C.danger }}>
+                  {k.deltaGood ? <TrendingUp size={12}/> : <TrendingDown size={12}/>}{k.delta>0?'+':''}{k.delta}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
       {analytics.length > 0 && (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 260px', gap:16 }}>
           <div style={{ background:C.surface, borderRadius:R, padding:'22px 24px', border:`1px solid ${C.border}`, boxShadow:'0 1px 3px rgba(0,0,0,.04)' }}>
@@ -596,11 +637,11 @@ function LiveView({ stats, analytics, alerts, anomalies, recs }) {
             { label:'Score santé moyen',    value:fmtPct(stats.health), color:statusColor(stats.health), pct:stats.health },
             { label:'Alertes non résolues', value:unresolved.length,    color:unresolved.length>0?C.danger:C.ok, pct:null },
           ]}/>
-        <DomainCard icon={Sprout} color={C.ok} title="Rapport Agronomique" sub="Cultures & rendements" image={IMG_PLANTS}
+        <DomainCard icon={Sprout} color={C.ok} title="Rapport Agronomique" sub="Verger & santé des arbres" image={IMG_PLANTS}
           metrics={[
-            { label:'Stress hydrique',    value:'Bas',    color:C.ok,   pct:15 },
-            { label:'Rendement estimé',   value:'12.5 t', color:C.warn, pct:null },
-            { label:'Usage fertilisants', value:'−15%',   color:C.ok,   pct:85 },
+            { label:'Arbres suivis',      value:fmt(agro?.total ?? 0),                       color:C.ok,                                       pct:null },
+            { label:'Arbres sains',       value:`${agro?.healthyPct ?? 0}%`,                 color:statusColor(agro?.healthyPct ?? 0),         pct:agro?.healthyPct ?? 0 },
+            { label:'Maladies détectées', value:fmt((agro?.diseased ?? 0) + (agro?.watch ?? 0)), color:(agro?.diseased ?? 0) > 0 ? C.danger : C.ok, pct:null },
           ]}/>
         <div style={{ background:C.dark, borderRadius:R, padding:'22px', border:`1px solid ${C.darkBdr}`, boxShadow:'0 2px 12px rgba(0,0,0,.12)', display:'flex', flexDirection:'column' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18 }}>
@@ -613,12 +654,15 @@ function LiveView({ stats, analytics, alerts, anomalies, recs }) {
             </div>
           </div>
           <div style={{ background:C.darkSurf, borderRadius:R-2, padding:'16px', marginBottom:14, textAlign:'center' }}>
-            <div style={{ fontSize:40, fontWeight:900, color:'#f1f5f9', lineHeight:1 }}>100%</div>
-            <div style={{ fontSize:11, color:'rgba(255,255,255,.4)', marginTop:4 }}>Intégrité périmètre</div>
+            <div style={{ fontSize:40, fontWeight:900, lineHeight:1, color: securityScore>=80?'#4ade80':securityScore>=50?'#fbbf24':'#f87171' }}>{securityScore}%</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,.4)', marginTop:4 }}>Score sécurité · alertes + anomalies</div>
           </div>
           <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:16 }}>
-            {[{l:'Barrière OK',c:'#fbbf24',bg:'rgba(251,191,36,.12)'},{l:'IoT actifs',c:'#4ade80',bg:'rgba(74,222,128,.12)'},{l:'Caméras ON',c:'#60a5fa',bg:'rgba(96,165,250,.12)'}]
-              .map(p => <span key={p.l} style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:.5, padding:'3px 10px', borderRadius:99, background:p.bg, color:p.c }}>{p.l}</span>)}
+            {[
+              { l:`${unresolved.length} alertes ouvertes`, c: unresolved.length?'#f87171':'#4ade80', bg: unresolved.length?'rgba(248,113,113,.12)':'rgba(74,222,128,.12)' },
+              { l:`${anomalies7d} anomalies 7j`,           c: anomalies7d?'#fbbf24':'#4ade80',         bg: anomalies7d?'rgba(251,191,36,.12)':'rgba(74,222,128,.12)' },
+              ...(cvDetections != null ? [{ l:`${cvDetections} détections IA`, c:'#60a5fa', bg:'rgba(96,165,250,.12)' }] : []),
+            ].map(p => <span key={p.l} style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:.5, padding:'3px 10px', borderRadius:99, background:p.bg, color:p.c }}>{p.l}</span>)}
           </div>
           <div style={{ background:C.darkSurf, borderRadius:R-2, padding:'10px 14px', marginBottom:12, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
             <span style={{ fontSize:12, color:'rgba(255,255,255,.5)' }}>Anomalies 24h</span>
@@ -779,6 +823,8 @@ export default function Reports() {
   const [view, setView]                     = useState('live');
   const [selectedReport, setSelectedReport] = useState(null);
   const [stats, setStats]         = useState({ animals: 0, health: 0, alerts: 0 });
+  const [agro, setAgro]           = useState(null);   // verger réel (orchardAPI.trees)
+  const [cvStats, setCvStats]     = useState(null);   // détections IA (cvAPI.plantStats)
   const [analytics, setAnalytics] = useState([]);
   const [reports, setReports]     = useState([]);
   const [archiveSearch, setArchiveSearch] = useState('');
@@ -804,18 +850,31 @@ export default function Reports() {
     if (!fid) return;
     setLoading(true);
     try {
-      const [rRes, sRes, aRes, alRes, anRes, rcRes] = await Promise.allSettled([
+      const [rRes, sRes, aRes, alRes, anRes, rcRes, orRes, cvRes] = await Promise.allSettled([
         reportsAPI.list(fid),
         dashboardAPI.stats(fid),
         dashboardAPI.analytics(30, fid),
         alertsAPI.list(fid),
         anomalyAPI.recent(50, fid),
         recsAPI.list(showResolved, fid),
+        orchardAPI.trees(fid),
+        cvAPI.plantStats(),
       ]);
       if (rRes.status  === 'fulfilled') setReports(rRes.value.data || []);
       if (alRes.status === 'fulfilled') setAlerts(alRes.value.data || []);
       if (anRes.status === 'fulfilled') setAnomalies(anRes.value.data || []);
       if (rcRes.status === 'fulfilled') setRecs(rcRes.value.data || []);
+      if (cvRes.status === 'fulfilled') setCvStats(cvRes.value.data || null);
+      if (orRes.status === 'fulfilled') {
+        const trees = Array.isArray(orRes.value.data) ? orRes.value.data : [];
+        const cnt = (k) => trees.filter(t => t.status === k).length;
+        const total = trees.length;
+        const healthy = cnt('healthy');
+        setAgro({
+          total, healthy, diseased: cnt('diseased'), treated: cnt('treated'), watch: cnt('watch'),
+          healthyPct: total ? Math.round((healthy / total) * 100) : 0,
+        });
+      }
       if (sRes.status  === 'fulfilled') {
         const s = sRes.value.data;
         setDashStats(s);
@@ -1091,7 +1150,7 @@ export default function Reports() {
 
           <div style={{ padding:'28px 36px' }}>
             {view === 'live'
-              ? <LiveView stats={stats} analytics={analytics} alerts={alerts} anomalies={anomalies} recs={recs}/>
+              ? <LiveView stats={stats} analytics={analytics} alerts={alerts} anomalies={anomalies} recs={recs} agro={agro} cvStats={cvStats}/>
               : <ArchiveView reports={filteredReports} loading={loading}
                   search={archiveSearch} onSearch={setArchiveSearch}
                   sort={archiveSort} onSort={setArchiveSort}

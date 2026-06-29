@@ -495,7 +495,7 @@ def list_ai_models(_: User = Depends(require_superadmin)):
         conn = sqlite3.connect(mlruns_db)
         cur = conn.cursor()
         cur.execute("""
-            SELECT rm.name, mv.version, mv.current_stage, mv.run_id, mv.creation_timestamp
+            SELECT rm.name, mv.version, mv.current_stage, mv.run_id, mv.creation_time
             FROM registered_models rm
             LEFT JOIN model_versions mv ON rm.name = mv.name
             ORDER BY mv.current_stage, rm.name
@@ -550,6 +550,13 @@ def create_broadcast(
     db.add(b)
     db.commit()
     db.refresh(b)
+    # Deliver the broadcast by push + email to every targeted user (best-effort)
+    try:
+        from app.services.push_service import broadcast_push
+        broadcast_push(db, body.title, body.body, target=body.target, data={"type": "broadcast"})
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("Broadcast dispatch failed: %s", exc)
     _audit(db, admin, "broadcast_sent", b.id, {"title": body.title, "target": body.target}, request)
     return {"ok": True, "id": b.id}
 

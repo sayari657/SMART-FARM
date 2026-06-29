@@ -3,8 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Leaf, Eye, EyeOff, Zap, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import ThreeBackground from '../components/ThreeBackground';
-import ThreeFarmBackground from '../components/ThreeFarmBackground';
+
 
 const PLAN_META = {
   pro:  { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: Zap },
@@ -17,6 +16,8 @@ export default function Register() {
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState(false);
   const [showPw, setShowPw]   = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
+  const [confirmPw, setConfirmPw] = useState('');
   const { register, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -40,6 +41,10 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (form.password !== confirmPw) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
     const res = await register(form);
     if (res.ok) {
       setSuccess(true);
@@ -52,11 +57,20 @@ export default function Register() {
 
   return (
     <div className="auth-page" style={{ background: 'transparent', position: 'relative' }}>
-      <ThreeBackground />
+      {/* Full-page video background */}
+      <video
+        autoPlay muted loop playsInline
+        style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          objectFit: 'cover', zIndex: 0,
+        }}
+      >
+        <source src="/videos/1.mp4" type="video/mp4" />
+      </video>
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.45)', zIndex: 0 }} />
 
       {/* ── Left panel ── */}
-      <div className="auth-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'center', zIndex:1, padding:'clamp(20px, 5vw, 40px)' }}>
-        <ThreeFarmBackground />
+      <div className="auth-left" style={{ position:'relative', overflow:'hidden', display:'flex', flexDirection:'column', justifyContent:'center', zIndex:1, padding:'clamp(20px, 5vw, 40px)', background:'transparent' }}>
         <div style={{ position:'relative', zIndex:2 }}>
 
           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:40 }}>
@@ -86,7 +100,7 @@ export default function Register() {
       </div>
 
       {/* ── Right panel ── */}
-      <div className="auth-right">
+      <div className="auth-right" style={{ position: 'relative', zIndex: 1 }}>
         <div className="auth-card">
           <h1>{t('register.title')}</h1>
           <p>{t('register.subtitle')}</p>
@@ -155,6 +169,18 @@ export default function Register() {
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Vérifier mot de passe *</label>
+                <div style={{ position: 'relative' }}>
+                  <input className="form-input" id="reg-confirm-password" type={showPw2 ? 'text' : 'password'} placeholder="Retapez le mot de passe" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required minLength={6} style={{ paddingRight: 40, borderColor: confirmPw && form.password !== confirmPw ? '#ef4444' : undefined }} />
+                  <button type="button" onClick={() => setShowPw2(v => !v)} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--color-text-3)', cursor:'pointer', padding:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {showPw2 ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {confirmPw && form.password !== confirmPw && (
+                  <div style={{ color: '#ef4444', fontSize: 11, marginTop: 4, fontWeight: 500 }}>Les mots de passe ne correspondent pas</div>
+                )}
               </div>
             </div>
 

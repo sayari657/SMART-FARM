@@ -10,8 +10,9 @@ import Navbar from '../components/Navbar';
 import KPIBox from '../components/KPIBox';
 import AlertCard from '../components/AlertCard';
 import TelemetryChart from '../components/TelemetryChart';
-import api, { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, externalAPI } from '../services/api';
+import { dashboardAPI, alertsAPI, telemetryAPI, cvAPI, animalsAPI, externalAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useIotSimulation, simToGauges } from '../lib/iotSim';
 
 const AIScanner       = lazy(() => import('../components/AIScanner'));
 import PriceForecastCard from '../components/PriceForecastCard';
@@ -89,9 +90,6 @@ export default function Dashboard() {
   const [recentTelemetry, setRT]  = useState([]);
   const [weather, setWeather]     = useState(null);
   const [loading, setLoading]     = useState(true);
-  // BUG#9 FIXED: null = not yet loaded (shows spinner), 'error' = sensors offline
-  const [iotData, setIotData]     = useState(null);
-  const [iotError, setIotError]   = useState(false);
   const [fireAlert, setFireAlert] = useState(null);
   // IA Souveraine — dynamic Darija insight
   const [aiInsight, setAiInsight]   = useState(null);
@@ -111,29 +109,6 @@ export default function Dashboard() {
     const isSmoke = fireLabels.some(d => d.label?.toLowerCase().includes('smoke'));
     const maxConf = Math.round(Math.max(...fireLabels.map(d => d.confidence)) * 100);
     setFireAlert({ isFire, isSmoke, imageUrl, confidence: maxConf, timestamp: new Date() });
-  }, []);
-
-  /* ── IoT polling — BUG#9 FIXED: null initial state, UI error feedback ── */
-  useEffect(() => {
-    let cancelled = false;
-    const fetchIot = () => {
-      api.get('/iot/latest', { timeout: 5000 })
-        .then(res => {
-          if (cancelled) return;
-          if (res.data?.nodeA && res.data?.nodeB) {
-            setIotData(res.data);
-            setIotError(false);
-          } else {
-            setIotError(true);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setIotError(true);
-        });
-    };
-    fetchIot();
-    const interval = setInterval(fetchIot, 10000);
-    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   /* ── Main data load — all calls in parallel, non-blocking render ── */
@@ -195,8 +170,11 @@ export default function Dashboard() {
   const activeAlertsCount = alerts.filter(a => !a.is_resolved).length;
   const allOk             = activeAlertsCount === 0 && (stats?.critical_alerts || 0) === 0;
 
-  /* ── IoT helpers — BUG#9 FIXED: guard against null iotData ──────── */
-  const broodOk = iotData ? (iotData.nodeB.broodTemp >= 34 && iotData.nodeB.broodTemp <= 36) : null;
+  /* ── IoT gauges — same live simulation as /iot-devices
+        (single source of truth: lib/iotSim) ──────────────────────────────── */
+  const iotSim   = useIotSimulation();
+  const liveIot  = simToGauges(iotSim);
+  const broodOk  = liveIot ? (liveIot.nodeB.broodTemp >= 34 && liveIot.nodeB.broodTemp <= 36) : null;
 
   return (
     <>
@@ -641,25 +619,26 @@ export default function Dashboard() {
               </div>
               <div className="card-subtitle">{t('dashboard.iot_subtitle', 'Vue circulaire en temps réel')}</div>
             </div>
-            <span className="live-badge">
-              <span className="pulse-dot green" />
-              LIVE
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                onClick={() => navigate('/iot-devices')}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 8,
+                  border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text-2)',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                title={t('dashboard.iot_open_center', 'Ouvrir le centre de supervision')}>
+                <Cpu size={12} /> {t('dashboard.iot_center', 'Centre de supervision')}
+                <ArrowRight size={11} />
+              </button>
+              <span className="live-badge">
+                <span className="pulse-dot green" />
+                LIVE
+              </span>
+            </div>
           </div>
 
-          {/* BUG#9 FIXED: show real states — loading / offline / live data */}
-          {iotData === null && !iotError ? (
-            <div style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-3)' }}>
-              <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              <p style={{ fontSize: 13 }}>Connexion aux capteurs IoT…</p>
-            </div>
-          ) : iotError && !iotData ? (
-            <div style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-3)' }}>
-              <Activity size={32} color="#94a3b8" style={{ marginBottom: 8 }} />
-              <p style={{ fontSize: 13, fontWeight: 600 }}>⚠️ Capteurs hors ligne — aucune donnée IoT disponible</p>
-              <p style={{ fontSize: 11 }}>Vérifiez la connexion ESP32 / MQTT</p>
-            </div>
-          ) : iotData ? (
+          {/* Real backend telemetry when available, else the same live
+              simulation as /iot-devices (shared model: lib/iotSim) */}
+          {liveIot && (
           <div className="iot-dual-layout">
             {/* Node A — Sol & Irrigation */}
             <div>
@@ -669,24 +648,25 @@ export default function Dashboard() {
               </div>
               <div className="iot-gauges-row">
                 <RingGauge
-                  value={iotData.nodeA.soil} max={100} color="#0ea5e9"
+                  value={liveIot.nodeA.soil} max={100} color="#0ea5e9"
                   label={t('dashboard.soil_humidity', 'Humidité Sol')} unit="%"
-                  statusLabel={iotData.nodeA.soil < 35 ? t('dashboard.too_dry', 'Trop sec') : t('dashboard.normal', 'Normal')}
-                  statusColor={iotData.nodeA.soil < 35 ? 'var(--color-critical)' : 'var(--color-success)'}
+                  statusLabel={liveIot.nodeA.soil < 35 ? t('dashboard.too_dry', 'Trop sec') : t('dashboard.normal', 'Normal')}
+                  statusColor={liveIot.nodeA.soil < 35 ? 'var(--color-critical)' : 'var(--color-success)'}
                 />
                 <RingGauge
-                  value={iotData.nodeA.pressure} max={1.5} color="#6366f1"
-                  label={t('dashboard.network_pressure', 'Pression')} unit=" MPa"
-                  statusLabel={t('dashboard.nominal', 'Nominal')} statusColor="var(--color-success)"
+                  value={liveIot.nodeA.pressure} max={5} color="#6366f1"
+                  label={t('dashboard.network_pressure', 'Pression')} unit=" bar"
+                  statusLabel={liveIot.nodeA.pressure > 3 ? t('dashboard.deregulation', 'Hors plage') : t('dashboard.nominal', 'Nominal')}
+                  statusColor={liveIot.nodeA.pressure > 3 ? 'var(--color-critical)' : 'var(--color-success)'}
                 />
                 <RingGauge
-                  value={iotData.nodeA.flow} max={30} color="#22c55e"
+                  value={liveIot.nodeA.flow} max={30} color="#22c55e"
                   label={t('dashboard.current_flow', 'Débit')} unit=" L/m"
-                  statusLabel={iotData.nodeA.flow > 0 ? t('dashboard.irrigation_ok', 'Irrigation OK') : t('dashboard.standby', 'Veille')}
-                  statusColor={iotData.nodeA.flow > 0 ? 'var(--color-success)' : 'var(--color-text-3)'}
+                  statusLabel={liveIot.nodeA.flow > 0 ? t('dashboard.irrigation_ok', 'Irrigation OK') : t('dashboard.standby', 'Veille')}
+                  statusColor={liveIot.nodeA.flow > 0 ? 'var(--color-success)' : 'var(--color-text-3)'}
                 />
                 <RingGauge
-                  value={iotData.nodeA.temp} max={50} color="#f59e0b"
+                  value={liveIot.nodeA.temp} max={50} color="#f59e0b"
                   label={t('dashboard.soil_temp', 'Temp Sol')} unit="°C"
                   statusLabel={t('dashboard.ideal_roots', 'Racines OK')} statusColor="var(--color-success)"
                 />
@@ -701,31 +681,31 @@ export default function Dashboard() {
               </div>
               <div className="iot-gauges-row">
                 <RingGauge
-                  value={iotData.nodeB.weight} max={80} color="#d97706"
+                  value={liveIot.nodeB.weight} max={80} color="#d97706"
                   label={t('dashboard.hive_weight', 'Poids Ruche')} unit=" kg"
                   statusLabel={t('dashboard.stable', 'Stable')} statusColor="var(--color-success)"
                 />
                 <RingGauge
-                  value={iotData.nodeB.broodTemp} max={45}
+                  value={liveIot.nodeB.broodTemp} max={45}
                   color={broodOk ? '#16a34a' : '#ef4444'}
                   label={t('dashboard.brood_temp', 'Temp Couvain')} unit="°C"
                   statusLabel={broodOk ? t('dashboard.optimal', 'Optimal') : t('dashboard.deregulation', 'Hors plage')}
                   statusColor={broodOk ? 'var(--color-success)' : 'var(--color-critical)'}
                 />
                 <RingGauge
-                  value={iotData.nodeB.extTemp} max={50} color="#f97316"
+                  value={liveIot.nodeB.extTemp} max={50} color="#f97316"
                   label={t('dashboard.ext_temp', 'Temp Ext')} unit="°C"
                   statusLabel={t('dashboard.local_weather', 'Météo locale')} statusColor="var(--color-success)"
                 />
                 <RingGauge
-                  value={iotData.nodeB.extHum} max={100} color="#0891b2"
+                  value={liveIot.nodeB.extHum} max={100} color="#0891b2"
                   label={t('dashboard.ext_hum', 'Hum Ext')} unit="%"
                   statusLabel={t('dashboard.optimal', 'Optimal')} statusColor="var(--color-success)"
                 />
               </div>
             </div>
           </div>
-          ) : null}
+          )}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════

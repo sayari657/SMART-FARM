@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Camera, AlertTriangle, LogOut, Wifi, WifiOff, CloudOff, RefreshCw, Settings, Warehouse } from 'lucide-react';
+import { Home, CheckSquare, Camera, AlertTriangle, LogOut, Wifi, WifiOff, CloudOff, RefreshCw, Settings, Warehouse, MessagesSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { usePWAVersion } from '../hooks/usePWAVersion';
@@ -84,6 +84,18 @@ function WorkerLayout() {
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <button
+            onClick={() => navigate('/worker/messages')}
+            aria-label="Messagerie"
+            style={{
+              background:'rgba(34,197,94,0.12)', border:'1px solid rgba(34,197,94,0.25)',
+              color:'#22c55e', borderRadius:10, width:36, height:36,
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+              transition:'all 0.2s'
+            }}
+          >
+            <MessagesSquare size={16} />
+          </button>
           <button
             onClick={() => navigate('/worker/settings')}
             aria-label="Réglages"

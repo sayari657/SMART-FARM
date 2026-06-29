@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, RefreshCw, Shield } from 'lucide-react';
 import api from '../../services/api';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
 
 const ACTION_COLORS = {
   plan_update:       '#22c55e',
@@ -105,8 +105,8 @@ export default function SuperAdminAudit() {
               const color = ACTION_COLORS[log.action] || C.purple;
               return (
                 <tr key={log.id} style={{ borderBottom: `1px solid ${C.border}11` }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#ffffff05'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '10px 14px', fontSize: 11, color: C.muted, fontFamily: 'monospace' }}>#{log.id}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

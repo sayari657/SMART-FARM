@@ -74,4 +74,35 @@ class WeatherService:
             logger.error(f"Forecast response error: {exc.response.status_code}")
             return None
 
+    async def get_daily_forecast(self, lat: float, lon: float, days: int = 5) -> Optional[list]:
+        """Prévision JOURNALIÈRE agrégée (min/max temp, pluie, vent, UV, code météo)."""
+        params = {
+            "latitude": lat, "longitude": lon, "timezone": "auto", "forecast_days": days,
+            "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,"
+                     "wind_speed_10m_max,uv_index_max,weather_code",
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                r = await client.get(self.base_url, params=params)
+                r.raise_for_status()
+                d = (r.json() or {}).get("daily") or {}
+                out = []
+                for i, date in enumerate(d.get("time", [])):
+                    def _g(k):
+                        v = d.get(k) or []
+                        return v[i] if i < len(v) else None
+                    out.append({
+                        "date": date,
+                        "t_max": _g("temperature_2m_max"),
+                        "t_min": _g("temperature_2m_min"),
+                        "precip_mm": _g("precipitation_sum"),
+                        "wind_max": _g("wind_speed_10m_max"),
+                        "uv_max": _g("uv_index_max"),
+                        "code": _g("weather_code"),
+                    })
+                return out
+        except Exception as exc:
+            logger.error(f"Daily forecast error: {exc}")
+            return None
+
 weather_service = WeatherService()

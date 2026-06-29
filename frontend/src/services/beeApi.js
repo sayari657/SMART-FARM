@@ -130,6 +130,7 @@ export const beeApi = {
   deleteExpense: (id) => safeFetch(`${EXPENSES}/${id}`, { method: 'DELETE' }),
 
   /* ── Stock ── */
+  getGlobalStock:     ()             => safeFetch(`${STOCK}/global`),
   getHiveStock:       (hiveId)       => safeFetch(`${STOCK}/hive/${hiveId}`),
   replenishHiveStock: (hiveId, data) => safeFetch(`${STOCK}/hive/${hiveId}/replenish`, {
     method: 'POST', body: JSON.stringify(data),

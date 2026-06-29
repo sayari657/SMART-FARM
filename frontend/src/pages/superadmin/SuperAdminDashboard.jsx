@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
 
 /* ── Mini sparkline bar chart ─── */
 function SparkBars({ data = [], color = '#7c3aed', valueKey = 'mrr', labelKey = 'month' }) {
@@ -52,7 +52,7 @@ function PlanBar({ plan, count, total }) {
         <span style={{ fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase', background: `${c}20`, padding: '2px 8px', borderRadius: 5 }}>{plan}</span>
         <span style={{ fontSize: 12, color: C.text, fontWeight: 700 }}>{count} <span style={{ color: C.muted, fontWeight: 400 }}>({pct}%)</span></span>
       </div>
-      <div style={{ height: 5, background: '#1a2535', borderRadius: 3 }}>
+      <div style={{ height: 5, background: '#e2e8f0', borderRadius: 3 }}>
         <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: 3, transition: 'width .5s' }} />
       </div>
     </div>

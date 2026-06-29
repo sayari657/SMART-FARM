@@ -73,7 +73,7 @@ const SPECIES_MODELS = {
   sheep:   { detect:'Livestock Detection', behavior:null,               disease:null,           classes:['sheep'] },
   goat:    { detect:'Livestock Detection', behavior:null,               disease:'Goat Skin Disease', classes:['goat'] },
   rabbit:  { detect:'Rabbit Detection',   behavior:null,               disease:null,           classes:['rabit'] },
-  poultry: { detect:'Chicken Detection',  behavior:null,               disease:'Poultry Disease',  classes:['rooster','Chicken Favus','Fowl Pox'] },
+  poultry: { detect:'Chicken Detection',  behavior:null,               disease:'Poultry Disease',  classes:['rooster','Chicken Favus','Fowl Pox','coryza','crd','normal','weak_leg'] },
 };
 
 const DISEASE_CLASSES = {
@@ -1096,6 +1096,30 @@ function ModelStatusSection({ cvHealth, cfg }) {
 }
 
 /* ══════════════════════════════════════════════════════════
+   Local scanner history → CV-event shape
+   The AIScanner on each species page stores its YOLO detections in
+   localStorage (key `yolo_history_<category>`). Flatten that history so the
+   behavioural / disease charts reflect what the user actually scanned with the
+   model on the species page — not only events persisted server-side.
+══════════════════════════════════════════════════════════ */
+function readScannerEvents(category) {
+  if (!category) return [];
+  try {
+    const raw = JSON.parse(localStorage.getItem(`yolo_history_${category}`) || '[]');
+    return raw.flatMap(card =>
+      (card.detections || []).map(d => ({
+        object_class: d.label,
+        confidence:   d.confidence,
+        timestamp:    card.timestamp,
+        source:       'scanner',
+      }))
+    );
+  } catch {
+    return [];
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
 export default function LivestockAICharts({ cfg, animals = [], farmId }) {
@@ -1115,6 +1139,11 @@ export default function LivestockAICharts({ cfg, animals = [], farmId }) {
   }, [farmId]);
 
   const C = cfg.color;
+
+  /* Detections scanned on the species page (cow → cow_behavior model, etc.),
+     merged with server-side CV events so the charts reflect both sources. */
+  const scanEvents = useMemo(() => readScannerEvents(cfg.cvCategory), [cfg.cvCategory]);
+  const allEvents  = useMemo(() => [...scanEvents, ...cvEvents], [scanEvents, cvEvents]);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:24, padding:'4px 0',
@@ -1140,7 +1169,7 @@ export default function LivestockAICharts({ cfg, animals = [], farmId }) {
         <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
           {[
             {l:`${animals.length} animaux`,   c:C         },
-            {l:`${cvEvents.length} CV events`, c:'#6366f1' },
+            {l:`${allEvents.length} CV events`, c:'#6366f1' },
             {l:'10 modèles IA',                c:AC        },
           ].map(b=>(
             <div key={b.l} style={{ padding:'6px 14px', borderRadius:99, background:`${b.c}12`,
@@ -1165,8 +1194,8 @@ export default function LivestockAICharts({ cfg, animals = [], farmId }) {
           <PopulationSection   animals={animals}   cfg={cfg}/>
           <HealthSection       animals={animals}   cfg={cfg}/>
           <ProductionSection   animals={animals}   cfg={cfg}/>
-          <BehavioralSection   cvEvents={cvEvents} cfg={cfg}/>
-          <DiseaseRiskSection  cvEvents={cvEvents} cfg={cfg} animals={animals}/>
+          <BehavioralSection   cvEvents={allEvents} cfg={cfg}/>
+          <DiseaseRiskSection  cvEvents={allEvents} cfg={cfg} animals={animals}/>
           <ReproductiveSection animals={animals}   cfg={cfg}/>
           <FeedSection         animals={animals}   cfg={cfg}/>
           <EconomicSection     animals={animals}   cfg={cfg}/>

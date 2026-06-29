@@ -64,7 +64,9 @@ class MLLMService:
                                     "role": "system",
                                     "content": (
                                         "You are a Tunisian agricultural expert. "
-                                        "Always respond in Tunisian Darija (دارجة تونسية). "
+                                        "Respond ONLY in Tunisian Darija written in ARABIC SCRIPT (الحروف العربية). "
+                                        "NEVER use Latin letters or transliteration (forbidden: 'mabghitch', 'baqara', "
+                                        "and digits used as letters like 3, 7, 9). Write every word in Arabic letters. "
                                         "Give a PRECISE, complete and well-structured answer: "
                                         "concrete numbers, doses, steps and timing when relevant. "
                                         "Ground your answer in the provided agricultural guide context. "
@@ -95,7 +97,8 @@ class MLLMService:
                 if not is_labess:
                     messages = [
                         {"role": "system", "content": (
-                            "أنت خبير زراعي تونسي. تجاوب دائماً بالدارجة التونسية. "
+                            "أنت خبير زراعي تونسي. تجاوب دائماً بالدارجة التونسية وبالحروف العربية فقط. "
+                            "ممنوع تكتب بالحروف اللاتينية ولا تستعمل أرقام عوض الحروف (لا 3 لا 7 لا 9). "
                             "كن عملي ومختصر. استعمل مصطلحات تونسية محلية."
                         )},
                         {"role": "user", "content": text},

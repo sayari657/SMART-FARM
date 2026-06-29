@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Brain, RefreshCw, ExternalLink, CheckCircle, Database, FlaskConical } from 'lucide-react';
 import api from '../../services/api';
 
-const C = { bg: '#0a0e14', card: '#0d1520', border: '#1a2535', muted: '#4b6380', text: '#e2e8f0', purple: '#7c3aed' };
+const C = { bg: '#f8fafc', card: '#ffffff', border: '#e2e8f0', muted: '#64748b', text: '#1e293b', purple: '#7c3aed' };
 
 const STAGE_COLORS = { Production: '#22c55e', Staging: '#f59e0b', Archived: '#ef4444', None: '#475569' };
 
@@ -52,7 +52,7 @@ export default function SuperAdminModels() {
   if (data?.models) {
     data.models.forEach(m => {
       const expId = m.run_id ? data.recent_runs?.find(r => r.id === m.run_id)?.experiment_id : null;
-      const expName = expId ? data.experiments?.find(e => e.id === String(expId))?.name : 'Other';
+      const expName = expId != null ? data.experiments?.find(e => String(e.id) === String(expId))?.name : 'Other';
       const key = expName || 'Other';
       if (!byExperiment[key]) byExperiment[key] = [];
       byExperiment[key].push(m);
@@ -63,7 +63,7 @@ export default function SuperAdminModels() {
   const filteredModels = activeExp
     ? data?.models?.filter(m => {
         const r = data.recent_runs?.find(r => r.id === m.run_id);
-        const exp = r ? data.experiments?.find(e => e.id === String(r.experiment_id)) : null;
+        const exp = r ? data.experiments?.find(e => String(e.id) === String(r.experiment_id)) : null;
         return exp?.name === activeExp;
       }) || []
     : data?.models || [];

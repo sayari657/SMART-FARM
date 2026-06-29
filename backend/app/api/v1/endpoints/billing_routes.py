@@ -336,11 +336,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     sig = request.headers.get("stripe-signature", "")
 
     try:
-        event = stripe.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
+        stripe.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError:
         raise HTTPException(400, "Invalid payload")
     except stripe.error.SignatureVerificationError:
         raise HTTPException(400, "Invalid signature")
+
+    # Signature is verified above. Work with a plain dict for the rest: Stripe
+    # SDK objects are not dict-compatible across versions (`.get()` raises
+    # AttributeError on newer SDKs), which previously 500'd every webhook.
+    import json
+    event = json.loads(payload)
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]

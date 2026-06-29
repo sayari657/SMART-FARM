@@ -175,10 +175,47 @@ def delete_tree(
 
 # ── AI tree detection from satellite imagery ──────────────────────────────────
 
-def _detect_crowns(img_bgr, min_area: int, max_area: int):
-    """Detect tree-crown centres (pixel coords). Uses DeepForest if installed,
-    else a dependency-free OpenCV green-canopy blob detector."""
-    # 1. DeepForest (best, optional — only if the user installed it)
+_ESRI_TILE = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile"
+
+
+def _is_placeholder_tile(tile) -> bool:
+    """True for Esri's 'Map data not yet available' tile — a near-uniform light
+    gray served where no high-zoom imagery exists. Real imagery is colourful
+    (high saturation + colour variance); the placeholder is flat gray."""
+    import cv2
+    if tile is None:
+        return True
+    hsv = cv2.cvtColor(tile, cv2.COLOR_BGR2HSV)
+    return float(hsv[:, :, 1].mean()) < 12 and float(tile.reshape(-1, 3).std(axis=0).mean()) < 14
+
+
+# Typical crown diameter (m) and planting spacing (m) per species — used to
+# scale the detector. Defaults cover mixed Tunisian orchards.
+_SPECIES_GEOM = {
+    "olive":  (4.0, 7.0),
+    "orange": (3.5, 5.0),
+    "lemon":  (3.2, 5.0),
+    "citrus": (3.5, 5.0),
+}
+
+
+def _detect_crowns(img_bgr, mpp: float, species: str = None):
+    """Detect individual tree-crown centres (pixel coords).
+
+    Strategy (best → fallback):
+      1. DeepForest deep-learning crown detector, if installed in-process.
+      2. A robust classical pipeline tuned for orchards, that beats the old
+         green-blob detector on two hard cases:
+           • dense canopy where neighbouring crowns touch  → separated by a
+             multi-scale blob filter (Difference-of-Gaussians at crown scale)
+             + non-maximum suppression at the planting spacing;
+           • grass / crop fields wrongly read as 'trees'   → rejected by a
+             TEXTURE gate (crowns alternate bright canopy / dark shade → high
+             local variance; a flat field is smooth) and a SHADOW gate (a real
+             crown has a dark pixel within one crown radius).
+    Crown size is derived from the image resolution `mpp` (metres/pixel) and the
+    species geometry, so it adapts to the satellite zoom actually available."""
+    # 1. DeepForest in-process (best, optional — only if the user installed it)
     try:
         import importlib.util
         if importlib.util.find_spec("deepforest"):
@@ -192,29 +229,78 @@ def _detect_crowns(img_bgr, min_area: int, max_area: int):
     except Exception:
         pass
 
-    # 2. OpenCV fallback — green canopy blobs (no heavy deps, no torch conflict)
+    # 2. Classical orchard-tuned detector (cv2 + numpy only — offline-safe).
     import cv2
     import numpy as np
-    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, (25, 25, 20), (95, 255, 210))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8), iterations=1)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8), iterations=2)
-    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    centres = []
-    for c in cnts:
-        a = cv2.contourArea(c)
-        if min_area <= a <= max_area:
-            M = cv2.moments(c)
-            if M["m00"] > 0:
-                centres.append((M["m10"] / M["m00"], M["m01"] / M["m00"]))
-    return centres
+    crown_m, spacing_m = _SPECIES_GEOM.get((species or "").lower(), (4.0, 5.0))
+    mpp = mpp if (mpp and mpp > 0) else 0.5
+
+    # Resample to ~0.16 m/px for fine localisation, but cap the working size
+    # (memory) — upsample small crops, downsample very large ones.
+    ih0, iw0 = img_bgr.shape[:2]
+    scale = mpp / 0.16
+    scale = min(scale, 2200.0 / max(ih0, iw0))
+    scale = max(scale, 0.3)
+    if abs(scale - 1.0) > 0.05:
+        interp = cv2.INTER_CUBIC if scale > 1 else cv2.INTER_AREA
+        img = cv2.resize(img_bgr, None, fx=scale, fy=scale, interpolation=interp)
+    else:
+        img, scale = img_bgr, 1.0
+    mpp_w = mpp / scale
+
+    b, g, r = cv2.split(img.astype(np.float32))
+    exg = 2 * g - r - b                                       # excess-green index
+    exg_u = cv2.normalize(np.clip(exg, 0, None), None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    _, veg = cv2.threshold(exg_u, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    veg = cv2.morphologyEx(veg, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
+
+    # Multi-scale blob response (DoG) peaking at the crown radius
+    r_px = max(1.5, (crown_m / 2.0) / mpp_w)
+    s1 = max(1.0, r_px * 0.62); s2 = s1 * 1.6
+    dog = cv2.GaussianBlur(exg, (0, 0), s1) - cv2.GaussianBlur(exg, (0, 0), s2)
+    dog[veg == 0] = 0
+
+    # Texture gate (local luminance std) — high on canopy, low on flat fields
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype(np.float32)
+    win = max(3, int(round(spacing_m / mpp_w)) | 1)
+    m1 = cv2.boxFilter(gray, -1, (win, win))
+    m2 = cv2.boxFilter(gray * gray, -1, (win, win))
+    tex = np.sqrt(np.clip(m2 - m1 * m1, 0, None))
+
+    # Shadow gate — a real crown has a dark pixel within ~1 crown radius
+    darkk = max(3, int(round(r_px * 1.4)) | 1)
+    locmin = cv2.erode(gray, np.ones((darkk, darkk), np.uint8))
+    shadow = locmin < np.percentile(gray, 35)
+
+    # Non-max suppression at planting spacing
+    md = max(3, int(round(spacing_m / mpp_w)) | 1)
+    local_max = cv2.dilate(dog, np.ones((md, md), np.uint8))
+    pos = dog[dog > 0]
+    if pos.size == 0:
+        return []
+    dthr = max(1.0, float(np.percentile(pos, 55)))
+    tthr = float(np.percentile(tex[veg > 0], 58)) if np.any(veg > 0) else 0.0
+    peaks = (dog >= local_max - 1e-3) & (dog > dthr) & (tex > tthr) & shadow
+    ys, xs = np.where(peaks)
+    return [(float(x) / scale, float(y) / scale) for x, y in zip(xs, ys)]
+
+
+# Satellite tile providers for the DETECTION mosaic, preferred first. Google has
+# much higher native zoom (z20–21 ≈ 0.15–0.075 m/px) than Esri (z18 ≈ 0.48 m/px)
+# over rural Tunisia — decisive for crown detection. Esri stays as a licensed
+# fallback. Override the preferred provider via settings.SAT_TILE_PROVIDER.
+_TILE_PROVIDERS = {
+    "google": ("https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}", 20),
+    "esri":   (_ESRI_TILE + "/{z}/{y}/{x}", 19),
+}
 
 
 def _fetch_satellite_mosaic(north, south, east, west, max_tiles=420):
-    """Stitch Esri World Imagery XYZ tiles into one image for the bbox.
-    Reliable (the same tiles the map shows) — unlike the /export op which 500s
-    above ~1024 px. Keeps the HIGHEST zoom (best resolution for crown detection)
-    that fits the tile budget. Returns (png_bytes, width, height)."""
+    """Stitch satellite XYZ tiles into one image for the bbox, at the HIGHEST
+    resolution actually available. Tries Google (high-res) then Esri (licensed
+    fallback); for each, picks the highest zoom that fits the tile budget AND
+    serves real imagery (rejecting Esri's flat-gray 'no imagery' placeholder).
+    Returns (png_bytes, width, height, mpp)."""
     import math
     import httpx
     import cv2
@@ -226,43 +312,68 @@ def _fetch_satellite_mosaic(north, south, east, west, max_tiles=420):
         y = (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * n
         return x, y
 
-    # Target z19 (~0.25 m/px → crowns ~20 px, DeepForest's sweet spot). z20 makes
-    # crowns too large and the model misses them; step down only if over budget.
-    z = 19
-    while z > 15:
-        xw, yn = d2t(west, north, z)
-        xe, ys = d2t(east, south, z)
-        nx = math.floor(xe) - math.floor(xw) + 1
-        ny = math.floor(ys) - math.floor(yn) + 1
-        if nx * ny <= max_tiles:
-            break
-        z -= 1
+    clon, clat = (east + west) / 2.0, (north + south) / 2.0
+    try:
+        from app.core.config import settings
+        pref = (getattr(settings, "SAT_TILE_PROVIDER", "") or "google").lower()
+    except Exception:
+        pref = "google"
+    order = [pref] + [p for p in _TILE_PROVIDERS if p != pref]
 
-    x0i, y0i = math.floor(xw), math.floor(yn)
-    x1i, y1i = math.floor(xe), math.floor(ys)
-    cols, rows = x1i - x0i + 1, y1i - y0i + 1
-    mosaic = np.zeros((rows * 256, cols * 256, 3), np.uint8)
-    base = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile"
-    with httpx.Client(timeout=20, headers={"User-Agent": "SmartFarmAI/1.0"}) as cli:
-        for tx in range(x0i, x1i + 1):
-            for ty in range(y0i, y1i + 1):
-                try:
-                    r = cli.get(f"{base}/{z}/{ty}/{tx}")
-                    if r.status_code == 200:
-                        tile = cv2.imdecode(np.frombuffer(r.content, np.uint8), cv2.IMREAD_COLOR)
-                        if tile is not None and tile.shape[:2] == (256, 256):
-                            oy, ox = (ty - y0i) * 256, (tx - x0i) * 256
-                            mosaic[oy:oy + 256, ox:ox + 256] = tile
-                except Exception:
-                    pass
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; SmartFarmAI/1.0)"}
+    with httpx.Client(timeout=20, headers=headers, follow_redirects=True) as cli:
+        for name in order:
+            if name not in _TILE_PROVIDERS:
+                continue
+            tmpl, zstart = _TILE_PROVIDERS[name]
+            z, found = zstart, False
+            while z > 14:
+                xw, yn = d2t(west, north, z)
+                xe, ys = d2t(east, south, z)
+                nx = math.floor(xe) - math.floor(xw) + 1
+                ny = math.floor(ys) - math.floor(yn) + 1
+                if nx * ny <= max_tiles:
+                    cx, cy = d2t(clon, clat, z)
+                    try:
+                        rr = cli.get(tmpl.format(z=z, x=math.floor(cx), y=math.floor(cy)))
+                        probe = cv2.imdecode(np.frombuffer(rr.content, np.uint8), cv2.IMREAD_COLOR) if rr.status_code == 200 else None
+                    except Exception:
+                        probe = None
+                    if probe is not None and not _is_placeholder_tile(probe):
+                        found = True
+                        break
+                z -= 1
+            if not found:
+                continue  # try next provider
 
-    left, top = int(round((xw - x0i) * 256)), int(round((yn - y0i) * 256))
-    right, bottom = int(round((xe - x0i) * 256)), int(round((ys - y0i) * 256))
-    crop = mosaic[top:max(top + 1, bottom), left:max(left + 1, right)]
-    ok, buf = cv2.imencode(".png", crop)
-    if not ok:
-        raise RuntimeError("encode failed")
-    return buf.tobytes(), crop.shape[1], crop.shape[0]
+            xw, yn = d2t(west, north, z)
+            xe, ys = d2t(east, south, z)
+            x0i, y0i = math.floor(xw), math.floor(yn)
+            x1i, y1i = math.floor(xe), math.floor(ys)
+            cols, rows = x1i - x0i + 1, y1i - y0i + 1
+            mosaic = np.zeros((rows * 256, cols * 256, 3), np.uint8)
+            for tx in range(x0i, x1i + 1):
+                for ty in range(y0i, y1i + 1):
+                    try:
+                        r = cli.get(tmpl.format(z=z, x=tx, y=ty))
+                        if r.status_code == 200:
+                            tile = cv2.imdecode(np.frombuffer(r.content, np.uint8), cv2.IMREAD_COLOR)
+                            if tile is not None and tile.shape[:2] == (256, 256):
+                                oy, ox = (ty - y0i) * 256, (tx - x0i) * 256
+                                mosaic[oy:oy + 256, ox:ox + 256] = tile
+                    except Exception:
+                        pass
+
+            left, top = int(round((xw - x0i) * 256)), int(round((yn - y0i) * 256))
+            right, bottom = int(round((xe - x0i) * 256)), int(round((ys - y0i) * 256))
+            crop = mosaic[top:max(top + 1, bottom), left:max(left + 1, right)]
+            mpp = 156543.03392 * math.cos(math.radians(clat)) / (2 ** z)
+            ok, buf = cv2.imencode(".png", crop)
+            if not ok:
+                raise RuntimeError("encode failed")
+            return buf.tobytes(), crop.shape[1], crop.shape[0], mpp
+
+    raise RuntimeError("aucune imagerie satellite disponible pour cette zone")
 
 
 @router.post("/detect")
@@ -296,7 +407,7 @@ def detect_trees(
     # High-resolution satellite image of the bbox, stitched from XYZ tiles
     # (reliable — the /export op 500s above ~1024 px).
     try:
-        img_bytes, W, H = _fetch_satellite_mosaic(north, south, east, west)
+        img_bytes, W, H, mpp = _fetch_satellite_mosaic(north, south, east, west)
     except Exception as exc:
         raise HTTPException(503, f"Imagerie satellite indisponible: {exc}")
 
@@ -308,7 +419,9 @@ def detect_trees(
         try:
             import httpx
             resp = httpx.post(f"{df_url.rstrip('/')}/detect",
-                              files={"file": ("tile.png", img_bytes, "image/png")}, timeout=300)
+                              files={"file": ("tile.png", img_bytes, "image/png")},
+                              data={"mpp": str(mpp), "species": (data.get("species") or "")},
+                              timeout=300)
             resp.raise_for_status()
             j = resp.json()
             iw, ih = j.get("width"), j.get("height")
@@ -327,9 +440,8 @@ def detect_trees(
         if img is None:
             raise HTTPException(503, "Image satellite illisible")
         ih, iw = img.shape[:2]
-        area = iw * ih
-        centres = _detect_crowns(img, min_area=int(area * 0.00015), max_area=int(area * 0.02))
-        engine = "deepforest-inproc" if __import__("importlib.util").util.find_spec("deepforest") else "opencv"
+        centres = _detect_crowns(img, mpp, data.get("species"))
+        engine = "deepforest-inproc" if __import__("importlib.util").util.find_spec("deepforest") else "orchard-cv"
 
     # Map pixel → GPS, deduplicate near-identical points, cap
     species = (data.get("species") or None)

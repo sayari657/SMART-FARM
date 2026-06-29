@@ -293,3 +293,139 @@ async def overpass_proxy(payload: dict):
             return JSONResponse(content=data)
 
     raise HTTPException(status_code=502, detail="All Overpass mirrors unreachable")
+
+
+# ── IoT Sensors GeoJSON — farms with active sensors ────────────────────────────
+@router.get("/iot-sensors", response_model=GeoJSONFeatureCollection)
+def get_iot_sensors_geojson(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Return a GeoJSON FeatureCollection of farms that have IoT sensors,
+    with sensor counts and statuses embedded in properties."""
+    from app.models.domain import Sensor, AnimalUnit
+    from sqlalchemy import func
+
+    # Aggregate sensor stats per farm
+    rows = (
+        db.query(
+            Farm.id,
+            Farm.name,
+            Farm.latitude,
+            Farm.longitude,
+            Farm.location,
+            func.count(Sensor.id).label("total"),
+            func.sum(Sensor.is_active.cast(db.bind.dialect.name == "sqlite" and "INTEGER" or "INTEGER")).label("active"),
+        )
+        .join(AnimalUnit, AnimalUnit.farm_id == Farm.id)
+        .join(Sensor, Sensor.unit_id == AnimalUnit.id)
+        .filter(Farm.latitude.isnot(None), Farm.longitude.isnot(None))
+        .group_by(Farm.id, Farm.name, Farm.latitude, Farm.longitude, Farm.location)
+        .all()
+    )
+
+    features = []
+    for r in rows:
+        total = r.total or 0
+        active = int(r.active or 0)
+        offline = total - active
+        status = "ok" if offline == 0 else ("warning" if offline < total else "offline")
+        features.append(GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[r.longitude, r.latitude]),
+            properties={
+                "id": f"iot_{r.id}",
+                "farm_id": r.id,
+                "name": r.name,
+                "address": r.location or "",
+                "total": total,
+                "active": active,
+                "offline": offline,
+                "status": status,
+                "lat": r.latitude,
+                "lon": r.longitude,
+            }
+        ))
+    return GeoJSONFeatureCollection(features=features)
+
+
+# ── Farm Alerts GeoJSON — farms with active (unresolved) alerts ─────────────────
+@router.get("/farm-alerts", response_model=GeoJSONFeatureCollection)
+def get_farm_alerts_geojson(db: Session = Depends(get_db), _=Depends(get_current_user)):
+    """Return farms with at least one unresolved alert (weather + livestock)."""
+    from app.models.domain import Alert, AnimalUnit, WeatherAlert
+    from sqlalchemy import func, case
+
+    crit_expr = func.sum(case((Alert.severity == "critical", 1), else_=0))
+    wcrit_expr = func.sum(case((WeatherAlert.severity == "critical", 1), else_=0))
+
+    # Per-farm aggregation: {farm_id: {farm, total, critical, weather, livestock}}
+    agg: dict = {}
+
+    def _bucket(farm):
+        return agg.setdefault(farm.id, {
+            "farm": farm, "total": 0, "critical": 0, "weather": 0, "livestock": 0,
+        })
+
+    # 1) Weather alerts (farm-scoped) ───────────────────────────────────────
+    weather_rows = (
+        db.query(
+            Farm,
+            func.count(WeatherAlert.id).label("cnt"),
+            wcrit_expr.label("crit"),
+        )
+        .join(WeatherAlert, WeatherAlert.farm_id == Farm.id)
+        .filter(
+            WeatherAlert.is_resolved == False,        # noqa: E712
+            Farm.latitude.isnot(None),
+            Farm.longitude.isnot(None),
+        )
+        .group_by(Farm.id)
+        .all()
+    )
+    for farm, cnt, crit in weather_rows:
+        b = _bucket(farm)
+        b["total"] += int(cnt or 0)
+        b["critical"] += int(crit or 0)
+        b["weather"] += int(cnt or 0)
+
+    # 2) Livestock alerts (Alert → AnimalUnit → Farm) ───────────────────────
+    livestock_rows = (
+        db.query(
+            Farm,
+            func.count(Alert.id).label("cnt"),
+            crit_expr.label("crit"),
+        )
+        .join(AnimalUnit, AnimalUnit.farm_id == Farm.id)
+        .join(Alert, Alert.unit_id == AnimalUnit.id)
+        .filter(
+            Alert.is_resolved == False,               # noqa: E712
+            Farm.latitude.isnot(None),
+            Farm.longitude.isnot(None),
+        )
+        .group_by(Farm.id)
+        .all()
+    )
+    for farm, cnt, crit in livestock_rows:
+        b = _bucket(farm)
+        b["total"] += int(cnt or 0)
+        b["critical"] += int(crit or 0)
+        b["livestock"] += int(cnt or 0)
+
+    features = []
+    for farm_id, b in agg.items():
+        farm = b["farm"]
+        severity = "critical" if b["critical"] > 0 else "warning"
+        features.append(GeoJSONFeature(
+            geometry=GeoJSONGeometry(type="Point", coordinates=[farm.longitude, farm.latitude]),
+            properties={
+                "id": f"alert_{farm_id}",
+                "farm_id": farm_id,
+                "name": farm.name,
+                "address": farm.location or "",
+                "total_alerts": b["total"],
+                "critical_alerts": b["critical"],
+                "weather_alerts": b["weather"],
+                "livestock_alerts": b["livestock"],
+                "severity": severity,
+                "lat": farm.latitude,
+                "lon": farm.longitude,
+            }
+        ))
+    return GeoJSONFeatureCollection(features=features)
